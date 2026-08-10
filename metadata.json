@@ -1,0 +1,8 @@
+{
+  "name": "RepIo",
+  "description": "Track your workouts, real-time single-tap \u0027Workout Now\u0027 logging, interactive progress charts, and weekly summary reports.",
+  "requestFramePermissions": [],
+  "majorCapabilities": [
+    "MAJOR_CAPABILITY_SERVER_SIDE_GEMINI_API"
+  ]
+}
