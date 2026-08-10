@@ -1,6 +1,11 @@
 package com.example.ui.screens
 
 import android.widget.Toast
+import android.content.Context
+import android.net.ConnectivityManager
+import android.net.NetworkCapabilities
+import android.os.Handler
+import android.os.Looper
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -57,10 +62,54 @@ fun SupportScreen(
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
+    val sharedPrefs = remember { context.getSharedPreferences("support_prefs", Context.MODE_PRIVATE) }
 
     var subject by remember { mutableStateOf("") }
     var message by remember { mutableStateOf("") }
     var isSubmitting by remember { mutableStateOf(false) }
+
+    fun isNetworkAvailable(context: Context): Boolean {
+        val connectivityManager = context.getSystemService(Context.CONNECTIVITY_SERVICE) as ConnectivityManager
+        val network = connectivityManager.activeNetwork ?: return false
+        val activeNetwork = connectivityManager.getNetworkCapabilities(network) ?: return false
+        return when {
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_WIFI) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_CELLULAR) -> true
+            activeNetwork.hasTransport(NetworkCapabilities.TRANSPORT_ETHERNET) -> true
+            else -> false
+        }
+    }
+    
+    // Flexible Anti-spam configuration
+    val MAX_DAILY_TICKETS = 5
+    val SHORT_COOLDOWN_MILLIS = 10 * 60 * 1000L // 10 mins after 2 tickets
+    
+    var lastSubmitTime by remember { mutableStateOf(sharedPrefs.getLong("last_submit_time", 0L)) }
+    var dailyCount by remember { mutableStateOf(sharedPrefs.getInt("daily_ticket_count", 0)) }
+    var lastResetDay by remember { mutableStateOf(sharedPrefs.getLong("last_reset_day", 0L)) }
+
+    val currentTime = System.currentTimeMillis()
+    
+    // Check if we need to reset the daily counter (if last reset was not today)
+    val isNewDay = !android.text.format.DateUtils.isToday(lastResetDay)
+    val effectiveDailyCount = if (isNewDay) 0 else dailyCount
+
+    // Flexible logic:
+    // 1. If daily limit (5) is reached -> Block for day
+    // 2. If short-term limit (2) is reached -> 10 min cooldown
+    val isDailyLimitReached = effectiveDailyCount >= MAX_DAILY_TICKETS
+    val isShortCooldownActive = effectiveDailyCount >= 2 && (currentTime - lastSubmitTime < SHORT_COOLDOWN_MILLIS)
+    
+    val isCooldownActive = isDailyLimitReached || isShortCooldownActive
+    
+    val cooldownMessage = when {
+        isDailyLimitReached -> "Daily limit reached. Please try again tomorrow."
+        isShortCooldownActive -> {
+            val remaining = ((SHORT_COOLDOWN_MILLIS - (currentTime - lastSubmitTime)) / 60000) + 1
+            "Please wait $remaining min before sending another ticket."
+        }
+        else -> ""
+    }
 
     Column(
         modifier = modifier
@@ -159,36 +208,83 @@ fun SupportScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        if (isCooldownActive) {
+                            Text(
+                                text = cooldownMessage,
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error,
+                                modifier = Modifier.padding(bottom = 8.dp)
+                            )
+                        }
+
                         Button(
                             onClick = {
+                                if (isCooldownActive) return@Button
+
                                 if (subject.isBlank() || message.isBlank()) {
                                     Toast.makeText(context, "Please fill in both fields", Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
 
+                                if (!isNetworkAvailable(context)) {
+                                    Toast.makeText(context, "Internet unavailable or Server unreachable. Please check your connection.", Toast.LENGTH_LONG).show()
+                                    return@Button
+                                }
+
                                 isSubmitting = true
                                 val db = FirebaseFirestore.getInstance()
+
+                                // Manual 10-second timeout to prevent infinite loading
+                                val timeoutHandler = Handler(Looper.getMainLooper())
+                                val timeoutRunnable = Runnable {
+                                    if (isSubmitting) {
+                                        isSubmitting = false
+                                        Toast.makeText(context, "Server unreachable. Please try again later.", Toast.LENGTH_LONG).show()
+                                    }
+                                }
+                                timeoutHandler.postDelayed(timeoutRunnable, 10000L)
+
                                 val ticket = hashMapOf(
                                     "subject" to subject,
                                     "message" to message,
                                     "timestamp" to System.currentTimeMillis(),
-                                    "status" to "open"
+                                    "status" to "open",
+                                    "device_model" to android.os.Build.MODEL
                                 )
 
                                 db.collection("support_tickets")
                                     .add(ticket)
                                     .addOnSuccessListener {
+                                        timeoutHandler.removeCallbacks(timeoutRunnable)
+                                        if (!isSubmitting) return@addOnSuccessListener
+
+                                        val now = System.currentTimeMillis()
+                                        val newDailyCount = if (isNewDay) 1 else effectiveDailyCount + 1
+                                        
+                                        sharedPrefs.edit()
+                                            .putLong("last_submit_time", now)
+                                            .putInt("daily_ticket_count", newDailyCount)
+                                            .putLong("last_reset_day", now)
+                                            .apply()
+                                            
+                                        lastSubmitTime = now
+                                        dailyCount = newDailyCount
+                                        lastResetDay = now
+                                        
                                         isSubmitting = false
                                         subject = ""
                                         message = ""
                                         Toast.makeText(context, "Ticket sent successfully!", Toast.LENGTH_LONG).show()
                                     }
                                     .addOnFailureListener { e ->
+                                        timeoutHandler.removeCallbacks(timeoutRunnable)
+                                        if (!isSubmitting) return@addOnFailureListener
+
                                         isSubmitting = false
                                         Toast.makeText(context, "Error: ${e.message}", Toast.LENGTH_LONG).show()
                                     }
                             },
-                            enabled = !isSubmitting,
+                            enabled = !isSubmitting && !isCooldownActive,
                             shape = RoundedCornerShape(10.dp),
                             modifier = Modifier.fillMaxWidth().height(42.dp)
                         ) {
