@@ -1,22 +1,37 @@
-<div align="center">
-<img width="1200" height="475" alt="GHBanner" src="https://ai.google.dev/static/site-assets/images/share-ais-513315318.png" />
-</div>
+# Exercise & Activity Tracker
 
-# Run and deploy your AI Studio app
+A minimalist, modern Android application designed for real-time workout logging and clean weekly progress analytics. Built with simplicity in mind—zero advertisements, zero bloat, and pure performance for everyday use.
 
-This contains everything you need to run your app locally.
+---
 
-View your app in AI Studio: https://ai.studio/apps/07d31b10-b167-45d6-a6d3-56a196ce5737
+## 🌟 Key Features
 
-## Run Locally
+- ⚡ **Live Exercise Logging:** Track your ongoing workouts, sets, and active sessions in real time.
+- 📊 **Weekly Progress Analytics:** Clear, intuitive visual summaries of your weekly exercise consistency.
+- 🎯 **Ad-Free & Private:** Designed for everyday utility with no external ads or unnecessary tracking.
+- 🎨 **Modern Minimalist UI:** Built using modern Android UI guidelines for a fast, responsive experience.
 
-**Prerequisites:**  [Android Studio](https://developer.android.com/studio)
+---
 
+## 📱 Tech Stack
 
-1. Open Android Studio
-2. Select **Open** and choose the directory containing this project
-3. Allow Android Studio to fix any incompatibilities as it imports the project.
-4. Create a file named `.env` in the project directory and set `GEMINI_API_KEY` in that file to your Gemini API key (see `.env.example` for an example)
-5. Remove this line from the app's `build.gradle.kts` file: `signingConfig = signingConfigs.getByName("debugConfig")`
-6. Run the app on an emulator or physical device
-7. If you have already published your app in AI Studio, please [request upload key reset](https://support.google.com/googleplay/android-developer/answer/9842756#zippy=%2Crequest-an-upload-key-reset) in Google Play Console.
+- **Platform:** Android (API 24+)
+- **Language:** Kotlin / Java
+- **UI Framework:** Material Design 3
+- **Version Control:** Git / GitHub
+
+---
+
+## 🚀 Getting Started
+
+### Prerequisites
+
+- Android Studio (Ladybug / Jellyfish or newer recommended)
+- JDK 17 or higher
+- Android SDK 34+
+
+### Installation & Local Setup
+
+1. **Clone the repository:**
+   ```bash
+   git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
