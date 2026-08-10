@@ -1,0 +1,30 @@
+{
+  "project_info": {
+    "project_number": "630578042204",
+    "firebase_url": "https://workout-tracker-623ba-default-rtdb.europe-west1.firebasedatabase.app",
+    "project_id": "workout-tracker-623ba",
+    "storage_bucket": "workout-tracker-623ba.firebasestorage.app"
+  },
+  "client": [
+    {
+      "client_info": {
+        "mobilesdk_app_id": "1:630578042204:android:8e9c03c817449504a65d99",
+        "android_client_info": {
+          "package_name": "com.aistudio.workouttracker.app.kptidu"
+        }
+      },
+      "oauth_client": [],
+      "api_key": [
+        {
+          "current_key": "AIzaSyAv0H_OpdhMcdmH9UyB_ftyE8Qzzc3zO6c"
+        }
+      ],
+      "services": {
+        "appinvite_service": {
+          "other_platform_oauth_client": []
+        }
+      }
+    }
+  ],
+  "configuration_version": "1"
+}
