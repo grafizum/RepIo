@@ -34,4 +34,4 @@ A minimalist, modern Android application designed for real-time workout logging 
 
 1. **Clone the repository:**
    ```bash
-   git clone [https://github.com/your-username/your-repo-name.git](https://github.com/your-username/your-repo-name.git)
+   git clone [https://github.com/grafizum/RepIo.git](https://github.com/grafizum/RepIo.git)
