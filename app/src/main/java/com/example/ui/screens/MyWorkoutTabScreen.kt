@@ -5,6 +5,7 @@ import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
+import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
@@ -18,6 +19,7 @@ fun MyWorkoutTabScreen(
     modifier: Modifier = Modifier
 ) {
     var selectedSubTab by remember { mutableIntStateOf(initialTab) }
+    var showAddDialogOnLoad by remember { mutableStateOf(false) }
 
     Box(
         modifier = modifier.fillMaxSize()
@@ -35,7 +37,10 @@ fun MyWorkoutTabScreen(
                 onNavigateToWorkoutNow = { day ->
                     viewModel.selectDayForWorkoutNow(day)
                     selectedSubTab = 0
-                }
+                },
+                initialShowAddDialog = showAddDialogOnLoad,
+                onAddDialogDismissed = { showAddDialogOnLoad = false },
+                onCustomClick = { selectedSubTab = 0 }
             )
         }
     }

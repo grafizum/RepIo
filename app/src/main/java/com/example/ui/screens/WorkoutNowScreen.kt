@@ -195,12 +195,13 @@ fun WorkoutNowScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     val trainingType = currentDayEntity?.title?.let { title ->
-                        if (title.contains("—")) {
-                            title.substringAfter("—").trim()
-                        } else if (title.contains("-")) {
-                            title.substringAfter("-").trim()
+                        val translatedTitle = com.example.ui.components.translateDayTitle(title)
+                        if (translatedTitle.contains("—")) {
+                            translatedTitle.substringAfter("—").trim()
+                        } else if (translatedTitle.contains("-")) {
+                            translatedTitle.substringAfter("-").trim()
                         } else {
-                            title
+                            translatedTitle
                         }
                     } ?: ""
 
@@ -214,18 +215,20 @@ fun WorkoutNowScreen(
                 }
             }
 
-            if (onChangeRoutine != null) {
-                OutlinedButton(
-                    onClick = onChangeRoutine,
-                    shape = RoundedCornerShape(10.dp),
-                    contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    modifier = Modifier
-                        .height(32.dp)
-                        .semantics { testTag = "change_workout_button" }
-                ) {
-                    Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(stringResource(R.string.custom), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onChangeRoutine != null) {
+                    OutlinedButton(
+                        onClick = onChangeRoutine,
+                        shape = RoundedCornerShape(10.dp),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier
+                            .height(32.dp)
+                            .semantics { testTag = "change_workout_button" }
+                    ) {
+                        Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.custom), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                    }
                 }
             }
         }
@@ -503,7 +506,7 @@ fun WorkoutNowScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = currentExercise.name,
+                            text = com.example.ui.components.translateExerciseName(currentExercise.name),
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
@@ -549,7 +552,7 @@ fun WorkoutNowScreen(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     if (nextExercise != null) {
                                         Text(
-                                            text = stringResource(R.string.next_up_exercise, nextExercise.name, nextExercise.targetSets),
+                                            text = stringResource(R.string.next_up_exercise, com.example.ui.components.translateExerciseName(nextExercise.name), nextExercise.targetSets),
                                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,

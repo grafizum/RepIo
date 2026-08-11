@@ -75,22 +75,6 @@ private val EmeraldColorScheme = lightColorScheme(
     outline = Color(0xFFB2DFDB)
 )
 
-private val MidnightColorScheme = darkColorScheme(
-    primary = MidnightBlue,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF1E2235),
-    onPrimaryContainer = MidnightLight,
-    secondary = MidnightLight,
-    onSecondary = Color.Black,
-    background = Color(0xFF14172B),
-    onBackground = Color(0xFFE3E2E6),
-    surface = Color(0xFF1E2235),
-    onSurface = Color(0xFFE3E2E6),
-    surfaceVariant = Color(0xFF2C3145),
-    onSurfaceVariant = Color(0xFFC4C6D0),
-    outline = Color(0xFF8E9099)
-)
-
 private val CrimsonColorScheme = lightColorScheme(
     primary = Color(0xFFC62828),
     onPrimary = Color.White,
@@ -105,6 +89,22 @@ private val CrimsonColorScheme = lightColorScheme(
     surfaceVariant = Color(0xFFFDE8E9),
     onSurfaceVariant = Color(0xFF721C24),
     outline = Color(0xFFE9B9BD)
+)
+
+private val AzureSkyColorScheme = lightColorScheme(
+    primary = AzureSkyPrimary,
+    onPrimary = Color.White,
+    primaryContainer = Color(0xFFE5F1FF),
+    onPrimaryContainer = Color(0xFF003366),
+    secondary = AzureSkySecondary,
+    onSecondary = Color.White,
+    background = Color.White,
+    onBackground = Color(0xFF1C1C1E),
+    surface = Color(0xFFF2F2F7),
+    onSurface = Color(0xFF1C1C1E),
+    surfaceVariant = Color(0xFFE5E5EA),
+    onSurfaceVariant = Color(0xFF3A3A3C),
+    outline = Color(0xFFC7C7CC)
 )
 
 private val GoldColorScheme = darkColorScheme(
@@ -171,22 +171,6 @@ private val RoseColorScheme = darkColorScheme(
     outline = Color(0xFFC2185B)
 )
 
-private val ForestColorScheme = darkColorScheme(
-    primary = ForestPrimary,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF1A2C1A),
-    onPrimaryContainer = ForestLight,
-    secondary = ForestLight,
-    onSecondary = Color.Black,
-    background = Color(0xFF0F2111),
-    onBackground = Color.White,
-    surface = Color(0xFF1A2C1A),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF2A3D2A),
-    onSurfaceVariant = Color(0xFFE8F5E9),
-    outline = Color(0xFF388E3C)
-)
-
 private val AmberColorScheme = darkColorScheme(
     primary = AmberPrimary,
     onPrimary = Color.White,
@@ -211,8 +195,8 @@ fun WorkoutTrackerTheme(
     val isDark = isSystemInDarkTheme()
 
     val isLightTheme = when (themeOption.uppercase()) {
-        "BEIGE", "EMERALD", "CRIMSON" -> true
-        "FLAME", "MIDNIGHT", "GOLD", "SLATE", "OCEAN", "ROSE", "FOREST", "AMBER", "PURPLE" -> false
+        "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
+        "FLAME", "GOLD", "SLATE", "OCEAN", "ROSE", "AMBER", "PURPLE" -> false
         else -> !isDark
     }
 
@@ -220,13 +204,12 @@ fun WorkoutTrackerTheme(
         "BEIGE" -> BeigeColorScheme
         "FLAME" -> FlameColorScheme
         "EMERALD" -> EmeraldColorScheme
-        "MIDNIGHT" -> MidnightColorScheme
         "CRIMSON" -> CrimsonColorScheme
+        "AZURE" -> AzureSkyColorScheme
         "GOLD" -> GoldColorScheme
         "SLATE" -> SlateColorScheme
         "OCEAN" -> OceanColorScheme
         "ROSE" -> RoseColorScheme
-        "FOREST" -> ForestColorScheme
         "AMBER" -> AmberColorScheme
         "PURPLE" -> PurpleColorScheme
         else -> if (isDark) FlameColorScheme else BeigeColorScheme

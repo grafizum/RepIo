@@ -3,17 +3,22 @@ package com.example.util
 import android.content.ComponentName
 import android.content.Context
 import android.content.pm.PackageManager
+import android.util.Log
 
 object IconSwitchHelper {
 
-    const val ORANGE_ICON = "com.example.MainActivityOrange"
-    const val BEIGE_ICON = "com.example.MainActivityBeige"
+    private const val TAG = "IconSwitchHelper"
+
+    // These MUST match the android:name in the AndroidManifest.xml exactly
+    private const val ORANGE_ICON_FQN = "com.example.MainActivityOrange"
+    private const val BEIGE_ICON_FQN = "com.example.MainActivityBeige"
 
     fun switchIcon(context: Context, targetAlias: String) {
         val packageManager = context.packageManager
-        val packageName = context.packageName
         
-        val aliases = arrayOf(ORANGE_ICON, BEIGE_ICON)
+        val aliases = arrayOf(ORANGE_ICON_FQN, BEIGE_ICON_FQN)
+        
+        Log.d(TAG, "Switching icon to: $targetAlias")
         
         for (alias in aliases) {
             val newState = if (alias == targetAlias) {
@@ -22,20 +27,25 @@ object IconSwitchHelper {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
             
-            val componentName = ComponentName(packageName, alias)
-            val currentState = try {
-                packageManager.getComponentEnabledSetting(componentName)
-            } catch (e: Exception) {
-                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
-            }
+            // Use the actual application package name for the component resolution
+            val componentName = ComponentName(context.packageName, alias)
             
-            if (currentState != newState) {
-                packageManager.setComponentEnabledSetting(
-                    componentName,
-                    newState,
-                    PackageManager.DONT_KILL_APP
-                )
+            try {
+                val currentState = packageManager.getComponentEnabledSetting(componentName)
+                if (currentState != newState) {
+                    packageManager.setComponentEnabledSetting(
+                        componentName,
+                        newState,
+                        PackageManager.DONT_KILL_APP
+                    )
+                    Log.d(TAG, "Component $alias set to state $newState")
+                }
+            } catch (e: Exception) {
+                Log.e(TAG, "Failed to switch component state for $alias", e)
             }
         }
     }
+
+    fun getOrangeAlias(context: Context) = ORANGE_ICON_FQN
+    fun getBeigeAlias(context: Context) = BEIGE_ICON_FQN
 }

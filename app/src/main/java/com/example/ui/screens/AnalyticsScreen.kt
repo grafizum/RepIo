@@ -335,7 +335,7 @@ fun AnalyticsScreen(
                                 onExpandedChange = { expandedDropdown = !expandedDropdown }
                             ) {
                                 OutlinedTextField(
-                                    value = selectedExerciseName,
+                                    value = com.example.ui.components.translateExerciseName(selectedExerciseName),
                                     onValueChange = {},
                                     readOnly = true,
                                     label = { Text(stringResource(R.string.select_exercise)) },
@@ -351,7 +351,7 @@ fun AnalyticsScreen(
                                 ) {
                                     exerciseNames.forEach { name ->
                                         DropdownMenuItem(
-                                            text = { Text(name) },
+                                            text = { Text(com.example.ui.components.translateExerciseName(name)) },
                                             onClick = {
                                                 selectedExerciseName = name
                                                 expandedDropdown = false

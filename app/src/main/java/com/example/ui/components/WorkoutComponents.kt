@@ -127,6 +127,108 @@ fun translateMuscleGroup(muscleGroup: String): String {
 }
 
 @Composable
+fun translateExerciseName(name: String): String {
+    return when (name.trim()) {
+        "Barbell bent-over row" -> stringResource(R.string.ex_barbell_bent_over_row)
+        "One-arm dumbbell row" -> stringResource(R.string.ex_one_arm_dumbbell_row)
+        "Dumbbell pullover" -> stringResource(R.string.ex_dumbbell_pullover)
+        "Dumbbell curls" -> stringResource(R.string.ex_dumbbell_curls)
+        "Hammer curls" -> stringResource(R.string.ex_hammer_curls)
+        "Dumbbell shoulder press" -> stringResource(R.string.ex_dumbbell_shoulder_press)
+        "Dumbbell lateral raises" -> stringResource(R.string.ex_dumbbell_lateral_raises)
+        "Crunches" -> stringResource(R.string.ex_crunches)
+        "Barbell floor press" -> stringResource(R.string.ex_barbell_floor_press)
+        "Dumbbell floor press" -> stringResource(R.string.ex_dumbbell_floor_press)
+        "Leg raises" -> stringResource(R.string.ex_leg_raises)
+        "Barbell squats" -> stringResource(R.string.ex_barbell_squats)
+        "Romanian deadlifts" -> stringResource(R.string.ex_romanian_deadlifts)
+        "Dumbbell lunges" -> stringResource(R.string.ex_dumbbell_lunges)
+        "Plank" -> stringResource(R.string.ex_plank)
+        "Barbell row" -> stringResource(R.string.ex_barbell_row)
+        "Tricep dips / extensions" -> stringResource(R.string.ex_tricep_dips_extensions)
+        "Overhead tricep extension" -> stringResource(R.string.ex_overhead_tricep_extension)
+        "Overhead dumbbell extension" -> stringResource(R.string.ex_overhead_dumbbell_extension)
+        "Bench Press / Floor Press" -> stringResource(R.string.ex_bench_press_floor_press)
+        "Barbell Rows" -> stringResource(R.string.ex_barbell_rows_generic)
+        "Bicep Curls" -> stringResource(R.string.ex_bicep_curls_generic)
+        "Rear-delt dumbbell fly" -> stringResource(R.string.ex_rear_delt_dumbbell_fly)
+        "Rear-delt fly" -> stringResource(R.string.ex_rear_delt_fly)
+        "Deadlifts" -> stringResource(R.string.ex_deadlifts)
+        "Calves" -> stringResource(R.string.ex_calves)
+        "Abs" -> stringResource(R.string.ex_abs)
+        "Pull-ups" -> stringResource(R.string.ex_pull_ups)
+        "Squats" -> stringResource(R.string.ex_squats)
+        "Press" -> stringResource(R.string.ex_press)
+        "Row" -> stringResource(R.string.ex_row)
+        "Lunge" -> stringResource(R.string.ex_lunge)
+        "Biceps" -> stringResource(R.string.ex_biceps_generic)
+        "Chest Press" -> stringResource(R.string.ex_chest_press)
+        "Arms" -> stringResource(R.string.ex_arms)
+        "Core" -> stringResource(R.string.ex_core)
+        "Triceps" -> stringResource(R.string.ex_triceps_generic)
+        "Shoulders" -> stringResource(R.string.ex_shoulders_generic)
+        "Back" -> stringResource(R.string.ex_back_generic)
+        "Legs" -> stringResource(R.string.ex_legs_generic)
+        "Flyes" -> stringResource(R.string.ex_flyes)
+        else -> name
+    }
+}
+
+@Composable
+fun translateDayTitle(title: String): String {
+    // Handle formats like "Monday — Push (Chest, Shoulders, Triceps)"
+    // Or just check if the title ends with one of the standard titles
+    return when {
+        title.contains("Push (Chest, Shoulders, Triceps)") -> title.replace("Push (Chest, Shoulders, Triceps)", stringResource(R.string.push_title))
+        title.contains("Pull (Back & Biceps)") -> title.replace("Pull (Back & Biceps)", stringResource(R.string.pull_title))
+        title.contains("Legs & Core") -> title.replace("Legs & Core", stringResource(R.string.legs_core_title))
+        title.contains("Upper Body Power") -> title.replace("Upper Body Power", stringResource(R.string.upper_power_title))
+        title.contains("Lower Body & Core") -> title.replace("Lower Body & Core", stringResource(R.string.lower_power_title))
+        title.contains("Upper Body Hypertrophy") -> title.replace("Upper Body Hypertrophy", stringResource(R.string.upper_hypertrophy_title))
+        title.contains("Lower Body Hypertrophy") -> title.replace("Lower Body Hypertrophy", stringResource(R.string.lower_hypertrophy_title))
+        title.contains("Full Body A") -> title.replace("Full Body A", stringResource(R.string.full_body_a_title))
+        title.contains("Full Body B") -> title.replace("Full Body B", stringResource(R.string.full_body_b_title))
+        title.contains("Full Body C") -> title.replace("Full Body C", stringResource(R.string.full_body_c_title))
+        title.contains("Pull & Back Focus") -> title.replace("Pull & Back Focus", stringResource(R.string.pull_title))
+        title.contains("Upper Body Push & Pull") -> title.replace("Upper Body Push & Pull", stringResource(R.string.upper_power_title))
+        title.contains("Legs, Shoulders & Abs") -> title.replace("Legs, Shoulders & Abs", stringResource(R.string.legs_core_title))
+        title.contains("Upper Body Volume") -> title.replace("Upper Body Volume", stringResource(R.string.upper_hypertrophy_title))
+        title.contains("Shoulders, Arms & Back") -> title.replace("Shoulders, Arms & Back", stringResource(R.string.pull_title))
+        title.contains("Rest & Recovery") -> title.replace("Rest & Recovery", stringResource(R.string.rest_recovery_day))
+        else -> title
+    }
+}
+
+@Composable
+fun translateDayDescription(description: String): String {
+    return when (description.trim()) {
+        "Heavy chest pressing and overhead shoulder work" -> stringResource(R.string.push_desc)
+        "Heavy rows, pulldowns, and bicep hypertrophy" -> stringResource(R.string.pull_desc)
+        "Squats, lunges, leg curls, and core stability" -> stringResource(R.string.legs_desc)
+        "Heavy chest, back, shoulders, and arm pressing" -> stringResource(R.string.upper_power_desc)
+        "Squats, deadlifts, and abs" -> stringResource(R.string.lower_power_desc)
+        "Rest and mobility work" -> stringResource(R.string.rest_desc)
+        "Active rest, foam rolling, and mobility" -> stringResource(R.string.rest_desc)
+        "Active rest, walking, or light stretching" -> stringResource(R.string.rest_desc)
+        "Rest, foam rolling, and mobility work" -> stringResource(R.string.rest_desc)
+        "Volume chest flyes, rows, lateral raises, and biceps" -> stringResource(R.string.upper_power_desc)
+        "Lunges, Romanian deadlifts, calves, and core" -> stringResource(R.string.lower_power_desc)
+        "Squat, Press, Row, Core" -> stringResource(R.string.full_body_a_desc)
+        "Lunge, Shoulder Press, Pullover, Biceps" -> stringResource(R.string.full_body_b_desc)
+        "Romanian Deadlift, Chest Press, Arms, Core" -> stringResource(R.string.full_body_c_desc)
+        "Back, biceps, rear delts, and abs" -> stringResource(R.string.pull_desc)
+        "Chest, back, biceps, and core" -> stringResource(R.string.push_desc)
+        "Squats, lunges, shoulder press, and core" -> stringResource(R.string.legs_desc)
+        "Rows, curls, lateral raises, and rear delts" -> stringResource(R.string.pull_desc)
+        "Shoulder press, curls, extensions, and rows" -> stringResource(R.string.push_desc)
+        "Volume pressing and lateral raise volume" -> stringResource(R.string.push_desc)
+        "Rowing variations, rear delts, and bicep curls" -> stringResource(R.string.pull_desc)
+        "Deadlifts, Romanian deadlifts, calves, and abs" -> stringResource(R.string.legs_desc)
+        else -> description
+    }
+}
+
+@Composable
 fun StatCard(
     title: String,
     value: String,
@@ -627,7 +729,7 @@ fun MissingBodyPartsWarningCard(
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF10B981).copy(alpha = 0.15f)
+                containerColor = Color(0xFF10B981) // Solid Emerald for balanced status
             ),
             modifier = modifier.fillMaxWidth()
         ) {
@@ -638,7 +740,7 @@ fun MissingBodyPartsWarningCard(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color(0xFF10B981),
+                    tint = Color.White,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -646,12 +748,12 @@ fun MissingBodyPartsWarningCard(
                     Text(
                         text = stringResource(R.string.balanced_workout_routine),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color(0xFF10B981)
+                        color = Color.White
                     )
                     Text(
                         text = stringResource(R.string.balanced_workout_desc),
                         style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                        color = Color.White
                     )
                 }
             }

@@ -28,11 +28,14 @@
     <string name="resting_timer_duration">Durata timer riposo</string>
     <string name="auto_countdown_interval">Intervallo di countdown automatico tra le serie</string>
     <string name="color_theme">Tema colori</string>
+    <string name="app_icon_selection">Selezione Icona App</string>
+    <string name="light_icon_beige">Icona Chiara (Beige)</string>
+    <string name="dark_icon_orange">Icona Scura (Arancio)</string>
     <string name="light_mode_theme">MODALITÀ CHIARA / TEMA CHIARO</string>
     <string name="dark_mode_theme">MODALITÀ SCURA / TEMA SCURO</string>
-    <string name="first_time_onboarding">Prima configurazione</string>
-    <string name="reopen_initial_setup">Riapri la schermata di configurazione iniziale</string>
-    <string name="rerun">Riavvia</string>
+    <string name="recreate_workout">Ricrea allenamento</string>
+    <string name="recreate_workout_desc">Apri la scheda di configurazione per scegliere una nuova routine o creare uno split.</string>
+    <string name="recreate">Ricrea</string>
     <string name="support_requests">Richieste di supporto</string>
     <string name="submit_feedback">Invia feedback o segnala problemi</string>
     <string name="open_support">Apri supporto</string>
@@ -70,8 +73,8 @@
     <string name="watch_demo">Guarda Demo</string>
     <string name="watch_demo_video">Guarda Video Demo</string>
     <string name="edit_demo_link">Modifica Link Demo</string>
-    <string name="input_demo">Inserisci Demo</string>
-    <string name="input_demo_video">Inserisci Video Demo</string>
+    <string name="input_demo">Aggiungi Demo</string>
+    <string name="input_demo_video">Aggiungi Video Demo</string>
     <string name="demo_video_link">Link Video Demo</string>
     <string name="enter_video_url_desc">Inserisci un URL video per questa demo:</string>
     <string name="video_url">URL Video</string>
@@ -101,11 +104,16 @@
     <string name="restart_workout_session_title">Riavviare la sessione?</string>
     <string name="restart_workout_session_text">Sei sicuro di voler riavviare l\'allenamento di oggi? Il progresso per questa sessione sarà azzerato all\'esercizio 1, serie 1.</string>
     <string name="restart">Riavvia</string>
+    <string name="change_app_icon_title">Cambiare l\'icona dell\'app?</string>
+    <string name="change_app_icon_text">Vuoi cambiare anche l\'icona dell\'app per abbinarla al nuovo tema colori?</string>
+    <string name="yes">Sì</string>
+    <string name="no">No</string>
     <string name="set_custom_weight_title">Imposta peso personalizzato (kg)</string>
     <string name="enter_custom_weight_text">Inserisci il peso personalizzato per la tua serie:</string>
     <string name="weight_in_kg">Peso in kg</string>
     <string name="save_weight">Salva peso</string>
     <string name="custom">Personalizza</string>
+    <string name="my_workout">Mio Allenamento</string>
     <string name="rest_recovery_day">Giorno di riposo e recupero</string>
     <string name="rest_recovery_recommendation">Nessun allenamento pianificato per %1$s. Consigliata una camminata attiva o mobilità leggera!</string>
     <string name="workout_completed_title">Allenamento completato! 🎉</string>
@@ -160,7 +168,9 @@
     <string name="muscle_group_body_part">Gruppo muscolare / Parte del corpo</string>
     <string name="target_sets">Serie target</string>
     <string name="target_reps">Ripetizioni target</string>
-    <string name="save_and_start">SALVA E INIZIA</string>
+    <string name="save_and_start">Salva</string>
+    <string name="close">Chiudi</string>
+    <string name="new_action">Nuovo</string>
     <string name="select">Seleziona</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma di allenamento?</string>
@@ -200,6 +210,49 @@
     <string name="time_efficient">Efficienza temporale</string>
     <string name="workout_days_plus_rest">%1$d giorni allenamento + %2$d giorni riposo</string>
 
+    <!-- Exercise Names -->
+    <string name="ex_barbell_bent_over_row">Rematore con bilanciere</string>
+    <string name="ex_one_arm_dumbbell_row">Rematore a un braccio con manubrio</string>
+    <string name="ex_dumbbell_pullover">Pullover con manubrio</string>
+    <string name="ex_dumbbell_curls">Curl con manubri</string>
+    <string name="ex_hammer_curls">Curl a martello</string>
+    <string name="ex_dumbbell_shoulder_press">Spinte per spalle con manubri</string>
+    <string name="ex_dumbbell_lateral_raises">Alzate laterali con manubri</string>
+    <string name="ex_crunches">Crunch</string>
+    <string name="ex_barbell_floor_press">Floor press con bilanciere</string>
+    <string name="ex_dumbbell_floor_press">Floor press con manubri</string>
+    <string name="ex_leg_raises">Alzate gambe</string>
+    <string name="ex_barbell_squats">Squat con bilanciere</string>
+    <string name="ex_romanian_deadlifts">Stacchi rumeni</string>
+    <string name="ex_dumbbell_lunges">Affondi con manubri</string>
+    <string name="ex_plank">Plank</string>
+    <string name="ex_barbell_row">Rematore bilanciere</string>
+    <string name="ex_tricep_dips_extensions">Dip / estensioni tricipiti</string>
+    <string name="ex_overhead_tricep_extension">Estensioni tricipiti sopra la testa</string>
+    <string name="ex_overhead_dumbbell_extension">Estensione manubrio sopra la testa</string>
+    <string name="ex_bench_press_floor_press">Panca piana / Floor Press</string>
+    <string name="ex_barbell_rows_generic">Rematori con bilanciere</string>
+    <string name="ex_bicep_curls_generic">Curl bicipiti</string>
+    <string name="ex_rear_delt_dumbbell_fly">Alzate posteriori con manubri</string>
+    <string name="ex_rear_delt_fly">Alzate posteriori</string>
+    <string name="ex_deadlifts">Stacchi da terra</string>
+    <string name="ex_calves">Polpacci</string>
+    <string name="ex_abs">Addominali</string>
+    <string name="ex_pull_ups">Trazioni alla sbarra</string>
+    <string name="ex_squats">Squat</string>
+    <string name="ex_press">Spinte</string>
+    <string name="ex_row">Rematore</string>
+    <string name="ex_lunge">Affondo</string>
+    <string name="ex_biceps_generic">Bicipiti</string>
+    <string name="ex_chest_press">Spinte petto</string>
+    <string name="ex_arms">Braccia</string>
+    <string name="ex_core">Core</string>
+    <string name="ex_triceps_generic">Tricipiti</string>
+    <string name="ex_shoulders_generic">Spalle</string>
+    <string name="ex_back_generic">Schiena</string>
+    <string name="ex_legs_generic">Gambe</string>
+    <string name="ex_flyes">Croci</string>
+
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Spinta (Petto, Spalle, Tricipiti)</string>
     <string name="pull_title">Trazione (Schiena e Bicipiti)</string>
@@ -231,6 +284,7 @@
     <string name="ocean_teal">Teal oceano</string>
     <string name="rose_pink">Rosa confetto</string>
     <string name="forest_green">Verde foresta</string>
+    <string name="azure_sky">Azzurro Cielo</string>
 
     <string name="monday">Lunedì</string>
     <string name="tuesday">Martedì</string>
@@ -246,6 +300,10 @@
     <string name="friday_short">Ven</string>
     <string name="saturday_short">Sab</string>
     <string name="sunday_short">Dom</string>
+    <string name="action_back">Indietro</string>
+    <string name="restart_required_title">Riavvio richiesto</string>
+    <string name="restart_required_message">Per applicare completamente il nuovo tema e la schermata iniziale, l\'app deve essere riavviata.</string>
+    <string name="ok">OK</string>
 </resources>
 
 

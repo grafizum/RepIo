@@ -21,6 +21,7 @@ import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.flow.stateIn
+import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
 import java.util.Calendar
 import com.example.util.NotificationHelper
@@ -80,6 +81,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     private val _workoutNowState = MutableStateFlow(WorkoutNowState())
     val workoutNowState: StateFlow<WorkoutNowState> = _workoutNowState.asStateFlow()
+
+    private val _showRestartDialog = MutableStateFlow(false)
+    val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
 
     init {
         val dao = AppDatabase.getDatabase(application).workoutDao()
@@ -174,23 +178,42 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun setThemeOption(theme: String) {
         val oldTheme = _themeOption.value
+        val oldIsLight = isThemeLight(oldTheme)
+        val newIsLight = isThemeLight(theme)
+
         _themeOption.value = theme
         prefs.edit().putString("theme_option", theme).apply()
-        
-        // Dynamic Icon & Splash switching based on theme category
-        // Only trigger icon switch if we are actually changing the light/dark category
-        val wasLightTheme = oldTheme == "BEIGE" || oldTheme == "EMERALD" || oldTheme == "CRIMSON"
-        val isLightTheme = theme == "BEIGE" || theme == "EMERALD" || theme == "CRIMSON"
-        
-        // If it's the first time setting a theme (oldTheme == "DEFAULT"), we should still check
-        // but DEFAULT usually maps to the Orange icon (Dark) anyway.
-        if (wasLightTheme != isLightTheme || oldTheme == "DEFAULT") {
-            val context = getApplication<Application>()
-            if (isLightTheme) {
-                com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.BEIGE_ICON)
-            } else {
-                com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.ORANGE_ICON)
-            }
+
+        // Only trigger restart dialog and icon/splash change if crossing Light/Dark boundary
+        if (oldIsLight != newIsLight) {
+            // Icon change is delayed until user confirms in the dialog to prevent immediate app close
+            _showRestartDialog.value = true
+        }
+    }
+
+    private fun isThemeLight(theme: String): Boolean {
+        return when (theme.uppercase()) {
+            "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
+            else -> false
+        }
+    }
+
+    fun dismissRestartDialog() {
+        _showRestartDialog.value = false
+    }
+
+    fun applyThemeRestart() {
+        val currentTheme = _themeOption.value
+        setAppIcon(isThemeLight(currentTheme))
+        dismissRestartDialog()
+    }
+
+    fun setAppIcon(isLightTheme: Boolean) {
+        val context = getApplication<Application>()
+        if (isLightTheme) {
+            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.getBeigeAlias(context))
+        } else {
+            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.getOrangeAlias(context))
         }
     }
 
@@ -266,6 +289,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         prefs.edit().putBoolean("is_first_time", true).apply()
     }
 
+    fun cancelFirstTimeSetup() {
+        _isFirstTimeUser.value = false
+        prefs.edit().putBoolean("is_first_time", false).apply()
+    }
+
     fun selectDayForWorkoutNow(dayOfWeek: String) {
         val newState = _workoutNowState.value.copy(
             selectedDayOfWeek = dayOfWeek,
@@ -288,19 +316,29 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun startRestTimer(seconds: Int) {
         if (seconds <= 0) return
+        
+        // Ensure any existing alarm/timer is fully stopped before starting a new one
+        stopTimer()
+
         val endTime = System.currentTimeMillis() + (seconds * 1000L)
         prefs.edit().putLong("timer_end_time_millis", endTime).apply()
         scheduleTimerAlarm(endTime)
-        _workoutNowState.value = _workoutNowState.value.copy(
-            restTimerSeconds = seconds,
-            isTimerActive = true
-        )
+        
+        _workoutNowState.update { 
+            it.copy(
+                restTimerSeconds = seconds,
+                isTimerActive = true
+            )
+        }
     }
 
     private fun scheduleTimerAlarm(endTimeMillis: Long) {
         val app = getApplication<Application>()
         val alarmManager = app.getSystemService(Context.ALARM_SERVICE) as AlarmManager
-        val intent = Intent(app, com.example.util.RestTimerReceiver::class.java)
+        val intent = Intent(app, com.example.util.RestTimerReceiver::class.java).apply {
+            // Add identifying timestamp to distinguish this specific timer instance
+            putExtra("TIMER_END_TIME", endTimeMillis)
+        }
         val pendingIntent = PendingIntent.getBroadcast(
             app,
             1002,
@@ -354,57 +392,62 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     ) {
         if (exercises.isEmpty()) return
 
-        val state = _workoutNowState.value
-        val exerciseIndex = state.currentExerciseIndex.coerceIn(0, exercises.size - 1)
-        val currentExercise = exercises[exerciseIndex]
+        // Kill any currently active timer before logging a new set
+        stopTimer()
 
         viewModelScope.launch {
+            val currentState = _workoutNowState.value
+            val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
+            val currentExercise = exercises[exerciseIndex]
+
             repository.logSet(
-                dayOfWeek = state.selectedDayOfWeek,
+                dayOfWeek = currentState.selectedDayOfWeek,
                 exerciseName = currentExercise.name,
                 muscleGroup = currentExercise.muscleGroup,
-                setNumber = state.currentSetNumber,
-                weightKg = state.currentWeightKg,
-                reps = state.currentReps
+                setNumber = currentState.currentSetNumber,
+                weightKg = currentState.currentWeightKg,
+                reps = currentState.currentReps
             )
 
             val restDuration = _defaultRestTimerSeconds.value
-            val nextSetNumber = state.currentSetNumber + 1
-            val newState = if (nextSetNumber <= currentExercise.targetSets) {
-                // Advance to next set of same exercise
-                startRestTimer(restDuration)
-                state.copy(
-                    currentSetNumber = nextSetNumber,
-                    totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
-                    restTimerSeconds = restDuration,
-                    isTimerActive = true
-                )
-            } else {
-                // Exercise completed! Advance to next exercise
-                val nextExerciseIndex = exerciseIndex + 1
-                if (nextExerciseIndex < exercises.size) {
-                    val duration = restDuration + 30
-                    startRestTimer(duration)
+            val nextSetNumber = currentState.currentSetNumber + 1
+            
+            _workoutNowState.update { state ->
+                if (nextSetNumber <= currentExercise.targetSets) {
+                    // Advance to next set of same exercise
                     state.copy(
-                        currentExerciseIndex = nextExerciseIndex,
-                        currentSetNumber = 1,
-                        totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
-                        restTimerSeconds = duration,
-                        isTimerActive = true
+                        currentSetNumber = nextSetNumber,
+                        totalSetsLoggedToday = state.totalSetsLoggedToday + 1
                     )
                 } else {
-                    // All exercises for today completed!
-                    stopTimer()
-                    state.copy(
-                        isWorkoutCompleted = true,
-                        totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
-                        restTimerSeconds = 0,
-                        isTimerActive = false
-                    )
+                    // Exercise completed! Advance to next exercise
+                    val nextExerciseIndex = exerciseIndex + 1
+                    if (nextExerciseIndex < exercises.size) {
+                        state.copy(
+                            currentExerciseIndex = nextExerciseIndex,
+                            currentSetNumber = 1,
+                            totalSetsLoggedToday = state.totalSetsLoggedToday + 1
+                        )
+                    } else {
+                        // All exercises for today completed!
+                        state.copy(
+                            isWorkoutCompleted = true,
+                            totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
+                            restTimerSeconds = 0,
+                            isTimerActive = false
+                        )
+                    }
                 }
             }
-            _workoutNowState.value = newState
-            saveWorkoutNowState(newState)
+            
+            // Start the timer separately to keep logic clean
+            val updatedState = _workoutNowState.value
+            if (!updatedState.isWorkoutCompleted) {
+                val duration = if (updatedState.currentSetNumber == 1) restDuration + 30 else restDuration
+                startRestTimer(duration)
+            }
+            
+            saveWorkoutNowState(_workoutNowState.value)
         }
     }
 
@@ -429,28 +472,24 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             val remainingMillis = endTime - now
             if (remainingMillis > 0) {
                 val remainingSecs = (remainingMillis / 1000L).toInt() + 1
-                if (_workoutNowState.value.restTimerSeconds != remainingSecs || !_workoutNowState.value.isTimerActive) {
-                    _workoutNowState.value = _workoutNowState.value.copy(
-                        restTimerSeconds = remainingSecs,
-                        isTimerActive = true
-                    )
+                _workoutNowState.update { 
+                    if (it.restTimerSeconds != remainingSecs || !it.isTimerActive) {
+                        it.copy(restTimerSeconds = remainingSecs, isTimerActive = true)
+                    } else it
                 }
             } else {
-                prefs.edit().putLong("timer_end_time_millis", 0L).apply()
+                // Timer finished!
                 val wasActive = _workoutNowState.value.isTimerActive
-                _workoutNowState.value = _workoutNowState.value.copy(
-                    restTimerSeconds = 0,
-                    isTimerActive = false
-                )
+                
+                // CRITICAL: Stop the timer first to prevent double triggers
+                stopTimer()
+                
                 if (wasActive) {
                     NotificationHelper.showRestTimerEndedNotification(getApplication())
                 }
             }
         } else if (_workoutNowState.value.isTimerActive) {
-            _workoutNowState.value = _workoutNowState.value.copy(
-                restTimerSeconds = 0,
-                isTimerActive = false
-            )
+            _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
         }
     }
 
