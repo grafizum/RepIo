@@ -55,7 +55,7 @@
     <string name="server_unreachable">Server nicht erreichbar. Bitte versuche es später erneut.</string>
     <string name="quick_faq">Kurz-FAQ</string>
 
-    <string name="analytics_reports">Analysen &amp; Berichte</string>
+    <string name="analytics_reports">Analyse</string>
     <string name="weekly_activity">Wöchentliche Aktivität</string>
     <string name="training_consistency_overview">Übersicht deiner Trainingskonsistenz</string>
     <string name="active_days">Aktive Tage</string>
@@ -114,6 +114,7 @@
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Benutzerdefiniert</string>
     <string name="my_workout">Mein Workout</string>
+    <string name="workout">Workout</string>
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein geplantes Training für %1$s. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training abgeschlossen! 🎉</string>
@@ -157,7 +158,7 @@
     <string name="workout_program_name_placeholder">z.B. Training, Sommer-Split, PPL</string>
     <string name="select_routine_type">2. Art der Routine wählen</string>
     <string name="premade_templates">Fertige Vorlagen</string>
-    <string name="build_custom">Eigene erstellen</string>
+    <string name="build_custom">Eigener Plan</string>
     <string name="choose_recommended_template">Wähle eine empfohlene Vorlage</string>
     <string name="selected">Ausgewählt</string>
     <string name="preview_breakdown">Vorschau anzeigen</string>
@@ -303,6 +304,15 @@
     <string name="restart_required_title">Neustart erforderlich</string>
     <string name="restart_required_message">Um das neue Design und den Startbildschirm vollständig zu übernehmen, muss die App neu gestartet werden.</string>
     <string name="ok">OK</string>
+    <string name="confirm">Bestätigen</string>
+    <string name="confirm_action_question">Durch das Übernehmen dieser Änderungen wird deine aktuelle Workout-Konfiguration geändert.</string>
+    <string name="max_characters_reached">Maximale Zeichenanzahl erreicht (20)</string>
+    <string name="exit_app_title">App beenden?</string>
+    <string name="exit_app_message">Bist du sicher, dass du die App beenden möchtest?</string>
+    <string name="exit">Beenden</string>
+    <string name="stay">Bleiben</string>
+    <string name="confirm_new_program_title">Neues Programm bestätigen</string>
+    <string name="confirm_new_program_message">Das Abschließen dieses Setups wird deine aktuellen Trainingseinstellungen überschreiben. Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?</string>
 </resources>
 
 

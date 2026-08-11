@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
@@ -20,6 +21,11 @@ fun MyWorkoutTabScreen(
 ) {
     var selectedSubTab by remember { mutableIntStateOf(initialTab) }
     var showAddDialogOnLoad by remember { mutableStateOf(false) }
+
+    // Handle back button for Routine Screen -> Workout Now Screen
+    BackHandler(enabled = selectedSubTab != 0) {
+        selectedSubTab = 0
+    }
 
     Box(
         modifier = modifier.fillMaxSize()

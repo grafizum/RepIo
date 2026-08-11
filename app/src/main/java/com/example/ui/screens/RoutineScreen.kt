@@ -1,7 +1,9 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -14,6 +16,7 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
+import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -52,10 +55,12 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
@@ -93,6 +98,7 @@ fun RoutineScreen(
     var showResetDialog by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showTemplatesSheet by remember { mutableStateOf(false) }
+    var pendingTemplate by remember { mutableStateOf<WorkoutTemplate?>(null) }
 
     val dayEntity = routineDays.find { it.dayOfWeek == selectedDay }
     val exercisesForDay = allExercises.filter { it.dayOfWeek == selectedDay }
@@ -114,8 +120,23 @@ fun RoutineScreen(
             text = {
                 OutlinedTextField(
                     value = tempName,
-                    onValueChange = { tempName = it },
-                    label = { Text(stringResource(R.string.program_name)) },
+                    onValueChange = { if (it.length <= 20) tempName = it },
+                    label = { Text(stringResource(R.string.my_workout)) },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.workout_program_name_placeholder),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    },
+                    supportingText = {
+                        Text(
+                            text = if (tempName.length >= 20) stringResource(R.string.max_characters_reached) else "${tempName.length}/20",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = if (tempName.length >= 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    isError = tempName.length >= 20,
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -188,8 +209,7 @@ fun RoutineScreen(
 
                                     Button(
                                         onClick = {
-                                            viewModel.applyWorkoutTemplate(template)
-                                            showTemplatesSheet = false
+                                            pendingTemplate = template
                                         },
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
@@ -204,32 +224,49 @@ fun RoutineScreen(
         }
     }
 
-    Scaffold(
-        modifier = modifier.fillMaxSize()
-    ) { innerPadding ->
-        Column(
-            modifier = Modifier
-                .padding(innerPadding)
-                .fillMaxSize()
-                .padding(horizontal = 16.dp)
-        ) {
-            Spacer(modifier = Modifier.height(12.dp))
+    Column(
+        modifier = modifier
+            .fillMaxSize()
+            .padding(horizontal = 16.dp)
+    ) {
+        Spacer(modifier = Modifier.height(12.dp))
 
-            // COMPACT HEADER (Matches HomeScreen)
+        // COMPACT HEADER (Matches HomeScreen)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
+                    .height(64.dp)
                     .padding(vertical = 4.dp)
             ) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    Text(
-                        text = customWorkoutName,
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground,
-                        modifier = Modifier.clickable { showEditNameDialog = true }
-                    )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(4.dp)
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(42.dp)
+                            .clip(CircleShape)
+                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FitnessCenter,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(24.dp)
+                        )
+                    }
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column {
+                        Text(
+                            text = customWorkoutName,
+                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MaterialTheme.colorScheme.onBackground,
+                            modifier = Modifier.clickable { showEditNameDialog = true }
+                        )
+                    }
                 }
 
                 Row(verticalAlignment = Alignment.CenterVertically) {
@@ -315,8 +352,25 @@ fun RoutineScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
+                            val dayTitle = dayEntity?.let { day ->
+                                val translated = com.example.ui.components.translateDayTitle(day.title)
+                                if (translated.contains("Workout", ignoreCase = true) || 
+                                    translated.contains("Allenamento", ignoreCase = true) || 
+                                    translated.contains("Training", ignoreCase = true)) {
+                                    val prefix = translated.substringBefore("—").substringBefore("-").trim()
+                                    if (exercisesForDay.isNotEmpty()) {
+                                        val focus = exercisesForDay.map { it.muscleGroup }.distinct().joinToString(", ")
+                                        "$prefix — $focus"
+                                    } else {
+                                        translated
+                                    }
+                                } else {
+                                    translated
+                                }
+                            } ?: selectedDay
+
                             Text(
-                                text = dayEntity?.let { com.example.ui.components.translateDayTitle(it.title) } ?: selectedDay,
+                                text = dayTitle,
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
@@ -442,7 +496,6 @@ fun RoutineScreen(
                 item { Spacer(modifier = Modifier.height(64.dp)) }
             }
         }
-    }
 
     // ADD / EDIT EXERCISE DIALOG
     if (showAddDialog || editingExercise != null) {
@@ -483,6 +536,35 @@ fun RoutineScreen(
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // CONFIRM NEW TEMPLATE DIALOG
+    pendingTemplate?.let { template ->
+        AlertDialog(
+            onDismissRequest = { pendingTemplate = null },
+            title = { Text(stringResource(R.string.confirm_new_program_title)) },
+            text = { Text(stringResource(R.string.confirm_new_program_message)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.applyWorkoutTemplate(template)
+                        pendingTemplate = null
+                        showTemplatesSheet = false
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    )
+                ) {
+                    Text(stringResource(R.string.apply))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { pendingTemplate = null }) {
                     Text(stringResource(R.string.cancel))
                 }
             }

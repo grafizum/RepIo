@@ -55,7 +55,7 @@
     <string name="server_unreachable">Server irraggiungibile. Riprova più tardi.</string>
     <string name="quick_faq">FAQ rapide</string>
 
-    <string name="analytics_reports">Analisi e rapporti</string>
+    <string name="analytics_reports">Analisi</string>
     <string name="weekly_activity">Attività settimanale</string>
     <string name="training_consistency_overview">Panoramica della tua costanza</string>
     <string name="active_days">Giorni attivi</string>
@@ -114,6 +114,7 @@
     <string name="save_weight">Salva peso</string>
     <string name="custom">Personalizza</string>
     <string name="my_workout">Mio Allenamento</string>
+    <string name="workout">Allenamento</string>
     <string name="rest_recovery_day">Giorno di riposo e recupero</string>
     <string name="rest_recovery_recommendation">Nessun allenamento pianificato per %1$s. Consigliata una camminata attiva o mobilità leggera!</string>
     <string name="workout_completed_title">Allenamento completato! 🎉</string>
@@ -157,7 +158,7 @@
     <string name="workout_program_name_placeholder">es. Allenamento, Summer Shred, PPL Split</string>
     <string name="select_routine_type">2. Seleziona il tipo di routine</string>
     <string name="premade_templates">Modelli pronti</string>
-    <string name="build_custom">Crea personalizzato</string>
+    <string name="build_custom">Piano personalizzato</string>
     <string name="choose_recommended_template">Scegli un modello consigliato</string>
     <string name="selected">Selezionato</string>
     <string name="preview_breakdown">Anteprima dettagli</string>
@@ -304,6 +305,15 @@
     <string name="restart_required_title">Riavvio richiesto</string>
     <string name="restart_required_message">Per applicare completamente il nuovo tema e la schermata iniziale, l\'app deve essere riavviata.</string>
     <string name="ok">OK</string>
+    <string name="confirm">Conferma</string>
+    <string name="confirm_action_question">L\'applicazione di queste modifiche aggiornerà la configurazione del tuo allenamento attuale.</string>
+    <string name="max_characters_reached">Limite massimo caratteri raggiunto (20)</string>
+    <string name="exit_app_title">Uscire dall\'app?</string>
+    <string name="exit_app_message">Sei sicuro di voler uscire?</string>
+    <string name="exit">Esci</string>
+    <string name="stay">Resta</string>
+    <string name="confirm_new_program_title">Conferma nuovo programma</string>
+    <string name="confirm_new_program_message">Il completamento di questa configurazione sovrascriverà le impostazioni dell\'allenamento esistenti. Questa azione non può essere annullata. Procedere?</string>
 </resources>
 
 

@@ -24,9 +24,11 @@ import androidx.compose.material.icons.filled.BarChart
 import androidx.compose.material.icons.filled.CalendarToday
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Home
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Repeat
 import androidx.compose.material.icons.filled.Settings
+import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
@@ -34,8 +36,10 @@ import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -47,18 +51,20 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.stringResource
+import android.app.Activity
 import com.example.R
 import com.example.data.LoggedSetEntity
 import com.example.data.RoutineDayEntity
 import com.example.data.RoutineExerciseEntity
 import com.example.ui.components.MuscleGroupBadge
-import com.example.ui.components.SettingsDialog
 import com.example.ui.components.StatCard
 import com.example.ui.theme.BrightLime
 import com.example.ui.theme.FlameOrange
@@ -73,13 +79,14 @@ fun HomeScreen(
     onNavigateToRoutine: () -> Unit,
     onNavigateToCharts: () -> Unit,
     onNavigateToWeeklyReport: () -> Unit,
-    onNavigateToSupport: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
     val workoutName by viewModel.customWorkoutName.collectAsState()
+
+    var showEditNameDialog by remember { mutableStateOf(false) }
 
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
@@ -88,13 +95,48 @@ fun HomeScreen(
     val totalSetsThisWeek = loggedSets.size
     val totalVolumeThisWeek = loggedSets.sumOf { it.weightKg * it.reps }
 
-    var showSettingsDialog by remember { mutableStateOf(false) }
-
-    if (showSettingsDialog) {
-        SettingsDialog(
-            viewModel = viewModel,
-            onDismiss = { showSettingsDialog = false },
-            onNavigateToSupport = onNavigateToSupport
+    if (showEditNameDialog) {
+        var tempName by remember { mutableStateOf(workoutName) }
+        AlertDialog(
+            onDismissRequest = { showEditNameDialog = false },
+            title = { Text(stringResource(R.string.edit_workout_program_name)) },
+            text = {
+                OutlinedTextField(
+                    value = tempName,
+                    onValueChange = { if (it.length <= 20) tempName = it },
+                    label = { Text(stringResource(R.string.my_workout)) },
+                    placeholder = {
+                        Text(
+                            text = stringResource(R.string.workout_program_name_placeholder),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        )
+                    },
+                    supportingText = {
+                        Text(
+                            text = if (tempName.length >= 20) stringResource(R.string.max_characters_reached) else "${tempName.length}/20",
+                            modifier = Modifier.fillMaxWidth(),
+                            textAlign = TextAlign.End,
+                            color = if (tempName.length >= 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    },
+                    isError = tempName.length >= 20,
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.updateWorkoutName(tempName)
+                    showEditNameDialog = false
+                }) {
+                    Text(stringResource(R.string.save))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showEditNameDialog = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
         )
     }
 
@@ -105,37 +147,44 @@ fun HomeScreen(
     ) {
         Spacer(modifier = Modifier.height(12.dp))
 
-        // TOP APP HEADER WITH SETTINGS BUTTON
+        // TOP APP HEADER
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(64.dp)
                 .padding(vertical = 4.dp)
         ) {
-            Column {
-                Text(
-                    text = workoutName,
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                Text(
-                    text = stringResource(R.string.smart_workout_assistant),
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-
-            IconButton(
-                onClick = { showSettingsDialog = true },
-                modifier = Modifier.semantics { testTag = "settings_button" }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(12.dp))
+                    .clickable { showEditNameDialog = true }
+                    .padding(4.dp)
             ) {
-                Icon(
-                    imageVector = Icons.Default.Settings,
-                    contentDescription = stringResource(R.string.settings),
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(28.dp)
-                )
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Home,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = workoutName,
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
+                }
             }
         }
 

@@ -3,6 +3,7 @@ package com.example.ui.screens
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -35,6 +36,7 @@ import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -45,6 +47,8 @@ import androidx.compose.material3.RadioButton
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.activity.compose.BackHandler
+import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
@@ -56,9 +60,11 @@ import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.luminance
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -83,11 +89,21 @@ fun FirstTimeSetupScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier
 ) {
-    var workoutNameInput by remember { mutableStateOf("Workout") }
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade Templates, 1 = Build Custom
+    val focusManager = LocalFocusManager.current
+    var workoutNameInput by remember { mutableStateOf("") }
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade Templates, 1 = Custom Build
+
+    BackHandler {
+        if (selectedTab != 0) {
+            selectedTab = 0
+        } else {
+            onCancel()
+        }
+    }
 
     var selectedTemplate by remember { mutableStateOf(WorkoutTemplates.template5DaySplit) }
     var previewTemplateModal by remember { mutableStateOf<WorkoutTemplate?>(null) }
+    var showFinalSaveConfirmation by remember { mutableStateOf(false) }
 
     val isLightTheme = MaterialTheme.colorScheme.onSurface.luminance() < 0.5f
 
@@ -115,8 +131,6 @@ fun FirstTimeSetupScreen(
             RoutineExerciseEntity(0, "FRIDAY", "Crunches / Leg Raises", "Abs", 3, "15-20", "", 2)
         )
     }
-
-    var showAddCustomExerciseDialog by remember { mutableStateOf(false) }
 
     // Sheet for previewing full day breakdown of a template
     previewTemplateModal?.let { template ->
@@ -215,28 +229,54 @@ fun FirstTimeSetupScreen(
         }
     }
 
-    // Add custom exercise dialog
-    if (showAddCustomExerciseDialog) {
+    var showAddCustomExerciseDialog by remember { mutableStateOf(false) }
+    var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+
+    // Add / Edit custom exercise dialog
+    if (showAddCustomExerciseDialog || editingExercise != null) {
         AddExerciseDialog(
-            onDismiss = { showAddCustomExerciseDialog = false },
-            onAdd = { newEx ->
-                customExercises.add(newEx)
+            exercise = editingExercise,
+            onDismiss = { 
                 showAddCustomExerciseDialog = false
+                editingExercise = null
+            },
+            onConfirm = { ex ->
+                if (editingExercise != null) {
+                    val index = customExercises.indexOf(editingExercise)
+                    if (index != -1) {
+                        customExercises[index] = ex
+                    }
+                } else {
+                    customExercises.add(ex)
+                }
+                showAddCustomExerciseDialog = false
+                editingExercise = null
             }
         )
     }
 
-    Column(
+    Surface(
+        color = if (isLightTheme) Color.White else Color(0xFF1E1E1E),
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 20.dp)
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) {
+                focusManager.clearFocus()
+            }
     ) {
-        Spacer(modifier = Modifier.height(32.dp))
-
-        LazyColumn(
-            modifier = Modifier.weight(1f),
-            verticalArrangement = Arrangement.spacedBy(20.dp)
+        Column(
+            modifier = Modifier
+                .fillMaxSize()
+                .padding(horizontal = 20.dp)
         ) {
+            Spacer(modifier = Modifier.height(32.dp))
+
+            LazyColumn(
+                modifier = Modifier.weight(1f),
+                verticalArrangement = Arrangement.spacedBy(20.dp)
+            ) {
             // HEADER HERO BANNER
             item {
                 Card(
@@ -249,6 +289,12 @@ fun FirstTimeSetupScreen(
                     Box(
                         modifier = Modifier
                             .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                focusManager.clearFocus()
+                            }
                             .background(
                                 Brush.linearGradient(
                                     colors = listOf(
@@ -330,9 +376,23 @@ fun FirstTimeSetupScreen(
 
                         OutlinedTextField(
                             value = workoutNameInput,
-                            onValueChange = { workoutNameInput = it },
-                            label = { Text(stringResource(R.string.program_name)) },
-                            placeholder = { Text(stringResource(R.string.workout_program_name_placeholder)) },
+                            onValueChange = { if (it.length <= 20) workoutNameInput = it },
+                            label = { Text(stringResource(R.string.my_workout)) },
+                            placeholder = { 
+                                Text(
+                                    text = stringResource(R.string.workout_program_name_placeholder),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                )
+                            },
+                            supportingText = {
+                                Text(
+                                    text = if (workoutNameInput.length >= 20) stringResource(R.string.max_characters_reached) else "${workoutNameInput.length}/20",
+                                    modifier = Modifier.fillMaxWidth(),
+                                    textAlign = TextAlign.End,
+                                    color = if (workoutNameInput.length >= 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                            },
+                            isError = workoutNameInput.length >= 20,
                             singleLine = true,
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
@@ -343,7 +403,7 @@ fun FirstTimeSetupScreen(
                 }
             }
 
-            // STEP 2: CHOOSE TEMPLATE VS BUILD CUSTOM TAB ROW
+            // STEP 2: CHOOSE TEMPLATE VS CUSTOM BUILD TAB ROW
             item {
                 Column {
                     Surface(
@@ -376,7 +436,10 @@ fun FirstTimeSetupScreen(
                             } else null,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { selectedTab = 0 }
+                                .clickable { 
+                                    focusManager.clearFocus()
+                                    selectedTab = 0 
+                                }
                                 .semantics { testTag = "tab_premade_templates" }
                         ) {
                             Column(
@@ -398,7 +461,7 @@ fun FirstTimeSetupScreen(
                             }
                         }
 
-                        // Option 2: Build Custom
+                        // Option 2: Custom Build
                         Card(
                             shape = RoundedCornerShape(16.dp),
                             colors = CardDefaults.cardColors(
@@ -410,8 +473,11 @@ fun FirstTimeSetupScreen(
                             } else null,
                             modifier = Modifier
                                 .weight(1f)
-                                .clickable { selectedTab = 1 }
-                                .semantics { testTag = "tab_build_custom" }
+                                .clickable { 
+                                    focusManager.clearFocus()
+                                    selectedTab = 1 
+                                }
+                                .semantics { testTag = "tab_custom_build" }
                         ) {
                             Column(
                                 horizontalAlignment = Alignment.CenterHorizontally,
@@ -434,7 +500,10 @@ fun FirstTimeSetupScreen(
 
                         if (selectedTab == 1) {
                             Button(
-                                onClick = { showAddCustomExerciseDialog = true },
+                                onClick = { 
+                                    focusManager.clearFocus()
+                                    showAddCustomExerciseDialog = true 
+                                },
                                 shape = RoundedCornerShape(16.dp),
                                 modifier = Modifier
                                     .height(82.dp)
@@ -473,7 +542,10 @@ fun FirstTimeSetupScreen(
                         border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))) else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { selectedTemplate = template }
+                            .clickable { 
+                                focusManager.clearFocus()
+                                selectedTemplate = template 
+                            }
                             .semantics { testTag = "template_card_${template.id}" }
                     ) {
                         Column(modifier = Modifier.padding(16.dp)) {
@@ -575,7 +647,7 @@ fun FirstTimeSetupScreen(
                 }
 
             } else {
-                // BUILD CUSTOM ROUTINE TAB
+                // CUSTOM BUILD ROUTINE TAB
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                         Text(
@@ -605,7 +677,14 @@ fun FirstTimeSetupScreen(
                     Card(
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                focusManager.clearFocus()
+                            }
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -637,12 +716,27 @@ fun FirstTimeSetupScreen(
                                 }
                             }
 
-                            IconButton(onClick = { customExercises.remove(exercise) }) {
-                                Icon(
-                                    imageVector = Icons.Default.Delete,
-                                    contentDescription = "Delete",
-                                    tint = MaterialTheme.colorScheme.error
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(onClick = { 
+                                    focusManager.clearFocus()
+                                    editingExercise = exercise 
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                                IconButton(onClick = { 
+                                    focusManager.clearFocus()
+                                    customExercises.remove(exercise) 
+                                }) {
+                                    Icon(
+                                        imageVector = Icons.Default.Delete,
+                                        contentDescription = "Delete",
+                                        tint = MaterialTheme.colorScheme.error
+                                    )
+                                }
                             }
                         }
                     }
@@ -650,58 +744,88 @@ fun FirstTimeSetupScreen(
             }
             
             item { Spacer(modifier = Modifier.height(24.dp)) }
-        }
+            }
 
-        // SAVE & COMPLETE SETUP BUTTON (STICKY FOOTER)
-        Spacer(modifier = Modifier.height(10.dp))
+            // SAVE & COMPLETE SETUP BUTTON (STICKY FOOTER)
+            Spacer(modifier = Modifier.height(10.dp))
 
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier
-                .fillMaxWidth()
-                .padding(bottom = 32.dp)
-        ) {
-            // CLOSE BUTTON (Cancel without changing anything)
-            OutlinedButton(
-                onClick = onCancel,
-                shape = RoundedCornerShape(16.dp),
-                modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
-            ) {
-                Text(
-                    text = stringResource(R.string.close),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+            if (showFinalSaveConfirmation) {
+                AlertDialog(
+                    onDismissRequest = { showFinalSaveConfirmation = false },
+                    title = { Text(stringResource(R.string.confirm_new_program_title)) },
+                    text = { Text(stringResource(R.string.confirm_new_program_message)) },
+                    confirmButton = {
+                        val fallbackName = stringResource(R.string.my_workout)
+                        Button(
+                            onClick = {
+                                val finalName = workoutNameInput.trim().ifEmpty { fallbackName }
+                                if (selectedTab == 0) {
+                                    viewModel.applyWorkoutTemplate(selectedTemplate, finalName)
+                                } else {
+                                    viewModel.completeFirstTimeSetup(finalName, customDays, customExercises)
+                                }
+                                onComplete()
+                                showFinalSaveConfirmation = false
+                            }
+                        ) {
+                            Text(stringResource(R.string.confirm))
+                        }
+                    },
+                    dismissButton = {
+                        TextButton(onClick = { showFinalSaveConfirmation = false }) {
+                            Text(stringResource(R.string.cancel))
+                        }
+                    }
                 )
             }
 
-            // SAVE BUTTON
-            Button(
-                onClick = {
-                    val finalName = workoutNameInput.trim().ifEmpty { "Workout" }
-                    if (selectedTab == 0) {
-                        viewModel.applyWorkoutTemplate(selectedTemplate, finalName)
-                    } else {
-                        viewModel.completeFirstTimeSetup(finalName, customDays, customExercises)
-                    }
-                    onComplete()
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(16.dp),
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(12.dp),
                 modifier = Modifier
-                    .weight(1f)
-                    .height(54.dp)
-                    .semantics { testTag = "complete_onboarding_button" }
+                    .fillMaxWidth()
+                    .padding(bottom = 32.dp)
             ) {
-                Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = stringResource(R.string.save_and_start),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                // CLOSE BUTTON (Cancel without changing anything)
+                OutlinedButton(
+                    onClick = onCancel,
+                    colors = ButtonDefaults.outlinedButtonColors(
+                        containerColor = if (isLightTheme) Color(0xFFF5F5F5) else Color(0xFF2C2C2C),
+                        contentColor = MaterialTheme.colorScheme.primary
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp)
+                ) {
+                    Text(
+                        text = stringResource(R.string.close),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+
+                // SAVE BUTTON
+                Button(
+                    onClick = { 
+                        focusManager.clearFocus()
+                        showFinalSaveConfirmation = true 
+                    },
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = MaterialTheme.colorScheme.primary,
+                        contentColor = MaterialTheme.colorScheme.onPrimary
+                    ),
+                    shape = RoundedCornerShape(16.dp),
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(54.dp)
+                        .semantics { testTag = "complete_onboarding_button" }
+                ) {
+                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Text(
+                        text = stringResource(R.string.save_and_start),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
             }
         }
     }
@@ -710,24 +834,26 @@ fun FirstTimeSetupScreen(
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddExerciseDialog(
+    exercise: RoutineExerciseEntity? = null,
     onDismiss: () -> Unit,
-    onAdd: (RoutineExerciseEntity) -> Unit
+    onConfirm: (RoutineExerciseEntity) -> Unit
 ) {
-    var dayOfWeek by remember { mutableStateOf("MONDAY") }
-    var name by remember { mutableStateOf("") }
-    var muscleGroup by remember { mutableStateOf("Chest") }
-    var targetSets by remember { mutableStateOf("3") }
-    var targetReps by remember { mutableStateOf("8-12") }
+    var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: "MONDAY") }
+    var name by remember { mutableStateOf(exercise?.name ?: "") }
+    var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
+    var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "3") }
+    var targetReps by remember { mutableStateOf(exercise?.targetReps ?: "8-12") }
 
     var expandedDay by remember { mutableStateOf(false) }
     var expandedMuscle by remember { mutableStateOf(false) }
+    var isConfirming by remember { mutableStateOf(false) }
 
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
     val muscleOptions = listOf("Chest", "Back", "Legs", "Shoulders", "Biceps", "Triceps", "Abs")
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(stringResource(R.string.add_custom_exercise)) },
+        title = { Text(stringResource(if (exercise == null) R.string.add_custom_exercise else R.string.edit_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Day of Week Dropdown
@@ -741,7 +867,9 @@ private fun AddExerciseDialog(
                         readOnly = true,
                         label = { Text(stringResource(R.string.day_of_week)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDay) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = expandedDay,
@@ -753,7 +881,8 @@ private fun AddExerciseDialog(
                                 onClick = {
                                     dayOfWeek = d
                                     expandedDay = false
-                                }
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )
                         }
                     }
@@ -780,7 +909,9 @@ private fun AddExerciseDialog(
                         readOnly = true,
                         label = { Text(stringResource(R.string.muscle_group_body_part)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMuscle) },
-                        modifier = Modifier.menuAnchor().fillMaxWidth()
+                        modifier = Modifier
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                            .fillMaxWidth()
                     )
                     ExposedDropdownMenu(
                         expanded = expandedMuscle,
@@ -792,7 +923,8 @@ private fun AddExerciseDialog(
                                 onClick = {
                                     muscleGroup = m
                                     expandedMuscle = false
-                                }
+                                },
+                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                             )
                         }
                     }
@@ -814,29 +946,46 @@ private fun AddExerciseDialog(
                         modifier = Modifier.weight(1f)
                     )
                 }
+
+                if (isConfirming) {
+                    Text(
+                        text = stringResource(R.string.confirm_action_question),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(top = 4.dp)
+                    )
+                }
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank()) {
-                        onAdd(
-                            RoutineExerciseEntity(
-                                id = 0,
-                                dayOfWeek = dayOfWeek,
-                                name = name.trim(),
-                                muscleGroup = muscleGroup,
-                                targetSets = targetSets.toIntOrNull() ?: 3,
-                                targetReps = targetReps.trim().ifEmpty { "8-12" },
-                                videoUrl = "",
-                                orderIndex = 99
+                        if (!isConfirming && exercise == null) {
+                            isConfirming = true
+                        } else {
+                            onConfirm(
+                                RoutineExerciseEntity(
+                                    id = exercise?.id ?: 0,
+                                    dayOfWeek = dayOfWeek,
+                                    name = name.trim(),
+                                    muscleGroup = muscleGroup,
+                                    targetSets = targetSets.toIntOrNull() ?: 3,
+                                    targetReps = targetReps.trim().ifEmpty { "8-12" },
+                                    videoUrl = exercise?.videoUrl ?: "",
+                                    orderIndex = exercise?.orderIndex ?: 99
+                                )
                             )
-                        )
+                            isConfirming = false
+                        }
                     }
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text(stringResource(R.string.add))
+                Text(
+                    text = if (isConfirming) stringResource(R.string.confirm) 
+                           else stringResource(if (exercise == null) R.string.add else R.string.save)
+                )
             }
         },
         dismissButton = {

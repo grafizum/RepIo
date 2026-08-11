@@ -185,23 +185,54 @@ fun WorkoutNowScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
+                .height(64.dp)
                 .padding(vertical = 4.dp)
         ) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(4.dp)
+            ) {
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
                         text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    val trainingType = currentDayEntity?.title?.let { title ->
-                        val translatedTitle = com.example.ui.components.translateDayTitle(title)
-                        if (translatedTitle.contains("—")) {
+                    val trainingType = currentDayEntity?.let { day ->
+                        val translatedTitle = com.example.ui.components.translateDayTitle(day.title)
+                        val extracted = if (translatedTitle.contains("—")) {
                             translatedTitle.substringAfter("—").trim()
                         } else if (translatedTitle.contains("-")) {
                             translatedTitle.substringAfter("-").trim()
                         } else {
                             translatedTitle
+                        }
+
+                        if (extracted.equals("Workout", ignoreCase = true) || 
+                            extracted.equals("Training", ignoreCase = true) || 
+                            extracted.equals("Allenamento", ignoreCase = true)) {
+                            if (currentDayExercises.isNotEmpty()) {
+                                currentDayExercises.map { it.muscleGroup }.distinct().joinToString(", ")
+                            } else {
+                                extracted
+                            }
+                        } else {
+                            extracted
                         }
                     } ?: ""
 
@@ -227,7 +258,7 @@ fun WorkoutNowScreen(
                     ) {
                         Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(stringResource(R.string.custom), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        Text(stringResource(R.string.workout), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
