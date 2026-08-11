@@ -3,15 +3,21 @@
 
     <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar" />
 
-    <style name="Theme.App.Starting.Orange" parent="Theme.SplashScreen">
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_orange</item>
+    <!-- Base splash screen theme -->
+    <style name="Theme.App.Starting" parent="Theme.SplashScreen">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground</item>
         <item name="windowSplashScreenBackground">@color/ic_launcher_background</item>
         <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
     </style>
 
-    <style name="Theme.App.Starting.Beige" parent="Theme.SplashScreen">
+    <!-- Orange Icon Alias -->
+    <style name="Theme.App.Starting.Orange" parent="Theme.App.Starting">
+        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_orange</item>
+    </style>
+
+    <!-- Beige Icon Alias -->
+    <style name="Theme.App.Starting.Beige" parent="Theme.App.Starting">
         <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_beige</item>
         <item name="windowSplashScreenBackground">@color/ic_launcher_background_beige</item>
-        <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
     </style>
 </resources>

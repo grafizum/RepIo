@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
-        android:name=".RepIoApplication"
+        android:name="com.example.RepIoApplication"
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -19,17 +19,17 @@
 
         <!-- Base MainActivity (Disabled as a launcher, handled by aliases) -->
         <activity
-            android:name=".MainActivity"
+            android:name="com.example.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
-            android:theme="@style/Theme.App.Starting.Orange">
+            android:theme="@style/Theme.App.Starting">
             <!-- No intent filter here -->
         </activity>
 
         <!-- Orange Icon Alias (Default Enabled) -->
         <activity-alias
-            android:name=".MainActivityOrange"
-            android:targetActivity=".MainActivity"
+            android:name="com.example.MainActivityOrange"
+            android:targetActivity="com.example.MainActivity"
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_orange"
@@ -44,8 +44,8 @@
 
         <!-- Beige Icon Alias (Disabled by Default) -->
         <activity-alias
-            android:name=".MainActivityBeige"
-            android:targetActivity=".MainActivity"
+            android:name="com.example.MainActivityBeige"
+            android:targetActivity="com.example.MainActivity"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_beige"
@@ -59,7 +59,7 @@
         </activity-alias>
 
         <receiver
-            android:name=".util.RestTimerReceiver"
+            android:name="com.example.util.RestTimerReceiver"
             android:exported="false" />
     </application>
 
