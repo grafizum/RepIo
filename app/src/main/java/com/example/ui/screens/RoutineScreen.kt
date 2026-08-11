@@ -18,6 +18,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -77,6 +78,9 @@ fun RoutineScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
     onNavigateToWorkoutNow: ((String) -> Unit)? = null,
+    initialShowAddDialog: Boolean = false,
+    onAddDialogDismissed: (() -> Unit)? = null,
+    onCustomClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val routineDays by viewModel.allRoutineDays.collectAsState()
@@ -94,6 +98,13 @@ fun RoutineScreen(
     val exercisesForDay = allExercises.filter { it.dayOfWeek == selectedDay }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
+
+    androidx.compose.runtime.LaunchedEffect(initialShowAddDialog) {
+        if (initialShowAddDialog) {
+            showAddDialog = true
+            onAddDialogDismissed?.invoke()
+        }
+    }
 
     if (showEditNameDialog) {
         var tempName by remember { mutableStateOf(customWorkoutName) }
@@ -194,17 +205,6 @@ fun RoutineScreen(
     }
 
     Scaffold(
-        floatingActionButton = {
-            if (dayEntity?.isRestDay == false) {
-                FloatingActionButton(
-                    onClick = { showAddDialog = true },
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.add_exercise))
-                }
-            }
-        },
         modifier = modifier.fillMaxSize()
     ) { innerPadding ->
         Column(
@@ -227,16 +227,39 @@ fun RoutineScreen(
                     Text(
                         text = customWorkoutName,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
+                        color = MaterialTheme.colorScheme.onBackground,
+                        modifier = Modifier.clickable { showEditNameDialog = true }
                     )
                 }
 
-                Row {
-                    IconButton(onClick = { showEditNameDialog = true }, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.Edit, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onCustomClick != null) {
+                        OutlinedButton(
+                            onClick = onCustomClick,
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.height(32.dp)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(stringResource(R.string.action_back), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        }
                     }
-                    IconButton(onClick = { showResetDialog = true }, modifier = Modifier.size(36.dp)) {
-                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+
+                    Spacer(modifier = Modifier.width(8.dp))
+                    Button(
+                        onClick = { viewModel.resetFirstTimeSetup() },
+                        shape = RoundedCornerShape(10.dp),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = MaterialTheme.colorScheme.primary,
+                            contentColor = MaterialTheme.colorScheme.onPrimary
+                        ),
+                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
+                    ) {
+                        Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(stringResource(R.string.new_action), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
@@ -293,12 +316,12 @@ fun RoutineScreen(
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
                             Text(
-                                text = dayEntity?.title ?: selectedDay,
+                                text = dayEntity?.let { com.example.ui.components.translateDayTitle(it.title) } ?: selectedDay,
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                             )
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = dayEntity?.description ?: "",
+                                text = dayEntity?.let { com.example.ui.components.translateDayDescription(it.description) } ?: "",
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -328,10 +351,27 @@ fun RoutineScreen(
 
                 // EXERCISES LIST
                 item {
-                    Text(
-                        text = stringResource(R.string.exercises_count, exercisesForDay.size),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = stringResource(R.string.exercises_count, exercisesForDay.size),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        )
+                        
+                        IconButton(
+                            onClick = { showAddDialog = true },
+                            modifier = Modifier.size(32.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.add_exercise),
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
                 }
 
                 if (exercisesForDay.isEmpty()) {
@@ -359,7 +399,7 @@ fun RoutineScreen(
                                     Column(modifier = Modifier.weight(1f)) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = exercise.name,
+                                                text = com.example.ui.components.translateExerciseName(exercise.name),
                                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                             )
                                             Spacer(modifier = Modifier.width(8.dp))

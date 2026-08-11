@@ -1,7 +1,15 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <color name="ic_launcher_background">#121212</color>
+    <!-- Launcher Backgrounds -->
+    <color name="ic_launcher_background">#FDFCFB</color>
     <color name="ic_launcher_background_beige">#FDFCFB</color>
+
+    <!-- Splash Screen Backgrounds (STATIC) -->
+    <color name="splash_bg_light">#FFFFFF</color>
+    <color name="splash_bg_black">#000000</color>
+
+    <!-- Legacy / Cleanup -->
+    <color name="splash_bg_dark">#1A0B00</color>
     <color name="purple_200">#FFBB86FC</color>
     <color name="purple_500">#FF6200EE</color>
     <color name="purple_700">#FF3700B3</color>
@@ -9,5 +17,4 @@
     <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
-    <color name="splash_bg_dark">#1A0B00</color>
 </resources>

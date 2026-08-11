@@ -28,11 +28,14 @@
     <string name="resting_timer_duration">Pause-Timer Dauer</string>
     <string name="auto_countdown_interval">Automatischer Countdown zwischen den Sätzen</string>
     <string name="color_theme">Farbschema</string>
+    <string name="app_icon_selection">App-Symbol Auswahl</string>
+    <string name="light_icon_beige">Helles Symbol (Beige)</string>
+    <string name="dark_icon_orange">Dunkles Symbol (Orange)</string>
     <string name="light_mode_theme">HELLER MODUS / HELL</string>
     <string name="dark_mode_theme">DUNKLER MODUS / DUNKEL</string>
-    <string name="first_time_onboarding">Erste Einrichtung</string>
-    <string name="reopen_initial_setup">Anfängliches Setup erneut öffnen</string>
-    <string name="rerun">Neu starten</string>
+    <string name="recreate_workout">Workout neu erstellen</string>
+    <string name="recreate_workout_desc">Öffne die Setup-Karte, um eine neue Routine zu wählen oder einen Split zu bauen.</string>
+    <string name="recreate">Neu erstellen</string>
     <string name="support_requests">Support-Anfragen</string>
     <string name="submit_feedback">Feedback senden oder Probleme melden</string>
     <string name="open_support">Support öffnen</string>
@@ -101,11 +104,16 @@
     <string name="restart_workout_session_title">Trainingseinheit neu starten?</string>
     <string name="restart_workout_session_text">Bist du sicher, dass du das heutige Training neu starten möchtest? Der Fortschritt für diese Sitzung wird auf Übung 1, Satz 1 zurückgesetzt.</string>
     <string name="restart">Neustart</string>
+    <string name="change_app_icon_title">App-Symbol ändern?</string>
+    <string name="change_app_icon_text">Möchtest du auch das App-Symbol an das neue Farbschema anpassen?</string>
+    <string name="yes">Ja</string>
+    <string name="no">Nein</string>
     <string name="set_custom_weight_title">Benutzerdefiniertes Gewicht (kg)</string>
     <string name="enter_custom_weight_text">Gib das Gewicht für deinen Satz ein:</string>
     <string name="weight_in_kg">Gewicht in kg</string>
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Benutzerdefiniert</string>
+    <string name="my_workout">Mein Workout</string>
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein geplantes Training für %1$s. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training abgeschlossen! 🎉</string>
@@ -160,7 +168,9 @@
     <string name="muscle_group_body_part">Muskelgruppe / Körperteil</string>
     <string name="target_sets">Ziel-Sätze</string>
     <string name="target_reps">Ziel-Wdh.</string>
-    <string name="save_and_start">SPEICHERN UND STARTEN</string>
+    <string name="save_and_start">Speichern</string>
+    <string name="close">Schließen</string>
+    <string name="new_action">Neu</string>
     <string name="select">Wählen</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Trainingsprogramm?</string>
@@ -200,6 +210,49 @@
     <string name="time_efficient">Zeiteffizient</string>
     <string name="workout_days_plus_rest">%1$d Trainingstage + %2$d Ruhetage</string>
 
+    <!-- Exercise Names -->
+    <string name="ex_barbell_bent_over_row">Langhantelrudern vorgebeugt</string>
+    <string name="ex_one_arm_dumbbell_row">Einarmiges Kurzhantelrudern</string>
+    <string name="ex_dumbbell_pullover">Kurzhantel-Überzüge</string>
+    <string name="ex_dumbbell_curls">Kurzhantel-Curls</string>
+    <string name="ex_hammer_curls">Hammer-Curls</string>
+    <string name="ex_dumbbell_shoulder_press">Kurzhantel-Schulterdrücken</string>
+    <string name="ex_dumbbell_lateral_raises">Kurzhantel-Seitheben</string>
+    <string name="ex_crunches">Crunches</string>
+    <string name="ex_barbell_floor_press">Langhantel-Bodendrücken</string>
+    <string name="ex_dumbbell_floor_press">Kurzhantel-Bodendrücken</string>
+    <string name="ex_leg_raises">Beinheben</string>
+    <string name="ex_barbell_squats">Langhantel-Kniebeugen</string>
+    <string name="ex_romanian_deadlifts">Rumänisches Kreuzheben</string>
+    <string name="ex_dumbbell_lunges">Kurzhantel-Ausfallschritte</string>
+    <string name="ex_plank">Plank</string>
+    <string name="ex_barbell_row">Langhantelrudern</string>
+    <string name="ex_tricep_dips_extensions">Trizeps-Dips / Extensions</string>
+    <string name="ex_overhead_tricep_extension">Trizepsdrücken über Kopf</string>
+    <string name="ex_overhead_dumbbell_extension">Kurzhantel-Trizepsdrücken über Kopf</string>
+    <string name="ex_bench_press_floor_press">Bankdrücken / Bodendrücken</string>
+    <string name="ex_barbell_rows_generic">Langhantelrudern</string>
+    <string name="ex_bicep_curls_generic">Bizeps-Curls</string>
+    <string name="ex_rear_delt_dumbbell_fly">Kurzhantel-Reverse-Fly</string>
+    <string name="ex_rear_delt_fly">Reverse-Fly</string>
+    <string name="ex_deadlifts">Kreuzheben</string>
+    <string name="ex_calves">Wadenheben</string>
+    <string name="ex_abs">Bauchmuskeln</string>
+    <string name="ex_pull_ups">Klimmzüge</string>
+    <string name="ex_squats">Kniebeugen</string>
+    <string name="ex_press">Drücken</string>
+    <string name="ex_row">Rudern</string>
+    <string name="ex_lunge">Ausfallschritt</string>
+    <string name="ex_biceps_generic">Bizeps</string>
+    <string name="ex_chest_press">Brustdrücken</string>
+    <string name="ex_arms">Arme</string>
+    <string name="ex_core">Core</string>
+    <string name="ex_triceps_generic">Trizeps</string>
+    <string name="ex_shoulders_generic">Schultern</string>
+    <string name="ex_back_generic">Rücken</string>
+    <string name="ex_legs_generic">Beine</string>
+    <string name="ex_flyes">Flys</string>
+
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Drücken (Brust, Schultern, Trizeps)</string>
     <string name="pull_title">Ziehen (Rücken &amp; Bizeps)</string>
@@ -227,10 +280,10 @@
     <string name="crimson_red">Karmesinrot</string>
     <string name="elegant_purple">Elegantes Lila</string>
     <string name="flame_orange">Flammenorange</string>
-    <string name="midnight_blue">Mitternachtsblau</string>
     <string name="ocean_teal">Ozeanblau</string>
     <string name="rose_pink">Rosarot</string>
-    <string name="forest_green">Waldgrün</string>
+    <string name="azure_sky">Azure Blau</string>
+
 
     <string name="monday">Montag</string>
     <string name="tuesday">Dienstag</string>
@@ -246,6 +299,10 @@
     <string name="friday_short">Fr</string>
     <string name="saturday_short">Sa</string>
     <string name="sunday_short">So</string>
+    <string name="action_back">Zurück</string>
+    <string name="restart_required_title">Neustart erforderlich</string>
+    <string name="restart_required_message">Um das neue Design und den Startbildschirm vollständig zu übernehmen, muss die App neu gestartet werden.</string>
+    <string name="ok">OK</string>
 </resources>
 
 

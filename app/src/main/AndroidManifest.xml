@@ -11,39 +11,36 @@
         android:allowBackup="true"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
-        android:icon="@mipmap/ic_launcher"
+        android:icon="@mipmap/ic_launcher_orange"
         android:label="@string/app_name"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
-        <!-- Base MainActivity (Disabled as a launcher, handled by aliases) -->
+        <!-- Base MainActivity (Disabled as a launcher) -->
         <activity
             android:name="com.example.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">
-            <!-- No intent filter here -->
         </activity>
 
-        <!-- Orange Icon Alias (Default Enabled) -->
-        <activity-alias
+        <!-- Orange / Dark Theme Entry Point (STATIC BLACK SPLASH) -->
+        <activity
             android:name="com.example.MainActivityOrange"
-            android:targetActivity="com.example.MainActivity"
             android:enabled="true"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher"
+            android:icon="@mipmap/ic_launcher_orange"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting.Orange">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity-alias>
+        </activity>
 
-        <!-- Beige Icon Alias (Disabled by Default) -->
-        <activity-alias
+        <!-- Beige / Light Theme Entry Point (STATIC WHITE SPLASH) -->
+        <activity
             android:name="com.example.MainActivityBeige"
-            android:targetActivity="com.example.MainActivity"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_beige"
@@ -53,7 +50,7 @@
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
-        </activity-alias>
+        </activity>
 
         <receiver
             android:name="com.example.util.RestTimerReceiver"

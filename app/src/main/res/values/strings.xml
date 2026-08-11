@@ -28,11 +28,14 @@
     <string name="resting_timer_duration">Resting Timer Duration</string>
     <string name="auto_countdown_interval">Auto countdown interval between exercise sets</string>
     <string name="color_theme">Color Theme</string>
+    <string name="app_icon_selection">App Icon Selection</string>
+    <string name="light_icon_beige">Light Icon (Beige)</string>
+    <string name="dark_icon_orange">Dark Icon (Orange)</string>
     <string name="light_mode_theme">LIGHT MODE / LIGHT THEME</string>
     <string name="dark_mode_theme">DARK MODE / DARK THEME</string>
-    <string name="first_time_onboarding">First-Time Onboarding</string>
-    <string name="reopen_initial_setup">Re-open initial workout program setup screen</string>
-    <string name="rerun">Re-run</string>
+    <string name="recreate_workout">Recreate workout</string>
+    <string name="recreate_workout_desc">Re-open the setup screen to choose a new routine or build a custom split.</string>
+    <string name="recreate">Recreate</string>
     <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
     <string name="open_support">Open Support</string>
@@ -70,8 +73,8 @@
     <string name="watch_demo">Watch Demo</string>
     <string name="watch_demo_video">Watch Demo Video</string>
     <string name="edit_demo_link">Edit Demo Link</string>
-    <string name="input_demo">Input Demo</string>
-    <string name="input_demo_video">Input Demo Video</string>
+    <string name="input_demo">Add Demo</string>
+    <string name="input_demo_video">Add Demo Video</string>
     <string name="demo_video_link">Demo Video Link</string>
     <string name="enter_video_url_desc">Enter a video URL for this exercise demo:</string>
     <string name="video_url">Video URL</string>
@@ -101,11 +104,16 @@
     <string name="restart_workout_session_title">Restart Workout Session?</string>
     <string name="restart_workout_session_text">Are you sure you want to restart today\'s workout? Progress for this session will be reset to exercise 1, set 1.</string>
     <string name="restart">Restart</string>
+    <string name="change_app_icon_title">Change App Icon?</string>
+    <string name="change_app_icon_text">Would you like to also change the app icon to match the new color theme?</string>
+    <string name="yes">Yes</string>
+    <string name="no">No</string>
     <string name="set_custom_weight_title">Set Custom Weight (kg)</string>
     <string name="enter_custom_weight_text">Enter custom weight for your set:</string>
     <string name="weight_in_kg">Weight in kg</string>
     <string name="save_weight">Save Weight</string>
     <string name="custom">Custom</string>
+    <string name="my_workout">My Workout</string>
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
     <string name="rest_recovery_recommendation">No scheduled lifting for %1$s. Active walking or light mobility recommended!</string>
     <string name="workout_completed_title">Workout Completed! 🎉</string>
@@ -160,7 +168,9 @@
     <string name="muscle_group_body_part">Muscle Group / Body Part</string>
     <string name="target_sets">Target Sets</string>
     <string name="target_reps">Target Reps</string>
-    <string name="save_and_start">SAVE AND START</string>
+    <string name="save_and_start">Save</string>
+    <string name="close">Close</string>
+    <string name="new_action">New</string>
     <string name="select">Select</string>
 
     <string name="faq_change_program_q">How to change my workout program?</string>
@@ -200,6 +210,49 @@
     <string name="time_efficient">Time Efficient</string>
     <string name="workout_days_plus_rest">%1$d Workout Days + %2$d Rest Days</string>
 
+    <!-- Exercise Names -->
+    <string name="ex_barbell_bent_over_row">Barbell bent-over row</string>
+    <string name="ex_one_arm_dumbbell_row">One-arm dumbbell row</string>
+    <string name="ex_dumbbell_pullover">Dumbbell pullover</string>
+    <string name="ex_dumbbell_curls">Dumbbell curls</string>
+    <string name="ex_hammer_curls">Hammer curls</string>
+    <string name="ex_dumbbell_shoulder_press">Dumbbell shoulder press</string>
+    <string name="ex_dumbbell_lateral_raises">Dumbbell lateral raises</string>
+    <string name="ex_crunches">Crunches</string>
+    <string name="ex_barbell_floor_press">Barbell floor press</string>
+    <string name="ex_dumbbell_floor_press">Dumbbell floor press</string>
+    <string name="ex_leg_raises">Leg raises</string>
+    <string name="ex_barbell_squats">Barbell squats</string>
+    <string name="ex_romanian_deadlifts">Romanian deadlifts</string>
+    <string name="ex_dumbbell_lunges">Dumbbell lunges</string>
+    <string name="ex_plank">Plank</string>
+    <string name="ex_barbell_row">Barbell row</string>
+    <string name="ex_tricep_dips_extensions">Tricep dips / extensions</string>
+    <string name="ex_overhead_tricep_extension">Overhead tricep extension</string>
+    <string name="ex_overhead_dumbbell_extension">Overhead dumbbell extension</string>
+    <string name="ex_bench_press_floor_press">Bench Press / Floor Press</string>
+    <string name="ex_barbell_rows_generic">Barbell Rows</string>
+    <string name="ex_bicep_curls_generic">Bicep Curls</string>
+    <string name="ex_rear_delt_dumbbell_fly">Rear-delt dumbbell fly</string>
+    <string name="ex_rear_delt_fly">Rear-delt fly</string>
+    <string name="ex_deadlifts">Deadlifts</string>
+    <string name="ex_calves">Calves</string>
+    <string name="ex_abs">Abs</string>
+    <string name="ex_pull_ups">Pull-ups</string>
+    <string name="ex_squats">Squats</string>
+    <string name="ex_press">Press</string>
+    <string name="ex_row">Row</string>
+    <string name="ex_lunge">Lunge</string>
+    <string name="ex_biceps_generic">Biceps</string>
+    <string name="ex_chest_press">Chest Press</string>
+    <string name="ex_arms">Arms</string>
+    <string name="ex_core">Core</string>
+    <string name="ex_triceps_generic">Triceps</string>
+    <string name="ex_shoulders_generic">Shoulders</string>
+    <string name="ex_back_generic">Back</string>
+    <string name="ex_legs_generic">Legs</string>
+    <string name="ex_flyes">Flyes</string>
+
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Push (Chest, Shoulders, Triceps)</string>
     <string name="pull_title">Pull (Back &amp; Biceps)</string>
@@ -219,18 +272,17 @@
     <string name="lower_power_desc">Squats, deadlifts, and abs</string>
     <string name="rest_desc">Active rest, foam rolling, and mobility</string>
     <string name="full_body_a_desc">Squat, Press, Row, Core</string>
-    <string name="full_body_b_desc">Lunge, Shoulder Press, Pullover, Biceps</string>
-    <string name="full_body_c_desc">Romanian Deadlift, Chest Press, Arms, Core</string>
+    <string name="full_body_b_desc">Ausfallschritte, Schulterdrücken, Überzüge, Bizeps</string>
+    <string name="full_body_c_desc">Rumänisches Kreuzheben, Brustdrücken, Arme, Core</string>
 
     <string name="warm_beige">Warm Beige</string>
     <string name="emerald_mint">Emerald Mint</string>
     <string name="crimson_red">Crimson Red</string>
     <string name="elegant_purple">Elegant Purple</string>
     <string name="flame_orange">Flame Orange</string>
-    <string name="midnight_blue">Midnight Blue</string>
     <string name="ocean_teal">Ocean Teal</string>
     <string name="rose_pink">Rose Pink</string>
-    <string name="forest_green">Forest Green</string>
+    <string name="azure_sky">Azure Sky</string>
 
     <string name="monday">Monday</string>
     <string name="tuesday">Tuesday</string>
@@ -246,9 +298,8 @@
     <string name="friday_short">Fri</string>
     <string name="saturday_short">Sat</string>
     <string name="sunday_short">Sun</string>
+    <string name="action_back">Back</string>
+    <string name="restart_required_title">Restart Required</string>
+    <string name="restart_required_message">To apply the new theme and splash screen fully, the app needs to restart.</string>
+    <string name="ok">OK</string>
 </resources>
-
-
-
-
-

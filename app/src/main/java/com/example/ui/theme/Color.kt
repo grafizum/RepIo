@@ -41,11 +41,6 @@ val FlameOrangeDarkAccent = Color(0xFF381E72)
 val NeonCyan = Color(0xFFE8DEF8)
 val BrightLime = Color(0xFFD0BCFF)
 
-// Midnight Blue
-val MidnightBlue = Color(0xFF3D5AFE)
-val MidnightDark = Color(0xFF14172B) // Softer dark blue (was 0xFF0A0E21)
-val MidnightLight = Color(0xFF8C9EFF)
-
 // Crimson Red
 val CrimsonRed = Color(0xFFFF1744)
 val CrimsonDark = Color(0xFF210F0F) // Softer dark red (was 0xFF1A0000)
@@ -55,6 +50,10 @@ val CrimsonLight = Color(0xFFFF8A80)
 val VibrantGold = Color(0xFFFFC400)
 val GoldDark = Color(0xFF24220F) // Softer dark gold (was 0xFF1E1C00)
 val GoldLight = Color(0xFFFFE57F)
+
+// Azure Sky
+val AzureSkyPrimary = Color(0xFF007AFF)
+val AzureSkySecondary = Color(0xFF5856D6)
 
 // Slate
 val SlateGrey = Color(0xFF90A4AE)
@@ -70,11 +69,6 @@ val OceanLight = Color(0xFF84FFFF)
 val RosePrimary = Color(0xFFF06292)
 val RoseDark = Color(0xFF28111A) // Softer dark rose (was 0xFF21000C)
 val RoseLight = Color(0xFFFFB2C1)
-
-// Forest
-val ForestPrimary = Color(0xFF4CAF50)
-val ForestDark = Color(0xFF0F2111) // Softer dark green (was 0xFF001B02)
-val ForestLight = Color(0xFFA5D6A7)
 
 // Amber
 val AmberPrimary = Color(0xFFFFB300)

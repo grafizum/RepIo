@@ -6,9 +6,12 @@
     android:viewportHeight="108">
 
     <group
+        android:pivotX="54"
+        android:pivotY="54"
+        android:translateX="0.5"
         android:translateY="-2">
 
-        <!-- Dumbbell Group (Moved up slightly) -->
+        <!-- Dumbbell Group -->
         <group android:translateY="-4">
             <!-- Compact Sleek Dumbbell (Sunset Orange #FF6D00) -->
             <path
@@ -28,7 +31,7 @@
                 android:pathData="M69.5,44.5h3c0.8,0 1.5,0.7 1.5,1.5v11c0,0.8 -0.7,1.5 -1.5,1.5h-3c-0.8,0 -1.5,-0.7 -1.5,-1.5v-11c0,-0.8 0.7,-1.5 1.5,-1.5z" />
         </group>
 
-        <!-- ECG Line Group (Moved down slightly) -->
+        <!-- ECG Line Group -->
         <group android:translateY="4">
             <!-- Heartbeat ECG Line (Deep Orange #BF360C) -->
             <path

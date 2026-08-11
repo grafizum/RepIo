@@ -201,7 +201,11 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.height(12.dp))
 
                             Text(
-                                text = todayRoutineDay?.title ?: stringResource(R.string.workout_routine),
+                                text = if (todayRoutineDay != null) {
+                                    com.example.ui.components.translateDayTitle(todayRoutineDay.title)
+                                } else {
+                                    stringResource(R.string.workout_routine)
+                                },
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
@@ -448,7 +452,7 @@ fun HomeScreen(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = exercise.name,
+                                        text = com.example.ui.components.translateExerciseName(exercise.name),
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
