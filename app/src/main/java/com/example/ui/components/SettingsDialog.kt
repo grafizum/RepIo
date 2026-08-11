@@ -15,6 +15,8 @@ import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
@@ -24,12 +26,17 @@ import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
+import androidx.compose.material.icons.filled.Language
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.FilterChip
+import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.Switch
@@ -43,10 +50,12 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.example.R
 import com.example.ui.viewmodel.WorkoutViewModel
 
 data class ThemeColorItem(
@@ -65,21 +74,22 @@ val lightThemes = listOf(
 val darkThemes = listOf(
     ThemeColorItem("PURPLE", "Elegant Purple", Color(0xFFD0BCFF), Color(0xFF1C1B1F)),
     ThemeColorItem("FLAME", "Flame Orange", Color(0xFFFF6D00), Color(0xFF121212)),
-    ThemeColorItem("MIDNIGHT", "Midnight Blue", Color(0xFF3D5AFE), Color(0xFF0A0E21)),
-    ThemeColorItem("OCEAN", "Ocean Teal", Color(0xFF00B8D4), Color(0xFF001217)),
-    ThemeColorItem("ROSE", "Rose Pink", Color(0xFFF06292), Color(0xFF21000C)),
-    ThemeColorItem("FOREST", "Forest Green", Color(0xFF4CAF50), Color(0xFF001B02))
+    ThemeColorItem("MIDNIGHT", "Midnight Blue", Color(0xFF3D5AFE), Color(0xFF14172B)),
+    ThemeColorItem("OCEAN", "Ocean Teal", Color(0xFF00B8D4), Color(0xFF0F1E24)),
+    ThemeColorItem("ROSE", "Rose Pink", Color(0xFFF06292), Color(0xFF28111A)),
+    ThemeColorItem("FOREST", "Forest Green", Color(0xFF4CAF50), Color(0xFF0F2111))
 )
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SettingsDialog(
     viewModel: WorkoutViewModel,
     onDismiss: () -> Unit,
     onNavigateToSupport: (() -> Unit)? = null
 ) {
-    val keepScreenOn by viewModel.keepScreenOn.collectAsState(initial = false)
-    val selectedTheme by viewModel.themeOption.collectAsState(initial = "PURPLE")
-    val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState(initial = 60)
+    val keepScreenOn by viewModel.keepScreenOn.collectAsState()
+    val selectedTheme by viewModel.themeOption.collectAsState()
+    val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -94,7 +104,7 @@ fun SettingsDialog(
                     tint = MaterialTheme.colorScheme.primary
                 )
                 Text(
-                    text = "App Settings",
+                    text = stringResource(R.string.app_settings),
                     fontWeight = FontWeight.Bold,
                     style = MaterialTheme.typography.titleLarge
                 )
@@ -103,7 +113,9 @@ fun SettingsDialog(
         text = {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .verticalScroll(rememberScrollState())
             ) {
                 // SCREEN KEEP ALIVE TOGGLE
                 Card(
@@ -130,12 +142,12 @@ fun SettingsDialog(
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Column {
                                     Text(
-                                        text = "Keep Screen On",
+                                        text = stringResource(R.string.keep_screen_on),
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "Force screen to stay active while app is open",
+                                        text = stringResource(R.string.force_screen_stay_active),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                     )
@@ -175,12 +187,12 @@ fun SettingsDialog(
                             Spacer(modifier = Modifier.width(10.dp))
                             Column {
                                 Text(
-                                    text = "Resting Timer Duration",
+                                    text = stringResource(R.string.resting_timer_duration),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "Auto countdown interval between exercise sets",
+                                    text = stringResource(R.string.auto_countdown_interval),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -245,7 +257,7 @@ fun SettingsDialog(
                             )
                             Spacer(modifier = Modifier.width(10.dp))
                             Text(
-                                text = "Color Theme",
+                                text = stringResource(R.string.color_theme),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -255,7 +267,7 @@ fun SettingsDialog(
 
                         // LIGHT THEMES SUB-SECTION
                         Text(
-                            text = "LIGHT MODE / LIGHT THEME",
+                            text = stringResource(R.string.light_mode_theme),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -274,7 +286,7 @@ fun SettingsDialog(
 
                         // DARK THEMES SUB-SECTION
                         Text(
-                            text = "DARK MODE / DARK THEME",
+                            text = stringResource(R.string.dark_mode_theme),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
@@ -285,6 +297,73 @@ fun SettingsDialog(
                                     theme = theme,
                                     isSelected = selectedTheme.equals(theme.key, ignoreCase = true),
                                     onSelect = { viewModel.setThemeOption(theme.key) }
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // LANGUAGE SELECTION CARD
+                val appLanguage by viewModel.appLanguage.collectAsState()
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.language),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = stringResource(R.string.change_app_language),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val languageOptions = listOf(
+                            "system" to stringResource(R.string.system_default),
+                            "en" to stringResource(R.string.english),
+                            "de" to stringResource(R.string.german),
+                            "it" to stringResource(R.string.italian)
+                        )
+                        Row(
+                            horizontalArrangement = Arrangement.spacedBy(6.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            languageOptions.forEach { (code, label) ->
+                                val isSelected = appLanguage == code
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { viewModel.setAppLanguage(code) },
+                                    label = {
+                                        Text(
+                                            text = if (code == "system" && label.length > 6) label.substring(0, 6) else label,
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    },
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
@@ -305,12 +384,12 @@ fun SettingsDialog(
                         ) {
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "First-Time Onboarding",
+                                    text = stringResource(R.string.first_time_onboarding),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "Re-open initial workout program setup screen",
+                                    text = stringResource(R.string.reopen_initial_setup),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -325,7 +404,7 @@ fun SettingsDialog(
                             ) {
                                 Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Re-run")
+                                Text(stringResource(R.string.rerun))
                             }
                         }
                     }
@@ -346,13 +425,13 @@ fun SettingsDialog(
                             Column(modifier = Modifier.weight(1f)) {
                                 Row(verticalAlignment = Alignment.CenterVertically) {
                                     Text(
-                                        text = "Support Requests",
+                                        text = stringResource(R.string.support_requests),
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                                 Text(
-                                    text = "Submit feedback or report issues",
+                                    text = stringResource(R.string.submit_feedback),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -369,7 +448,7 @@ fun SettingsDialog(
                                 ) {
                                     Icon(imageVector = Icons.Default.ContactSupport, contentDescription = null, modifier = Modifier.size(16.dp))
                                     Spacer(modifier = Modifier.width(4.dp))
-                                    Text("Open Support")
+                                    Text(stringResource(R.string.open_support))
                                 }
                             }
                         }
@@ -382,7 +461,7 @@ fun SettingsDialog(
                 onClick = onDismiss,
                 shape = RoundedCornerShape(12.dp)
             ) {
-                Text("Done")
+                Text(stringResource(R.string.done))
             }
         }
     )

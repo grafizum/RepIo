@@ -65,6 +65,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.data.DayOfWeekEnum
 import com.example.data.RoutineExerciseEntity
 import com.example.ui.components.ExerciseVideoLinkButton
@@ -107,8 +109,8 @@ fun WorkoutNowScreen(
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
-            title = { Text("Restart Workout Session?") },
-            text = { Text("Are you sure you want to restart today's workout? Progress for this session will be reset to exercise 1, set 1.") },
+            title = { Text(stringResource(R.string.restart_workout_session_title)) },
+            text = { Text(stringResource(R.string.restart_workout_session_text)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -120,12 +122,12 @@ fun WorkoutNowScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text("Restart")
+                    Text(stringResource(R.string.restart))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showRestartDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -134,15 +136,15 @@ fun WorkoutNowScreen(
     if (showCustomWeightDialog) {
         AlertDialog(
             onDismissRequest = { showCustomWeightDialog = false },
-            title = { Text("Set Custom Weight (kg)") },
+            title = { Text(stringResource(R.string.set_custom_weight_title)) },
             text = {
                 Column {
-                    Text("Enter custom weight for your set:", style = MaterialTheme.typography.bodyMedium)
+                    Text(stringResource(R.string.enter_custom_weight_text), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
                         value = customWeightInput,
                         onValueChange = { customWeightInput = it },
-                        label = { Text("Weight in kg") },
+                        label = { Text(stringResource(R.string.weight_in_kg)) },
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -159,12 +161,12 @@ fun WorkoutNowScreen(
                         showCustomWeightDialog = false
                     }
                 ) {
-                    Text("Save Weight")
+                    Text(stringResource(R.string.save_weight))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showCustomWeightDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -192,7 +194,7 @@ fun WorkoutNowScreen(
                 }
                 Column {
                     Text(
-                        text = "Workout Now",
+                        text = stringResource(R.string.workout_now),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -215,7 +217,7 @@ fun WorkoutNowScreen(
                 ) {
                     Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
                     Spacer(modifier = Modifier.width(4.dp))
-                    Text("Custom", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                    Text(stringResource(R.string.custom), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
             }
         }
@@ -239,8 +241,17 @@ fun WorkoutNowScreen(
                         selected = isSelected,
                         onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
                         label = {
+                            val shortName = when (dayEnum) {
+                                DayOfWeekEnum.MONDAY -> stringResource(R.string.monday_short)
+                                DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday_short)
+                                DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday_short)
+                                DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday_short)
+                                DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday_short)
+                                DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday_short)
+                                DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday_short)
+                            }
                             Text(
-                                text = dayEnum.shortName,
+                                text = shortName,
                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                             )
                         },
@@ -275,12 +286,12 @@ fun WorkoutNowScreen(
                         )
                         Spacer(modifier = Modifier.height(12.dp))
                         Text(
-                            text = "Rest & Recovery Day",
+                            text = stringResource(R.string.rest_recovery_day),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "No scheduled lifting for ${dayOfWeekDisplayName(workoutState.selectedDayOfWeek)}. Active walking or light mobility recommended!",
+                            text = stringResource(R.string.rest_recovery_recommendation, dayOfWeekDisplayName(workoutState.selectedDayOfWeek)),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -316,13 +327,13 @@ fun WorkoutNowScreen(
                         }
                         Spacer(modifier = Modifier.height(16.dp))
                         Text(
-                            text = "Workout Completed! 🎉",
+                            text = stringResource(R.string.workout_completed_title),
                             style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
                         Spacer(modifier = Modifier.height(8.dp))
                         Text(
-                            text = "You logged ${workoutState.totalSetsLoggedToday} total sets for ${dayOfWeekDisplayName(workoutState.selectedDayOfWeek)}!",
+                            text = stringResource(R.string.workout_completed_text, workoutState.totalSetsLoggedToday, dayOfWeekDisplayName(workoutState.selectedDayOfWeek)),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             textAlign = TextAlign.Center
@@ -339,7 +350,7 @@ fun WorkoutNowScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "START WORKOUT AGAIN",
+                                text = stringResource(R.string.start_workout_again),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
@@ -361,7 +372,7 @@ fun WorkoutNowScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Exercise ${exerciseIndex + 1} of $totalExercises • Set ${workoutState.currentSetNumber}/${currentExercise.targetSets}",
+                            text = stringResource(R.string.exercise_x_of_y, exerciseIndex + 1, totalExercises, workoutState.currentSetNumber, currentExercise.targetSets),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -380,12 +391,12 @@ fun WorkoutNowScreen(
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Refresh,
-                                contentDescription = "Restart Workout",
+                                contentDescription = stringResource(R.string.restart),
                                 modifier = Modifier.size(14.dp)
                             )
                             Spacer(modifier = Modifier.width(4.dp))
                             Text(
-                                "Restart",
+                                stringResource(R.string.restart),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                             )
                         }
@@ -431,12 +442,12 @@ fun WorkoutNowScreen(
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
                                     Text(
-                                        text = "REST TIMER",
+                                        text = stringResource(R.string.rest_timer),
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                                     )
                                     Text(
-                                        text = "${workoutState.restTimerSeconds}s remaining",
+                                        text = stringResource(R.string.seconds_remaining, workoutState.restTimerSeconds),
                                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -474,7 +485,7 @@ fun WorkoutNowScreen(
                                 shape = RoundedCornerShape(8.dp)
                             ) {
                                 Text(
-                                    text = "SET ${workoutState.currentSetNumber} / ${currentExercise.targetSets}",
+                                    text = stringResource(R.string.set_x_of_y, workoutState.currentSetNumber, currentExercise.targetSets),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
                                 )
@@ -490,7 +501,7 @@ fun WorkoutNowScreen(
                         )
 
                         Text(
-                            text = "Target: ${currentExercise.targetSets} sets × ${currentExercise.targetReps} reps",
+                            text = stringResource(R.string.sets_x_reps, currentExercise.targetSets, currentExercise.targetReps),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -520,7 +531,7 @@ fun WorkoutNowScreen(
                                     horizontalAlignment = Alignment.End
                                 ) {
                                     Text(
-                                        text = "NEXT UP",
+                                        text = stringResource(R.string.next_up),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.ExtraBold,
                                             letterSpacing = 0.5.sp
@@ -530,7 +541,7 @@ fun WorkoutNowScreen(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     if (nextExercise != null) {
                                         Text(
-                                            text = "${nextExercise.name} (${nextExercise.targetSets} sets)",
+                                            text = stringResource(R.string.next_up_exercise, nextExercise.name, nextExercise.targetSets),
                                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
@@ -538,7 +549,7 @@ fun WorkoutNowScreen(
                                         )
                                     } else {
                                         Text(
-                                            text = "None (Done 🎉)",
+                                            text = stringResource(R.string.next_up_none),
                                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
@@ -560,7 +571,7 @@ fun WorkoutNowScreen(
                         verticalArrangement = Arrangement.spacedBy(16.dp)
                     ) {
                         Text(
-                            text = "Log Current Set Parameters",
+                            text = stringResource(R.string.log_current_set_parameters),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -572,7 +583,7 @@ fun WorkoutNowScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Weight",
+                                    text = stringResource(R.string.weight),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -581,7 +592,7 @@ fun WorkoutNowScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Text(
-                                        text = "${workoutState.currentWeightKg} kg",
+                                        text = stringResource(R.string.weight_kg_intl, workoutState.currentWeightKg),
                                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -636,12 +647,12 @@ fun WorkoutNowScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Reps Completed",
+                                    text = stringResource(R.string.reps_completed),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "${workoutState.currentReps} reps",
+                                    text = stringResource(R.string.reps_count, workoutState.currentReps),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
@@ -682,7 +693,7 @@ fun WorkoutNowScreen(
                         Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(28.dp))
                         Spacer(modifier = Modifier.width(10.dp))
                         Text(
-                            text = "LOG SET ${workoutState.currentSetNumber} & NEXT ➔",
+                            text = stringResource(R.string.log_set_x_next, workoutState.currentSetNumber),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
                         )
                     }
@@ -694,15 +705,16 @@ fun WorkoutNowScreen(
     }
 }
 
+@Composable
 fun dayOfWeekDisplayName(dayOfWeek: String): String {
     return when (dayOfWeek.uppercase()) {
-        "MONDAY" -> "Monday"
-        "TUESDAY" -> "Tuesday"
-        "WEDNESDAY" -> "Wednesday"
-        "THURSDAY" -> "Thursday"
-        "FRIDAY" -> "Friday"
-        "SATURDAY" -> "Saturday"
-        "SUNDAY" -> "Sunday"
+        "MONDAY" -> stringResource(R.string.monday)
+        "TUESDAY" -> stringResource(R.string.tuesday)
+        "WEDNESDAY" -> stringResource(R.string.wednesday)
+        "THURSDAY" -> stringResource(R.string.thursday)
+        "FRIDAY" -> stringResource(R.string.friday)
+        "SATURDAY" -> stringResource(R.string.saturday)
+        "SUNDAY" -> stringResource(R.string.sunday)
         else -> dayOfWeek
     }
 }

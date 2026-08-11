@@ -59,6 +59,8 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.rememberModalBottomSheetState
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.data.DayOfWeekEnum
 import com.example.data.RoutineExerciseEntity
 import com.example.data.WorkoutTemplate
@@ -97,12 +99,12 @@ fun RoutineScreen(
         var tempName by remember { mutableStateOf(customWorkoutName) }
         AlertDialog(
             onDismissRequest = { showEditNameDialog = false },
-            title = { Text("Edit Workout Program Name") },
+            title = { Text(stringResource(R.string.edit_workout_program_name)) },
             text = {
                 OutlinedTextField(
                     value = tempName,
                     onValueChange = { tempName = it },
-                    label = { Text("Program Name") },
+                    label = { Text(stringResource(R.string.program_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -112,12 +114,12 @@ fun RoutineScreen(
                     viewModel.updateWorkoutName(tempName)
                     showEditNameDialog = false
                 }) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showEditNameDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -134,11 +136,11 @@ fun RoutineScreen(
                     .padding(20.dp)
             ) {
                 Text(
-                    text = "Workout Templates",
+                    text = stringResource(R.string.workout_templates),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                 )
                 Text(
-                    text = "Switch your program to one of our designed splits anytime.",
+                    text = stringResource(R.string.switch_program_text),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -180,7 +182,7 @@ fun RoutineScreen(
                                         },
                                         shape = RoundedCornerShape(12.dp)
                                     ) {
-                                        Text("Apply")
+                                        Text(stringResource(R.string.apply))
                                     }
                                 }
                             }
@@ -199,7 +201,7 @@ fun RoutineScreen(
                     containerColor = MaterialTheme.colorScheme.primary,
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 ) {
-                    Icon(imageVector = Icons.Default.Add, contentDescription = "Add Exercise")
+                    Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.add_exercise))
                 }
             }
         },
@@ -222,7 +224,7 @@ fun RoutineScreen(
                 Row(verticalAlignment = Alignment.CenterVertically) {
                     if (onBack != null) {
                         IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                         }
                         Spacer(modifier = Modifier.width(8.dp))
                     }
@@ -310,7 +312,7 @@ fun RoutineScreen(
                                     Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = "START THIS WORKOUT NOW",
+                                        text = stringResource(R.string.start_this_workout_now),
                                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -322,7 +324,7 @@ fun RoutineScreen(
                 // EXERCISES LIST
                 item {
                     Text(
-                        text = "Exercises (${exercisesForDay.size})",
+                        text = stringResource(R.string.exercises_count, exercisesForDay.size),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                 }
@@ -330,7 +332,7 @@ fun RoutineScreen(
                 if (exercisesForDay.isEmpty()) {
                     item {
                         Text(
-                            text = "No exercises scheduled for this day.",
+                            text = stringResource(R.string.no_exercises_scheduled),
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             modifier = Modifier.padding(16.dp)
@@ -360,7 +362,7 @@ fun RoutineScreen(
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = "${exercise.targetSets} sets × ${exercise.targetReps} reps",
+                                            text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -418,8 +420,8 @@ fun RoutineScreen(
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text("Reset Program to Default?") },
-            text = { Text("This will restore the original workout program.") },
+            title = { Text(stringResource(R.string.reset_program_title)) },
+            text = { Text(stringResource(R.string.reset_program_text)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -431,12 +433,12 @@ fun RoutineScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text("Reset")
+                    Text(stringResource(R.string.reset))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showResetDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -458,13 +460,13 @@ fun ExerciseEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (exercise == null) "Add Exercise" else "Edit Exercise") },
+        title = { Text(if (exercise == null) stringResource(R.string.add_exercise) else stringResource(R.string.edit_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Exercise Name") },
+                    label = { Text(stringResource(R.string.exercise_name)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -472,7 +474,7 @@ fun ExerciseEditDialog(
                 OutlinedTextField(
                     value = muscleGroup,
                     onValueChange = { muscleGroup = it },
-                    label = { Text("Muscle Group") },
+                    label = { Text(stringResource(R.string.muscle_group)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -481,7 +483,7 @@ fun ExerciseEditDialog(
                     OutlinedTextField(
                         value = targetSetsStr,
                         onValueChange = { targetSetsStr = it },
-                        label = { Text("Sets") },
+                        label = { Text(stringResource(R.string.sets)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -489,7 +491,7 @@ fun ExerciseEditDialog(
                     OutlinedTextField(
                         value = targetReps,
                         onValueChange = { targetReps = it },
-                        label = { Text("Reps") },
+                        label = { Text(stringResource(R.string.reps)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -498,7 +500,7 @@ fun ExerciseEditDialog(
                 OutlinedTextField(
                     value = videoUrl,
                     onValueChange = { videoUrl = it },
-                    label = { Text("Demo Link (Optional)") },
+                    label = { Text(stringResource(R.string.demo_link_optional)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -528,12 +530,12 @@ fun ExerciseEditDialog(
                     contentColor = MaterialTheme.colorScheme.onPrimary
                 )
             ) {
-                Text("Save")
+                Text(stringResource(R.string.save))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

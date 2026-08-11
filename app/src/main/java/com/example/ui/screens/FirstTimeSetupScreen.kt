@@ -71,6 +71,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.data.DefaultData
 import com.example.data.RoutineDayEntity
 import com.example.data.RoutineExerciseEntity
@@ -156,7 +158,7 @@ fun FirstTimeSetupScreen(
                         },
                         shape = RoundedCornerShape(12.dp)
                     ) {
-                        Text("Select")
+                        Text(stringResource(R.string.select))
                     }
                 }
 
@@ -188,7 +190,7 @@ fun FirstTimeSetupScreen(
                                 )
                                 if (day.isRestDay) {
                                     Text(
-                                        text = "Rest & Recovery",
+                                        text = stringResource(R.string.rest_and_recovery),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -278,7 +280,7 @@ fun FirstTimeSetupScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Welcome to Your Fitness Journey!",
+                            text = stringResource(R.string.welcome_title),
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onPrimaryContainer
@@ -287,7 +289,7 @@ fun FirstTimeSetupScreen(
                         Spacer(modifier = Modifier.height(6.dp))
 
                         Text(
-                            text = "Set up your workout routine name and choose a structured template or build a custom split.",
+                            text = stringResource(R.string.welcome_text),
                             style = MaterialTheme.typography.bodyMedium,
                             textAlign = TextAlign.Center,
                             color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
@@ -311,7 +313,7 @@ fun FirstTimeSetupScreen(
                         modifier = Modifier.padding(bottom = 8.dp)
                     ) {
                         Text(
-                            text = "1. Name Your Workout Program",
+                            text = stringResource(R.string.name_workout_program),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                             color = Color.White,
                             modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -319,7 +321,7 @@ fun FirstTimeSetupScreen(
                     }
 
                     Text(
-                        text = "This title replaces 'Workout' at the top of your dashboard.",
+                        text = stringResource(R.string.name_workout_program_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                     )
@@ -329,8 +331,8 @@ fun FirstTimeSetupScreen(
                     OutlinedTextField(
                         value = workoutNameInput,
                         onValueChange = { workoutNameInput = it },
-                        label = { Text("Workout Program Name") },
-                        placeholder = { Text("e.g. Workout, Summer Shred, PPL Split") },
+                        label = { Text(stringResource(R.string.program_name)) },
+                        placeholder = { Text(stringResource(R.string.workout_program_name_placeholder)) },
                         singleLine = true,
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier
@@ -350,7 +352,7 @@ fun FirstTimeSetupScreen(
                     modifier = Modifier.padding(bottom = 12.dp)
                 ) {
                     Text(
-                        text = "2. Select Workout Routine Type",
+                        text = stringResource(R.string.select_routine_type),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                         color = Color.White,
                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
@@ -388,7 +390,7 @@ fun FirstTimeSetupScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Premade Templates",
+                                text = stringResource(R.string.premade_templates),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 textAlign = TextAlign.Center
                             )
@@ -422,7 +424,7 @@ fun FirstTimeSetupScreen(
                             )
                             Spacer(modifier = Modifier.height(6.dp))
                             Text(
-                                text = "Build Custom",
+                                text = stringResource(R.string.build_custom),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 textAlign = TextAlign.Center
                             )
@@ -437,7 +439,7 @@ fun FirstTimeSetupScreen(
             // PREMADE TEMPLATES LIST
             item {
                 Text(
-                    text = "Choose a Recommended Workout Template",
+                    text = stringResource(R.string.choose_recommended_template),
                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.primary
                 )
@@ -517,7 +519,7 @@ fun FirstTimeSetupScreen(
                                     modifier = Modifier.size(16.dp)
                                 )
                                 Spacer(modifier = Modifier.width(4.dp))
-                                Text("Preview Breakdown")
+                                Text(stringResource(R.string.preview_breakdown))
                             }
 
                             if (isSelected) {
@@ -559,7 +561,7 @@ fun FirstTimeSetupScreen(
             item {
                 Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                     Text(
-                        text = "Customize Your Exercises",
+                        text = stringResource(R.string.customize_exercises),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.primary
                     )
@@ -574,7 +576,7 @@ fun FirstTimeSetupScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = "Exercises (${customExercises.size})",
+                            text = stringResource(R.string.exercises_count, customExercises.size),
                             style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                         )
 
@@ -583,9 +585,9 @@ fun FirstTimeSetupScreen(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.semantics { testTag = "onboarding_add_exercise_button" }
                         ) {
-                            Icon(imageVector = Icons.Default.Add, contentDescription = null, modifier = Modifier.size(18.dp))
+                            Icon(imageVector = Icons.Default.Add, contentDescription = stringResource(R.string.add_exercise), modifier = Modifier.size(18.dp))
                             Spacer(modifier = Modifier.width(4.dp))
-                            Text("Add Exercise")
+                            Text(stringResource(R.string.add_exercise))
                         }
                     }
                 }
@@ -666,7 +668,7 @@ fun FirstTimeSetupScreen(
                 Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null)
                 Spacer(modifier = Modifier.width(8.dp))
                 Text(
-                    text = "SAVE AND START",
+                    text = stringResource(R.string.save_and_start),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -696,7 +698,7 @@ private fun AddExerciseDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text("Add Custom Exercise") },
+        title = { Text(stringResource(R.string.add_custom_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Day of Week Dropdown
@@ -708,7 +710,7 @@ private fun AddExerciseDialog(
                         value = dayOfWeek,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Day of Week") },
+                        label = { Text(stringResource(R.string.day_of_week)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDay) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -732,8 +734,8 @@ private fun AddExerciseDialog(
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
-                    label = { Text("Exercise Name") },
-                    placeholder = { Text("e.g. Bench Press, Squats, Pull-ups") },
+                    label = { Text(stringResource(R.string.exercise_name)) },
+                    placeholder = { Text(stringResource(R.string.exercise_name_placeholder)) },
                     singleLine = true,
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -747,7 +749,7 @@ private fun AddExerciseDialog(
                         value = muscleGroup,
                         onValueChange = {},
                         readOnly = true,
-                        label = { Text("Muscle Group / Body Part") },
+                        label = { Text(stringResource(R.string.muscle_group_body_part)) },
                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMuscle) },
                         modifier = Modifier.menuAnchor().fillMaxWidth()
                     )
@@ -771,14 +773,14 @@ private fun AddExerciseDialog(
                     OutlinedTextField(
                         value = targetSets,
                         onValueChange = { targetSets = it },
-                        label = { Text("Target Sets") },
+                        label = { Text(stringResource(R.string.target_sets)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
                     OutlinedTextField(
                         value = targetReps,
                         onValueChange = { targetReps = it },
-                        label = { Text("Target Reps") },
+                        label = { Text(stringResource(R.string.target_reps)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
@@ -805,12 +807,12 @@ private fun AddExerciseDialog(
                 },
                 enabled = name.isNotBlank()
             ) {
-                Text("Add")
+                Text(stringResource(R.string.add))
             }
         },
         dismissButton = {
             TextButton(onClick = onDismiss) {
-                Text("Cancel")
+                Text(stringResource(R.string.cancel))
             }
         }
     )

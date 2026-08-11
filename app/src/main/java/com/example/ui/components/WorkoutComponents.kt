@@ -7,6 +7,8 @@ import androidx.compose.animation.animateColorAsState
 import androidx.compose.animation.core.FastOutSlowInEasing
 import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.tween
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -310,7 +312,15 @@ fun InteractiveVolumeBarChart(
     onKeySelected: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val keys = listOf("Mon", "Tue", "Wed", "Thu", "Fri", "Sat", "Sun")
+    val keys = listOf(
+        stringResource(R.string.monday_short),
+        stringResource(R.string.tuesday_short),
+        stringResource(R.string.wednesday_short),
+        stringResource(R.string.thursday_short),
+        stringResource(R.string.friday_short),
+        stringResource(R.string.saturday_short),
+        stringResource(R.string.sunday_short)
+    )
     val maxVal = (dailyData.values.maxOrNull() ?: 100.0).coerceAtLeast(100.0)
 
     val primaryColor = MaterialTheme.colorScheme.primary
