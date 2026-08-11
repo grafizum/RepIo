@@ -141,11 +141,11 @@ fun FirstTimeSetupScreen(
                 ) {
                     Column {
                         Text(
-                            text = template.name,
+                            text = stringResource(template.nameResId),
                             style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Text(
-                            text = template.daysCountText,
+                            text = stringResource(template.daysCountResId, template.daysCountArgs.first, template.daysCountArgs.second),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -165,7 +165,7 @@ fun FirstTimeSetupScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 Text(
-                    text = template.description,
+                    text = stringResource(template.descriptionResId),
                     style = MaterialTheme.typography.bodyMedium,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -176,7 +176,7 @@ fun FirstTimeSetupScreen(
                     modifier = Modifier.height(350.dp),
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
-                    items(template.days) { day ->
+                    items(template.dayTemplates) { day ->
                         val dayExercises = template.exercises.filter { it.dayOfWeek == day.dayOfWeek }
                         Card(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -185,7 +185,7 @@ fun FirstTimeSetupScreen(
                         ) {
                             Column(modifier = Modifier.padding(14.dp)) {
                                 Text(
-                                    text = day.title,
+                                    text = stringResource(day.titleResId),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                                 )
                                 if (day.isRestDay) {
@@ -205,7 +205,7 @@ fun FirstTimeSetupScreen(
                                                 .padding(vertical = 2.dp)
                                         ) {
                                             Text(
-                                                text = "• ${ex.name} (${ex.targetSets} sets)",
+                                                text = stringResource(R.string.exercise_set_summary, ex.name, ex.targetSets),
                                                 style = MaterialTheme.typography.bodySmall
                                             )
                                             MuscleGroupBadge(muscleGroup = ex.muscleGroup)
@@ -472,12 +472,12 @@ fun FirstTimeSetupScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Column {
                                     Text(
-                                        text = template.name,
+                                        text = stringResource(template.nameResId),
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.onSurface
                                     )
                                     Text(
-                                        text = template.daysCountText,
+                                        text = stringResource(template.daysCountResId, template.daysCountArgs.first, template.daysCountArgs.second),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.primary
                                     )
@@ -489,7 +489,7 @@ fun FirstTimeSetupScreen(
                                 shape = RoundedCornerShape(12.dp)
                             ) {
                                 Text(
-                                    text = template.badge,
+                                    text = stringResource(template.badgeResId),
                                     style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -500,7 +500,7 @@ fun FirstTimeSetupScreen(
                         Spacer(modifier = Modifier.height(8.dp))
 
                         Text(
-                            text = template.description,
+                            text = stringResource(template.descriptionResId),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
@@ -539,7 +539,7 @@ fun FirstTimeSetupScreen(
                                         )
                                         Spacer(modifier = Modifier.width(4.dp))
                                         Text(
-                                            text = "Selected",
+                                            text = stringResource(R.string.selected),
                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onPrimary
                                         )
@@ -622,7 +622,7 @@ fun FirstTimeSetupScreen(
                                 MuscleGroupBadge(muscleGroup = exercise.muscleGroup)
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Text(
-                                    text = "${exercise.targetSets} sets × ${exercise.targetReps}",
+                                    text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

@@ -95,9 +95,9 @@ fun WorkoutNowScreen(
     onChangeRoutine: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val workoutState by viewModel.workoutNowState.collectAsState(initial = WorkoutNowState())
-    val allDays by viewModel.allRoutineDays.collectAsState(initial = emptyList())
-    val allExercises by viewModel.allRoutineExercises.collectAsState(initial = emptyList())
+    val workoutState by viewModel.workoutNowState.collectAsState()
+    val allDays by viewModel.allRoutineDays.collectAsState()
+    val allExercises by viewModel.allRoutineExercises.collectAsState()
 
     var showRestartDialog by remember { mutableStateOf(false) }
     var showCustomWeightDialog by remember { mutableStateOf(false) }
@@ -175,34 +175,42 @@ fun WorkoutNowScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 14.dp)
+            .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // COMPACT HEADER (Matches HomeScreen)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
-                if (onBack != null) {
-                    IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
-                    }
-                    Spacer(modifier = Modifier.width(8.dp))
-                }
                 Column {
                     Text(
-                        text = stringResource(R.string.workout_now),
+                        text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
-                    Text(
-                        text = currentDayEntity?.title ?: workoutState.selectedDayOfWeek,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    val trainingType = currentDayEntity?.title?.let { title ->
+                        if (title.contains("—")) {
+                            title.substringAfter("—").trim()
+                        } else if (title.contains("-")) {
+                            title.substringAfter("-").trim()
+                        } else {
+                            title
+                        }
+                    } ?: ""
+
+                    if (trainingType.isNotBlank()) {
+                        Text(
+                            text = trainingType,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
             }
 
@@ -222,13 +230,13 @@ fun WorkoutNowScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         Column(
             modifier = Modifier
                 .fillMaxSize()
                 .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
             // DAY SELECTOR CHIPS
             LazyRow(

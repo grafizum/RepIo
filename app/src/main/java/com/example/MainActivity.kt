@@ -1,6 +1,7 @@
 package com.example
 
 import android.app.Activity
+import android.content.Intent
 import android.content.pm.PackageManager
 import android.os.Build
 import android.os.Bundle
@@ -28,8 +29,13 @@ import androidx.compose.material3.Scaffold
 import androidx.compose.material3.Text
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
@@ -68,9 +74,12 @@ class MainActivity : AppCompatActivity() {
     private val viewModel: WorkoutViewModel by viewModels()
 
     override fun onCreate(savedInstanceState: Bundle?) {
-        installSplashScreen()
+        val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        var isReady by mutableStateOf(false)
+        splashScreen.setKeepOnScreenCondition { !isReady }
 
         // Create notification channel for rest timer
         NotificationHelper.createNotificationChannel(this)
@@ -83,8 +92,12 @@ class MainActivity : AppCompatActivity() {
         }
 
         setContent {
-            val themeOption by viewModel.themeOption.collectAsState(initial = "PURPLE")
-            val keepScreenOn by viewModel.keepScreenOn.collectAsState(initial = false)
+            val themeOption by viewModel.themeOption.collectAsState()
+            val keepScreenOn by viewModel.keepScreenOn.collectAsState()
+
+            SideEffect {
+                isReady = true
+            }
 
             val context = LocalContext.current
             DisposableEffect(keepScreenOn) {
@@ -104,19 +117,41 @@ class MainActivity : AppCompatActivity() {
             }
         }
     }
+
+    override fun onNewIntent(intent: Intent) {
+        super.onNewIntent(intent)
+        setIntent(intent)
+    }
 }
 
 @Composable
 fun MainAppStructure(viewModel: WorkoutViewModel) {
     val isFirstTimeUser by viewModel.isFirstTimeUser.collectAsState()
+    val navController = rememberNavController()
 
-    // Observe lifecycle events to check rest timer on app close and app open/resume
+    // Observe lifecycle events to check rest timer and handle notification intents
     val lifecycleOwner = LocalLifecycleOwner.current
+    val context = LocalContext.current
     DisposableEffect(lifecycleOwner) {
         val observer = LifecycleEventObserver { _, event ->
             when (event) {
                 Lifecycle.Event.ON_START, Lifecycle.Event.ON_RESUME -> {
                     viewModel.tickTimer()
+
+                    // Handle incoming target screen from notification
+                    val activity = context as? Activity
+                    val targetScreen = activity?.intent?.getStringExtra("TARGET_SCREEN")
+                    if (targetScreen != null) {
+                        navController.navigate(targetScreen) {
+                            popUpTo(navController.graph.findStartDestination().id) {
+                                saveState = true
+                            }
+                            launchSingleTop = true
+                            restoreState = true
+                        }
+                        // Clear the intent extra so it doesn't trigger again
+                        activity.intent.removeExtra("TARGET_SCREEN")
+                    }
                 }
                 Lifecycle.Event.ON_STOP, Lifecycle.Event.ON_PAUSE -> {
                     viewModel.checkTimerOnAppClose()
@@ -138,7 +173,6 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             }
         )
     } else {
-        val navController = rememberNavController()
         val navBackStackEntry by navController.currentBackStackEntryAsState()
         val currentRoute = navBackStackEntry?.destination?.route
 

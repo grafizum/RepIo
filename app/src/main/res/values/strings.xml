@@ -63,6 +63,29 @@
     <string name="max_weight">Max Weight</string>
     <string name="recent_history">Recent History</string>
     <string name="no_sets_logged">No sets logged yet.</string>
+    <string name="no_sets_logged_full">No sets logged yet. Complete workouts to see muscle focus breakdown!</string>
+    <string name="volume_progress_kg">Volume Progress (kg)</string>
+    <string name="tap_bar_to_inspect">Tap any bar to inspect daily total</string>
+    <string name="muscle_group_focus">Muscle Group Focus</string>
+    <string name="watch_demo">Watch Demo</string>
+    <string name="watch_demo_video">Watch Demo Video</string>
+    <string name="edit_demo_link">Edit Demo Link</string>
+    <string name="input_demo">Input Demo</string>
+    <string name="input_demo_video">Input Demo Video</string>
+    <string name="demo_video_link">Demo Video Link</string>
+    <string name="enter_video_url_desc">Enter a video URL for this exercise demo:</string>
+    <string name="video_url">Video URL</string>
+    <string name="volume_label">Volume</string>
+    <string name="sets_label">Sets</string>
+    <string name="balanced_workout_routine">Balanced Workout Routine</string>
+    <string name="balanced_workout_desc">All major muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) are covered!</string>
+    <string name="missing_body_parts_warning">Missing Body Parts Warning</string>
+    <string name="tip">Tip</string>
+    <string name="missing_parts_desc">Your custom workout has no exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
+    <string name="notification_channel_name">Rest Timer Notifications</string>
+    <string name="notification_channel_desc">Notifies when rest pause between sets finishes</string>
+    <string name="notification_title">Rest Pause Ended! 💪</string>
+    <string name="notification_text">Time to smash your next set!</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your logged workout sets.</string>
     <string name="delete_all">Delete All</string>
@@ -150,6 +173,64 @@
     <string name="weight_kg_intl">%1$s kg</string>
     <string name="exercise_name_placeholder">e.g. Bench Press, Squats, Pull-ups</string>
     <string name="add">Add</string>
+    <string name="kg_x_reps">%1$s kg × %2$d reps</string>
+    <string name="exercise_set_summary">• %1$s (%2$d sets)</string>
+
+    <string name="back">Back</string>
+    <string name="biceps">Biceps</string>
+    <string name="shoulders">Shoulders</string>
+    <string name="chest">Chest</string>
+    <string name="legs">Legs</string>
+    <string name="abs">Abs</string>
+    <string name="triceps">Triceps</string>
+    <string name="other">Other</string>
+
+    <string name="hypertrophy_5day_name">5-Day Hypertrophy Split</string>
+    <string name="hypertrophy_5day_desc">High-volume body-part split focusing on muscle growth and balanced symmetry across 5 workout days.</string>
+    <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
+    <string name="ppl_6day_desc">Classic PPL routine separating pushing muscles (chest/shoulders/triceps), pulling muscles (back/biceps), and leg muscles.</string>
+    <string name="upper_lower_4day_name">4-Day Upper / Lower Split</string>
+    <string name="upper_lower_4day_desc">Balanced 4-day split training all upper body muscles twice a week and all lower body muscles twice a week with ample recovery time.</string>
+    <string name="fullbody_3day_name">3-Day Full Body Classic</string>
+    <string name="fullbody_3day_desc">Efficient 3-day full body training hitting every muscle group each session. Great for busy schedules and compound strength gains.</string>
+
+    <string name="most_popular">Most Popular</string>
+    <string name="strength_mass">Strength &amp; Mass</string>
+    <string name="optimal_recovery">Optimal Recovery</string>
+    <string name="time_efficient">Time Efficient</string>
+    <string name="workout_days_plus_rest">%1$d Workout Days + %2$d Rest Days</string>
+
+    <string name="day_title_format">%1$s — %2$s</string>
+    <string name="push_title">Push (Chest, Shoulders, Triceps)</string>
+    <string name="pull_title">Pull (Back &amp; Biceps)</string>
+    <string name="legs_core_title">Legs &amp; Core</string>
+    <string name="upper_power_title">Upper Body Power</string>
+    <string name="lower_power_title">Lower Body &amp; Core</string>
+    <string name="upper_hypertrophy_title">Upper Body Hypertrophy</string>
+    <string name="lower_hypertrophy_title">Lower Body Hypertrophy</string>
+    <string name="full_body_a_title">Full Body A</string>
+    <string name="full_body_b_title">Full Body B</string>
+    <string name="full_body_c_title">Full Body C</string>
+
+    <string name="push_desc">Heavy chest pressing and overhead shoulder work</string>
+    <string name="pull_desc">Heavy rows, pulldowns, and bicep hypertrophy</string>
+    <string name="legs_desc">Squats, lunges, leg curls, and core stability</string>
+    <string name="upper_power_desc">Heavy chest, back, shoulders, and arm pressing</string>
+    <string name="lower_power_desc">Squats, deadlifts, and abs</string>
+    <string name="rest_desc">Active rest, foam rolling, and mobility</string>
+    <string name="full_body_a_desc">Squat, Press, Row, Core</string>
+    <string name="full_body_b_desc">Lunge, Shoulder Press, Pullover, Biceps</string>
+    <string name="full_body_c_desc">Romanian Deadlift, Chest Press, Arms, Core</string>
+
+    <string name="warm_beige">Warm Beige</string>
+    <string name="emerald_mint">Emerald Mint</string>
+    <string name="crimson_red">Crimson Red</string>
+    <string name="elegant_purple">Elegant Purple</string>
+    <string name="flame_orange">Flame Orange</string>
+    <string name="midnight_blue">Midnight Blue</string>
+    <string name="ocean_teal">Ocean Teal</string>
+    <string name="rose_pink">Rose Pink</string>
+    <string name="forest_green">Forest Green</string>
 
     <string name="monday">Monday</string>
     <string name="tuesday">Tuesday</string>

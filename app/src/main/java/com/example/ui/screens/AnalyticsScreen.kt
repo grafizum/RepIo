@@ -68,8 +68,8 @@ fun AnalyticsScreen(
     onBack: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val loggedSets by viewModel.allLoggedSets.collectAsState(initial = emptyList())
-    val allExercises by viewModel.allRoutineExercises.collectAsState(initial = emptyList())
+    val loggedSets by viewModel.allLoggedSets.collectAsState()
+    val allExercises by viewModel.allRoutineExercises.collectAsState()
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     // Logic for Charts
@@ -174,15 +174,17 @@ fun AnalyticsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 14.dp)
+            .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(4.dp))
+        Spacer(modifier = Modifier.height(12.dp))
 
         // COMPACT HEADER
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier.fillMaxWidth()
+            modifier = Modifier
+                .fillMaxWidth()
+                .padding(vertical = 4.dp)
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) {
@@ -205,7 +207,7 @@ fun AnalyticsScreen(
             }
         }
 
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
             modifier = Modifier.fillMaxSize(),
@@ -422,7 +424,7 @@ fun AnalyticsScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = "${set.weightKg}kg x ${set.reps}",
+                                        text = stringResource(R.string.kg_x_reps, set.weightKg, set.reps),
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }

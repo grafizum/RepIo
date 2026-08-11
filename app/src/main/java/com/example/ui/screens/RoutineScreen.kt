@@ -79,8 +79,8 @@ fun RoutineScreen(
     onNavigateToWorkoutNow: ((String) -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val routineDays by viewModel.allRoutineDays.collectAsState(initial = emptyList())
-    val allExercises by viewModel.allRoutineExercises.collectAsState(initial = emptyList())
+    val routineDays by viewModel.allRoutineDays.collectAsState()
+    val allExercises by viewModel.allRoutineExercises.collectAsState()
     val customWorkoutName by viewModel.customWorkoutName.collectAsState()
 
     var selectedDay by remember { mutableStateOf(DayOfWeekEnum.MONDAY.name) }
@@ -165,11 +165,11 @@ fun RoutineScreen(
                                 ) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
-                                            text = template.name,
+                                            text = stringResource(template.nameResId),
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                         Text(
-                                            text = template.daysCountText,
+                                            text = stringResource(template.daysCountResId, template.daysCountArgs.first, template.daysCountArgs.second),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -211,23 +211,19 @@ fun RoutineScreen(
             modifier = Modifier
                 .padding(innerPadding)
                 .fillMaxSize()
-                .padding(horizontal = 14.dp)
+                .padding(horizontal = 16.dp)
         ) {
-            Spacer(modifier = Modifier.height(4.dp))
+            Spacer(modifier = Modifier.height(12.dp))
 
             // COMPACT HEADER (Matches HomeScreen)
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(vertical = 4.dp)
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onBack != null) {
-                        IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
-                        }
-                        Spacer(modifier = Modifier.width(8.dp))
-                    }
                     Text(
                         text = customWorkoutName,
                         style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
@@ -245,11 +241,11 @@ fun RoutineScreen(
                 }
             }
 
-            Spacer(modifier = Modifier.height(12.dp))
+            Spacer(modifier = Modifier.height(16.dp))
 
             LazyColumn(
                 modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(12.dp)
+                verticalArrangement = Arrangement.spacedBy(16.dp)
             ) {
                 // DAY SELECTION CHIPS
                 item {
@@ -263,8 +259,17 @@ fun RoutineScreen(
                                 selected = isSelected,
                                 onClick = { selectedDay = dayEnum.name },
                                 label = {
+                                    val displayName = when (dayEnum) {
+                                        DayOfWeekEnum.MONDAY -> stringResource(R.string.monday)
+                                        DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday)
+                                        DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday)
+                                        DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday)
+                                        DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday)
+                                        DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday)
+                                        DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday)
+                                    }
                                     Text(
-                                        text = dayEnum.displayName,
+                                        text = displayName,
                                         fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                                     )
                                 },
