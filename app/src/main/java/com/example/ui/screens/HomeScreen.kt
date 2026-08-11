@@ -52,6 +52,8 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.data.LoggedSetEntity
 import com.example.data.RoutineDayEntity
 import com.example.data.RoutineExerciseEntity
@@ -118,7 +120,7 @@ fun HomeScreen(
                         color = MaterialTheme.colorScheme.onBackground
                     )
                     Text(
-                        text = "Smart Workout Assistant",
+                        text = stringResource(R.string.smart_workout_assistant),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -130,7 +132,7 @@ fun HomeScreen(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
-                        contentDescription = "Settings",
+                        contentDescription = stringResource(R.string.settings),
                         tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(28.dp)
                     )
@@ -171,7 +173,7 @@ fun HomeScreen(
                                 shape = RoundedCornerShape(20.dp)
                             ) {
                                 Text(
-                                    text = "TODAY'S WORKOUT",
+                                    text = stringResource(R.string.todays_workout),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Bold,
                                         letterSpacing = 1.sp
@@ -194,16 +196,16 @@ fun HomeScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = todayRoutineDay?.title ?: "Workout Routine",
+                            text = todayRoutineDay?.title ?: stringResource(R.string.workout_routine),
                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
                         Text(
                             text = if (todayRoutineDay?.isRestDay == true) {
-                                "Rest day active. Active recovery & mobility."
+                                stringResource(R.string.rest_day_active)
                             } else {
-                                "${todayExercises.size} exercises scheduled for today"
+                                stringResource(R.string.exercises_scheduled, todayExercises.size)
                             },
                             style = MaterialTheme.typography.bodyMedium,
                             color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -234,7 +236,7 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = "WORKOUT NOW",
+                                text = stringResource(R.string.workout_now),
                                 style = MaterialTheme.typography.titleMedium.copy(
                                     fontWeight = FontWeight.ExtraBold,
                                     letterSpacing = 0.5.sp
@@ -253,18 +255,18 @@ fun HomeScreen(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 StatCard(
-                    title = "Total Volume",
-                    value = "${totalVolumeThisWeek.toInt()} kg",
-                    subtitle = "All-time volume",
+                    title = stringResource(R.string.total_volume),
+                    value = stringResource(R.string.weight_kg_intl, totalVolumeThisWeek.toInt()),
+                    subtitle = stringResource(R.string.all_time_volume),
                     icon = Icons.Default.FitnessCenter,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
                 )
 
                 StatCard(
-                    title = "Sets Logged",
+                    title = stringResource(R.string.sets_logged),
                     value = "$totalSetsThisWeek",
-                    subtitle = "Completed sets",
+                    subtitle = stringResource(R.string.completed_sets),
                     icon = Icons.Default.CheckCircle,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.weight(1f)
@@ -276,7 +278,7 @@ fun HomeScreen(
         item {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 Text(
-                    text = "Quick Actions",
+                    text = stringResource(R.string.quick_actions),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -305,11 +307,11 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Weekly Routine",
+                                text = stringResource(R.string.weekly_routine),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "5-Day Split Plan",
+                                text = stringResource(R.string.five_day_split_plan),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -336,11 +338,11 @@ fun HomeScreen(
                             )
                             Spacer(modifier = Modifier.height(8.dp))
                             Text(
-                                text = "Charts & Progress",
+                                text = stringResource(R.string.charts_progress),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                             )
                             Text(
-                                text = "Volume & Muscle Focus",
+                                text = stringResource(R.string.volume_muscle_focus),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                             )
@@ -382,11 +384,11 @@ fun HomeScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Weekly Summary Report",
+                                    text = stringResource(R.string.weekly_summary_report),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
-                                    text = "Detailed weekly performance insights",
+                                    text = stringResource(R.string.detailed_weekly_insights),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
                                 )
@@ -406,7 +408,7 @@ fun HomeScreen(
         // TODAY'S EXERCISES LIST PREVIEW
         item {
             Text(
-                text = "Today's Schedule",
+                text = stringResource(R.string.todays_schedule),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
@@ -419,7 +421,7 @@ fun HomeScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     Text(
-                        text = "No scheduled exercises for today. Enjoy your rest & recovery day!",
+                        text = stringResource(R.string.no_exercises_today),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                         modifier = Modifier.padding(20.dp)
@@ -449,7 +451,7 @@ fun HomeScreen(
                             }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
-                                text = "${exercise.targetSets} sets × ${exercise.targetReps} reps",
+                                text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

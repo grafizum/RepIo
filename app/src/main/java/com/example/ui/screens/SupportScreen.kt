@@ -6,6 +6,8 @@ import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Handler
 import android.os.Looper
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.google.firebase.firestore.FirebaseFirestore
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
@@ -103,10 +105,10 @@ fun SupportScreen(
     val isCooldownActive = isDailyLimitReached || isShortCooldownActive
     
     val cooldownMessage = when {
-        isDailyLimitReached -> "Daily limit reached. Please try again tomorrow."
+        isDailyLimitReached -> stringResource(R.string.daily_limit_reached)
         isShortCooldownActive -> {
             val remaining = ((SHORT_COOLDOWN_MILLIS - (currentTime - lastSubmitTime)) / 60000) + 1
-            "Please wait $remaining min before sending another ticket."
+            stringResource(R.string.please_wait_cooldown, remaining)
         }
         else -> ""
     }
@@ -125,12 +127,12 @@ fun SupportScreen(
         ) {
             if (onBack != null) {
                 IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                 }
                 Spacer(modifier = Modifier.width(8.dp))
             }
             Text(
-                text = "Support",
+                text = stringResource(R.string.support),
                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                 color = MaterialTheme.colorScheme.onBackground
             )
@@ -173,12 +175,12 @@ fun SupportScreen(
 
                             Column(modifier = Modifier.weight(1f)) {
                                 Text(
-                                    text = "Contact Us",
+                                    text = stringResource(R.string.contact_us),
                                     style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
                                 Text(
-                                    text = "Send us your questions or feedback",
+                                    text = stringResource(R.string.send_feedback),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -190,7 +192,7 @@ fun SupportScreen(
                         OutlinedTextField(
                             value = subject,
                             onValueChange = { subject = it },
-                            label = { Text("Subject", style = MaterialTheme.typography.bodySmall) },
+                            label = { Text(stringResource(R.string.subject), style = MaterialTheme.typography.bodySmall) },
                             singleLine = true,
                             modifier = Modifier.fillMaxWidth()
                         )
@@ -200,7 +202,7 @@ fun SupportScreen(
                         OutlinedTextField(
                             value = message,
                             onValueChange = { message = it },
-                            label = { Text("Message", style = MaterialTheme.typography.bodySmall) },
+                            label = { Text(stringResource(R.string.message), style = MaterialTheme.typography.bodySmall) },
                             minLines = 3,
                             maxLines = 5,
                             modifier = Modifier.fillMaxWidth()
@@ -222,12 +224,12 @@ fun SupportScreen(
                                 if (isCooldownActive) return@Button
 
                                 if (subject.isBlank() || message.isBlank()) {
-                                    Toast.makeText(context, "Please fill in both fields", Toast.LENGTH_SHORT).show()
+                                    Toast.makeText(context, context.getString(R.string.please_fill_fields), Toast.LENGTH_SHORT).show()
                                     return@Button
                                 }
 
                                 if (!isNetworkAvailable(context)) {
-                                    Toast.makeText(context, "Internet unavailable or Server unreachable. Please check your connection.", Toast.LENGTH_LONG).show()
+                                    Toast.makeText(context, context.getString(R.string.internet_unavailable), Toast.LENGTH_LONG).show()
                                     return@Button
                                 }
 
@@ -239,7 +241,7 @@ fun SupportScreen(
                                 val timeoutRunnable = Runnable {
                                     if (isSubmitting) {
                                         isSubmitting = false
-                                        Toast.makeText(context, "Server unreachable. Please try again later.", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, context.getString(R.string.server_unreachable), Toast.LENGTH_LONG).show()
                                     }
                                 }
                                 timeoutHandler.postDelayed(timeoutRunnable, 10000L)
@@ -274,7 +276,7 @@ fun SupportScreen(
                                         isSubmitting = false
                                         subject = ""
                                         message = ""
-                                        Toast.makeText(context, "Ticket sent successfully!", Toast.LENGTH_LONG).show()
+                                        Toast.makeText(context, context.getString(R.string.ticket_sent_success), Toast.LENGTH_LONG).show()
                                     }
                                     .addOnFailureListener { e ->
                                         timeoutHandler.removeCallbacks(timeoutRunnable)
@@ -297,7 +299,7 @@ fun SupportScreen(
                             } else {
                                 Icon(imageVector = Icons.Default.Send, contentDescription = null, modifier = Modifier.size(16.dp))
                                 Spacer(modifier = Modifier.width(6.dp))
-                                Text("Send Ticket", style = MaterialTheme.typography.labelLarge)
+                                Text(stringResource(R.string.send_ticket), style = MaterialTheme.typography.labelLarge)
                             }
                         }
                     }
@@ -307,7 +309,7 @@ fun SupportScreen(
             // SMALL FAQ SECTION
             item {
                 Text(
-                    text = "Quick FAQ",
+                    text = stringResource(R.string.quick_faq),
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                     modifier = Modifier.padding(top = 8.dp)
                 )
@@ -315,22 +317,22 @@ fun SupportScreen(
 
             item {
                 FaqItem(
-                    question = "How to change my workout program?",
-                    answer = "Go to the 'My Workout' tab and tap 'Custom Workout' at the top to select a new template or build your own."
+                    question = stringResource(R.string.faq_change_program_q),
+                    answer = stringResource(R.string.faq_change_program_a)
                 )
             }
 
             item {
                 FaqItem(
-                    question = "Where are my past workout logs?",
-                    answer = "You can view your progress and weekly summaries in the 'Analytics' tab."
+                    question = stringResource(R.string.faq_past_logs_q),
+                    answer = stringResource(R.string.faq_past_logs_a)
                 )
             }
 
             item {
                 FaqItem(
-                    question = "How to keep screen on while training?",
-                    answer = "Tap the settings (gear) icon on the Home screen and toggle 'Keep Screen On'."
+                    question = stringResource(R.string.faq_keep_screen_on_q),
+                    answer = stringResource(R.string.faq_keep_screen_on_a)
                 )
             }
 

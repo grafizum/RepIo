@@ -51,6 +51,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.res.stringResource
+import com.example.R
 import com.example.ui.components.InteractiveVolumeBarChart
 import com.example.ui.components.MuscleGroupDonutChart
 import com.example.ui.components.StatCard
@@ -72,18 +74,35 @@ fun AnalyticsScreen(
 
     // Logic for Charts
     var selectedChartDay by remember { mutableStateOf<String?>(null) }
-    val dailyVolumeMap = remember(loggedSets) {
-        val map = mutableMapOf("Mon" to 0.0, "Tue" to 0.0, "Wed" to 0.0, "Thu" to 0.0, "Fri" to 0.0, "Sat" to 0.0, "Sun" to 0.0)
+    
+    val monShort = stringResource(R.string.monday_short)
+    val tueShort = stringResource(R.string.tuesday_short)
+    val wedShort = stringResource(R.string.wednesday_short)
+    val thuShort = stringResource(R.string.thursday_short)
+    val friShort = stringResource(R.string.friday_short)
+    val satShort = stringResource(R.string.saturday_short)
+    val sunShort = stringResource(R.string.sunday_short)
+
+    val dailyVolumeMap = remember(loggedSets, monShort, tueShort, wedShort, thuShort, friShort, satShort, sunShort) {
+        val map = mutableMapOf(
+            monShort to 0.0,
+            tueShort to 0.0,
+            wedShort to 0.0,
+            thuShort to 0.0,
+            friShort to 0.0,
+            satShort to 0.0,
+            sunShort to 0.0
+        )
         loggedSets.forEach { set ->
             val shortDay = when (set.dayOfWeek.uppercase()) {
-                "MONDAY" -> "Mon"
-                "TUESDAY" -> "Tue"
-                "WEDNESDAY" -> "Wed"
-                "THURSDAY" -> "Thu"
-                "FRIDAY" -> "Fri"
-                "SATURDAY" -> "Sat"
-                "SUNDAY" -> "Sun"
-                else -> "Mon"
+                "MONDAY" -> monShort
+                "TUESDAY" -> tueShort
+                "WEDNESDAY" -> wedShort
+                "THURSDAY" -> thuShort
+                "FRIDAY" -> friShort
+                "SATURDAY" -> satShort
+                "SUNDAY" -> sunShort
+                else -> monShort
             }
             val vol = set.weightKg * set.reps
             map[shortDay] = (map[shortDay] ?: 0.0) + vol
@@ -128,8 +147,8 @@ fun AnalyticsScreen(
     if (showClearConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
-            title = { Text("Clear All History?") },
-            text = { Text("This will permanently remove all your logged workout sets.") },
+            title = { Text(stringResource(R.string.clear_history_title)) },
+            text = { Text(stringResource(R.string.clear_history_text)) },
             confirmButton = {
                 Button(
                     onClick = {
@@ -141,12 +160,12 @@ fun AnalyticsScreen(
                         contentColor = MaterialTheme.colorScheme.onPrimary
                     )
                 ) {
-                    Text("Delete All")
+                    Text(stringResource(R.string.delete_all))
                 }
             },
             dismissButton = {
                 TextButton(onClick = { showClearConfirmDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -168,12 +187,12 @@ fun AnalyticsScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onBack != null) {
                     IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = "Back")
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = stringResource(R.string.cancel))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                 }
                 Text(
-                    text = "Analytics & Reports",
+                    text = stringResource(R.string.analytics_reports),
                     style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
                     color = MaterialTheme.colorScheme.onBackground
                 )
@@ -217,11 +236,11 @@ fun AnalyticsScreen(
                             Spacer(modifier = Modifier.width(12.dp))
                             Column {
                                 Text(
-                                    text = "Weekly Activity",
+                                    text = stringResource(R.string.weekly_activity),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                 )
                                 Text(
-                                    text = "Overview of your training consistency",
+                                    text = stringResource(R.string.training_consistency_overview),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -234,9 +253,9 @@ fun AnalyticsScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            StatMiniItem("Active Days", "$activeDaysCount / 5", MaterialTheme.colorScheme.primary)
-                            StatMiniItem("Top Focus", topMuscleGroup, MaterialTheme.colorScheme.primary)
-                            StatMiniItem("Total Sets", "$totalSets", MaterialTheme.colorScheme.primary)
+                            StatMiniItem(stringResource(R.string.active_days), "$activeDaysCount / 5", MaterialTheme.colorScheme.primary)
+                            StatMiniItem(stringResource(R.string.top_focus), topMuscleGroup, MaterialTheme.colorScheme.primary)
+                            StatMiniItem(stringResource(R.string.total_sets), "$totalSets", MaterialTheme.colorScheme.primary)
                         }
                     }
                 }
@@ -249,18 +268,18 @@ fun AnalyticsScreen(
                     modifier = Modifier.fillMaxWidth()
                 ) {
                     StatCard(
-                        title = "Total Volume",
-                        value = "${totalVolume.toInt()} kg",
-                        subtitle = "Weight moved",
+                        title = stringResource(R.string.total_volume),
+                        value = stringResource(R.string.weight_kg_intl, totalVolume.toInt()),
+                        subtitle = stringResource(R.string.weight_moved),
                         icon = Icons.Default.FitnessCenter,
                         iconColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
                     )
 
                     StatCard(
-                        title = "Sets Logged",
+                        title = stringResource(R.string.sets_logged),
                         value = "$totalSets",
-                        subtitle = "Completed",
+                        subtitle = stringResource(R.string.completed_sets),
                         icon = Icons.Default.CheckCircle,
                         iconColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.weight(1f)
@@ -296,7 +315,7 @@ fun AnalyticsScreen(
                             modifier = Modifier.fillMaxWidth()
                         ) {
                             Text(
-                                text = "Exercise Progression",
+                                text = stringResource(R.string.exercise_progression),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                             )
                             Icon(
@@ -317,7 +336,7 @@ fun AnalyticsScreen(
                                     value = selectedExerciseName,
                                     onValueChange = {},
                                     readOnly = true,
-                                    label = { Text("Select Exercise") },
+                                    label = { Text(stringResource(R.string.select_exercise)) },
                                     trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown) },
                                     modifier = Modifier
                                         .menuAnchor()
@@ -349,12 +368,12 @@ fun AnalyticsScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = "Max Weight",
+                                    text = stringResource(R.string.max_weight),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "$maxWeightForExercise kg",
+                                    text = stringResource(R.string.weight_kg_intl, maxWeightForExercise),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -362,12 +381,12 @@ fun AnalyticsScreen(
 
                             Column {
                                 Text(
-                                    text = "Total Volume",
+                                    text = stringResource(R.string.total_volume),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = "${totalVolumeForExercise.toInt()} kg",
+                                    text = stringResource(R.string.weight_kg_intl, totalVolumeForExercise.toInt()),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -377,14 +396,14 @@ fun AnalyticsScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         Text(
-                            text = "Recent History",
+                            text = stringResource(R.string.recent_history),
                             style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                         )
                         Spacer(modifier = Modifier.height(6.dp))
 
                         if (exerciseLogs.isEmpty()) {
                             Text(
-                                text = "No sets logged yet.",
+                                text = stringResource(R.string.no_sets_logged),
                                 style = MaterialTheme.typography.bodySmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )

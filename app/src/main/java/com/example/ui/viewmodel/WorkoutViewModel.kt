@@ -6,6 +6,8 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
 import com.example.data.AppDatabase
@@ -72,6 +74,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _isFirstTimeUser = MutableStateFlow(prefs.getBoolean("is_first_time", true))
     val isFirstTimeUser: StateFlow<Boolean> = _isFirstTimeUser.asStateFlow()
 
+    private val _appLanguage = MutableStateFlow(prefs.getString("app_language", "system") ?: "system")
+    val appLanguage: StateFlow<String> = _appLanguage.asStateFlow()
+
     private val _workoutNowState = MutableStateFlow(WorkoutNowState())
     val workoutNowState: StateFlow<WorkoutNowState> = _workoutNowState.asStateFlow()
 
@@ -80,6 +85,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         repository = WorkoutRepository(dao)
 
         _workoutNowState.value = loadSavedWorkoutNowState()
+
+        // Apply saved language preference at startup
+        val savedLang = prefs.getString("app_language", "system") ?: "system"
+        if (savedLang != "system") {
+            AppCompatDelegate.setApplicationLocales(LocaleListCompat.forLanguageTags(savedLang))
+        }
 
         viewModelScope.launch {
             repository.ensureDataSeeded()
@@ -163,6 +174,30 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun setThemeOption(theme: String) {
         _themeOption.value = theme
         prefs.edit().putString("theme_option", theme).apply()
+        
+        // Dynamic Icon & Splash switching based on theme category
+        val context = getApplication<Application>()
+        val isLightTheme = theme == "BEIGE" || theme == "EMERALD" || theme == "CRIMSON"
+        
+        if (isLightTheme) {
+            // Switches to the Beige icon alias which also uses the Light Splash theme
+            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.BEIGE_ICON)
+        } else {
+            // Switches to the Orange icon alias which also uses the Dark Splash theme
+            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.ORANGE_ICON)
+        }
+    }
+
+    fun setAppLanguage(languageCode: String) {
+        _appLanguage.value = languageCode
+        prefs.edit().putString("app_language", languageCode).apply()
+        
+        val appLocale: LocaleListCompat = if (languageCode == "system") {
+            LocaleListCompat.getEmptyLocaleList()
+        } else {
+            LocaleListCompat.forLanguageTags(languageCode)
+        }
+        AppCompatDelegate.setApplicationLocales(appLocale)
     }
 
     fun updateWorkoutName(newName: String) {
