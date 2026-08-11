@@ -70,7 +70,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _themeOption = MutableStateFlow(prefs.getString("theme_option", "DEFAULT") ?: "DEFAULT")
     val themeOption: StateFlow<String> = _themeOption.asStateFlow()
 
-    private val _customWorkoutName = MutableStateFlow(prefs.getString("custom_workout_name", "Workout") ?: "Workout")
+    private val _customWorkoutName = MutableStateFlow(prefs.getString("custom_workout_name", "My Workout") ?: "My Workout")
     val customWorkoutName: StateFlow<String> = _customWorkoutName.asStateFlow()
 
     private val _isFirstTimeUser = MutableStateFlow(prefs.getBoolean("is_first_time", true))
@@ -230,7 +230,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateWorkoutName(newName: String) {
-        val trimmed = newName.trim().ifEmpty { "Workout" }
+        val trimmed = newName.trim().take(20).ifEmpty { "My Workout" }
         _customWorkoutName.value = trimmed
         prefs.edit().putString("custom_workout_name", trimmed).apply()
     }

@@ -55,7 +55,7 @@
     <string name="server_unreachable">Server unreachable. Please try again later.</string>
     <string name="quick_faq">Quick FAQ</string>
 
-    <string name="analytics_reports">Analytics &amp; Reports</string>
+    <string name="analytics_reports">Analytics</string>
     <string name="weekly_activity">Weekly Activity</string>
     <string name="training_consistency_overview">Overview of your training consistency</string>
     <string name="active_days">Active Days</string>
@@ -114,6 +114,7 @@
     <string name="save_weight">Save Weight</string>
     <string name="custom">Custom</string>
     <string name="my_workout">My Workout</string>
+    <string name="workout">Workout</string>
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
     <string name="rest_recovery_recommendation">No scheduled lifting for %1$s. Active walking or light mobility recommended!</string>
     <string name="workout_completed_title">Workout Completed! 🎉</string>
@@ -157,7 +158,7 @@
     <string name="workout_program_name_placeholder">e.g. Workout, Summer Shred, PPL Split</string>
     <string name="select_routine_type">2. Select Workout Routine Type</string>
     <string name="premade_templates">Premade Templates</string>
-    <string name="build_custom">Build Custom</string>
+    <string name="build_custom">Custom Build</string>
     <string name="choose_recommended_template">Choose a Recommended Workout Template</string>
     <string name="selected">Selected</string>
     <string name="preview_breakdown">Preview Breakdown</string>
@@ -302,4 +303,13 @@
     <string name="restart_required_title">Restart Required</string>
     <string name="restart_required_message">To apply the new theme and splash screen fully, the app needs to restart.</string>
     <string name="ok">OK</string>
+    <string name="confirm">Confirm</string>
+    <string name="confirm_action_question">Applying these changes will modify your current workout configuration.</string>
+    <string name="max_characters_reached">Maximum characters reached (20)</string>
+    <string name="confirm_new_program_title">Confirm New Program</string>
+    <string name="confirm_new_program_message">Finalizing this setup will overwrite your current workout settings. This action cannot be undone. Proceed?</string>
+    <string name="exit_app_title">Exit App?</string>
+    <string name="exit_app_message">Are you sure you want to exit?</string>
+    <string name="exit">Exit</string>
+    <string name="stay">Stay</string>
 </resources>
