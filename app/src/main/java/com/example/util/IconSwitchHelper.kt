@@ -11,27 +11,31 @@ object IconSwitchHelper {
 
     fun switchIcon(context: Context, targetAlias: String) {
         val packageManager = context.packageManager
+        val packageName = context.packageName
         
         val aliases = arrayOf(ORANGE_ICON, BEIGE_ICON)
         
         for (alias in aliases) {
-            val state = if (alias == targetAlias) {
+            val newState = if (alias == targetAlias) {
                 PackageManager.COMPONENT_ENABLED_STATE_ENABLED
             } else {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
             
-            packageManager.setComponentEnabledSetting(
-                ComponentName(context, alias),
-                state,
-                PackageManager.DONT_KILL_APP
-            )
+            val componentName = ComponentName(packageName, alias)
+            val currentState = try {
+                packageManager.getComponentEnabledSetting(componentName)
+            } catch (e: Exception) {
+                PackageManager.COMPONENT_ENABLED_STATE_DEFAULT
+            }
+            
+            if (currentState != newState) {
+                packageManager.setComponentEnabledSetting(
+                    componentName,
+                    newState,
+                    PackageManager.DONT_KILL_APP
+                )
+            }
         }
-        
-        /* 
-           We do NOT disable the base MainActivity. 
-           It just doesn't have an <intent-filter> for the launcher in the manifest.
-           Disabling it might prevent aliases from launching their target.
-        */
     }
 }

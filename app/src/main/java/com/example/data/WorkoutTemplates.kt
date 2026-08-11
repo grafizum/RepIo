@@ -1,12 +1,22 @@
 package com.example.data
 
+import com.example.R
+
+data class DayTemplate(
+    val dayOfWeek: String,
+    val titleResId: Int,
+    val descResId: Int,
+    val isRestDay: Boolean
+)
+
 data class WorkoutTemplate(
     val id: String,
-    val name: String,
-    val description: String,
-    val badge: String,
-    val daysCountText: String,
-    val days: List<RoutineDayEntity>,
+    val nameResId: Int,
+    val descriptionResId: Int,
+    val badgeResId: Int,
+    val daysCountResId: Int,
+    val daysCountArgs: Pair<Int, Int>, // (Workout Days, Rest Days)
+    val dayTemplates: List<DayTemplate>,
     val exercises: List<RoutineExerciseEntity>
 )
 
@@ -14,28 +24,38 @@ object WorkoutTemplates {
 
     val template5DaySplit = WorkoutTemplate(
         id = "5day_hypertrophy",
-        name = "5-Day Hypertrophy Split",
-        description = "High-volume body-part split focusing on muscle growth and balanced symmetry across 5 workout days.",
-        badge = "Most Popular",
-        daysCountText = "5 Workout Days + 2 Rest Days",
-        days = DefaultData.routineDays,
+        nameResId = R.string.hypertrophy_5day_name,
+        descriptionResId = R.string.hypertrophy_5day_desc,
+        badgeResId = R.string.most_popular,
+        daysCountResId = R.string.workout_days_plus_rest,
+        daysCountArgs = 5 to 2,
+        dayTemplates = listOf(
+            DayTemplate("MONDAY", R.string.pull_title, R.string.pull_desc, false),
+            DayTemplate("TUESDAY", R.string.push_title, R.string.push_desc, false),
+            DayTemplate("WEDNESDAY", R.string.legs_core_title, R.string.legs_desc, false),
+            DayTemplate("THURSDAY", R.string.upper_hypertrophy_title, R.string.upper_power_desc, false),
+            DayTemplate("FRIDAY", R.string.lower_hypertrophy_title, R.string.lower_power_desc, false),
+            DayTemplate("SATURDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("SUNDAY", R.string.rest_recovery_day, R.string.rest_desc, true)
+        ),
         exercises = DefaultData.routineExercises
     )
 
     val templatePPL = WorkoutTemplate(
         id = "ppl_6day",
-        name = "Push / Pull / Legs (PPL)",
-        description = "Classic PPL routine separating pushing muscles (chest/shoulders/triceps), pulling muscles (back/biceps), and leg muscles.",
-        badge = "Strength & Mass",
-        daysCountText = "6 Workout Days + 1 Rest Day",
-        days = listOf(
-            RoutineDayEntity("MONDAY", "Monday — Push (Chest, Shoulders, Triceps)", "Heavy chest pressing and overhead shoulder work", false),
-            RoutineDayEntity("TUESDAY", "Tuesday — Pull (Back & Biceps)", "Heavy rows, pulldowns, and bicep hypertrophy", false),
-            RoutineDayEntity("WEDNESDAY", "Wednesday — Legs & Core", "Squats, lunges, leg curls, and core stability", false),
-            RoutineDayEntity("THURSDAY", "Thursday — Push (Chest, Shoulders, Triceps)", "Volume pressing and lateral raise volume", false),
-            RoutineDayEntity("FRIDAY", "Friday — Pull (Back & Biceps)", "Rowing variations, rear delts, and bicep curls", false),
-            RoutineDayEntity("SATURDAY", "Saturday — Legs & Core", "Deadlifts, Romanian deadlifts, calves, and abs", false),
-            RoutineDayEntity("SUNDAY", "Sunday — Rest & Recovery", "Active rest, foam rolling, and mobility", true)
+        nameResId = R.string.ppl_6day_name,
+        descriptionResId = R.string.ppl_6day_desc,
+        badgeResId = R.string.strength_mass,
+        daysCountResId = R.string.workout_days_plus_rest,
+        daysCountArgs = 6 to 1,
+        dayTemplates = listOf(
+            DayTemplate("MONDAY", R.string.push_title, R.string.push_desc, false),
+            DayTemplate("TUESDAY", R.string.pull_title, R.string.pull_desc, false),
+            DayTemplate("WEDNESDAY", R.string.legs_core_title, R.string.legs_desc, false),
+            DayTemplate("THURSDAY", R.string.push_title, R.string.push_desc, false),
+            DayTemplate("FRIDAY", R.string.pull_title, R.string.pull_desc, false),
+            DayTemplate("SATURDAY", R.string.legs_core_title, R.string.legs_desc, false),
+            DayTemplate("SUNDAY", R.string.rest_recovery_day, R.string.rest_desc, true)
         ),
         exercises = listOf(
             // MONDAY Push
@@ -74,18 +94,19 @@ object WorkoutTemplates {
 
     val templateUpperLower = WorkoutTemplate(
         id = "upper_lower_4day",
-        name = "4-Day Upper / Lower Split",
-        description = "Balanced 4-day split training all upper body muscles twice a week and all lower body muscles twice a week with ample recovery time.",
-        badge = "Optimal Recovery",
-        daysCountText = "4 Workout Days + 3 Rest Days",
-        days = listOf(
-            RoutineDayEntity("MONDAY", "Monday — Upper Body Power", "Heavy chest, back, shoulders, and arm pressing", false),
-            RoutineDayEntity("TUESDAY", "Tuesday — Lower Body & Core", "Squats, deadlifts, and abs", false),
-            RoutineDayEntity("WEDNESDAY", "Wednesday — Active Rest", "Rest and mobility work", true),
-            RoutineDayEntity("THURSDAY", "Thursday — Upper Body Hypertrophy", "Volume chest flyes, rows, lateral raises, and biceps", false),
-            RoutineDayEntity("FRIDAY", "Friday — Lower Body Hypertrophy", "Lunges, Romanian deadlifts, calves, and core", false),
-            RoutineDayEntity("SATURDAY", "Saturday — Rest & Recovery", "Active rest", true),
-            RoutineDayEntity("SUNDAY", "Sunday — Rest & Recovery", "Rest", true)
+        nameResId = R.string.upper_lower_4day_name,
+        descriptionResId = R.string.upper_lower_4day_desc,
+        badgeResId = R.string.optimal_recovery,
+        daysCountResId = R.string.workout_days_plus_rest,
+        daysCountArgs = 4 to 3,
+        dayTemplates = listOf(
+            DayTemplate("MONDAY", R.string.upper_power_title, R.string.upper_power_desc, false),
+            DayTemplate("TUESDAY", R.string.lower_power_title, R.string.lower_power_desc, false),
+            DayTemplate("WEDNESDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("THURSDAY", R.string.upper_hypertrophy_title, R.string.upper_power_desc, false),
+            DayTemplate("FRIDAY", R.string.lower_hypertrophy_title, R.string.lower_power_desc, false),
+            DayTemplate("SATURDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("SUNDAY", R.string.rest_recovery_day, R.string.rest_desc, true)
         ),
         exercises = listOf(
             // MONDAY Upper Power
@@ -114,18 +135,19 @@ object WorkoutTemplates {
 
     val templateFullBody = WorkoutTemplate(
         id = "fullbody_3day",
-        name = "3-Day Full Body Classic",
-        description = "Efficient 3-day full body training hitting every muscle group each session. Great for busy schedules and compound strength gains.",
-        badge = "Time Efficient",
-        daysCountText = "3 Workout Days + 4 Rest Days",
-        days = listOf(
-            RoutineDayEntity("MONDAY", "Monday — Full Body A", "Squat, Press, Row, Core", false),
-            RoutineDayEntity("TUESDAY", "Tuesday — Rest & Active Recovery", "Rest", true),
-            RoutineDayEntity("WEDNESDAY", "Wednesday — Full Body B", "Lunge, Shoulder Press, Pullover, Biceps", false),
-            RoutineDayEntity("THURSDAY", "Thursday — Rest & Active Recovery", "Rest", true),
-            RoutineDayEntity("FRIDAY", "Friday — Full Body C", "Romanian Deadlift, Chest Press, Arms, Core", false),
-            RoutineDayEntity("SATURDAY", "Saturday — Rest & Recovery", "Rest", true),
-            RoutineDayEntity("SUNDAY", "Sunday — Rest & Recovery", "Rest", true)
+        nameResId = R.string.fullbody_3day_name,
+        descriptionResId = R.string.fullbody_3day_desc,
+        badgeResId = R.string.time_efficient,
+        daysCountResId = R.string.workout_days_plus_rest,
+        daysCountArgs = 3 to 4,
+        dayTemplates = listOf(
+            DayTemplate("MONDAY", R.string.full_body_a_title, R.string.full_body_a_desc, false),
+            DayTemplate("TUESDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("WEDNESDAY", R.string.full_body_b_title, R.string.full_body_b_desc, false),
+            DayTemplate("THURSDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("FRIDAY", R.string.full_body_c_title, R.string.full_body_c_desc, false),
+            DayTemplate("SATURDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+            DayTemplate("SUNDAY", R.string.rest_recovery_day, R.string.rest_desc, true)
         ),
         exercises = listOf(
             // MONDAY

@@ -21,10 +21,11 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         return dao.getLoggedSetsForExercise(exerciseName)
     }
 
-    suspend fun ensureDataSeeded() {
+    suspend fun ensureDataSeeded(context: android.content.Context) {
         val days = dao.getAllRoutineDays().first()
         if (days.isEmpty()) {
-            dao.insertRoutineDays(DefaultData.routineDays)
+            val localizedDays = localizeDayTemplates(context, DefaultData.dayTemplates)
+            dao.insertRoutineDays(localizedDays)
             dao.insertRoutineExercises(DefaultData.routineExercises)
         } else {
             val exercises = dao.getAllRoutineExercises().first()
@@ -33,6 +34,28 @@ class WorkoutRepository(private val dao: WorkoutDao) {
                     dao.updateExercise(exercise.copy(videoUrl = ""))
                 }
             }
+        }
+    }
+
+    private fun localizeDayTemplates(context: android.content.Context, templates: List<DayTemplate>): List<RoutineDayEntity> {
+        return templates.map { dt ->
+            val shortDay = when(dt.dayOfWeek.uppercase()) {
+                "MONDAY" -> context.getString(com.example.R.string.monday_short)
+                "TUESDAY" -> context.getString(com.example.R.string.tuesday_short)
+                "WEDNESDAY" -> context.getString(com.example.R.string.wednesday_short)
+                "THURSDAY" -> context.getString(com.example.R.string.thursday_short)
+                "FRIDAY" -> context.getString(com.example.R.string.friday_short)
+                "SATURDAY" -> context.getString(com.example.R.string.saturday_short)
+                "SUNDAY" -> context.getString(com.example.R.string.sunday_short)
+                else -> dt.dayOfWeek
+            }
+            val fullTitle = context.getString(com.example.R.string.day_title_format, shortDay, context.getString(dt.titleResId))
+            RoutineDayEntity(
+                dayOfWeek = dt.dayOfWeek,
+                title = fullTitle,
+                description = context.getString(dt.descResId),
+                isRestDay = dt.isRestDay
+            )
         }
     }
 
@@ -81,8 +104,11 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.insertRoutineExercises(exercises)
     }
 
-    suspend fun resetRoutineToDefault() {
-        dao.insertRoutineDays(DefaultData.routineDays)
+    suspend fun resetRoutineToDefault(context: android.content.Context) {
+        dao.clearAllRoutineExercises()
+        dao.clearAllRoutineDays()
+        val localizedDays = localizeDayTemplates(context, DefaultData.dayTemplates)
+        dao.insertRoutineDays(localizedDays)
         dao.insertRoutineExercises(DefaultData.routineExercises)
     }
 

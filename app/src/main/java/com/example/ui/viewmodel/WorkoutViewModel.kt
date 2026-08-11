@@ -10,6 +10,7 @@ import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
 import androidx.lifecycle.AndroidViewModel
 import androidx.lifecycle.viewModelScope
+import com.example.R
 import com.example.data.AppDatabase
 import com.example.data.LoggedSetEntity
 import com.example.data.RoutineDayEntity
@@ -93,7 +94,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         }
 
         viewModelScope.launch {
-            repository.ensureDataSeeded()
+            repository.ensureDataSeeded(application)
         }
 
         viewModelScope.launch {
@@ -172,19 +173,24 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun setThemeOption(theme: String) {
+        val oldTheme = _themeOption.value
         _themeOption.value = theme
         prefs.edit().putString("theme_option", theme).apply()
         
         // Dynamic Icon & Splash switching based on theme category
-        val context = getApplication<Application>()
+        // Only trigger icon switch if we are actually changing the light/dark category
+        val wasLightTheme = oldTheme == "BEIGE" || oldTheme == "EMERALD" || oldTheme == "CRIMSON"
         val isLightTheme = theme == "BEIGE" || theme == "EMERALD" || theme == "CRIMSON"
         
-        if (isLightTheme) {
-            // Switches to the Beige icon alias which also uses the Light Splash theme
-            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.BEIGE_ICON)
-        } else {
-            // Switches to the Orange icon alias which also uses the Dark Splash theme
-            com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.ORANGE_ICON)
+        // If it's the first time setting a theme (oldTheme == "DEFAULT"), we should still check
+        // but DEFAULT usually maps to the Orange icon (Dark) anyway.
+        if (wasLightTheme != isLightTheme || oldTheme == "DEFAULT") {
+            val context = getApplication<Application>()
+            if (isLightTheme) {
+                com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.BEIGE_ICON)
+            } else {
+                com.example.util.IconSwitchHelper.switchIcon(context, com.example.util.IconSwitchHelper.ORANGE_ICON)
+            }
         }
     }
 
@@ -223,8 +229,33 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         if (!customName.isNullOrBlank()) {
             updateWorkoutName(customName)
         }
+        val context = getApplication<Application>()
+        
+        // Localize days from template
+        val localizedDays = template.dayTemplates.map { dt ->
+            val shortDay = when(dt.dayOfWeek.uppercase()) {
+                "MONDAY" -> context.getString(R.string.monday_short)
+                "TUESDAY" -> context.getString(R.string.tuesday_short)
+                "WEDNESDAY" -> context.getString(R.string.wednesday_short)
+                "THURSDAY" -> context.getString(R.string.thursday_short)
+                "FRIDAY" -> context.getString(R.string.friday_short)
+                "SATURDAY" -> context.getString(R.string.saturday_short)
+                "SUNDAY" -> context.getString(R.string.sunday_short)
+                else -> dt.dayOfWeek
+            }
+            
+            val fullTitle = context.getString(R.string.day_title_format, shortDay, context.getString(dt.titleResId))
+            
+            RoutineDayEntity(
+                dayOfWeek = dt.dayOfWeek,
+                title = fullTitle,
+                description = context.getString(dt.descResId),
+                isRestDay = dt.isRestDay
+            )
+        }
+
         viewModelScope.launch {
-            repository.applyProgram(template.days, template.exercises)
+            repository.applyProgram(localizedDays, template.exercises)
             _isFirstTimeUser.value = false
             prefs.edit().putBoolean("is_first_time", false).apply()
         }
@@ -468,7 +499,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun resetToDefaultProgram() {
         viewModelScope.launch {
-            repository.resetRoutineToDefault()
+            repository.resetRoutineToDefault(getApplication())
         }
     }
 

@@ -13,6 +13,7 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.rememberScrollState
@@ -32,13 +33,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedButton
+import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
@@ -46,6 +51,9 @@ import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateOf
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.setValue
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -55,29 +63,30 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.compose.ui.window.DialogProperties
 import com.example.R
 import com.example.ui.viewmodel.WorkoutViewModel
 
 data class ThemeColorItem(
     val key: String,
-    val displayName: String,
+    val nameResId: Int,
     val previewPrimary: Color,
     val previewBackground: Color
 )
 
 val lightThemes = listOf(
-    ThemeColorItem("BEIGE", "Warm Beige", Color(0xFF8C6239), Color(0xFFF7F4EE)),
-    ThemeColorItem("EMERALD", "Emerald Mint", Color(0xFF00796B), Color(0xFFF1F8F7)),
-    ThemeColorItem("CRIMSON", "Crimson Red", Color(0xFFC62828), Color(0xFFFFFAFA))
+    ThemeColorItem("BEIGE", R.string.warm_beige, Color(0xFF8C6239), Color(0xFFF7F4EE)),
+    ThemeColorItem("EMERALD", R.string.emerald_mint, Color(0xFF00796B), Color(0xFFF1F8F7)),
+    ThemeColorItem("CRIMSON", R.string.crimson_red, Color(0xFFC62828), Color(0xFFFFFAFA))
 )
 
 val darkThemes = listOf(
-    ThemeColorItem("PURPLE", "Elegant Purple", Color(0xFFD0BCFF), Color(0xFF1C1B1F)),
-    ThemeColorItem("FLAME", "Flame Orange", Color(0xFFFF6D00), Color(0xFF121212)),
-    ThemeColorItem("MIDNIGHT", "Midnight Blue", Color(0xFF3D5AFE), Color(0xFF14172B)),
-    ThemeColorItem("OCEAN", "Ocean Teal", Color(0xFF00B8D4), Color(0xFF0F1E24)),
-    ThemeColorItem("ROSE", "Rose Pink", Color(0xFFF06292), Color(0xFF28111A)),
-    ThemeColorItem("FOREST", "Forest Green", Color(0xFF4CAF50), Color(0xFF0F2111))
+    ThemeColorItem("PURPLE", R.string.elegant_purple, Color(0xFFD0BCFF), Color(0xFF1C1B1F)),
+    ThemeColorItem("FLAME", R.string.flame_orange, Color(0xFFFF6D00), Color(0xFF121212)),
+    ThemeColorItem("MIDNIGHT", R.string.midnight_blue, Color(0xFF3D5AFE), Color(0xFF14172B)),
+    ThemeColorItem("OCEAN", R.string.ocean_teal, Color(0xFF00B8D4), Color(0xFF0F1E24)),
+    ThemeColorItem("ROSE", R.string.rose_pink, Color(0xFFF06292), Color(0xFF28111A)),
+    ThemeColorItem("FOREST", R.string.forest_green, Color(0xFF4CAF50), Color(0xFF0F2111))
 )
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -90,9 +99,12 @@ fun SettingsDialog(
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
+    val appLanguage by viewModel.appLanguage.collectAsState()
+    var expanded by remember { mutableStateOf(false) }
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -114,10 +126,12 @@ fun SettingsDialog(
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
-                    .fillMaxWidth()
+                    .widthIn(max = 560.dp)
+                    .fillMaxWidth(0.92f)
                     .verticalScroll(rememberScrollState())
+                    .padding(vertical = 8.dp)
             ) {
-                // SCREEN KEEP ALIVE TOGGLE
+                // LANGUAGE SELECTION CARD
                 Card(
                     shape = RoundedCornerShape(16.dp),
                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -126,43 +140,81 @@ fun SettingsDialog(
                     Column(modifier = Modifier.padding(16.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                modifier = Modifier.weight(1f)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.PhoneAndroid,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(22.dp)
+                            Icon(
+                                imageVector = Icons.Default.Language,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = stringResource(R.string.language),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Column {
-                                    Text(
-                                        text = stringResource(R.string.keep_screen_on),
-                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = stringResource(R.string.force_screen_stay_active),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                Text(
+                                    text = stringResource(R.string.change_app_language),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.height(12.dp))
+
+                        val languageOptions = listOf(
+                            "system" to stringResource(R.string.system_default),
+                            "en" to stringResource(R.string.english),
+                            "de" to stringResource(R.string.german),
+                            "it" to stringResource(R.string.italian)
+                        )
+
+                        val selectedLanguageLabel = languageOptions.find { it.first == appLanguage }?.second ?: stringResource(R.string.system_default)
+
+                        ExposedDropdownMenuBox(
+                            expanded = expanded,
+                            onExpandedChange = { expanded = !expanded },
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            OutlinedTextField(
+                                value = selectedLanguageLabel,
+                                onValueChange = {},
+                                readOnly = true,
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                ),
+                                modifier = Modifier
+                                    .menuAnchor()
+                                    .fillMaxWidth(),
+                                shape = RoundedCornerShape(12.dp),
+                                textStyle = MaterialTheme.typography.bodyMedium
+                            )
+
+                            ExposedDropdownMenu(
+                                expanded = expanded,
+                                onDismissRequest = { expanded = false }
+                            ) {
+                                languageOptions.forEach { (code, label) ->
+                                    DropdownMenuItem(
+                                        text = {
+                                            Text(
+                                                text = label,
+                                                style = MaterialTheme.typography.bodyMedium
+                                            )
+                                        },
+                                        onClick = {
+                                            viewModel.setAppLanguage(code)
+                                            expanded = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
                                     )
                                 }
                             }
-
-                            Switch(
-                                checked = keepScreenOn,
-                                onCheckedChange = { viewModel.setKeepScreenOn(it) },
-                                colors = SwitchDefaults.colors(
-                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
-                                    checkedTrackColor = MaterialTheme.colorScheme.primary
-                                ),
-                                modifier = Modifier.semantics { testTag = "keep_screen_on_switch" }
-                            )
                         }
                     }
                 }
@@ -238,6 +290,56 @@ fun SettingsDialog(
                     }
                 }
 
+                // SCREEN KEEP ALIVE TOGGLE
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.PhoneAndroid,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = stringResource(R.string.keep_screen_on),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = stringResource(R.string.force_screen_stay_active),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+
+                            Switch(
+                                checked = keepScreenOn,
+                                onCheckedChange = { viewModel.setKeepScreenOn(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.semantics { testTag = "keep_screen_on_switch" }
+                            )
+                        }
+                    }
+                }
+
                 // COLOR THEMES SECTION
                 Card(
                     shape = RoundedCornerShape(16.dp),
@@ -297,73 +399,6 @@ fun SettingsDialog(
                                     theme = theme,
                                     isSelected = selectedTheme.equals(theme.key, ignoreCase = true),
                                     onSelect = { viewModel.setThemeOption(theme.key) }
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // LANGUAGE SELECTION CARD
-                val appLanguage by viewModel.appLanguage.collectAsState()
-                Card(
-                    shape = RoundedCornerShape(16.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Language,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(22.dp)
-                            )
-                            Spacer(modifier = Modifier.width(10.dp))
-                            Column {
-                                Text(
-                                    text = stringResource(R.string.language),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = stringResource(R.string.change_app_language),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        val languageOptions = listOf(
-                            "system" to stringResource(R.string.system_default),
-                            "en" to stringResource(R.string.english),
-                            "de" to stringResource(R.string.german),
-                            "it" to stringResource(R.string.italian)
-                        )
-                        Row(
-                            horizontalArrangement = Arrangement.spacedBy(6.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            languageOptions.forEach { (code, label) ->
-                                val isSelected = appLanguage == code
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.setAppLanguage(code) },
-                                    label = {
-                                        Text(
-                                            text = if (code == "system" && label.length > 6) label.substring(0, 6) else label,
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    },
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
-                                    modifier = Modifier.weight(1f)
                                 )
                             }
                         }
@@ -501,7 +536,7 @@ private fun ThemeOptionRow(
             )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
-                text = theme.displayName,
+                text = stringResource(theme.nameResId),
                 style = MaterialTheme.typography.bodyMedium.copy(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                 ),

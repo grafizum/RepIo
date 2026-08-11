@@ -1,51 +1,20 @@
 package com.example.data
 
+import com.example.R
+
 object DefaultData {
 
-    val routineDays = listOf(
-        RoutineDayEntity(
-            dayOfWeek = "MONDAY",
-            title = "Monday — Pull & Back Focus",
-            description = "Back, biceps, rear delts, and abs",
-            isRestDay = false
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "TUESDAY",
-            title = "Tuesday — Upper Body Push & Pull",
-            description = "Chest, back, biceps, and core",
-            isRestDay = false
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "WEDNESDAY",
-            title = "Wednesday — Legs, Shoulders & Abs",
-            description = "Squats, lunges, shoulder press, and core",
-            isRestDay = false
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "THURSDAY",
-            title = "Thursday — Upper Body Volume",
-            description = "Rows, curls, lateral raises, and rear delts",
-            isRestDay = false
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "FRIDAY",
-            title = "Friday — Shoulders, Arms & Back",
-            description = "Shoulder press, curls, extensions, and rows",
-            isRestDay = false
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "SATURDAY",
-            title = "Saturday — Rest & Recovery",
-            description = "Active rest, walking, or light stretching",
-            isRestDay = true
-        ),
-        RoutineDayEntity(
-            dayOfWeek = "SUNDAY",
-            title = "Sunday — Rest & Recovery",
-            description = "Rest, foam rolling, and mobility work",
-            isRestDay = true
-        )
+    val dayTemplates = listOf(
+        DayTemplate("MONDAY", R.string.pull_title, R.string.pull_desc, false),
+        DayTemplate("TUESDAY", R.string.push_title, R.string.push_desc, false),
+        DayTemplate("WEDNESDAY", R.string.legs_core_title, R.string.legs_desc, false),
+        DayTemplate("THURSDAY", R.string.upper_hypertrophy_title, R.string.upper_power_desc, false),
+        DayTemplate("FRIDAY", R.string.lower_hypertrophy_title, R.string.lower_power_desc, false),
+        DayTemplate("SATURDAY", R.string.rest_recovery_day, R.string.rest_desc, true),
+        DayTemplate("SUNDAY", R.string.rest_recovery_day, R.string.rest_desc, true)
     )
+
+    val routineDays = emptyList<RoutineDayEntity>() // Legacy, unused now by logic
 
     val routineExercises = listOf(
         // MONDAY

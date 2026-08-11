@@ -63,6 +63,29 @@
     <string name="max_weight">Peso massimo</string>
     <string name="recent_history">Cronologia recente</string>
     <string name="no_sets_logged">Nessuna serie registrata.</string>
+    <string name="no_sets_logged_full">Nessuna serie registrata. Completa gli allenamenti per vedere il focus muscolare!</string>
+    <string name="volume_progress_kg">Progresso volume (kg)</string>
+    <string name="tap_bar_to_inspect">Tocca una barra per i dettagli giornalieri</string>
+    <string name="muscle_group_focus">Focus gruppi muscolari</string>
+    <string name="watch_demo">Guarda Demo</string>
+    <string name="watch_demo_video">Guarda Video Demo</string>
+    <string name="edit_demo_link">Modifica Link Demo</string>
+    <string name="input_demo">Inserisci Demo</string>
+    <string name="input_demo_video">Inserisci Video Demo</string>
+    <string name="demo_video_link">Link Video Demo</string>
+    <string name="enter_video_url_desc">Inserisci un URL video per questa demo:</string>
+    <string name="video_url">URL Video</string>
+    <string name="volume_label">Volume</string>
+    <string name="sets_label">Serie</string>
+    <string name="balanced_workout_routine">Routine equilibrata</string>
+    <string name="balanced_workout_desc">Tutti i principali gruppi muscolari (Petto, Schiena, Gambe, Spalle, Braccia, Core) sono coperti!</string>
+    <string name="missing_body_parts_warning">Avviso gruppi muscolari mancanti</string>
+    <string name="tip">Suggerimento</string>
+    <string name="missing_parts_desc">Il tuo allenamento non ha esercizi per: %1$s. L\'aggiunta di esercizi per questi gruppi muscolari garantirà uno sviluppo equilibrato della forza.</string>
+    <string name="notification_channel_name">Notifiche Timer Riposo</string>
+    <string name="notification_channel_desc">Notifica quando finisce la pausa tra le serie</string>
+    <string name="notification_title">Pausa terminata! 💪</string>
+    <string name="notification_text">È ora della prossima serie!</string>
     <string name="clear_history_title">Cancellare tutta la cronologia?</string>
     <string name="clear_history_text">Questo rimuoverà permanentemente tutte le serie registrate.</string>
     <string name="delete_all">Elimina tutto</string>
@@ -150,6 +173,64 @@
     <string name="weight_kg_intl">%1$s kg</string>
     <string name="exercise_name_placeholder">es. Panca piana, Squat, Trazioni</string>
     <string name="add">Aggiungi</string>
+    <string name="kg_x_reps">%1$s kg × %2$d rip</string>
+    <string name="exercise_set_summary">• %1$s (%2$d serie)</string>
+
+    <string name="back">Schiena</string>
+    <string name="biceps">Bicipiti</string>
+    <string name="shoulders">Spalle</string>
+    <string name="chest">Petto</string>
+    <string name="legs">Gambe</string>
+    <string name="abs">Addominali</string>
+    <string name="triceps">Tricipiti</string>
+    <string name="other">Altro</string>
+
+    <string name="hypertrophy_5day_name">Split Ipertrofia 5 Giorni</string>
+    <string name="hypertrophy_5day_desc">Allenamento ad alto volume focalizzato sulla crescita muscolare e simmetria in 5 giorni.</string>
+    <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
+    <string name="ppl_6day_desc">Routine classica: separa muscoli di spinta, trazione e gambe in 6 giorni.</string>
+    <string name="upper_lower_4day_name">Split Upper / Lower 4 Giorni</string>
+    <string name="upper_lower_4day_desc">Split equilibrato: allena tutti i muscoli due volte a settimana con ampio recupero.</string>
+    <string name="fullbody_3day_name">Full Body Classico 3 Giorni</string>
+    <string name="fullbody_3day_desc">Allenamento efficiente di tutti i gruppi muscolari ogni sessione. Ideale per chi ha poco tempo.</string>
+
+    <string name="most_popular">Più popolare</string>
+    <string name="strength_mass">Forza e massa</string>
+    <string name="optimal_recovery">Recupero ottimale</string>
+    <string name="time_efficient">Efficienza temporale</string>
+    <string name="workout_days_plus_rest">%1$d giorni allenamento + %2$d giorni riposo</string>
+
+    <string name="day_title_format">%1$s — %2$s</string>
+    <string name="push_title">Spinta (Petto, Spalle, Tricipiti)</string>
+    <string name="pull_title">Trazione (Schiena e Bicipiti)</string>
+    <string name="legs_core_title">Gambe e Core</string>
+    <string name="upper_power_title">Upper Body Forza</string>
+    <string name="lower_power_title">Lower Body e Core</string>
+    <string name="upper_hypertrophy_title">Upper Body Ipertrofia</string>
+    <string name="lower_hypertrophy_title">Lower Body Ipertrofia</string>
+    <string name="full_body_a_title">Full Body A</string>
+    <string name="full_body_b_title">Full Body B</string>
+    <string name="full_body_c_title">Full Body C</string>
+
+    <string name="push_desc">Spinte pesanti per il petto e lavoro sopra la testa per le spalle</string>
+    <string name="pull_desc">Rematori pesanti, trazioni e ipertrofia bicipiti</string>
+    <string name="legs_desc">Squat, affondi, leg curl e stabilità del core</string>
+    <string name="upper_power_desc">Allenamento pesante per petto, schiena, spalle e braccia</string>
+    <string name="lower_power_desc">Squat, stacchi e addominali</string>
+    <string name="rest_desc">Riposo attivo, foam rolling e mobilità</string>
+    <string name="full_body_a_desc">Squat, Spinte, Rematore, Core</string>
+    <string name="full_body_b_desc">Affondi, Spinte spalle, Pullover, Bicipiti</string>
+    <string name="full_body_c_desc">Stacchi rumeni, Spinte petto, Braccia, Core</string>
+
+    <string name="warm_beige">Beige caldo</string>
+    <string name="emerald_mint">Verde smeraldo</string>
+    <string name="crimson_red">Rosso cremisi</string>
+    <string name="elegant_purple">Viola elegante</string>
+    <string name="flame_orange">Arancio fiamma</string>
+    <string name="midnight_blue">Blu mezzanotte</string>
+    <string name="ocean_teal">Teal oceano</string>
+    <string name="rose_pink">Rosa confetto</string>
+    <string name="forest_green">Verde foresta</string>
 
     <string name="monday">Lunedì</string>
     <string name="tuesday">Martedì</string>

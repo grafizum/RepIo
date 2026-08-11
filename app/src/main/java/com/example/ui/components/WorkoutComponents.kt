@@ -105,10 +105,24 @@ fun MuscleGroupBadge(
         modifier = modifier
     ) {
         Text(
-            text = muscleGroup,
+            text = translateMuscleGroup(muscleGroup),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
+    }
+}
+
+@Composable
+fun translateMuscleGroup(muscleGroup: String): String {
+    return when (muscleGroup.lowercase().trim()) {
+        "back" -> stringResource(R.string.back)
+        "biceps" -> stringResource(R.string.biceps)
+        "shoulders" -> stringResource(R.string.shoulders)
+        "chest" -> stringResource(R.string.chest)
+        "legs" -> stringResource(R.string.legs)
+        "abs" -> stringResource(R.string.abs)
+        "triceps" -> stringResource(R.string.triceps)
+        else -> muscleGroup
     }
 }
 
@@ -210,12 +224,12 @@ fun ExerciseVideoLinkButton(
             ) {
                 Icon(
                     imageVector = Icons.Default.PlayCircleFilled,
-                    contentDescription = "Watch Demo Video",
+                    contentDescription = stringResource(R.string.watch_demo_video),
                     modifier = Modifier.size(18.dp)
                 )
                 Spacer(modifier = Modifier.width(6.dp))
                 Text(
-                    text = "Watch Demo",
+                    text = stringResource(R.string.watch_demo),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
                 )
             }
@@ -230,7 +244,7 @@ fun ExerciseVideoLinkButton(
                 ) {
                     Icon(
                         imageVector = Icons.Default.Edit,
-                        contentDescription = "Edit Demo Link",
+                        contentDescription = stringResource(R.string.edit_demo_link),
                         modifier = Modifier.size(16.dp),
                         tint = MaterialTheme.colorScheme.primary
                     )
@@ -252,12 +266,12 @@ fun ExerciseVideoLinkButton(
         ) {
             Icon(
                 imageVector = Icons.Default.Add,
-                contentDescription = "Input Demo Video",
+                contentDescription = stringResource(R.string.input_demo_video),
                 modifier = Modifier.size(18.dp)
             )
             Spacer(modifier = Modifier.width(6.dp))
             Text(
-                text = "Input Demo",
+                text = stringResource(R.string.input_demo),
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
             )
         }
@@ -266,17 +280,17 @@ fun ExerciseVideoLinkButton(
     if (showInputDialog && onSaveDemoUrl != null) {
         androidx.compose.material3.AlertDialog(
             onDismissRequest = { showInputDialog = false },
-            title = { Text("Demo Video Link") },
+            title = { Text(stringResource(R.string.demo_video_link)) },
             text = {
                 Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                     Text(
-                        text = "Enter a video URL for this exercise demo:",
+                        text = stringResource(R.string.enter_video_url_desc),
                         style = MaterialTheme.typography.bodySmall
                     )
                     androidx.compose.material3.OutlinedTextField(
                         value = inputUrlText,
                         onValueChange = { inputUrlText = it },
-                        label = { Text("Video URL") },
+                        label = { Text(stringResource(R.string.video_url)) },
                         placeholder = { Text("https://...") },
                         singleLine = true,
                         modifier = Modifier.fillMaxWidth()
@@ -290,12 +304,12 @@ fun ExerciseVideoLinkButton(
                         showInputDialog = false
                     }
                 ) {
-                    Text("Save")
+                    Text(stringResource(R.string.save))
                 }
             },
             dismissButton = {
                 androidx.compose.material3.TextButton(onClick = { showInputDialog = false }) {
-                    Text("Cancel")
+                    Text(stringResource(R.string.cancel))
                 }
             }
         )
@@ -340,14 +354,14 @@ fun InteractiveVolumeBarChart(
             ) {
                 Column {
                     Text(
-                        text = "Volume Progress (kg)",
+                        text = stringResource(R.string.volume_progress_kg),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
                         text = if (selectedKey != null && dailyData.containsKey(selectedKey)) {
-                            "$selectedKey Volume: ${dailyData[selectedKey]?.toInt()} kg"
+                            stringResource(R.string.volume_label) + " $selectedKey: ${dailyData[selectedKey]?.toInt()} kg"
                         } else {
-                            "Tap any bar to inspect daily total"
+                            stringResource(R.string.tap_bar_to_inspect)
                         },
                         style = MaterialTheme.typography.bodySmall,
                         color = if (selectedKey != null) highlightColor else labelColor
@@ -474,7 +488,7 @@ fun MuscleGroupDonutChart(
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
             Text(
-                text = "Muscle Group Focus",
+                text = stringResource(R.string.muscle_group_focus),
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
             )
             Spacer(modifier = Modifier.height(16.dp))
@@ -487,7 +501,7 @@ fun MuscleGroupDonutChart(
                     contentAlignment = Alignment.Center
                 ) {
                     Text(
-                        text = "No sets logged yet. Complete workouts to see muscle focus breakdown!",
+                        text = stringResource(R.string.no_sets_logged_full),
                         style = MaterialTheme.typography.bodyMedium,
                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                         textAlign = TextAlign.Center
@@ -531,7 +545,7 @@ fun MuscleGroupDonutChart(
                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
                             )
                             Text(
-                                text = "Sets",
+                                text = stringResource(R.string.sets_label),
                                 style = MaterialTheme.typography.labelSmall,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -563,7 +577,7 @@ fun MuscleGroupDonutChart(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = entry.key,
+                                        text = translateMuscleGroup(entry.key),
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Medium),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -630,12 +644,12 @@ fun MissingBodyPartsWarningCard(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = "Balanced Workout Routine",
+                        text = stringResource(R.string.balanced_workout_routine),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = Color(0xFF10B981)
                     )
                     Text(
-                        text = "All major muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) are covered!",
+                        text = stringResource(R.string.balanced_workout_desc),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
@@ -666,7 +680,7 @@ fun MissingBodyPartsWarningCard(
                 Column {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(
-                            text = "Missing Body Parts Warning",
+                            text = stringResource(R.string.missing_body_parts_warning),
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onErrorContainer
@@ -678,7 +692,7 @@ fun MissingBodyPartsWarningCard(
                             shape = RoundedCornerShape(4.dp)
                         ) {
                             Text(
-                                text = "Tip",
+                                text = stringResource(R.string.tip),
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.error,
                                 modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
@@ -687,7 +701,7 @@ fun MissingBodyPartsWarningCard(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     Text(
-                        text = "Your custom workout has no exercises for: ${missingParts.joinToString(", ")}. Adding exercises for these muscle groups will ensure balanced strength development.",
+                        text = stringResource(R.string.missing_parts_desc, missingParts.joinToString(", ")),
                         style = MaterialTheme.typography.bodySmall,
                         color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
                     )

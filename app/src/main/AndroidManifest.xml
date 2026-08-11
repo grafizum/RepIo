@@ -13,7 +13,6 @@
         android:fullBackupContent="@xml/backup_rules"
         android:icon="@mipmap/ic_launcher"
         android:label="@string/app_name"
-        android:roundIcon="@mipmap/ic_launcher_round"
         android:supportsRtl="true"
         android:theme="@style/Theme.MyApplication">
 
@@ -32,9 +31,8 @@
             android:targetActivity="com.example.MainActivity"
             android:enabled="true"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_orange"
+            android:icon="@mipmap/ic_launcher"
             android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher_orange"
             android:theme="@style/Theme.App.Starting.Orange">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -50,7 +48,6 @@
             android:exported="true"
             android:icon="@mipmap/ic_launcher_beige"
             android:label="@string/app_name"
-            android:roundIcon="@mipmap/ic_launcher_beige"
             android:theme="@style/Theme.App.Starting.Beige">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

@@ -6,10 +6,6 @@
     android:viewportHeight="108">
 
     <group
-        android:pivotX="54"
-        android:pivotY="54"
-        android:scaleX="0.85"
-        android:scaleY="0.85"
         android:translateY="-2">
 
         <!-- Dumbbell Group -->
