@@ -74,6 +74,8 @@ import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.R
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.google.firebase.firestore.FirebaseFirestore
+import com.google.firebase.firestore.FieldValue
+import android.util.Log
 
 data class ThemeColorItem(
     val key: String,
@@ -703,14 +705,18 @@ private fun SupportTicketForm() {
                 val ticket = hashMapOf(
                     "subject" to subject,
                     "message" to message,
-                    "timestamp" to System.currentTimeMillis(),
+                    "timestamp" to FieldValue.serverTimestamp(),
                     "status" to "open",
-                    "device_model" to android.os.Build.MODEL
+                    "device_model" to android.os.Build.MODEL,
+                    "app_version" to "1.0.0"
                 )
+
+                Log.d("SupportTicket", "Attempting to send ticket: $ticket")
 
                 db.collection("support_tickets")
                     .add(ticket)
-                    .addOnSuccessListener {
+                    .addOnSuccessListener { documentReference ->
+                        Log.d("SupportTicket", "Ticket sent successfully with ID: ${documentReference.id}")
                         timeoutHandler.removeCallbacks(timeoutRunnable)
                         if (!isSubmitting) return@addOnSuccessListener
 
@@ -733,6 +739,7 @@ private fun SupportTicketForm() {
                         Toast.makeText(context, context.getString(R.string.ticket_sent_success), Toast.LENGTH_LONG).show()
                     }
                     .addOnFailureListener { e ->
+                        Log.e("SupportTicket", "Failed to send ticket", e)
                         timeoutHandler.removeCallbacks(timeoutRunnable)
                         if (!isSubmitting) return@addOnFailureListener
 

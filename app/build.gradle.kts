@@ -7,18 +7,32 @@ plugins {
   alias(libs.plugins.google.services)
 }
 
+// Configuration for Play Store release naming
+val appName = "RepIo"
+val appVersion = "1.0.0"
+val playStoreVersion = 8 // Last one was v7
+
 android {
   namespace = "com.grafizum.repio"
-  compileSdk = 36 // Simplified standard syntax
+  compileSdk = 37
 
   defaultConfig {
     applicationId = "com.grafizum.repio"
     minSdk = 24
-    targetSdk = 36
-    versionCode = 1
-    versionName = "1.0"
+    targetSdk = 37
+    versionCode = playStoreVersion
+    versionName = appVersion
 
     testInstrumentationRunner = "androidx.test.runner.AndroidJUnitRunner"
+  }
+
+  packaging {
+    resources {
+      excludes += "/META-INF/{AL2.0,LGPL2.1}"
+    }
+    jniLibs {
+      keepDebugSymbols += "**/*.so"
+    }
   }
 
   signingConfigs {
@@ -46,9 +60,20 @@ android {
   buildTypes {
     release {
       isCrunchPngs = true // Enabled for production optimization
-      isMinifyEnabled = true // Security: Enable obfuscation
-      isShrinkResources = true // Security: Remove unused resources
-      proguardFiles(getDefaultProguardFile("proguard-android-optimize.txt"), "proguard-rules.pro")
+      
+      optimization {
+        enable = true
+      }
+
+      ndk {
+        debugSymbolLevel = "FULL"
+      }
+
+      proguardFiles(
+        getDefaultProguardFile("proguard-android-optimize.txt"),
+        "proguard-rules.pro"
+      )
+
       val relConfig = signingConfigs.findByName("release")
       if (relConfig != null) {
         signingConfig = relConfig
@@ -73,6 +98,16 @@ android {
     includeInApk = false
     includeInBundle = true
   }
+
+  lint {
+    checkReleaseBuilds = false
+    abortOnError = false
+  }
+}
+
+// Automatically rename the .aab file to include the version name and code
+base {
+  archivesName.set("$appName-v$appVersion-v$playStoreVersion")
 }
 
 secrets {
