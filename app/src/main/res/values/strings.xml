@@ -144,7 +144,20 @@
     <string name="start_timer_x_and_log">START %1$ds TIMER &amp; LOG</string>
     <string name="start_timer_x">START %1$ds TIMER</string>
     <string name="edit_workout_program_name">Edit Workout Program Name</string>
-    <string name="program_name">Program Name</string>
+    <string name="program_name">My Workout</string>
+    <string name="description">Description</string>
+    <string name="equipment">Equipment</string>
+    <string name="ex_description_generic">A effective exercise targeting the %1$s muscle group. Focus on controlled movements and full range of motion.</string>
+    <string name="ex_equipment_gym">Full Gym / Machines</string>
+    <string name="ex_equipment_barbell">Barbell</string>
+    <string name="ex_equipment_dumbbell">Dumbbells</string>
+    <string name="ex_equipment_bodyweight">Bodyweight</string>
+    <string name="ex_equipment_cables">Cables / Pulleys</string>
+    <string name="ex_bench_press_desc">Lie on a flat bench and press the weight upwards from your chest. Targets the pectoral muscles.</string>
+    <string name="ex_squats_desc">Lower your hips from a standing position and then stand back up. Targets the entire lower body.</string>
+    <string name="ex_deadlifts_desc">Lift a loaded barbell or bar off the ground to the level of the hips, then lower it back. Targets the posterior chain.</string>
+    <string name="ex_pull_ups_desc">Pull your body up while hanging from a bar. Excellent for back and bicep development.</string>
+    <string name="ex_overhead_press_desc">Press the weight upwards from shoulder level until arms are fully extended. Targets shoulders and triceps.</string>
     <string name="save">Save</string>
     <string name="workout_templates">Workout Templates</string>
     <string name="switch_program_text">Switch your program to one of our designed splits anytime.</string>
@@ -237,7 +250,7 @@
     <string name="ex_hammer_curls">Hammer curls</string>
     <string name="ex_dumbbell_shoulder_press">Dumbbell shoulder press</string>
     <string name="ex_dumbbell_lateral_raises">Dumbbell lateral raises</string>
-    <string name="ex_crunches">Crunches</string>
+    <string name="ex_crunches">Crunches (sit-ups)</string>
     <string name="ex_barbell_floor_press">Barbell floor press</string>
     <string name="ex_dumbbell_floor_press">Dumbbell floor press</string>
     <string name="ex_leg_raises">Leg raises</string>
@@ -324,8 +337,8 @@
     <string name="confirm">Confirm</string>
     <string name="confirm_action_question">Applying these changes will modify your current workout configuration.</string>
     <string name="max_characters_reached">Maximum characters reached (20)</string>
-    <string name="confirm_new_program_title">Confirm New Program</string>
-    <string name="confirm_new_program_message">Finalizing this setup will overwrite your current workout settings. This action cannot be undone. Proceed?</string>
+    <string name="confirm_new_program_title">Confirm New Workout</string>
+    <string name="confirm_new_program_message">Saving this will replace your current workout plan. Are you sure you want to continue?</string>
     <string name="exit_app_title">Exit App?</string>
     <string name="exit_app_message">Are you sure you want to exit?</string>
     <string name="exit">Exit</string>
@@ -340,7 +353,11 @@
     <string name="barbell_only">Barbell</string>
     <string name="cables_only">Cables &amp; Machines</string>
 
-    <string name="choose_intensity">4. Training Intensity</string>
+    <string name="choose_intensity">5. Training Intensity</string>
+    <string name="exercise_preferences">4. Exercise Preferences (Optional)</string>
+    <string name="include_exercises">Include specific exercises</string>
+    <string name="exclude_exercises">Exclude specific exercises</string>
+    <string name="add_pref">Add</string>
     <string name="intensity_easy">Easy</string>
     <string name="intensity_medium">Medium</string>
     <string name="intensity_difficult">Difficult</string>

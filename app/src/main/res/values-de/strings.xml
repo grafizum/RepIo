@@ -145,6 +145,19 @@
     <string name="start_timer_x">STARTE %1$ds TIMER</string>
     <string name="edit_workout_program_name">Programmname bearbeiten</string>
     <string name="program_name">Programmname</string>
+    <string name="description">Beschreibung</string>
+    <string name="equipment">Ausrüstung</string>
+    <string name="ex_description_generic">Eine effektive Übung für die %1$s-Muskulatur. Achte auf kontrollierte Bewegungen.</string>
+    <string name="ex_equipment_gym">Fitnessstudio / Geräte</string>
+    <string name="ex_equipment_barbell">Langhantel</string>
+    <string name="ex_equipment_dumbbell">Kurzhanteln</string>
+    <string name="ex_equipment_bodyweight">Eigengewicht</string>
+    <string name="ex_equipment_cables">Kabelzug</string>
+    <string name="ex_bench_press_desc">Flach auf die Bank legen und das Gewicht von der Brust nach oben drücken. Trainiert die Brustmuskulatur.</string>
+    <string name="ex_squats_desc">Hüfte aus dem Stand absenken und wieder aufstehen. Trainiert den gesamten Unterkörper.</string>
+    <string name="ex_deadlifts_desc">Beladene Hantel vom Boden bis zur Hüfte heben und wieder absetzen. Trainiert die hintere Kette.</string>
+    <string name="ex_pull_ups_desc">Körper an einer Stange hochziehen. Exzellent für Rücken und Bizeps.</string>
+    <string name="ex_overhead_press_desc">Gewicht von Schulterhöhe nach oben drücken, bis die Arme gestreckt sind. Trainiert Schultern und Trizeps.</string>
     <string name="save">Speichern</string>
     <string name="workout_templates">Trainingsvorlagen</string>
     <string name="switch_program_text">Wechsle jederzeit zu einem unserer fertigen Split-Pläne.</string>
@@ -237,7 +250,7 @@
     <string name="ex_hammer_curls">Hammer-Curls</string>
     <string name="ex_dumbbell_shoulder_press">Kurzhantel-Schulterdrücken</string>
     <string name="ex_dumbbell_lateral_raises">Kurzhantel-Seitheben</string>
-    <string name="ex_crunches">Crunches</string>
+    <string name="ex_crunches">Crunches (Sit-ups)</string>
     <string name="ex_barbell_floor_press">Langhantel-Bodendrücken</string>
     <string name="ex_dumbbell_floor_press">Kurzhantel-Bodendrücken</string>
     <string name="ex_leg_raises">Beinheben</string>
@@ -329,8 +342,8 @@
     <string name="exit_app_message">Bist du sicher, dass du die App beenden möchtest?</string>
     <string name="exit">Beenden</string>
     <string name="stay">Bleiben</string>
-    <string name="confirm_new_program_title">Neues Programm bestätigen</string>
-    <string name="confirm_new_program_message">Das Abschließen dieses Setups wird deine aktuellen Trainingseinstellungen überschreiben. Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?</string>
+    <string name="confirm_new_program_title">Neues Training bestätigen</string>
+    <string name="confirm_new_program_message">Das Speichern wird deinen aktuellen Trainingsplan ersetzen. Bist du sicher, dass du fortfahren möchtest?</string>
 
     <string name="choose_equipment">1. Wähle dein Equipment</string>
     <string name="choose_body_parts">2. Ziel-Körperpartien</string>
@@ -341,7 +354,11 @@
     <string name="barbell_only">Langhantel</string>
     <string name="cables_only">Kabel &amp; Geräte</string>
 
-    <string name="choose_intensity">4. Trainingsintensität</string>
+    <string name="choose_intensity">5. Trainingsintensität</string>
+    <string name="exercise_preferences">4. Übungsvorlieben (Optional)</string>
+    <string name="include_exercises">Bestimmte Übungen einschließen</string>
+    <string name="exclude_exercises">Bestimmte Übungen ausschließen</string>
+    <string name="add_pref">Hinzufügen</string>
     <string name="intensity_easy">Einfach</string>
     <string name="intensity_medium">Mittel</string>
     <string name="intensity_difficult">Schwer</string>

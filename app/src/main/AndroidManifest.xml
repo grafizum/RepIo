@@ -7,7 +7,7 @@
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
 
     <application
-        android:name="com.example.RepIoApplication"
+        android:name="com.grafizum.repio.RepIoApplication"
         android:allowBackup="false"
         android:dataExtractionRules="@xml/data_extraction_rules"
         android:fullBackupContent="@xml/backup_rules"
@@ -20,7 +20,7 @@
 
         <!-- Base MainActivity (Disabled as a launcher) -->
         <activity
-            android:name="com.example.MainActivity"
+            android:name="com.grafizum.repio.MainActivity"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">
@@ -28,7 +28,7 @@
 
         <!-- Orange / Dark Theme Entry Point (STATIC BLACK SPLASH) -->
         <activity
-            android:name="com.example.MainActivityOrange"
+            android:name="com.grafizum.repio.MainActivityOrange"
             android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_orange"
@@ -42,7 +42,7 @@
 
         <!-- Beige / Light Theme Entry Point (STATIC WHITE SPLASH) -->
         <activity
-            android:name="com.example.MainActivityBeige"
+            android:name="com.grafizum.repio.MainActivityBeige"
             android:enabled="false"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_beige"
@@ -55,7 +55,7 @@
         </activity>
 
         <receiver
-            android:name="com.example.util.RestTimerReceiver"
+            android:name=".util.RestTimerReceiver"
             android:exported="false" />
     </application>
 
