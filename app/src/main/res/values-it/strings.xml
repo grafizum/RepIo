@@ -21,12 +21,16 @@
     <string name="todays_schedule">Programma di oggi</string>
     <string name="no_exercises_today">Nessun esercizio pianificato per oggi. Goditi il riposo!</string>
     <string name="sets_x_reps">%1$d serie × %2$s rip</string>
+    <string name="sets_x_time">%1$d serie × %2$s</string>
+    <string name="target_time">Tempo target</string>
 
     <string name="app_settings">Impostazioni App</string>
     <string name="keep_screen_on">Mantieni schermo attivo</string>
     <string name="force_screen_stay_active">Forza lo schermo a restare attivo con l\'app aperta</string>
-    <string name="resting_timer_duration">Durata timer riposo</string>
-    <string name="auto_countdown_interval">Intervallo di countdown automatico tra le serie</string>
+    <string name="resting_timer_duration">Timer Riposo Serie</string>
+    <string name="auto_countdown_interval">Tempo tra le serie dello stesso esercizio</string>
+    <string name="exercise_transition_timer">Timer Transizione Esercizio</string>
+    <string name="exercise_transition_timer_desc">Tempo quando si passa a un nuovo esercizio</string>
     <string name="color_theme">Tema colori</string>
     <string name="app_icon_selection">Selezione Icona App</string>
     <string name="light_icon_beige">Icona Chiara (Beige)</string>
@@ -42,6 +46,9 @@
     <string name="done">Fatto</string>
 
     <string name="support">Supporto</string>
+    <string name="today">Oggi</string>
+    <string name="skip">Salta</string>
+    <string name="skip_timer">Salta Timer</string>
     <string name="contact_us">Contattaci</string>
     <string name="send_feedback">Inviaci le tue domande o feedback</string>
     <string name="subject">Oggetto</string>
@@ -51,7 +58,7 @@
     <string name="please_fill_fields">Compila entrambi i campi</string>
     <string name="daily_limit_reached">Limite giornaliero raggiunto. Riprova domani.</string>
     <string name="please_wait_cooldown">Attendi %1$d min prima di inviare un altro ticket.</string>
-    <string name="internet_unavailable">Internet non disponibile o server irraggiungibile. Controlla la connessione.</string>
+    <string name="internet_unavailable">Internet non disponibile o server irraggiungibile. Controlla la conclusione.</string>
     <string name="server_unreachable">Server irraggiungibile. Riprova più tardi.</string>
     <string name="quick_faq">FAQ rapide</string>
 
@@ -79,6 +86,7 @@
     <string name="enter_video_url_desc">Inserisci un URL video per questa demo:</string>
     <string name="video_url">URL Video</string>
     <string name="volume_label">Volume</string>
+    <string name="time_label">Tempo</string>
     <string name="sets_label">Serie</string>
     <string name="balanced_workout_routine">Routine equilibrata</string>
     <string name="balanced_workout_desc">Tutti i principali gruppi muscolari (Petto, Schiena, Gambe, Spalle, Braccia, Core) sono coperti!</string>
@@ -121,7 +129,8 @@
     <string name="workout_completed_text">Hai registrato %1$d serie totali per %2$s!</string>
     <string name="start_workout_again">INIZIA DI NUOVO L\'ALLENAMENTO</string>
     <string name="exercise_x_of_y">Esercizio %1$d di %2$d • Serie %3$d/%4$d</string>
-    <string name="rest_timer">TIMER RIPOSO</string>
+    <string name="rest_timer">RIPOSO SERIE</string>
+    <string name="exercise_transition_label">PROSSIMO ESERCIZIO IN</string>
     <string name="seconds_remaining">%1$ds rimanenti</string>
     <string name="set_x_of_y">SERIE %1$d / %2$d</string>
     <string name="next_up">PROSSIMO</string>
@@ -132,6 +141,8 @@
     <string name="reps_completed">Ripetizioni completate</string>
     <string name="reps_count">%1$d rip</string>
     <string name="log_set_x_next">REGISTRA SERIE %1$d &amp; PROSSIMO ➔</string>
+    <string name="start_timer_x_and_log">AVVIA TIMER %1$ds &amp; LOG</string>
+    <string name="start_timer_x">AVVIA TIMER %1$ds</string>
     <string name="edit_workout_program_name">Modifica nome programma</string>
     <string name="program_name">Nome programma</string>
     <string name="save">Salva</string>
@@ -157,8 +168,9 @@
     <string name="name_workout_program_desc">Questo titolo sostituisce \"Allenamento\" nella parte superiore della dashboard.</string>
     <string name="workout_program_name_placeholder">es. Allenamento, Summer Shred, PPL Split</string>
     <string name="select_routine_type">2. Seleziona il tipo di routine</string>
-    <string name="premade_templates">Modelli pronti</string>
-    <string name="build_custom">Piano personalizzato</string>
+    <string name="premade_templates">Premade Build</string>
+    <string name="assisted_build">Assisted Build</string>
+    <string name="build_custom">Custom Build</string>
     <string name="choose_recommended_template">Scegli un modello consigliato</string>
     <string name="selected">Selezionato</string>
     <string name="preview_breakdown">Anteprima dettagli</string>
@@ -169,10 +181,14 @@
     <string name="muscle_group_body_part">Gruppo muscolare / Parte del corpo</string>
     <string name="target_sets">Serie target</string>
     <string name="target_reps">Ripetizioni target</string>
+    <string name="min_reps">Min Rip</string>
+    <string name="max_reps">Max Rip</string>
     <string name="save_and_start">Salva</string>
     <string name="close">Chiudi</string>
     <string name="new_action">Nuovo</string>
+    <string name="start">Avvia</string>
     <string name="select">Seleziona</string>
+    <string name="select_time">Scegli tempo</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma di allenamento?</string>
     <string name="faq_change_program_a">Vai nella scheda \"Il mio allenamento\" e tocca \"Allenamento personalizzato\" in alto per selezionare un nuovo modello o crearne uno tuo.</string>
@@ -194,6 +210,8 @@
     <string name="legs">Gambe</string>
     <string name="abs">Addominali</string>
     <string name="triceps">Tricipiti</string>
+    <string name="arms">Braccia</string>
+    <string name="core">Core</string>
     <string name="other">Altro</string>
 
     <string name="hypertrophy_5day_name">Split Ipertrofia 5 Giorni</string>
@@ -281,10 +299,8 @@
     <string name="crimson_red">Rosso cremisi</string>
     <string name="elegant_purple">Viola elegante</string>
     <string name="flame_orange">Arancio fiamma</string>
-    <string name="midnight_blue">Blu mezzanotte</string>
     <string name="ocean_teal">Teal oceano</string>
     <string name="rose_pink">Rosa confetto</string>
-    <string name="forest_green">Verde foresta</string>
     <string name="azure_sky">Azzurro Cielo</string>
 
     <string name="monday">Lunedì</string>
@@ -308,15 +324,56 @@
     <string name="confirm">Conferma</string>
     <string name="confirm_action_question">L\'applicazione di queste modifiche aggiornerà la configurazione del tuo allenamento attuale.</string>
     <string name="max_characters_reached">Limite massimo caratteri raggiunto (20)</string>
+    <string name="confirm_new_program_title">Conferma nuovo programma</string>
+    <string name="confirm_new_program_message">Il completamento di questa configurazione sovrascriverà le impostazioni dell\'allenamento esistenti. Questa azione non può essere annullata. Procedere?</string>
     <string name="exit_app_title">Uscire dall\'app?</string>
     <string name="exit_app_message">Sei sicuro di voler uscire?</string>
     <string name="exit">Esci</string>
     <string name="stay">Resta</string>
-    <string name="confirm_new_program_title">Conferma nuovo programma</string>
-    <string name="confirm_new_program_message">Il completamento di questa configurazione sovrascriverà le impostazioni dell\'allenamento esistenti. Questa azione non può essere annullata. Procedere?</string>
+
+    <string name="choose_equipment">1. Scegli l\'attrezzatura</string>
+    <string name="choose_body_parts">2. Parti del corpo target</string>
+    <string name="choose_days">3. Giorni di allenamento a settimana</string>
+    <string name="full_gym">Palestra completa</string>
+    <string name="dumbbells_only">Manubri</string>
+    <string name="bodyweight_only">Corpo libero</string>
+    <string name="barbell_only">Bilanciere</string>
+    <string name="cables_only">Cavi e Macchinari</string>
+
+    <string name="choose_intensity">4. Intensità di allenamento</string>
+    <string name="intensity_easy">Leggera</string>
+    <string name="intensity_medium">Media</string>
+    <string name="intensity_difficult">Difficile</string>
+    <string name="intensity_easy_desc">Basso volume (6-10 serie/settimana). Focus su mantenimento.</string>
+    <string name="intensity_medium_desc">Volume moderato (10-15 serie/settimana). Ottimale per la crescita.</string>
+    <string name="intensity_difficult_desc">Alto volume (15-20+ serie/settimana). Limite massimo di recupero.</string>
+
+    <string name="major_muscle_groups">Gruppi principali</string>
+    <string name="specialized_body_parts">Focus dettagliato</string>
+
+    <string name="upper_body_push">Spinta Upper</string>
+    <string name="upper_body_pull">Trazione Upper</string>
+    <string name="lower_body_cat">Lower Body</string>
+    <string name="core_posterior">Core e Posteriori</string>
+
+    <string name="front_delts">Deltoidi Anteriori</string>
+    <string name="lateral_delts">Deltoidi Laterali</string>
+    <string name="rear_delts">Deltoidi Posteriori</string>
+    <string name="lats_part">Dorsali</string>
+    <string name="upper_back">Parte superiore schiena</string>
+    <string name="upper_traps">Trapezi superiori</string>
+    <string name="spinal_erectors">Erettori spinali</string>
+    <string name="forearms">Avambracci</string>
+    <string name="obliques">Obliqui</string>
+    <string name="hip_adductors">Adduttori</string>
+    <string name="hip_abductors">Abduttori</string>
+    <string name="glutes_part">Glutei</string>
+    <string name="quadriceps_part">Quadricipiti</string>
+    <string name="hamstrings_part">Femorali</string>
+    <string name="calves_part">Polpacci</string>
+    <string name="triceps_part">Tricipiti</string>
+    <string name="biceps_part">Bicipiti</string>
+
+    <string name="equipment_limitation_title">Limitazione Attrezzatura</string>
+    <string name="equipment_limitation_desc">I seguenti gruppi muscolari non possono essere allenati efficacemente con l\'attrezzatura selezionata: %1$s.</string>
 </resources>
-
-
-
-
-

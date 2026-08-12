@@ -19,10 +19,6 @@ import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import kotlinx.coroutines.flow.MutableStateFlow
-import kotlinx.coroutines.flow.StateFlow
-import kotlinx.coroutines.flow.asStateFlow
-import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
@@ -39,6 +35,7 @@ import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.DisposableEffect
+import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -68,7 +65,11 @@ import com.example.ui.screens.MyWorkoutTabScreen
 import com.example.ui.screens.SettingsScreen
 import com.example.ui.theme.WorkoutTrackerTheme
 import com.example.ui.viewmodel.WorkoutViewModel
+import com.example.ui.viewmodel.getTodayDayOfWeek
 import com.example.util.NotificationHelper
+import kotlinx.coroutines.flow.MutableStateFlow
+import kotlinx.coroutines.flow.StateFlow
+import kotlinx.coroutines.flow.asStateFlow
 import kotlinx.coroutines.launch
 
 fun Context.findActivity(): Activity? = when (this) {
@@ -173,7 +174,17 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         Screen.Settings
     )
 
-    val pagerState = rememberPagerState(pageCount = { navigationItems.size })
+    val pagerState = rememberPagerState(
+        initialPage = 0,
+        pageCount = { navigationItems.size }
+    )
+
+    // Auto-select today's workout when navigating to the Workout tab (via click or swipe)
+    LaunchedEffect(pagerState.currentPage) {
+        if (navigationItems[pagerState.currentPage] == Screen.MyWorkout) {
+            viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
+        }
+    }
 
     // System Back Button Handling
     BackHandler(enabled = !isFirstTimeUser) {
@@ -240,6 +251,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             when (event) {
                 Lifecycle.Event.ON_START, Lifecycle.Event.ON_RESUME -> {
                     viewModel.tickTimer()
+                    viewModel.refreshTodaySelection()
                 }
                 Lifecycle.Event.ON_STOP -> {
                     viewModel.checkTimerOnAppClose()
@@ -261,7 +273,11 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                 // ViewModel updates isFirstTimeUser, which triggers recomposition
             },
             onCancel = {
+                viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Routine"
                 viewModel.cancelFirstTimeSetup()
+                coroutineScope.launch {
+                    pagerState.scrollToPage(1) // Set main pager to "My Workout"
+                }
             }
         )
     } else {
@@ -275,6 +291,10 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                         NavigationBarItem(
                             selected = isSelected,
                             onClick = {
+                                if (screen == Screen.MyWorkout) {
+                                    viewModel.setRequestedWorkoutSubTab(0) // Default to "Workout Now" on tab click
+                                    viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
+                                }
                                 if (pagerState.currentPage != index) {
                                     coroutineScope.launch {
                                         pagerState.animateScrollToPage(index)
@@ -327,8 +347,14 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
                         HomeScreen(
                             viewModel = viewModel,
-                            onNavigateToWorkoutNow = { navigateToTab(Screen.MyWorkout.route) },
-                            onNavigateToRoutine = { navigateToTab(Screen.MyWorkout.route) },
+                            onNavigateToWorkoutNow = { 
+                                viewModel.setRequestedWorkoutSubTab(0)
+                                navigateToTab(Screen.MyWorkout.route) 
+                            },
+                            onNavigateToRoutine = { 
+                                viewModel.setRequestedWorkoutSubTab(1)
+                                navigateToTab(Screen.MyWorkout.route) 
+                            },
                             onNavigateToCharts = { navigateToTab(Screen.Analytics.route) },
                             onNavigateToWeeklyReport = { navigateToTab(Screen.Analytics.route) }
                         )

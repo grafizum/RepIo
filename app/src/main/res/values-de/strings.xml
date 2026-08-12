@@ -21,12 +21,16 @@
     <string name="todays_schedule">Heutiger Plan</string>
     <string name="no_exercises_today">Keine Übungen für heute geplant. Genieße deinen Ruhetag!</string>
     <string name="sets_x_reps">%1$d Sätze × %2$s Wdh.</string>
+    <string name="sets_x_time">%1$d Sätze × %2$s</string>
+    <string name="target_time">Zielzeit</string>
 
     <string name="app_settings">App-Einstellungen</string>
     <string name="keep_screen_on">Bildschirm anlassen</string>
     <string name="force_screen_stay_active">Bildschirm bleibt aktiv, solange die App offen ist</string>
-    <string name="resting_timer_duration">Pause-Timer Dauer</string>
-    <string name="auto_countdown_interval">Automatischer Countdown zwischen den Sätzen</string>
+    <string name="resting_timer_duration">Satz-Pausen-Timer</string>
+    <string name="auto_countdown_interval">Zeit zwischen Sätzen der gleichen Übung</string>
+    <string name="exercise_transition_timer">Übungswechsel-Timer</string>
+    <string name="exercise_transition_timer_desc">Zeit beim Wechsel zu einer neuen Übung</string>
     <string name="color_theme">Farbschema</string>
     <string name="app_icon_selection">App-Symbol Auswahl</string>
     <string name="light_icon_beige">Helles Symbol (Beige)</string>
@@ -42,6 +46,9 @@
     <string name="done">Fertig</string>
 
     <string name="support">Support</string>
+    <string name="today">Heute</string>
+    <string name="skip">Überspringen</string>
+    <string name="skip_timer">Timer überspringen</string>
     <string name="contact_us">Kontaktiere uns</string>
     <string name="send_feedback">Sende uns deine Fragen oder Feedback</string>
     <string name="subject">Betreff</string>
@@ -79,6 +86,7 @@
     <string name="enter_video_url_desc">Gib eine Video-URL für diese Übung ein:</string>
     <string name="video_url">Video-URL</string>
     <string name="volume_label">Volumen</string>
+    <string name="time_label">Zeit</string>
     <string name="sets_label">Sätze</string>
     <string name="balanced_workout_routine">Ausgewogene Trainingsroutine</string>
     <string name="balanced_workout_desc">Alle wichtigen Muskelgruppen (Brust, Rücken, Beine, Schultern, Arme, Core) sind abgedeckt!</string>
@@ -121,7 +129,8 @@
     <string name="workout_completed_text">Du hast %1$d Sätze für %2$s protokolliert!</string>
     <string name="start_workout_again">TRAINING ERNEUT STARTEN</string>
     <string name="exercise_x_of_y">Übung %1$d von %2$d • Satz %3$d/%4$d</string>
-    <string name="rest_timer">PAUSE-TIMER</string>
+    <string name="rest_timer">SATZ-PAUSE</string>
+    <string name="exercise_transition_label">NÄCHSTE ÜBUNG IN</string>
     <string name="seconds_remaining">%1$ds verbleibend</string>
     <string name="set_x_of_y">SATZ %1$d / %2$d</string>
     <string name="next_up">NÄCHSTE ÜBUNG</string>
@@ -132,6 +141,8 @@
     <string name="reps_completed">Wiederholungen abgeschlossen</string>
     <string name="reps_count">%1$d Wdh.</string>
     <string name="log_set_x_next">SATZ %1$d SPEICHERN &amp; WEITER ➔</string>
+    <string name="start_timer_x_and_log">TIMER %1$ds STARTEN &amp; LOG</string>
+    <string name="start_timer_x">STARTE %1$ds TIMER</string>
     <string name="edit_workout_program_name">Programmname bearbeiten</string>
     <string name="program_name">Programmname</string>
     <string name="save">Speichern</string>
@@ -157,8 +168,9 @@
     <string name="name_workout_program_desc">Dieser Titel ersetzt „Workout“ oben in deinem Dashboard.</string>
     <string name="workout_program_name_placeholder">z.B. Training, Sommer-Split, PPL</string>
     <string name="select_routine_type">2. Art der Routine wählen</string>
-    <string name="premade_templates">Fertige Vorlagen</string>
-    <string name="build_custom">Eigener Plan</string>
+    <string name="premade_templates">Vordefinierter Build</string>
+    <string name="assisted_build">Geführter Build</string>
+    <string name="build_custom">Eigener Build</string>
     <string name="choose_recommended_template">Wähle eine empfohlene Vorlage</string>
     <string name="selected">Ausgewählt</string>
     <string name="preview_breakdown">Vorschau anzeigen</string>
@@ -169,17 +181,21 @@
     <string name="muscle_group_body_part">Muskelgruppe / Körperteil</string>
     <string name="target_sets">Ziel-Sätze</string>
     <string name="target_reps">Ziel-Wdh.</string>
+    <string name="min_reps">Min. Wdh.</string>
+    <string name="max_reps">Max. Wdh.</string>
     <string name="save_and_start">Speichern</string>
     <string name="close">Schließen</string>
     <string name="new_action">Neu</string>
+    <string name="start">Start</string>
     <string name="select">Wählen</string>
+    <string name="select_time">Zeit wählen</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Trainingsprogramm?</string>
     <string name="faq_change_program_a">Gehe zum Tab „Mein Training“ und tippe oben auf „Benutzerdefiniertes Training“, um eine neue Vorlage zu wählen oder einen eigenen Split zu erstellen.</string>
-    <string name="faq_past_logs_q">Wo finde ich meine vergangenen Trainingseinheiten?</string>
+    <string name="faq_past_logs_q">Where are my past workout logs?</string>
     <string name="faq_past_logs_a">Du kannst deinen Fortschritt und wöchentliche Zusammenfassungen im Tab „Analyse“ einsehen.</string>
-    <string name="faq_keep_screen_on_q">Wie lasse ich den Bildschirm während des Trainings an?</string>
-    <string name="faq_keep_screen_on_a">Tippe auf das Einstellungen-Symbol (Zahnrad) auf dem Home-Bildschirm und aktiviere „Bildschirm anlassen“.</string>
+    <string name="faq_keep_screen_on_q">How to keep screen on while training?</string>
+    <string name="faq_keep_screen_on_a">Tappe auf das Einstellungen-Symbol (Zahnrad) auf dem Home-Bildschirm und aktiviere „Bildschirm anlassen“.</string>
     <string name="total_sets">Sätze gesamt</string>
     <string name="weight_kg_intl">%1$s kg</string>
     <string name="exercise_name_placeholder">z.B. Bankdrücken, Kniebeugen, Klimmzüge</string>
@@ -194,6 +210,8 @@
     <string name="legs">Beine</string>
     <string name="abs">Bauch</string>
     <string name="triceps">Trizeps</string>
+    <string name="arms">Arme</string>
+    <string name="core">Core</string>
     <string name="other">Sonstige</string>
 
     <string name="hypertrophy_5day_name">5-Tage Hypertrophie-Split</string>
@@ -313,9 +331,50 @@
     <string name="stay">Bleiben</string>
     <string name="confirm_new_program_title">Neues Programm bestätigen</string>
     <string name="confirm_new_program_message">Das Abschließen dieses Setups wird deine aktuellen Trainingseinstellungen überschreiben. Dieser Vorgang kann nicht rückgängig gemacht werden. Fortfahren?</string>
+
+    <string name="choose_equipment">1. Wähle dein Equipment</string>
+    <string name="choose_body_parts">2. Ziel-Körperpartien</string>
+    <string name="choose_days">3. Trainingstage pro Woche</string>
+    <string name="full_gym">Fitnessstudio</string>
+    <string name="dumbbells_only">Kurzhanteln</string>
+    <string name="bodyweight_only">Körpergewicht</string>
+    <string name="barbell_only">Langhantel</string>
+    <string name="cables_only">Kabel &amp; Geräte</string>
+
+    <string name="choose_intensity">4. Trainingsintensität</string>
+    <string name="intensity_easy">Einfach</string>
+    <string name="intensity_medium">Mittel</string>
+    <string name="intensity_difficult">Schwer</string>
+    <string name="intensity_easy_desc">Geringes Volumen (6-10 Sätze/Woche). Fokus auf Erhalt.</string>
+    <string name="intensity_medium_desc">Mittleres Volumen (10-15 Sätze/Woche). Optimal für Aufbau.</string>
+    <string name="intensity_difficult_desc">Hohes Volumen (15-20+ Sätze/Woche). Limit austesten.</string>
+
+    <string name="major_muscle_groups">Hauptgruppen</string>
+    <string name="specialized_body_parts">Detail-Fokus</string>
+
+    <string name="upper_body_push">Oberkörper Druck</string>
+    <string name="upper_body_pull">Oberkörper Zug</string>
+    <string name="lower_body_cat">Unterkörper</string>
+    <string name="core_posterior">Kern &amp; Rücken</string>
+
+    <string name="front_delts">Vordere Schulter</string>
+    <string name="lateral_delts">Seitliche Schulter</string>
+    <string name="rear_delts">Hintere Schulter</string>
+    <string name="lats_part">Lats</string>
+    <string name="upper_back">Oberer Rücken</string>
+    <string name="upper_traps">Oberer Nacken</string>
+    <string name="spinal_erectors">Rückenstrecker</string>
+    <string name="forearms">Unterarme</string>
+    <string name="obliques">Seitliche Bauchm.</string>
+    <string name="hip_adductors">Adduktoren</string>
+    <string name="hip_abductors">Abduktoren</string>
+    <string name="glutes_part">Gesäß</string>
+    <string name="quadriceps_part">Quads</string>
+    <string name="hamstrings_part">Beinbeuger</string>
+    <string name="calves_part">Waden</string>
+    <string name="triceps_part">Trizeps</string>
+    <string name="biceps_part">Bizeps</string>
+
+    <string name="equipment_limitation_title">Geräte-Einschränkung</string>
+    <string name="equipment_limitation_desc">Die folgenden Muskelgruppen können mit deiner aktuellen Ausrüstung nicht effektiv trainiert werden: %1$s.</string>
 </resources>
-
-
-
-
-

@@ -249,15 +249,50 @@ fun HomeScreen(
 
                             Spacer(modifier = Modifier.height(12.dp))
 
-                            Text(
-                                text = if (todayRoutineDay != null) {
-                                    com.example.ui.components.translateDayTitle(todayRoutineDay.title)
+                            val dayName = when (todayStr.uppercase()) {
+                                "MONDAY" -> stringResource(R.string.monday)
+                                "TUESDAY" -> stringResource(R.string.tuesday)
+                                "WEDNESDAY" -> stringResource(R.string.wednesday)
+                                "THURSDAY" -> stringResource(R.string.thursday)
+                                "FRIDAY" -> stringResource(R.string.friday)
+                                "SATURDAY" -> stringResource(R.string.saturday)
+                                "SUNDAY" -> stringResource(R.string.sunday)
+                                else -> todayStr
+                            }
+
+                            val focusSubtitle = if (todayExercises.isNotEmpty()) {
+                                todayExercises.map { it.muscleGroup }
+                                    .map { stringResource(com.example.ui.components.getUpperCategoryResId(it)) }
+                                    .distinct()
+                                    .joinToString(", ")
+                            } else {
+                                if (todayRoutineDay != null && !todayRoutineDay.isRestDay) {
+                                    val translatedTitle = com.example.ui.components.translateDayTitle(todayRoutineDay.title)
+                                    if (translatedTitle.contains("—")) {
+                                        translatedTitle.substringAfter("—").trim()
+                                    } else if (translatedTitle.contains("-")) {
+                                        translatedTitle.substringAfter("-").trim()
+                                    } else {
+                                        translatedTitle
+                                    }
                                 } else {
-                                    stringResource(R.string.workout_routine)
-                                },
+                                    ""
+                                }
+                            }
+
+                            Text(
+                                text = dayName,
                                 style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
                                 color = MaterialTheme.colorScheme.onSurface
                             )
+
+                            if (focusSubtitle.isNotBlank()) {
+                                Text(
+                                    text = focusSubtitle,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
 
                             Text(
                                 text = if (todayRoutineDay?.isRestDay == true) {
@@ -509,7 +544,9 @@ fun HomeScreen(
                                 }
                                 Spacer(modifier = Modifier.height(4.dp))
                                 Text(
-                                    text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
+                                    text = if (exercise.targetReps.contains("sec", ignoreCase = true))
+                                           stringResource(R.string.sets_x_time, exercise.targetSets, exercise.targetReps)
+                                           else stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                     style = MaterialTheme.typography.bodySmall,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

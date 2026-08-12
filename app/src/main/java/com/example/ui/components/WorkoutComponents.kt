@@ -699,6 +699,24 @@ fun MuscleGroupDonutChart(
     }
 }
 
+fun getUpperCategoryResId(muscleGroup: String): Int {
+    val mg = muscleGroup.lowercase().trim()
+    return when {
+        mg.contains("chest") -> R.string.chest
+        mg.contains("back") || mg.contains("lat") || mg.contains("trap") || mg.contains("erector") -> R.string.back
+        mg.contains("leg") || mg.contains("quad") || mg.contains("hamstring") || mg.contains("glute") || mg.contains("calve") || mg.contains("adductor") || mg.contains("abductor") -> R.string.legs
+        mg.contains("shoulder") || mg.contains("delt") -> R.string.shoulders
+        mg.contains("bicep") || mg.contains("tricep") || mg.contains("arm") || mg.contains("forearm") -> R.string.arms
+        mg.contains("abs") || mg.contains("core") || mg.contains("oblique") || mg.contains("abdominal") -> R.string.core
+        else -> R.string.other
+    }
+}
+
+@Composable
+fun getTranslatedUpperCategory(muscleGroup: String): String {
+    return stringResource(getUpperCategoryResId(muscleGroup))
+}
+
 /**
  * Analyzes routine exercises to check if any major body part / muscle group is omitted.
  */
@@ -707,25 +725,28 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
 
     val requiredGroups = listOf(
         "Chest" to listOf("chest"),
-        "Back" to listOf("back", "lats", "traps"),
-        "Legs" to listOf("legs", "quads", "hamstrings", "calves", "glutes"),
-        "Shoulders" to listOf("shoulders", "delts"),
+        "Back" to listOf("back", "lats", "upper back", "traps"),
+        "Legs" to listOf("legs", "quads", "quadriceps", "hamstrings", "calves", "glutes", "adductors", "abductors"),
+        "Shoulders" to listOf("shoulders", "delt", "deltoid"),
         "Biceps" to listOf("biceps"),
         "Triceps" to listOf("triceps"),
-        "Abs / Core" to listOf("abs", "core", "abdominals")
+        "Abs / Core" to listOf("abs", "core", "abdominals", "obliques", "erectors")
     )
 
     return requiredGroups.filter { (_, keywords) ->
-        keywords.none { keyword -> presentGroups.any { it.contains(keyword) } }
+        keywords.none { keyword -> 
+            presentGroups.any { it.contains(keyword) } 
+        }
     }.map { it.first }
 }
 
 @Composable
 fun MissingBodyPartsWarningCard(
     missingParts: List<String>,
+    equipmentLimitedParts: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
-    if (missingParts.isEmpty()) {
+    if (missingParts.isEmpty() && equipmentLimitedParts.isEmpty()) {
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
@@ -759,10 +780,12 @@ fun MissingBodyPartsWarningCard(
             }
         }
     } else {
+        val isEquipmentIssue = equipmentLimitedParts.isNotEmpty()
         Card(
             shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
+                containerColor = if (isEquipmentIssue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f) 
+                                else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
             ),
             modifier = modifier.fillMaxWidth()
         ) {
@@ -780,33 +803,48 @@ fun MissingBodyPartsWarningCard(
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (isEquipmentIssue) {
                         Text(
-                            text = stringResource(R.string.missing_body_parts_warning),
+                            text = stringResource(R.string.equipment_limitation_title),
                             style = MaterialTheme.typography.titleSmall.copy(
                                 fontWeight = FontWeight.Bold,
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Surface(
-                            color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                            shape = RoundedCornerShape(4.dp)
-                        ) {
+                        Text(
+                            text = stringResource(R.string.equipment_limitation_desc, equipmentLimitedParts.joinToString(", ")),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                        )
+                    } else {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
                             Text(
-                                text = stringResource(R.string.tip),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.error,
-                                modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                text = stringResource(R.string.missing_body_parts_warning),
+                                style = MaterialTheme.typography.titleSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onErrorContainer
+                                )
                             )
+                            Spacer(modifier = Modifier.width(6.dp))
+                            Surface(
+                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
+                                shape = RoundedCornerShape(4.dp)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.tip),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                )
+                            }
                         }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = stringResource(R.string.missing_parts_desc, missingParts.joinToString(", ")),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
+                        )
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = stringResource(R.string.missing_parts_desc, missingParts.joinToString(", ")),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
-                    )
                 }
             }
         }

@@ -49,6 +49,8 @@ data class WorkoutNowState(
     val isWorkoutCompleted: Boolean = false,
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
+    val isExerciseTimerActive: Boolean = false,
+    val currentExerciseSeconds: Int = 30,
     val totalSetsLoggedToday: Int = 0
 )
 
@@ -67,6 +69,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _defaultRestTimerSeconds = MutableStateFlow(prefs.getInt("default_rest_timer_seconds", 60))
     val defaultRestTimerSeconds: StateFlow<Int> = _defaultRestTimerSeconds.asStateFlow()
 
+    private val _defaultExerciseTimerSeconds = MutableStateFlow(prefs.getInt("default_exercise_timer_seconds", 90))
+    val defaultExerciseTimerSeconds: StateFlow<Int> = _defaultExerciseTimerSeconds.asStateFlow()
+
     private val _themeOption = MutableStateFlow(prefs.getString("theme_option", "DEFAULT") ?: "DEFAULT")
     val themeOption: StateFlow<String> = _themeOption.asStateFlow()
 
@@ -82,6 +87,9 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     private val _workoutNowState = MutableStateFlow(WorkoutNowState())
     val workoutNowState: StateFlow<WorkoutNowState> = _workoutNowState.asStateFlow()
 
+    private val _requestedWorkoutSubTab = MutableStateFlow(0)
+    val requestedWorkoutSubTab: StateFlow<Int> = _requestedWorkoutSubTab.asStateFlow()
+
     private val _showRestartDialog = MutableStateFlow(false)
     val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
 
@@ -90,6 +98,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         repository = WorkoutRepository(dao)
 
         _workoutNowState.value = loadSavedWorkoutNowState()
+        refreshTodaySelection()
 
         // Apply saved language preference at startup
         val savedLang = prefs.getString("app_language", "system") ?: "system"
@@ -134,6 +143,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             .putInt("saved_set_number", state.currentSetNumber)
             .putFloat("saved_weight_kg", state.currentWeightKg.toFloat())
             .putInt("saved_reps", state.currentReps)
+            .putInt("saved_exercise_seconds", state.currentExerciseSeconds)
             .putBoolean("saved_is_completed", state.isWorkoutCompleted)
             .putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
             .apply()
@@ -145,10 +155,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val savedSetNumber = prefs.getInt("saved_set_number", 1)
         val savedWeightKg = prefs.getFloat("saved_weight_kg", 20.0f).toDouble()
         val savedReps = prefs.getInt("saved_reps", 10)
+        val savedExSeconds = prefs.getInt("saved_exercise_seconds", 30)
         val savedIsCompleted = prefs.getBoolean("saved_is_completed", false)
         val savedTotalSetsLogged = prefs.getInt("saved_total_sets_logged", 0)
 
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
+        val isExTimer = prefs.getBoolean("is_exercise_timer", false)
         val now = System.currentTimeMillis()
         val remainingSecs = if (endTime > now) ((endTime - now) / 1000L).toInt() + 1 else 0
 
@@ -158,9 +170,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             currentSetNumber = savedSetNumber,
             currentWeightKg = savedWeightKg,
             currentReps = savedReps,
+            currentExerciseSeconds = savedExSeconds,
             isWorkoutCompleted = savedIsCompleted,
             restTimerSeconds = remainingSecs,
             isTimerActive = remainingSecs > 0,
+            isExerciseTimerActive = if (remainingSecs > 0) isExTimer else false,
             totalSetsLoggedToday = savedTotalSetsLogged
         )
     }
@@ -174,6 +188,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         val validSecs = seconds.coerceAtLeast(10)
         _defaultRestTimerSeconds.value = validSecs
         prefs.edit().putInt("default_rest_timer_seconds", validSecs).apply()
+    }
+
+    fun setDefaultExerciseTimerSeconds(seconds: Int) {
+        val validSecs = seconds.coerceAtLeast(10)
+        _defaultExerciseTimerSeconds.value = validSecs
+        prefs.edit().putInt("default_exercise_timer_seconds", validSecs).apply()
     }
 
     fun setThemeOption(theme: String) {
@@ -229,6 +249,10 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         AppCompatDelegate.setApplicationLocales(appLocale)
     }
 
+    fun setRequestedWorkoutSubTab(tab: Int) {
+        _requestedWorkoutSubTab.value = tab
+    }
+
     fun updateWorkoutName(newName: String) {
         val trimmed = newName.trim().take(20).ifEmpty { "My Workout" }
         _customWorkoutName.value = trimmed
@@ -245,6 +269,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             repository.applyProgram(days, exercises)
             _isFirstTimeUser.value = false
             prefs.edit().putBoolean("is_first_time", false).apply()
+            setRequestedWorkoutSubTab(0)
         }
     }
 
@@ -281,6 +306,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             repository.applyProgram(localizedDays, template.exercises)
             _isFirstTimeUser.value = false
             prefs.edit().putBoolean("is_first_time", false).apply()
+            setRequestedWorkoutSubTab(0)
         }
     }
 
@@ -292,6 +318,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun cancelFirstTimeSetup() {
         _isFirstTimeUser.value = false
         prefs.edit().putBoolean("is_first_time", false).apply()
+        setRequestedWorkoutSubTab(0)
     }
 
     fun selectDayForWorkoutNow(dayOfWeek: String) {
@@ -314,7 +341,29 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         saveWorkoutNowState(newState)
     }
 
-    fun startRestTimer(seconds: Int) {
+    fun incrementWeight() {
+        val currentState = _workoutNowState.value
+        val currentWeight = currentState.currentWeightKg
+        val nextWeight = (Math.floor(currentWeight * 2.0 + 0.001) + 1.0) / 2.0
+        updateWeightAndReps(nextWeight, currentState.currentReps)
+    }
+
+    fun decrementWeight() {
+        val currentState = _workoutNowState.value
+        val currentWeight = currentState.currentWeightKg
+        val prevWeight = (Math.ceil(currentWeight * 2.0 - 0.001) - 1.0) / 2.0
+        updateWeightAndReps(prevWeight, currentState.currentReps)
+    }
+
+    fun updateExerciseSeconds(seconds: Int) {
+        val newState = _workoutNowState.value.copy(
+            currentExerciseSeconds = seconds.coerceIn(10, 600)
+        )
+        _workoutNowState.value = newState
+        saveWorkoutNowState(newState)
+    }
+
+    fun startRestTimer(seconds: Int, isExerciseTimer: Boolean = false, silent: Boolean = false) {
         if (seconds <= 0) return
         
         // Ensure any existing alarm/timer is fully stopped before starting a new one
@@ -322,12 +371,16 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
         val endTime = System.currentTimeMillis() + (seconds * 1000L)
         prefs.edit().putLong("timer_end_time_millis", endTime).apply()
+        // Store if it's an exercise timer in prefs so it survives app restart
+        prefs.edit().putBoolean("is_exercise_timer", isExerciseTimer).apply()
+        prefs.edit().putBoolean("is_silent_timer", silent).apply()
         scheduleTimerAlarm(endTime)
         
         _workoutNowState.update { 
             it.copy(
                 restTimerSeconds = seconds,
-                isTimerActive = true
+                isTimerActive = true,
+                isExerciseTimerActive = isExerciseTimer
             )
         }
     }
@@ -409,7 +462,6 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 reps = currentState.currentReps
             )
 
-            val restDuration = _defaultRestTimerSeconds.value
             val nextSetNumber = currentState.currentSetNumber + 1
             
             _workoutNowState.update { state ->
@@ -443,7 +495,11 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             // Start the timer separately to keep logic clean
             val updatedState = _workoutNowState.value
             if (!updatedState.isWorkoutCompleted) {
-                val duration = if (updatedState.currentSetNumber == 1) restDuration + 30 else restDuration
+                val duration = if (updatedState.currentSetNumber == 1) {
+                    _defaultExerciseTimerSeconds.value
+                } else {
+                    _defaultRestTimerSeconds.value
+                }
                 startRestTimer(duration)
             }
             
@@ -480,11 +536,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             } else {
                 // Timer finished!
                 val wasActive = _workoutNowState.value.isTimerActive
+                val isSilent = prefs.getBoolean("is_silent_timer", false)
                 
                 // CRITICAL: Stop the timer first to prevent double triggers
                 stopTimer()
                 
-                if (wasActive) {
+                if (wasActive && !isSilent) {
                     NotificationHelper.showRestTimerEndedNotification(getApplication())
                 }
             }
@@ -495,8 +552,10 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun stopTimer() {
         prefs.edit().putLong("timer_end_time_millis", 0L).apply()
+        prefs.edit().putBoolean("is_exercise_timer", false).apply()
+        prefs.edit().putBoolean("is_silent_timer", false).apply()
         cancelTimerAlarm()
-        _workoutNowState.value = _workoutNowState.value.copy(restTimerSeconds = 0, isTimerActive = false)
+        _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false, isExerciseTimerActive = false) }
     }
 
     fun checkTimerOnAppClose() {
@@ -516,6 +575,62 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
                 scheduleTimerAlarm(endTime)
             }
         }
+    }
+
+    fun startExerciseTimerWithLog(
+        exercises: List<RoutineExerciseEntity>,
+        seconds: Int
+    ) {
+        if (exercises.isEmpty()) return
+
+        val currentState = _workoutNowState.value
+        val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
+        val currentExercise = exercises[exerciseIndex]
+
+        viewModelScope.launch {
+            repository.logSet(
+                dayOfWeek = currentState.selectedDayOfWeek,
+                exerciseName = currentExercise.name,
+                muscleGroup = currentExercise.muscleGroup,
+                setNumber = currentState.currentSetNumber,
+                weightKg = currentState.currentWeightKg,
+                reps = currentState.currentReps
+            )
+
+            _workoutNowState.update { it.copy(totalSetsLoggedToday = it.totalSetsLoggedToday + 1) }
+
+            startRestTimer(seconds, isExerciseTimer = true, silent = true)
+            saveWorkoutNowState(_workoutNowState.value)
+        }
+    }
+
+    fun advanceAfterTimer(exercises: List<RoutineExerciseEntity>) {
+        if (exercises.isEmpty()) return
+
+        stopTimer()
+
+        val currentState = _workoutNowState.value
+        val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
+        val currentExercise = exercises[exerciseIndex]
+
+        val nextSetNumber = currentState.currentSetNumber + 1
+
+        _workoutNowState.update { state ->
+            if (nextSetNumber <= currentExercise.targetSets) {
+                state.copy(currentSetNumber = nextSetNumber)
+            } else {
+                val nextExerciseIndex = exerciseIndex + 1
+                if (nextExerciseIndex < exercises.size) {
+                    state.copy(
+                        currentExerciseIndex = nextExerciseIndex,
+                        currentSetNumber = 1
+                    )
+                } else {
+                    state.copy(isWorkoutCompleted = true)
+                }
+            }
+        }
+        saveWorkoutNowState(_workoutNowState.value)
     }
 
     fun deleteLoggedSet(id: Long) {
@@ -545,6 +660,18 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun clearHistory() {
         viewModelScope.launch {
             repository.clearHistory()
+        }
+    }
+
+    fun refreshTodaySelection() {
+        val today = getTodayDayOfWeek()
+        val calendar = Calendar.getInstance()
+        val nowString = "${calendar.get(Calendar.YEAR)}-${calendar.get(Calendar.DAY_OF_YEAR)}"
+        val lastDate = prefs.getString("last_active_date", "")
+
+        if (lastDate != nowString) {
+            selectDayForWorkoutNow(today)
+            prefs.edit().putString("last_active_date", nowString).apply()
         }
     }
 }

@@ -105,6 +105,7 @@ fun SettingsScreen(
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
+    val defaultExerciseTimerSeconds by viewModel.defaultExerciseTimerSeconds.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val showRestartDialog by viewModel.showRestartDialog.collectAsState()
     val context = LocalContext.current
@@ -273,7 +274,7 @@ fun SettingsScreen(
                 }
             }
 
-            // REST TIMER DURATION CARD
+            // SET REST TIMER DURATION CARD
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -330,6 +331,80 @@ fun SettingsScreen(
                                 val timerLabel = when (seconds) {
                                     120 -> "2m"
                                     180 -> "3m"
+                                    else -> "${seconds}s"
+                                }
+                                Text(
+                                    text = timerLabel,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                                    )
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
+            // EXERCISE TRANSITION TIMER DURATION CARD
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timer,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = stringResource(R.string.exercise_transition_timer),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = stringResource(R.string.exercise_transition_timer_desc),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val transitionOptions = listOf(60, 90, 120, 180, 240, 300)
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(6.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        transitionOptions.forEach { seconds ->
+                            val isSelected = defaultExerciseTimerSeconds == seconds
+                            Button(
+                                onClick = { viewModel.setDefaultExerciseTimerSeconds(seconds) },
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
+                                ),
+                                shape = RoundedCornerShape(10.dp),
+                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .height(38.dp)
+                                    .semantics { testTag = "exercise_timer_option_${seconds}s" }
+                            ) {
+                                val timerLabel = when (seconds) {
+                                    60 -> "1m"
+                                    120 -> "2m"
+                                    180 -> "3m"
+                                    240 -> "4m"
+                                    300 -> "5m"
                                     else -> "${seconds}s"
                                 }
                                 Text(

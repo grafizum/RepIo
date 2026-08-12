@@ -3,69 +3,41 @@ package com.example.ui.screens
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.EmojiEvents
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Remove
-import androidx.compose.material.icons.filled.SkipNext
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.FilterChip
-import androidx.compose.material3.FilterChipDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.LinearProgressIndicator
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedButton
-import androidx.compose.material3.Scaffold
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.LaunchedEffect
-import androidx.compose.runtime.collectAsState
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
-import androidx.compose.ui.semantics.contentDescription
-import androidx.compose.ui.semantics.semantics
-import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.stringResource
+import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.res.stringResource
 import com.example.R
 import com.example.data.DayOfWeekEnum
 import com.example.data.RoutineExerciseEntity
@@ -73,19 +45,8 @@ import com.example.ui.components.ExerciseVideoLinkButton
 import com.example.ui.components.MuscleGroupBadge
 import com.example.ui.viewmodel.WorkoutNowState
 import com.example.ui.viewmodel.WorkoutViewModel
+import com.example.ui.viewmodel.getTodayDayOfWeek
 import kotlinx.coroutines.delay
-
-import androidx.compose.ui.text.style.TextOverflow
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.Refresh
-import androidx.compose.material3.AlertDialog
-import androidx.compose.material3.OutlinedTextField
-import androidx.compose.material3.TextButton
-import androidx.compose.material3.FilledTonalButton
-import androidx.compose.foundation.text.KeyboardOptions
-import androidx.compose.ui.text.input.KeyboardType
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.lazy.LazyRow
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -96,7 +57,6 @@ fun WorkoutNowScreen(
     modifier: Modifier = Modifier
 ) {
     val workoutState by viewModel.workoutNowState.collectAsState()
-    val allDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
 
     var showRestartDialog by remember { mutableStateOf(false) }
@@ -104,7 +64,6 @@ fun WorkoutNowScreen(
     var customWeightInput by remember { mutableStateOf("") }
 
     val currentDayExercises = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
-    val currentDayEntity = allDays.find { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
     if (showRestartDialog) {
         AlertDialog(
@@ -208,33 +167,21 @@ fun WorkoutNowScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Text(
-                        text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    val trainingType = currentDayEntity?.let { day ->
-                        val translatedTitle = com.example.ui.components.translateDayTitle(day.title)
-                        val extracted = if (translatedTitle.contains("—")) {
-                            translatedTitle.substringAfter("—").trim()
-                        } else if (translatedTitle.contains("-")) {
-                            translatedTitle.substringAfter("-").trim()
-                        } else {
-                            translatedTitle
-                        }
-
-                        if (extracted.equals("Workout", ignoreCase = true) || 
-                            extracted.equals("Training", ignoreCase = true) || 
-                            extracted.equals("Allenamento", ignoreCase = true)) {
-                            if (currentDayExercises.isNotEmpty()) {
-                                currentDayExercises.map { it.muscleGroup }.distinct().joinToString(", ")
-                            } else {
-                                extracted
-                            }
-                        } else {
-                            extracted
-                        }
-                    } ?: ""
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
+                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MaterialTheme.colorScheme.onBackground
+                        )
+                    }
+                    val trainingType = if (currentDayExercises.isNotEmpty()) {
+                        currentDayExercises.map { it.muscleGroup }
+                            .map { stringResource(com.example.ui.components.getUpperCategoryResId(it)) }
+                            .distinct()
+                            .joinToString(", ")
+                    } else {
+                        stringResource(R.string.rest_recovery_day)
+                    }
 
                     if (trainingType.isNotBlank()) {
                         Text(
@@ -251,7 +198,7 @@ fun WorkoutNowScreen(
                     OutlinedButton(
                         onClick = onChangeRoutine,
                         shape = RoundedCornerShape(10.dp),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         modifier = Modifier
                             .height(32.dp)
                             .semantics { testTag = "change_workout_button" }
@@ -272,39 +219,82 @@ fun WorkoutNowScreen(
                 .verticalScroll(rememberScrollState()),
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // DAY SELECTOR CHIPS
-            LazyRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                items(DayOfWeekEnum.values()) { dayEnum ->
-                    val isSelected = dayEnum.name == workoutState.selectedDayOfWeek
-                    FilterChip(
-                        selected = isSelected,
-                        onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
-                        label = {
-                            val shortName = when (dayEnum) {
-                                DayOfWeekEnum.MONDAY -> stringResource(R.string.monday_short)
-                                DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday_short)
-                                DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday_short)
-                                DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday_short)
-                                DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday_short)
-                                DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday_short)
-                                DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday_short)
-                            }
-                            Text(
-                                text = shortName,
-                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                            )
-                        },
-                        colors = FilterChipDefaults.filterChipColors(
-                            selectedContainerColor = MaterialTheme.colorScheme.primary,
-                            selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                            selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                            selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
-                        )
-                    )
+            val today = remember { getTodayDayOfWeek() }
+            val allDays = DayOfWeekEnum.values()
+            val todayIndex = allDays.indexOfFirst { it.name == today }.coerceAtLeast(0)
+            val orderedDays = allDays.drop(todayIndex) + allDays.take(todayIndex)
+
+            val nestedScrollConnection = remember {
+                object : NestedScrollConnection {
+                    override fun onPostScroll(
+                        consumed: Offset,
+                        available: Offset,
+                        source: NestedScrollSource
+                    ): Offset {
+                        return Offset(x = available.x, y = 0f)
+                    }
                 }
+            }
+
+            // DAY SELECTOR CHIPS
+            Box(
+                modifier = Modifier
+                    .nestedScroll(nestedScrollConnection)
+                    .fillMaxWidth(),
+                contentAlignment = Alignment.CenterEnd
+            ) {
+                LazyRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    contentPadding = PaddingValues(end = 24.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    items(orderedDays) { dayEnum ->
+                        val isSelected = dayEnum.name == workoutState.selectedDayOfWeek
+                        val isToday = dayEnum.name == today
+                        FilterChip(
+                            selected = isSelected,
+                            onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
+                            label = {
+                                val shortName = when (dayEnum) {
+                                    DayOfWeekEnum.MONDAY -> stringResource(R.string.monday_short)
+                                    DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday_short)
+                                    DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday_short)
+                                    DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday_short)
+                                    DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday_short)
+                                    DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday_short)
+                                    DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday_short)
+                                }
+                                Text(
+                                    text = shortName,
+                                    fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Normal
+                                )
+                            },
+                            border = FilterChipDefaults.filterChipBorder(
+                                enabled = true,
+                                selected = isSelected,
+                                borderColor = if (isToday && !isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                borderWidth = if (isToday && !isSelected) 2.dp else 1.dp,
+                                selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                selectedBorderWidth = if (isToday) 2.dp else 1.dp
+                            ),
+                            colors = FilterChipDefaults.filterChipColors(
+                                selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                                selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
+                            )
+                        )
+                    }
+                }
+
+                Icon(
+                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                    modifier = Modifier
+                        .size(14.dp)
+                        .padding(end = 4.dp)
+                )
             }
 
             if (currentDayExercises.isEmpty()) {
@@ -402,6 +392,7 @@ fun WorkoutNowScreen(
                 // ACTIVE WORKOUT SESSION VIEW
                 val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, currentDayExercises.size - 1)
                 val currentExercise = currentDayExercises[exerciseIndex]
+                val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
                 val totalExercises = currentDayExercises.size
                 val nextExercise = if (exerciseIndex + 1 < currentDayExercises.size) {
                     currentDayExercises[exerciseIndex + 1]
@@ -456,12 +447,12 @@ fun WorkoutNowScreen(
                     )
                 }
 
-                // REST TIMER BANNER
-                AnimatedVisibility(
-                    visible = workoutState.isTimerActive && workoutState.restTimerSeconds > 0,
-                    enter = fadeIn(),
-                    exit = fadeOut()
-                ) {
+                // TIMER AREA
+                val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
+                val isExTimer = workoutState.isExerciseTimerActive
+
+                if (isTimerActive && !isExTimer) {
+                    // Running Rest Timer Card (Only for Rest)
                     Card(
                         shape = RoundedCornerShape(16.dp),
                         colors = CardDefaults.cardColors(
@@ -483,8 +474,13 @@ fun WorkoutNowScreen(
                                 )
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Column {
+                                    val label = if (workoutState.currentSetNumber == 1) {
+                                        stringResource(R.string.exercise_transition_label)
+                                    } else {
+                                        stringResource(R.string.rest_timer)
+                                    }
                                     Text(
-                                        text = stringResource(R.string.rest_timer),
+                                        text = label,
                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
                                     )
@@ -499,7 +495,7 @@ fun WorkoutNowScreen(
                             IconButton(onClick = { viewModel.stopTimer() }) {
                                 Icon(
                                     imageVector = Icons.Default.SkipNext,
-                                    contentDescription = "Skip Rest Timer",
+                                    contentDescription = "Skip Timer",
                                     tint = MaterialTheme.colorScheme.primary
                                 )
                             }
@@ -542,11 +538,18 @@ fun WorkoutNowScreen(
                             color = MaterialTheme.colorScheme.onSurface
                         )
 
-                        Text(
-                            text = stringResource(R.string.sets_x_reps, currentExercise.targetSets, currentExercise.targetReps),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = if (isTimeBased) stringResource(R.string.sets_x_time, currentExercise.targetSets, currentExercise.targetReps)
+                                       else stringResource(R.string.sets_x_reps, currentExercise.targetSets, currentExercise.targetReps),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                        }
 
                         Spacer(modifier = Modifier.height(16.dp))
 
@@ -666,22 +669,22 @@ fun WorkoutNowScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 IconButton(
-                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg - 0.5, workoutState.currentReps) },
+                                    onClick = { viewModel.decrementWeight() },
                                     modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.background)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight by 0.5kg")
+                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight")
                                 }
 
                                 IconButton(
-                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg + 0.5, workoutState.currentReps) },
+                                    onClick = { viewModel.incrementWeight() },
                                     modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                 ) {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight by 0.5kg", tint = MaterialTheme.colorScheme.primary)
+                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
                                 }
                             }
                         }
 
-                        // REPS
+                        // REPS or TIME
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -689,12 +692,12 @@ fun WorkoutNowScreen(
                         ) {
                             Column {
                                 Text(
-                                    text = stringResource(R.string.reps_completed),
+                                    text = if (isTimeBased) stringResource(R.string.time_label) else stringResource(R.string.reps_completed),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = stringResource(R.string.reps_count, workoutState.currentReps),
+                                    text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else stringResource(R.string.reps_count, workoutState.currentReps),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                 )
                             }
@@ -703,18 +706,37 @@ fun WorkoutNowScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
-                                IconButton(
-                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
-                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.background)
-                                ) {
-                                    Icon(imageVector = Icons.Default.Remove, contentDescription = null)
-                                }
+                                if (isTimeBased) {
+                                    // Time selectors next to time label
+                                    listOf(30, 45, 60).forEach { secs ->
+                                        val isSelected = workoutState.currentExerciseSeconds == secs
+                                        Surface(
+                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
+                                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                            shape = RoundedCornerShape(8.dp),
+                                            modifier = Modifier.clickable { viewModel.updateExerciseSeconds(secs) }
+                                        ) {
+                                            Text(
+                                                text = "${secs}s",
+                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+                                    }
+                                } else {
+                                    IconButton(
+                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
+                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.background)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null)
+                                    }
 
-                                IconButton(
-                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
-                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                ) {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    IconButton(
+                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
+                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                    }
                                 }
                             }
                         }
@@ -722,22 +744,67 @@ fun WorkoutNowScreen(
                 }
 
                 // PRIMARY ACTION
-                Button(
-                    onClick = { viewModel.logCurrentSetAndAdvance(currentDayExercises) },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    ),
-                    shape = RoundedCornerShape(20.dp),
-                    modifier = Modifier.fillMaxWidth().height(64.dp)
-                ) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(28.dp))
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Text(
-                            text = stringResource(R.string.log_set_x_next, workoutState.currentSetNumber),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
-                        )
+                val isSelectedDayToday = workoutState.selectedDayOfWeek == today
+                val isExTimerRunning = isTimerActive && isExTimer
+                
+                if (isSelectedDayToday) {
+                    if (isExTimerRunning) {
+                        // COUNTER / SKIP BUTTON (Full Width)
+                        Button(
+                            onClick = { viewModel.advanceAfterTimer(currentDayExercises) },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier.fillMaxWidth().height(64.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(24.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = "${workoutState.restTimerSeconds}s",
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = "(${stringResource(R.string.skip)})",
+                                    style = MaterialTheme.typography.labelSmall
+                                )
+                            }
+                        }
+                    } else {
+                        Button(
+                            onClick = { 
+                                if (isTimeBased) {
+                                    viewModel.startExerciseTimerWithLog(currentDayExercises, workoutState.currentExerciseSeconds)
+                                } else {
+                                    viewModel.logCurrentSetAndAdvance(currentDayExercises) 
+                                }
+                            },
+                            colors = ButtonDefaults.buttonColors(
+                                containerColor = MaterialTheme.colorScheme.primary,
+                                contentColor = MaterialTheme.colorScheme.onPrimary
+                            ),
+                            shape = RoundedCornerShape(20.dp),
+                            modifier = Modifier.fillMaxWidth().height(64.dp)
+                        ) {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                val icon = if (isTimeBased) Icons.Default.Timer else Icons.Default.CheckCircle
+                                val text = if (isTimeBased) {
+                                    stringResource(R.string.start_timer_x_and_log, workoutState.currentExerciseSeconds)
+                                } else {
+                                    stringResource(R.string.log_set_x_next, workoutState.currentSetNumber)
+                                }
+                                
+                                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(28.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Text(
+                                    text = text,
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                )
+                            }
+                        }
                     }
                 }
             }

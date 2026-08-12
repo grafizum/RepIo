@@ -5,6 +5,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
@@ -19,6 +20,11 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.ui.geometry.Offset
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
@@ -32,13 +38,17 @@ import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
+import androidx.compose.material3.DropdownMenuItem
 import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.ExposedDropdownMenuBox
+import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.FilterChip
 import androidx.compose.material3.FilterChipDefaults
 import androidx.compose.material3.FloatingActionButton
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.OutlinedButton
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Scaffold
@@ -76,6 +86,7 @@ import com.example.ui.components.MissingBodyPartsWarningCard
 import com.example.ui.components.MuscleGroupBadge
 import com.example.ui.components.getMissingMuscleGroups
 import com.example.ui.viewmodel.WorkoutViewModel
+import com.example.ui.viewmodel.getTodayDayOfWeek
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -91,8 +102,8 @@ fun RoutineScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val customWorkoutName by viewModel.customWorkoutName.collectAsState()
+    val workoutState by viewModel.workoutNowState.collectAsState()
 
-    var selectedDay by remember { mutableStateOf(DayOfWeekEnum.MONDAY.name) }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
@@ -100,8 +111,8 @@ fun RoutineScreen(
     var showTemplatesSheet by remember { mutableStateOf(false) }
     var pendingTemplate by remember { mutableStateOf<WorkoutTemplate?>(null) }
 
-    val dayEntity = routineDays.find { it.dayOfWeek == selectedDay }
-    val exercisesForDay = allExercises.filter { it.dayOfWeek == selectedDay }
+    val dayEntity = routineDays.find { it.dayOfWeek == workoutState.selectedDayOfWeek }
+    val exercisesForDay = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
 
@@ -274,7 +285,7 @@ fun RoutineScreen(
                         OutlinedButton(
                             onClick = onCustomClick,
                             shape = RoundedCornerShape(10.dp),
-                            contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                             modifier = Modifier.height(32.dp)
                         ) {
                             Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -291,7 +302,7 @@ fun RoutineScreen(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary
                         ),
-                        contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
                         modifier = Modifier.height(32.dp)
                     ) {
                         Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
@@ -309,37 +320,65 @@ fun RoutineScreen(
             ) {
                 // DAY SELECTION CHIPS
                 item {
-                    LazyRow(
-                        horizontalArrangement = Arrangement.spacedBy(8.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        items(DayOfWeekEnum.values()) { dayEnum ->
-                            val isSelected = dayEnum.name == selectedDay
-                            FilterChip(
-                                selected = isSelected,
-                                onClick = { selectedDay = dayEnum.name },
-                                label = {
-                                    val displayName = when (dayEnum) {
-                                        DayOfWeekEnum.MONDAY -> stringResource(R.string.monday)
-                                        DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday)
-                                        DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday)
-                                        DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday)
-                                        DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday)
-                                        DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday)
-                                        DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday)
-                                    }
-                                    Text(
-                                        text = displayName,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
+                    val today = remember { getTodayDayOfWeek() }
+                    val allDays = DayOfWeekEnum.entries
+                    val todayIndex = allDays.indexOfFirst { it.name == today }.coerceAtLeast(0)
+                    val orderedDays = allDays.drop(todayIndex) + allDays.take(todayIndex)
+
+                    val nestedScrollConnection = remember {
+                        object : NestedScrollConnection {
+                            override fun onPostScroll(
+                                consumed: Offset,
+                                available: Offset,
+                                source: NestedScrollSource
+                            ): Offset {
+                                return Offset(x = available.x, y = 0f)
+                            }
+                        }
+                    }
+
+                    Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
+                        LazyRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            items(orderedDays) { dayEnum ->
+                                val isSelected = dayEnum.name == workoutState.selectedDayOfWeek
+                                val isToday = dayEnum.name == today
+                                FilterChip(
+                                    selected = isSelected,
+                                    onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
+                                    label = {
+                                        val displayName = when (dayEnum) {
+                                            DayOfWeekEnum.MONDAY -> stringResource(R.string.monday)
+                                            DayOfWeekEnum.TUESDAY -> stringResource(R.string.tuesday)
+                                            DayOfWeekEnum.WEDNESDAY -> stringResource(R.string.wednesday)
+                                            DayOfWeekEnum.THURSDAY -> stringResource(R.string.thursday)
+                                            DayOfWeekEnum.FRIDAY -> stringResource(R.string.friday)
+                                            DayOfWeekEnum.SATURDAY -> stringResource(R.string.saturday)
+                                            DayOfWeekEnum.SUNDAY -> stringResource(R.string.sunday)
+                                        }
+                                        Text(
+                                            text = displayName,
+                                            fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Normal
+                                        )
+                                    },
+                                    border = FilterChipDefaults.filterChipBorder(
+                                        enabled = true,
+                                        selected = isSelected,
+                                        borderColor = if (isToday && !isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
+                                        borderWidth = if (isToday && !isSelected) 2.dp else 1.dp,
+                                        selectedBorderColor = MaterialTheme.colorScheme.primary,
+                                        selectedBorderWidth = if (isToday) 2.dp else 1.dp
+                                    ),
+                                    colors = FilterChipDefaults.filterChipColors(
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
+                                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
+                                        selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
                                     )
-                                },
-                                colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                            )
+                                )
+                            }
                         }
                     }
                 }
@@ -352,27 +391,38 @@ fun RoutineScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Column(modifier = Modifier.padding(20.dp)) {
-                            val dayTitle = dayEntity?.let { day ->
-                                val translated = com.example.ui.components.translateDayTitle(day.title)
-                                if (translated.contains("Workout", ignoreCase = true) || 
-                                    translated.contains("Allenamento", ignoreCase = true) || 
-                                    translated.contains("Training", ignoreCase = true)) {
-                                    val prefix = translated.substringBefore("—").substringBefore("-").trim()
-                                    if (exercisesForDay.isNotEmpty()) {
-                                        val focus = exercisesForDay.map { it.muscleGroup }.distinct().joinToString(", ")
-                                        "$prefix — $focus"
-                                    } else {
-                                        translated
-                                    }
-                                } else {
-                                    translated
-                                }
-                            } ?: selectedDay
+                            val dayName = when (workoutState.selectedDayOfWeek.uppercase()) {
+                                "MONDAY" -> stringResource(R.string.monday)
+                                "TUESDAY" -> stringResource(R.string.tuesday)
+                                "WEDNESDAY" -> stringResource(R.string.wednesday)
+                                "THURSDAY" -> stringResource(R.string.thursday)
+                                "FRIDAY" -> stringResource(R.string.friday)
+                                "SATURDAY" -> stringResource(R.string.saturday)
+                                "SUNDAY" -> stringResource(R.string.sunday)
+                                else -> workoutState.selectedDayOfWeek
+                            }
 
-                            Text(
-                                text = dayTitle,
-                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                            )
+                            val dayTitle = if (exercisesForDay.isNotEmpty()) {
+                                val focus = exercisesForDay.map { it.muscleGroup }
+                                    .map { stringResource(com.example.ui.components.getUpperCategoryResId(it)) }
+                                    .distinct()
+                                    .joinToString(", ")
+                                "$dayName — $focus"
+                            } else {
+                                "$dayName — ${stringResource(R.string.rest_recovery_day)}"
+                            }
+
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = dayTitle,
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.weight(1f)
+                                )
+                            }
                             Spacer(modifier = Modifier.height(4.dp))
                             Text(
                                 text = dayEntity?.let { com.example.ui.components.translateDayDescription(it.description) } ?: "",
@@ -380,10 +430,10 @@ fun RoutineScreen(
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
 
-                            if (dayEntity?.isRestDay == false && exercisesForDay.isNotEmpty()) {
+                            if (dayEntity != null) {
                                 Spacer(modifier = Modifier.height(16.dp))
                                 Button(
-                                    onClick = { onNavigateToWorkoutNow?.invoke(selectedDay) },
+                                    onClick = { onNavigateToWorkoutNow?.invoke(workoutState.selectedDayOfWeek) },
                                     colors = ButtonDefaults.buttonColors(
                                         containerColor = MaterialTheme.colorScheme.primary,
                                         contentColor = MaterialTheme.colorScheme.onPrimary
@@ -414,15 +464,16 @@ fun RoutineScreen(
                             text = stringResource(R.string.exercises_count, exercisesForDay.size),
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                         )
-                        
+
                         IconButton(
                             onClick = { showAddDialog = true },
-                            modifier = Modifier.size(32.dp)
+                            modifier = Modifier.size(24.dp)
                         ) {
                             Icon(
                                 imageVector = Icons.Default.Add,
                                 contentDescription = stringResource(R.string.add_exercise),
-                                tint = MaterialTheme.colorScheme.primary
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
                             )
                         }
                     }
@@ -461,7 +512,9 @@ fun RoutineScreen(
                                         }
                                         Spacer(modifier = Modifier.height(4.dp))
                                         Text(
-                                            text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
+                                            text = if (exercise.targetReps.contains("sec", ignoreCase = true))
+                                                   stringResource(R.string.sets_x_time, exercise.targetSets, exercise.targetReps)
+                                                   else stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
@@ -501,7 +554,7 @@ fun RoutineScreen(
     if (showAddDialog || editingExercise != null) {
         ExerciseEditDialog(
             exercise = editingExercise,
-            dayOfWeek = selectedDay,
+            dayOfWeek = workoutState.selectedDayOfWeek,
             onDismiss = {
                 showAddDialog = false
                 editingExercise = null
@@ -546,6 +599,10 @@ fun RoutineScreen(
     pendingTemplate?.let { template ->
         AlertDialog(
             onDismissRequest = { pendingTemplate = null },
+            properties = androidx.compose.ui.window.DialogProperties(
+                dismissOnClickOutside = true,
+                dismissOnBackPress = true
+            ),
             title = { Text(stringResource(R.string.confirm_new_program_title)) },
             text = { Text(stringResource(R.string.confirm_new_program_message)) },
             confirmButton = {
@@ -572,6 +629,7 @@ fun RoutineScreen(
     }
 }
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseEditDialog(
     exercise: RoutineExerciseEntity?,
@@ -582,7 +640,9 @@ fun ExerciseEditDialog(
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Back") }
     var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "3") }
-    var targetReps by remember { mutableStateOf(exercise?.targetReps ?: "8–12") }
+    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    
+    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "8-12") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
 
     AlertDialog(
@@ -590,6 +650,32 @@ fun ExerciseEditDialog(
         title = { Text(if (exercise == null) stringResource(R.string.add_exercise) else stringResource(R.string.edit_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Reps / Seconds Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(false to stringResource(R.string.reps), true to stringResource(R.string.time_label)).forEach { (isTime, label) ->
+                        val isSelected = isTimeBased == isTime
+                        Surface(
+                            modifier = Modifier.weight(1f).clickable { 
+                                isTimeBased = isTime 
+                                if (isTime) targetRepsValue = "30"
+                            },
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = name,
                     onValueChange = { name = it },
@@ -615,13 +701,49 @@ fun ExerciseEditDialog(
                         modifier = Modifier.weight(1f)
                     )
 
-                    OutlinedTextField(
-                        value = targetReps,
-                        onValueChange = { targetReps = it },
-                        label = { Text(stringResource(R.string.reps)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
+                    if (isTimeBased) {
+                        var expandedTime by remember { mutableStateOf(false) }
+                        val timeOptions = listOf("30", "45", "60", "90", "120")
+                        ExposedDropdownMenuBox(
+                            expanded = expandedTime,
+                            onExpandedChange = { expandedTime = !expandedTime },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val digitsOnly = targetRepsValue.filter { it.isDigit() }
+                            val displayValue = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s"
+                            OutlinedTextField(
+                                value = displayValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.time_label)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedTime,
+                                onDismissRequest = { expandedTime = false }
+                            ) {
+                                timeOptions.forEach { t ->
+                                    DropdownMenuItem(
+                                        text = { Text("${t}s") },
+                                        onClick = {
+                                            targetRepsValue = t
+                                            expandedTime = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = targetRepsValue,
+                            onValueChange = { targetRepsValue = it },
+                            label = { Text(stringResource(R.string.reps)) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
                 OutlinedTextField(
@@ -634,10 +756,28 @@ fun ExerciseEditDialog(
             }
         },
         confirmButton = {
+            val isRepsValid = remember(targetRepsValue, isTimeBased) {
+                if (isTimeBased) true
+                else {
+                    val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+                    if (parts.size == 2) {
+                        val v1 = parts[0].filter { it.isDigit() }.toIntOrNull()
+                        val v2 = parts[1].filter { it.isDigit() }.toIntOrNull()
+                        if (v1 != null && v2 != null) v1 <= v2 else true
+                    } else true
+                }
+            }
+
             Button(
                 onClick = {
-                    if (name.isNotBlank()) {
+                    if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
                         val sets = targetSetsStr.toIntOrNull() ?: 3
+                        val finalReps = if (isTimeBased) {
+                            val digits = targetRepsValue.filter { it.isDigit() }
+                            if (digits.isNotBlank()) "$digits sec" else "30 sec"
+                        } else {
+                            targetRepsValue.trim()
+                        }
                         onSave(
                             RoutineExerciseEntity(
                                 id = exercise?.id ?: 0L,
@@ -645,17 +785,14 @@ fun ExerciseEditDialog(
                                 name = name,
                                 muscleGroup = muscleGroup,
                                 targetSets = sets,
-                                targetReps = targetReps,
+                                targetReps = finalReps,
                                 videoUrl = videoUrl,
                                 orderIndex = exercise?.orderIndex ?: 99
                             )
                         )
                     }
                 },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                )
+                enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
             ) {
                 Text(stringResource(R.string.save))
             }
