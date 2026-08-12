@@ -1,5 +1,6 @@
 package com.example.ui.screens
 
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -8,6 +9,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.ExperimentalLayoutApi
+import androidx.compose.foundation.layout.FlowRow
 import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
@@ -17,16 +19,21 @@ import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Info
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
+import androidx.compose.material.icons.filled.Remove
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
@@ -91,7 +98,19 @@ fun FirstTimeSetupScreen(
 ) {
     val focusManager = LocalFocusManager.current
     var workoutNameInput by remember { mutableStateOf("") }
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade Templates, 1 = Custom Build
+    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade, 1 = Assisted, 2 = Custom
+
+    // Assisted Build State
+    val assistedEquipment = remember { mutableStateListOf("Gym") }
+    val assistedBodyParts = remember { mutableStateListOf(
+        "Chest", "Front Deltoids", "Lateral Deltoids", "Rear Deltoids",
+        "Lats", "Upper Back", "Upper Traps", "Spinal Erectors",
+        "Biceps", "Triceps", "Forearms",
+        "Abs", "Obliques",
+        "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"
+    ) }
+    var assistedDays by remember { mutableIntStateOf(3) }
+    var assistedIntensity by remember { mutableStateOf("Medium") }
 
     BackHandler {
         if (selectedTab != 0) {
@@ -130,103 +149,6 @@ fun FirstTimeSetupScreen(
             RoutineExerciseEntity(0, "FRIDAY", "Overhead Tricep Extension", "Triceps", 3, "10-15", "", 1),
             RoutineExerciseEntity(0, "FRIDAY", "Crunches / Leg Raises", "Abs", 3, "15-20", "", 2)
         )
-    }
-
-    // Sheet for previewing full day breakdown of a template
-    previewTemplateModal?.let { template ->
-        ModalBottomSheet(
-            onDismissRequest = { previewTemplateModal = null },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column {
-                        Text(
-                            text = stringResource(template.nameResId),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Text(
-                            text = stringResource(template.daysCountResId, template.daysCountArgs.first, template.daysCountArgs.second),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.primary
-                        )
-                    }
-
-                    Button(
-                        onClick = {
-                            selectedTemplate = template
-                            previewTemplateModal = null
-                        },
-                        shape = RoundedCornerShape(12.dp)
-                    ) {
-                        Text(stringResource(R.string.select))
-                    }
-                }
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                Text(
-                    text = stringResource(template.descriptionResId),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-
-                Spacer(modifier = Modifier.height(16.dp))
-
-                LazyColumn(
-                    modifier = Modifier.height(350.dp),
-                    verticalArrangement = Arrangement.spacedBy(12.dp)
-                ) {
-                    items(template.dayTemplates) { day ->
-                        val dayExercises = template.exercises.filter { it.dayOfWeek == day.dayOfWeek }
-                        Card(
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                            shape = RoundedCornerShape(12.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column(modifier = Modifier.padding(14.dp)) {
-                                Text(
-                                    text = stringResource(day.titleResId),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                )
-                                if (day.isRestDay) {
-                                    Text(
-                                        text = stringResource(R.string.rest_and_recovery),
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                } else {
-                                    Spacer(modifier = Modifier.height(6.dp))
-                                    dayExercises.forEach { ex ->
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.SpaceBetween,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .padding(vertical = 2.dp)
-                                        ) {
-                                            Text(
-                                                text = stringResource(R.string.exercise_set_summary, com.example.ui.components.translateExerciseName(ex.name), ex.targetSets),
-                                                style = MaterialTheme.typography.bodySmall
-                                            )
-                                            MuscleGroupBadge(muscleGroup = ex.muscleGroup)
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        }
     }
 
     var showAddCustomExerciseDialog by remember { mutableStateOf(false) }
@@ -374,15 +296,18 @@ fun FirstTimeSetupScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
+                        var isFocused by remember { mutableStateOf(false) }
                         OutlinedTextField(
                             value = workoutNameInput,
                             onValueChange = { if (it.length <= 20) workoutNameInput = it },
-                            label = { Text(stringResource(R.string.my_workout)) },
+                            label = { Text(stringResource(R.string.program_name)) },
                             placeholder = { 
-                                Text(
-                                    text = stringResource(R.string.workout_program_name_placeholder),
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                )
+                                if (!isFocused) {
+                                    Text(
+                                        text = stringResource(R.string.my_workout),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                    )
+                                }
                             },
                             supportingText = {
                                 Text(
@@ -397,13 +322,14 @@ fun FirstTimeSetupScreen(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier
                                 .fillMaxWidth()
+                                .onFocusChanged { isFocused = it.isFocused }
                                 .semantics { testTag = "onboarding_workout_name_input" }
                         )
                     }
                 }
             }
 
-            // STEP 2: CHOOSE TEMPLATE VS CUSTOM BUILD TAB ROW
+            // STEP 2: CHOOSE TEMPLATE VS ASSISTED VS CUSTOM BUILD TAB ROW
             item {
                 Column {
                     Surface(
@@ -424,99 +350,124 @@ fun FirstTimeSetupScreen(
                         horizontalArrangement = Arrangement.spacedBy(10.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        // Option 1: Premade Templates
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selectedTab == 0) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (selectedTab == 0) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = if (selectedTab == 0) {
-                                CardDefaults.outlinedCardBorder().copy(brush = Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)))
-                            } else null,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { 
-                                    focusManager.clearFocus()
-                                    selectedTab = 0 
-                                }
-                                .semantics { testTag = "tab_premade_templates" }
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.FitnessCenter,
-                                    contentDescription = null
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = stringResource(R.string.premade_templates),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-
-                        // Option 2: Custom Build
-                        Card(
-                            shape = RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(
-                                containerColor = if (selectedTab == 1) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                contentColor = if (selectedTab == 1) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                            ),
-                            border = if (selectedTab == 1) {
-                                CardDefaults.outlinedCardBorder().copy(brush = Brush.horizontalGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary)))
-                            } else null,
-                            modifier = Modifier
-                                .weight(1f)
-                                .clickable { 
-                                    focusManager.clearFocus()
-                                    selectedTab = 1 
-                                }
-                                .semantics { testTag = "tab_custom_build" }
-                        ) {
-                            Column(
-                                horizontalAlignment = Alignment.CenterHorizontally,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .padding(14.dp)
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = null
-                                )
-                                Spacer(modifier = Modifier.height(6.dp))
-                                Text(
-                                    text = stringResource(R.string.build_custom),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-
-                        if (selectedTab == 1) {
-                            Button(
-                                onClick = { 
-                                    focusManager.clearFocus()
-                                    showAddCustomExerciseDialog = true 
-                                },
+                        // Option 1: Premade Templates (Show if NOT selected)
+                        if (selectedTab != 0) {
+                            Card(
                                 shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                                 modifier = Modifier
-                                    .height(82.dp)
-                                    .width(70.dp),
-                                contentPadding = PaddingValues(0.dp)
+                                    .weight(1f)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { 
+                                        focusManager.clearFocus()
+                                        selectedTab = 0 
+                                    }
                             ) {
-                                Text(
-                                    text = stringResource(R.string.new_action),
-                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
-                                )
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.premade_templates),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        // Option 2: Assisted Build (Show if NOT selected)
+                        if (selectedTab != 1) {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { 
+                                        focusManager.clearFocus()
+                                        selectedTab = 1 
+                                    }
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Info, contentDescription = null)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.assisted_build),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
+                            }
+                        }
+
+                        // Option 3: Custom Build (Show if NOT selected)
+                        if (selectedTab != 2) {
+                            Card(
+                                shape = RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                                    contentColor = MaterialTheme.colorScheme.primary
+                                ),
+                                border = BorderStroke(width = 1.dp, color = MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) { 
+                                        focusManager.clearFocus()
+                                        selectedTab = 2 
+                                    }
+                            ) {
+                                Column(
+                                    horizontalAlignment = Alignment.CenterHorizontally,
+                                    modifier = Modifier.fillMaxWidth().padding(14.dp)
+                                ) {
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = null)
+                                    Spacer(modifier = Modifier.height(6.dp))
+                                    Text(
+                                        text = stringResource(R.string.build_custom),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        textAlign = TextAlign.Center
+                                    )
+                                }
                             }
                         }
                     }
+
+                    Spacer(modifier = Modifier.height(16.dp))
+
+                    // MODE TITLE
+                    val currentModeTitle = when(selectedTab) {
+                        0 -> stringResource(R.string.premade_templates)
+                        1 -> stringResource(R.string.assisted_build)
+                        else -> stringResource(R.string.build_custom)
+                    }
+                    Text(
+                        text = currentModeTitle,
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                        textAlign = TextAlign.Center
+                    )
                 }
             }
 
@@ -527,7 +478,7 @@ fun FirstTimeSetupScreen(
                     Text(
                         text = stringResource(R.string.choose_recommended_template),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
                     )
                 }
 
@@ -542,7 +493,10 @@ fun FirstTimeSetupScreen(
                         border = if (isSelected) CardDefaults.outlinedCardBorder().copy(brush = Brush.linearGradient(listOf(MaterialTheme.colorScheme.primary, MaterialTheme.colorScheme.secondary))) else null,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { 
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { 
                                 focusManager.clearFocus()
                                 selectedTemplate = template 
                             }
@@ -646,30 +600,359 @@ fun FirstTimeSetupScreen(
                     MissingBodyPartsWarningCard(missingParts = getMissingMuscleGroups(selectedTemplate.exercises))
                 }
 
+            } else if (selectedTab == 1) {
+                // ASSISTED BUILD CONTENT
+                item {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                            // 1. Equipment
+                            Text(stringResource(R.string.choose_equipment), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            FlowRow(
+                                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                verticalArrangement = Arrangement.spacedBy(8.dp),
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                listOf("Gym", "Bodyweight", "Barbell", "Dumbbell").forEach { eq ->
+                                    val isEqSelected = assistedEquipment.contains(eq)
+                                    val displayName = when(eq) {
+                                        "Gym" -> stringResource(R.string.full_gym)
+                                        "Bodyweight" -> stringResource(R.string.bodyweight_only)
+                                        "Barbell" -> stringResource(R.string.barbell_only)
+                                        else -> stringResource(R.string.dumbbells_only)
+                                    }
+                                    Surface(
+                                        color = if (isEqSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                        contentColor = if (isEqSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                        shape = RoundedCornerShape(12.dp),
+                                        modifier = Modifier.clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { 
+                                            if (eq == "Gym") {
+                                                // If Full Gym is pressed, it clears everything else and becomes the only selection
+                                                assistedEquipment.clear()
+                                                assistedEquipment.add("Gym")
+                                            } else {
+                                                if (isEqSelected) {
+                                                    // Prevent removing the last item if you want to ensure at least one is selected,
+                                                    // or just remove it.
+                                                    if (assistedEquipment.size > 1) {
+                                                        assistedEquipment.remove(eq)
+                                                    }
+                                                } else {
+                                                    // If any other equipment is pressed, remove "Full Gym" and add this one
+                                                    assistedEquipment.remove("Gym")
+                                                    assistedEquipment.add(eq)
+                                                }
+                                            }
+                                        }
+                                    ) {
+                                        Text(
+                                            text = displayName,
+                                            style = MaterialTheme.typography.labelSmall,
+                                            modifier = Modifier.padding(horizontal = 16.dp, vertical = 10.dp)
+                                        )
+                                    }
+                                }
+                            }
+
+                            // 2. Body Parts (Expandable Categories)
+                            Text(stringResource(R.string.choose_body_parts), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            
+                            val categories = listOf(
+                                stringResource(R.string.arms) to listOf("Biceps", "Triceps", "Forearms"),
+                                stringResource(R.string.legs) to listOf("Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"),
+                                stringResource(R.string.back) to listOf("Lats", "Upper Back", "Upper Traps", "Spinal Erectors"),
+                                stringResource(R.string.chest) to listOf("Chest"),
+                                stringResource(R.string.shoulders) to listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids"),
+                                stringResource(R.string.abs) to listOf("Abs", "Obliques")
+                            )
+
+                            var expandedCategory by remember { mutableStateOf<String?>(null) }
+
+                            categories.forEach { (catName, parts) ->
+                                val isCatExpanded = expandedCategory == catName
+                                Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = if (isCatExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) else MaterialTheme.colorScheme.surface
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = 1.dp,
+                                            color = if (isCatExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                ) {
+                                    Column {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.SpaceBetween,
+                                            modifier = Modifier
+                                                .fillMaxWidth()
+                                                .clickable(
+                                                    interactionSource = remember { MutableInteractionSource() },
+                                                    indication = null
+                                                ) { expandedCategory = if (isCatExpanded) null else catName }
+                                                .padding(14.dp)
+                                        ) {
+                                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                                val selectedInCat = parts.count { assistedBodyParts.contains(it) }
+                                                Text(
+                                                    text = catName,
+                                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold)
+                                                )
+                                                if (selectedInCat > 0) {
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Surface(
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        shape = CircleShape,
+                                                        modifier = Modifier.size(20.dp)
+                                                    ) {
+                                                        Box(contentAlignment = Alignment.Center) {
+                                                            Text("$selectedInCat", style = MaterialTheme.typography.labelSmall, color = Color.White)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Icon(
+                                                imageVector = if (isCatExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
+
+                                        if (isCatExpanded) {
+                                            Column(modifier = Modifier.padding(horizontal = 14.dp, vertical = 8.dp)) {
+                                                FlowRow(
+                                                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                                                    modifier = Modifier.fillMaxWidth()
+                                                ) {
+                                                    parts.forEach { part ->
+                                                        val isPartSelected = assistedBodyParts.contains(part)
+                                                        val displayName = when(part) {
+                                                            "Chest" -> stringResource(R.string.chest)
+                                                            "Back" -> stringResource(R.string.back)
+                                                            "Legs" -> stringResource(R.string.legs)
+                                                            "Shoulders" -> stringResource(R.string.shoulders)
+                                                            "Biceps" -> stringResource(R.string.biceps)
+                                                            "Triceps" -> stringResource(R.string.triceps)
+                                                            "Front Deltoids" -> stringResource(R.string.front_delts)
+                                                            "Lateral Deltoids" -> stringResource(R.string.lateral_delts)
+                                                            "Rear Deltoids" -> stringResource(R.string.rear_delts)
+                                                            "Lats" -> stringResource(R.string.lats_part)
+                                                            "Upper Back" -> stringResource(R.string.upper_back)
+                                                            "Upper Traps" -> stringResource(R.string.upper_traps)
+                                                            "Spinal Erectors" -> stringResource(R.string.spinal_erectors)
+                                                            "Forearms" -> stringResource(R.string.forearms)
+                                                            "Obliques" -> stringResource(R.string.obliques)
+                                                            "Quadriceps" -> stringResource(R.string.quadriceps_part)
+                                                            "Hamstrings" -> stringResource(R.string.hamstrings_part)
+                                                            "Glutes" -> stringResource(R.string.glutes_part)
+                                                            "Calves" -> stringResource(R.string.calves_part)
+                                                            "Hip Adductors" -> stringResource(R.string.hip_adductors)
+                                                            "Hip Abductors" -> stringResource(R.string.hip_abductors)
+                                                            else -> stringResource(R.string.abs)
+                                                        }
+                                                        
+                                                        var showPartInfo by remember { mutableStateOf(false) }
+
+                                                        Column {
+                                                            Surface(
+                                                                color = if (isPartSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.surface,
+                                                                contentColor = if (isPartSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface,
+                                                                shape = RoundedCornerShape(8.dp),
+                                                                modifier = Modifier
+                                                                    .border(
+                                                                        width = if (isPartSelected) 2.dp else 1.dp,
+                                                                        color = if (isPartSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                                                        shape = RoundedCornerShape(8.dp)
+                                                                    )
+                                                                    .clickable(
+                                                                        interactionSource = remember { MutableInteractionSource() },
+                                                                        indication = null
+                                                                    ) { 
+                                                                        if (isPartSelected) assistedBodyParts.remove(part) else assistedBodyParts.add(part)
+                                                                    }
+                                                            ) {
+                                                                Row(
+                                                                    verticalAlignment = Alignment.CenterVertically,
+                                                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                                                                ) {
+                                                                    Text(
+                                                                        text = displayName,
+                                                                        style = MaterialTheme.typography.labelSmall
+                                                                    )
+                                                                    Spacer(modifier = Modifier.width(4.dp))
+                                                                    Icon(
+                                                                        imageVector = Icons.Default.Info,
+                                                                        contentDescription = "Science Info",
+                                                                        modifier = Modifier
+                                                                            .size(14.dp)
+                                                                            .clickable { showPartInfo = !showPartInfo },
+                                                                        tint = if (isPartSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
+                                                                    )
+                                                                }
+                                                            }
+
+                                                            if (showPartInfo) {
+                                                                Text(
+                                                                    text = WorkoutTemplates.volumeRecommendations[part] ?: "",
+                                                                    style = MaterialTheme.typography.labelSmall,
+                                                                    color = MaterialTheme.colorScheme.secondary,
+                                                                    modifier = Modifier.padding(top = 4.dp, start = 4.dp).widthIn(max = 200.dp)
+                                                                )
+                                                            }
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                            Spacer(modifier = Modifier.height(8.dp))
+                                        }
+                                    }
+                                }
+                                Spacer(modifier = Modifier.height(8.dp))
+                            }
+
+                            // 3. Days
+                            Text(stringResource(R.string.choose_days), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
+                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
+                                    .padding(8.dp)
+                            ) {
+                                IconButton(
+                                    onClick = { if (assistedDays > 1) assistedDays-- },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Remove,
+                                        contentDescription = "Decrease",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                Text(
+                                    text = "$assistedDays",
+                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.padding(horizontal = 24.dp)
+                                )
+
+                                IconButton(
+                                    onClick = { if (assistedDays < 7) assistedDays++ },
+                                    modifier = Modifier
+                                        .size(40.dp)
+                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = "Increase",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+
+                            // 4. Intensity
+                            Text(stringResource(R.string.choose_intensity), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                listOf("Easy", "Medium", "Difficult").forEach { level ->
+                                    val isIntSelected = assistedIntensity == level
+                                    val (name, desc) = when(level) {
+                                        "Easy" -> stringResource(R.string.intensity_easy) to stringResource(R.string.intensity_easy_desc)
+                                        "Medium" -> stringResource(R.string.intensity_medium) to stringResource(R.string.intensity_medium_desc)
+                                        else -> stringResource(R.string.intensity_difficult) to stringResource(R.string.intensity_difficult_desc)
+                                    }
+                                    Card(
+                                        shape = RoundedCornerShape(12.dp),
+                                        colors = CardDefaults.cardColors(
+                                        containerColor = if (isIntSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.15f) else MaterialTheme.colorScheme.surface
+                                    ),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .border(
+                                            width = if (isIntSelected) 2.dp else 1.dp,
+                                            color = if (isIntSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant,
+                                            shape = RoundedCornerShape(12.dp)
+                                        )
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) { assistedIntensity = level }
+                                ) {
+                                        Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
+                                            RadioButton(selected = isIntSelected, onClick = { assistedIntensity = level })
+                                            Column {
+                                                Text(name, style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold))
+                                                Text(desc, style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+
+                item {
+                    val program = WorkoutTemplates.generateAssistedProgram(
+                        getApplication = viewModel.getApplication(), 
+                        equipment = assistedEquipment, 
+                        bodyParts = assistedBodyParts.toList(), 
+                        daysCount = assistedDays,
+                        intensity = assistedIntensity
+                    )
+                    MissingBodyPartsWarningCard(
+                        missingParts = getMissingMuscleGroups(program.exercises),
+                        equipmentLimitedParts = program.unsatisfiedParts
+                    )
+                }
+
             } else {
                 // CUSTOM BUILD ROUTINE TAB
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
                         Text(
-                            text = stringResource(R.string.customize_exercises),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
+                            text = stringResource(R.string.exercises_count, customExercises.size),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                         )
+
+                        IconButton(
+                            onClick = { 
+                                focusManager.clearFocus()
+                                showAddCustomExerciseDialog = true 
+                            },
+                            modifier = Modifier.size(24.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Add,
+                                contentDescription = stringResource(R.string.add_exercise),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(24.dp)
+                            )
+                        }
+                    }
 
                         // LIVE MISSING BODY PART WARNING CARD FOR CUSTOM ROUTINE
                         val missingParts = getMissingMuscleGroups(customExercises)
                         MissingBodyPartsWarningCard(missingParts = missingParts)
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = stringResource(R.string.exercises_count, customExercises.size),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
                     }
                 }
 
@@ -709,7 +992,9 @@ fun FirstTimeSetupScreen(
                                     MuscleGroupBadge(muscleGroup = exercise.muscleGroup)
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
+                                        text = if (exercise.targetReps.contains("sec", ignoreCase = true)) 
+                                               stringResource(R.string.sets_x_time, exercise.targetSets, exercise.targetReps)
+                                               else stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
                                         style = MaterialTheme.typography.bodySmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
@@ -752,6 +1037,10 @@ fun FirstTimeSetupScreen(
             if (showFinalSaveConfirmation) {
                 AlertDialog(
                     onDismissRequest = { showFinalSaveConfirmation = false },
+                    properties = androidx.compose.ui.window.DialogProperties(
+                        dismissOnClickOutside = true,
+                        dismissOnBackPress = true
+                    ),
                     title = { Text(stringResource(R.string.confirm_new_program_title)) },
                     text = { Text(stringResource(R.string.confirm_new_program_message)) },
                     confirmButton = {
@@ -761,6 +1050,16 @@ fun FirstTimeSetupScreen(
                                 val finalName = workoutNameInput.trim().ifEmpty { fallbackName }
                                 if (selectedTab == 0) {
                                     viewModel.applyWorkoutTemplate(selectedTemplate, finalName)
+                                } else if (selectedTab == 1) {
+                                    // Generate and apply assisted program
+                                    val program = WorkoutTemplates.generateAssistedProgram(
+                                        getApplication = viewModel.getApplication(),
+                                        equipment = assistedEquipment,
+                                        bodyParts = assistedBodyParts.toList(),
+                                        daysCount = assistedDays,
+                                        intensity = assistedIntensity
+                                    )
+                                    viewModel.completeFirstTimeSetup(finalName, program.days, program.exercises)
                                 } else {
                                     viewModel.completeFirstTimeSetup(finalName, customDays, customExercises)
                                 }
@@ -842,7 +1141,9 @@ private fun AddExerciseDialog(
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "3") }
-    var targetReps by remember { mutableStateOf(exercise?.targetReps ?: "8-12") }
+    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    
+    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "8-12") }
 
     var expandedDay by remember { mutableStateOf(false) }
     var expandedMuscle by remember { mutableStateOf(false) }
@@ -856,6 +1157,32 @@ private fun AddExerciseDialog(
         title = { Text(stringResource(if (exercise == null) R.string.add_custom_exercise else R.string.edit_exercise)) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                // Reps / Seconds Switch
+                Row(
+                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)).padding(4.dp),
+                    horizontalArrangement = Arrangement.spacedBy(4.dp)
+                ) {
+                    listOf(false to stringResource(R.string.reps), true to stringResource(R.string.time_label)).forEach { (isTime, label) ->
+                        val isSelected = isTimeBased == isTime
+                        Surface(
+                            modifier = Modifier.weight(1f).clickable { 
+                                isTimeBased = isTime 
+                                if (isTime) targetRepsValue = "30"
+                            },
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = label,
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+                }
+
                 // Day of Week Dropdown
                 ExposedDropdownMenuBox(
                     expanded = expandedDay,
@@ -934,17 +1261,54 @@ private fun AddExerciseDialog(
                     OutlinedTextField(
                         value = targetSets,
                         onValueChange = { targetSets = it },
-                        label = { Text(stringResource(R.string.target_sets)) },
+                        label = { Text(stringResource(R.string.sets)) },
                         singleLine = true,
                         modifier = Modifier.weight(1f)
                     )
-                    OutlinedTextField(
-                        value = targetReps,
-                        onValueChange = { targetReps = it },
-                        label = { Text(stringResource(R.string.target_reps)) },
-                        singleLine = true,
-                        modifier = Modifier.weight(1f)
-                    )
+                    
+                    if (isTimeBased) {
+                        var expandedTime by remember { mutableStateOf(false) }
+                        val timeOptions = listOf("30", "45", "60", "90", "120")
+                        ExposedDropdownMenuBox(
+                            expanded = expandedTime,
+                            onExpandedChange = { expandedTime = !expandedTime },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val digitsOnly = targetRepsValue.filter { it.isDigit() }
+                            val displayValue = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s"
+                            OutlinedTextField(
+                                value = displayValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(stringResource(R.string.time_label)) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedTime,
+                                onDismissRequest = { expandedTime = false }
+                            ) {
+                                timeOptions.forEach { t ->
+                                    DropdownMenuItem(
+                                        text = { Text("${t}s") },
+                                        onClick = {
+                                            targetRepsValue = t
+                                            expandedTime = false
+                                        },
+                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        OutlinedTextField(
+                            value = targetRepsValue,
+                            onValueChange = { targetRepsValue = it },
+                            label = { Text(stringResource(R.string.reps)) },
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
                 }
 
                 if (isConfirming) {
@@ -958,12 +1322,30 @@ private fun AddExerciseDialog(
             }
         },
         confirmButton = {
+            val isRepsValid = remember(targetRepsValue, isTimeBased) {
+                if (isTimeBased) true
+                else {
+                    val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+                    if (parts.size == 2) {
+                        val v1 = parts[0].filter { it.isDigit() }.toIntOrNull()
+                        val v2 = parts[1].filter { it.isDigit() }.toIntOrNull()
+                        if (v1 != null && v2 != null) v1 <= v2 else true
+                    } else true
+                }
+            }
+
             Button(
                 onClick = {
-                    if (name.isNotBlank()) {
+                    if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
                         if (!isConfirming && exercise == null) {
                             isConfirming = true
                         } else {
+                            val finalReps = if (isTimeBased) {
+                                val digits = targetRepsValue.filter { it.isDigit() }
+                                if (digits.isNotBlank()) "$digits sec" else "30 sec"
+                            } else {
+                                targetRepsValue.trim()
+                            }
                             onConfirm(
                                 RoutineExerciseEntity(
                                     id = exercise?.id ?: 0,
@@ -971,7 +1353,7 @@ private fun AddExerciseDialog(
                                     name = name.trim(),
                                     muscleGroup = muscleGroup,
                                     targetSets = targetSets.toIntOrNull() ?: 3,
-                                    targetReps = targetReps.trim().ifEmpty { "8-12" },
+                                    targetReps = finalReps,
                                     videoUrl = exercise?.videoUrl ?: "",
                                     orderIndex = exercise?.orderIndex ?: 99
                                 )
@@ -980,7 +1362,7 @@ private fun AddExerciseDialog(
                         }
                     }
                 },
-                enabled = name.isNotBlank()
+                enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
             ) {
                 Text(
                     text = if (isConfirming) stringResource(R.string.confirm) 

@@ -4,6 +4,8 @@ import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.runtime.Composable
+import androidx.compose.runtime.LaunchedEffect
+import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
@@ -19,8 +21,14 @@ fun MyWorkoutTabScreen(
     initialTab: Int = 0,
     modifier: Modifier = Modifier
 ) {
+    val requestedTab by viewModel.requestedWorkoutSubTab.collectAsState()
     var selectedSubTab by remember { mutableIntStateOf(initialTab) }
     var showAddDialogOnLoad by remember { mutableStateOf(false) }
+
+    // Sync internal tab state with external requests (e.g., from Home or Onboarding)
+    LaunchedEffect(requestedTab) {
+        selectedSubTab = requestedTab
+    }
 
     // Handle back button for Routine Screen -> Workout Now Screen
     BackHandler(enabled = selectedSubTab != 0) {
