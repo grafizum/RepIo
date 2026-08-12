@@ -8,11 +8,11 @@ plugins {
 }
 
 android {
-  namespace = "com.example"
+  namespace = "com.grafizum.repio"
   compileSdk = 36 // Simplified standard syntax
 
   defaultConfig {
-    applicationId = "com.aistudio.workouttracker.app.kptidu"
+    applicationId = "com.grafizum.repio"
     minSdk = 24
     targetSdk = 36
     versionCode = 1
