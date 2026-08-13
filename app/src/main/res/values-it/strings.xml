@@ -78,9 +78,10 @@
     <string name="tap_bar_to_inspect">Tocca una barra per i dettagli giornalieri</string>
     <string name="muscle_group_focus">Focus gruppi muscolari</string>
     <string name="watch_demo">Guarda Demo</string>
+    <string name="edit_demo">Modifica Demo</string>
     <string name="watch_demo_video">Guarda Video Demo</string>
     <string name="edit_demo_link">Modifica Link Demo</string>
-    <string name="input_demo">Aggiungi Demo</string>
+    <string name="input_demo">Demo</string>
     <string name="input_demo_video">Aggiungi Video Demo</string>
     <string name="demo_video_link">Link Video Demo</string>
     <string name="enter_video_url_desc">Inserisci un URL video per questa demo:</string>
@@ -97,6 +98,9 @@
     <string name="notification_channel_desc">Notifica quando finisce la pausa tra le serie</string>
     <string name="notification_title">Pausa terminata! 💪</string>
     <string name="notification_text">È ora della prossima serie!</string>
+    <string name="replace">Sostituisci</string>
+    <string name="alternative_exercises">Esercizi Alternativi</string>
+    <string name="select_alternative_desc">Scegli un esercizio diverso per %1$s:</string>
     <string name="clear_history_title">Cancellare tutta la cronologia?</string>
     <string name="clear_history_text">Questo rimuoverà permanentemente tutte le serie registrate.</string>
     <string name="delete_all">Elimina tutto</string>
@@ -121,8 +125,10 @@
     <string name="weight_in_kg">Peso in kg</string>
     <string name="save_weight">Salva peso</string>
     <string name="custom">Personalizza</string>
+    <string name="editor">Editor</string>
     <string name="my_workout">Mio Allenamento</string>
-    <string name="workout">Allenamento</string>
+    <string name="workout">Modifica</string>
+    <string name="trained_muscles">Gruppo muscolare</string>
     <string name="rest_recovery_day">Giorno di riposo e recupero</string>
     <string name="rest_recovery_recommendation">Nessun allenamento pianificato per %1$s. Consigliata una camminata attiva o mobilità leggera!</string>
     <string name="workout_completed_title">Allenamento completato! 🎉</string>
@@ -153,12 +159,29 @@
     <string name="ex_equipment_dumbbell">Manubri</string>
     <string name="ex_equipment_bodyweight">Corpo libero</string>
     <string name="ex_equipment_cables">Cavi / Carrucole</string>
-    <string name="ex_bench_press_desc">Sdraiati su una panca piana e spingi il peso verso l\'alto dal petto. Allena i pettorali.</string>
-    <string name="ex_squats_desc">Abbassa i fianchi da una posizione eretta e poi rialzati. Allena tutta la parte inferiore del corpo.</string>
-    <string name="ex_deadlifts_desc">Solleva un bilanciere carico da terra fino al livello dei fianchi. Allena la catena posteriore.</string>
-    <string name="ex_pull_ups_desc">Solleva il corpo mentre sei appeso a una sbarra. Eccellente per dorsali e bicipiti.</string>
-    <string name="ex_overhead_press_desc">Spingi il peso verso l\'alto dal livello delle spalle fino a distendere le braccia. Allena spalle e tricipiti.</string>
+    <string name="ex_bench_press_desc">Sdraiati sulla schiena. Abbassa il peso al petto, quindi spingi verso l\'alto fino a distendere le braccia.</string>
+    <string name="ex_squats_desc">Abbassa i fianchi come per sederti su una sedia, quindi spingi con forza per tornare in piedi.</string>
+    <string name="ex_deadlifts_desc">Fletti i fianchi per afferrare il bilanciere. Schiena dritta, spingi sui talloni per alzarti.</string>
+    <string name="ex_pull_ups_desc">Appenditi alla barra e tira il petto verso l\'alto portando i gomiti verso il basso. Scendi con controllo.</string>
+    <string name="ex_overhead_press_desc">Spingi il peso dalle spalle verso l\'alto fino a distendere le braccia. Mantieni il core contratto.</string>
+    <string name="ex_curls_desc">Tieni i gomiti vicini ai fianchi. Solleva i pesi verso le spalle e abbassali lentamente.</string>
+    <string name="ex_rows_desc">Piegati in avanti con la schiena dritta. Tira il peso verso le costole inferiori, contraendo le scapole.</string>
+    <string name="ex_lateral_raise_desc">Solleva i pesi lateralmente fino all\'altezza delle spalle. Mantieni i gomiti leggermente flessi.</string>
+    <string name="ex_plank_desc">Appoggia il peso sugli avambracci e sulle punte dei piedi. Mantieni il corpo dritto senza inarcare la schiena.</string>
+    <string name="ex_tricep_extension_desc">Abbassa il peso dietro la testa flettendo i gomiti, quindi distendi le braccia per spingerlo verso l\'alto.</string>
+    <string name="ex_lunges_desc">Fai un passo avanti e abbassa i fianchi fino a formare un angolo di 90 gradi con entrambe le ginocchia.</string>
+    <string name="ex_abs_desc">Per i crunch, solleva le spalle dal pavimento. Per il sollevamento gambe, solleva le gambe tese verso il soffitto.</string>
+    <string name="ex_master_desc">Sessione Variabile: L\'app seleziona la variazione ottimale per questo esercizio per mantenere la tua routine efficace e varia.</string>
     <string name="save">Salva</string>
+    <string name="edit">Modifica</string>
+    <string name="delete">Elimina</string>
+    <string name="delete_selected">Selezionati (%1$d)</string>
+    <string name="select_all">Seleziona tutto</string>
+    <string name="deselect_all">Deseleziona tutto</string>
+    <string name="confirm_delete_title">Elimina esercizio?</string>
+    <string name="confirm_delete_msg">Sei sicuro di voler eliminare questo esercizio?</string>
+    <string name="confirm_delete_multiple_title">Elimina esercizi?</string>
+    <string name="confirm_delete_multiple_msg">Sei sicuro di voler eliminare %1$d esercizi?</string>
     <string name="workout_templates">Modelli di allenamento</string>
     <string name="switch_program_text">Passa a uno dei nostri split progettati in qualsiasi momento.</string>
     <string name="apply">Applica</string>
@@ -237,10 +260,11 @@
     <string name="fullbody_3day_desc">Allenamento efficiente di tutti i gruppi muscolari ogni sessione. Ideale per chi ha poco tempo.</string>
 
     <string name="most_popular">Più popolare</string>
-    <string name="strength_mass">Forza e massa</string>
+    <string name="strength_mass">6-Day Forza e massa</string>
     <string name="optimal_recovery">Recupero ottimale</string>
     <string name="time_efficient">Efficienza temporale</string>
-    <string name="workout_days_plus_rest">%1$d giorni allenamento + %2$d giorni riposo</string>
+    <string name="workout_days_plus_rest">%1$d Giorni Allenamento + %2$d Giorni Riposo</string>
+    <string name="rest_days_only">%1$d giorni riposo</string>
 
     <!-- Exercise Names -->
     <string name="ex_barbell_bent_over_row">Rematore con bilanciere</string>
@@ -337,8 +361,8 @@
     <string name="confirm">Conferma</string>
     <string name="confirm_action_question">L\'applicazione di queste modifiche aggiornerà la configurazione del tuo allenamento attuale.</string>
     <string name="max_characters_reached">Limite massimo caratteri raggiunto (20)</string>
-    <string name="confirm_new_program_title">Conferma nuovo allenamento</string>
-    <string name="confirm_new_program_message">Salvare questo sostituirà il tuo piano di allenamento attuale. Sei sicuro di voler continuare?</string>
+    <string name="confirm_new_program_title">Confermare il nuovo allenamento?</string>
+    <string name="confirm_new_program_message">Questo sostituirà il tuo piano attuale. Vuoi continuare?</string>
     <string name="exit_app_title">Uscire dall\'app?</string>
     <string name="exit_app_message">Sei sicuro di voler uscire?</string>
     <string name="exit">Esci</string>
@@ -393,4 +417,7 @@
 
     <string name="equipment_limitation_title">Limitazione Attrezzatura</string>
     <string name="equipment_limitation_desc">I seguenti gruppi muscolari non possono essere allenati efficacemente con l\'attrezzatura selezionata: %1$s.</string>
+    <string name="rep_format_error">Il formato deve essere un numero (10) o un intervallo (8-12)</string>
+    <string name="invalid_char_error">Sono ammessi solo numeri e trattini</string>
+    <string name="only_numbers_error">Sono ammessi solo numeri</string>
 </resources>

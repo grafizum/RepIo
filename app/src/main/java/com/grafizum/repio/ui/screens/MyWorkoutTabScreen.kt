@@ -48,10 +48,6 @@ fun MyWorkoutTabScreen(
             RoutineScreen(
                 viewModel = viewModel,
                 onBack = { selectedSubTab = 0 },
-                onNavigateToWorkoutNow = { day ->
-                    viewModel.selectDayForWorkoutNow(day)
-                    selectedSubTab = 0
-                },
                 initialShowAddDialog = showAddDialogOnLoad,
                 onAddDialogDismissed = { showAddDialogOnLoad = false },
                 onCustomClick = { selectedSubTab = 0 }

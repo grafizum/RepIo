@@ -20,6 +20,8 @@ import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.SharingStarted
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
+import kotlinx.coroutines.flow.combine
+import kotlinx.coroutines.flow.distinctUntilChanged
 import kotlinx.coroutines.flow.stateIn
 import kotlinx.coroutines.flow.update
 import kotlinx.coroutines.launch
@@ -46,11 +48,15 @@ data class WorkoutNowState(
     val currentSetNumber: Int = 1,
     val currentWeightKg: Double = 20.0,
     val currentReps: Int = 10,
+    val minReps: Int = 1,
+    val maxReps: Int = 100,
     val isWorkoutCompleted: Boolean = false,
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
     val isExerciseTimerActive: Boolean = false,
     val currentExerciseSeconds: Int = 30,
+    val minExerciseSeconds: Int = 10,
+    val maxExerciseSeconds: Int = 600,
     val totalSetsLoggedToday: Int = 0
 )
 
@@ -113,13 +119,6 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             repository.ensureDataSeeded(application)
         }
 
-        viewModelScope.launch {
-            while (true) {
-                kotlinx.coroutines.delay(1000L)
-                tickTimer()
-            }
-        }
-
         allRoutineDays = repository.allRoutineDays.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
@@ -137,6 +136,42 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
             SharingStarted.WhileSubscribed(5000),
             emptyList()
         )
+
+        // Reactive parameter cache loader: Updates weight, reps, and seconds when the exercise changes
+        viewModelScope.launch {
+            combine(_workoutNowState, allRoutineExercises) { state, exercises ->
+                val currentDayExs = exercises.filter { it.dayOfWeek == state.selectedDayOfWeek }
+                currentDayExs.getOrNull(state.currentExerciseIndex)
+            }.distinctUntilChanged { old, new -> old?.id == new?.id }
+                .collect { exercise ->
+                    exercise?.let {
+                        val cachedWeight = getCachedWeightForExercise(it.name)
+                        val isTimeBased = it.targetReps.contains("sec", ignoreCase = true)
+                        
+                        // Parse min/max reps/seconds from the routine string (e.g. "8-12" -> (8, 12))
+                        val (minVal, maxVal) = parseRepsRange(it.targetReps)
+                        
+                        _workoutNowState.update { state ->
+                            state.copy(
+                                currentWeightKg = cachedWeight,
+                                currentReps = if (!isTimeBased) maxVal else state.currentReps,
+                                minReps = if (!isTimeBased) minVal else 1,
+                                maxReps = if (!isTimeBased) maxVal else 100,
+                                currentExerciseSeconds = if (isTimeBased) maxVal else state.currentExerciseSeconds,
+                                minExerciseSeconds = if (isTimeBased) minVal else 10,
+                                maxExerciseSeconds = if (isTimeBased) maxVal else 600
+                            )
+                        }
+                    }
+                }
+        }
+
+        viewModelScope.launch {
+            while (true) {
+                kotlinx.coroutines.delay(1000L)
+                tickTimer()
+            }
+        }
     }
 
     private fun saveWorkoutNowState(state: WorkoutNowState) {
@@ -201,23 +236,12 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun setThemeOption(theme: String) {
         val oldTheme = _themeOption.value
-        val oldIsLight = isThemeLight(oldTheme)
-        val newIsLight = isThemeLight(theme)
-
         _themeOption.value = theme
         prefs.edit().putString("theme_option", theme).apply()
 
-        // Only trigger restart dialog and icon/splash change if crossing Light/Dark boundary
-        if (oldIsLight != newIsLight) {
-            // Icon change is delayed until user confirms in the dialog to prevent immediate app close
+        // Show restart dialog if theme changes (since icons/splash require restart/component state change)
+        if (oldTheme != theme) {
             _showRestartDialog.value = true
-        }
-    }
-
-    private fun isThemeLight(theme: String): Boolean {
-        return when (theme.uppercase()) {
-            "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
-            else -> false
         }
     }
 
@@ -227,17 +251,13 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
 
     fun applyThemeRestart() {
         val currentTheme = _themeOption.value
-        setAppIcon(isThemeLight(currentTheme))
+        setAppIcon(currentTheme)
         dismissRestartDialog()
     }
 
-    fun setAppIcon(isLightTheme: Boolean) {
+    fun setAppIcon(themeKey: String) {
         val context = getApplication<Application>()
-        if (isLightTheme) {
-            com.grafizum.repio.util.IconSwitchHelper.switchIcon(context, com.grafizum.repio.util.IconSwitchHelper.getBeigeAlias(context))
-        } else {
-            com.grafizum.repio.util.IconSwitchHelper.switchIcon(context, com.grafizum.repio.util.IconSwitchHelper.getOrangeAlias(context))
-        }
+        com.grafizum.repio.util.IconSwitchHelper.switchIcon(context, themeKey)
     }
 
     fun setAppLanguage(languageCode: String) {
@@ -340,12 +360,97 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     }
 
     fun updateWeightAndReps(weight: Double, reps: Int) {
-        val newState = _workoutNowState.value.copy(
+        val currentState = _workoutNowState.value
+        val isTimeBased = allRoutineExercises.value
+            .filter { it.dayOfWeek == currentState.selectedDayOfWeek }
+            .getOrNull(currentState.currentExerciseIndex)
+            ?.targetReps?.contains("sec", ignoreCase = true) ?: false
+
+        val constrainedReps = if (isTimeBased) reps else reps.coerceIn(currentState.minReps, currentState.maxReps)
+
+        val newState = currentState.copy(
             currentWeightKg = weight.coerceAtLeast(0.0),
-            currentReps = reps.coerceAtLeast(1)
+            currentReps = constrainedReps
+        )
+        _workoutNowState.update { newState }
+        
+        // Cache weight and reps for this exercise
+        val currentExercises = allRoutineExercises.value.filter { it.dayOfWeek == currentState.selectedDayOfWeek }
+        if (currentExercises.isNotEmpty()) {
+            val exercise = currentExercises.getOrNull(currentState.currentExerciseIndex)
+            exercise?.let { 
+                saveCachedWeightForExercise(it.name, weight)
+                val isTimeBased = it.targetReps.contains("sec", ignoreCase = true)
+                if (!isTimeBased) {
+                    saveCachedRepsForExercise(it.name, reps)
+                }
+            }
+        }
+
+        saveWorkoutNowState(newState)
+    }
+
+    fun updateExerciseSeconds(seconds: Int) {
+        val currentState = _workoutNowState.value
+        val newState = currentState.copy(
+            currentExerciseSeconds = seconds.coerceIn(currentState.minExerciseSeconds, currentState.maxExerciseSeconds)
         )
         _workoutNowState.value = newState
+
+        // Cache seconds for this exercise
+        val currentExercises = allRoutineExercises.value.filter { it.dayOfWeek == currentState.selectedDayOfWeek }
+        if (currentExercises.isNotEmpty()) {
+            val exercise = currentExercises.getOrNull(currentState.currentExerciseIndex)
+            exercise?.let { 
+                val isTimeBased = it.targetReps.contains("sec", ignoreCase = true)
+                if (isTimeBased) {
+                    saveCachedRepsForExercise(it.name, seconds)
+                }
+            }
+        }
+
         saveWorkoutNowState(newState)
+    }
+
+    private fun saveCachedWeightForExercise(exerciseName: String, weight: Double) {
+        prefs.edit().putFloat("cache_weight_${exerciseName}", weight.toFloat()).apply()
+        
+        // Differentiate by equipment as requested
+        if (exerciseName.contains("Dumbbell", ignoreCase = true)) {
+            prefs.edit().putFloat("cache_weight_Dumbbell", weight.toFloat()).apply()
+        } else if (exerciseName.contains("Barbell", ignoreCase = true)) {
+            prefs.edit().putFloat("cache_weight_Barbell", weight.toFloat()).apply()
+        }
+    }
+
+    private fun saveCachedRepsForExercise(exerciseName: String, repsOrSeconds: Int) {
+        prefs.edit().putInt("cache_reps_${exerciseName}", repsOrSeconds).apply()
+    }
+
+    private fun getCachedWeightForExercise(exerciseName: String): Double {
+        // 1. Try exact exercise match
+        val exerciseWeight = prefs.getFloat("cache_weight_${exerciseName}", -1f)
+        if (exerciseWeight != -1f) return exerciseWeight.toDouble()
+        
+        // 2. Fallback to equipment category
+        if (exerciseName.contains("Dumbbell", ignoreCase = true)) {
+            val dbWeight = prefs.getFloat("cache_weight_Dumbbell", -1f)
+            if (dbWeight != -1f) return dbWeight.toDouble()
+        } else if (exerciseName.contains("Barbell", ignoreCase = true)) {
+            val bbWeight = prefs.getFloat("cache_weight_Barbell", -1f)
+            if (bbWeight != -1f) return bbWeight.toDouble()
+        }
+        
+        // 3. Global fallback
+        return prefs.getFloat("saved_weight_kg", 20.0f).toDouble()
+    }
+
+    private fun getCachedRepsForExercise(exerciseName: String): Int {
+        val cached = prefs.getInt("cache_reps_${exerciseName}", -1)
+        if (cached != -1) return cached
+
+        // Global fallback from state/defaults
+        return 10 
     }
 
     fun incrementWeight() {
@@ -362,13 +467,7 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
         updateWeightAndReps(prevWeight, currentState.currentReps)
     }
 
-    fun updateExerciseSeconds(seconds: Int) {
-        val newState = _workoutNowState.value.copy(
-            currentExerciseSeconds = seconds.coerceIn(10, 600)
-        )
-        _workoutNowState.value = newState
-        saveWorkoutNowState(newState)
-    }
+
 
     fun startRestTimer(seconds: Int, isExerciseTimer: Boolean = false, silent: Boolean = false) {
         if (seconds <= 0) return
@@ -655,6 +754,21 @@ class WorkoutViewModel(application: Application) : AndroidViewModel(application)
     fun deleteExercise(id: Long) {
         viewModelScope.launch {
             repository.deleteExercise(id)
+        }
+    }
+
+    private fun parseRepsRange(targetReps: String): Pair<Int, Int> {
+        val regex = Regex("(\\d+)")
+        val matches = regex.findAll(targetReps).toList()
+        return if (matches.size >= 2) {
+            val v1 = matches[0].value.toInt()
+            val v2 = matches.last().value.toInt()
+            Math.min(v1, v2) to Math.max(v1, v2)
+        } else if (matches.size == 1) {
+            val v = matches[0].value.toInt()
+            v to v
+        } else {
+            10 to 10 // Fallback
         }
     }
 

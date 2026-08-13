@@ -7,5 +7,11 @@ package com.grafizum.repio
  * Android activity-aliases do not support custom themes, so separate 
  * classes are necessary to bypass this platform limitation.
  */
-class MainActivityOrange : MainActivity()
+class MainActivityFlame : MainActivity()
 class MainActivityBeige : MainActivity()
+class MainActivityPurple : MainActivity()
+class MainActivityEmerald : MainActivity()
+class MainActivityCrimson : MainActivity()
+class MainActivityAzure : MainActivity()
+class MainActivityOcean : MainActivity()
+class MainActivityRose : MainActivity()

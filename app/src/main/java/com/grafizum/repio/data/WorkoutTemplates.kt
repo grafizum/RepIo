@@ -46,6 +46,31 @@ object WorkoutTemplates {
         "Hip Abductors" to "4–10 sets (Isolation for hip health)"
     )
 
+    // Master Workouts: Groups of related exercises for automatic variation
+    val masterWorkouts = mapOf(
+        "Push-ups (Master)" to listOf("Push-ups", "Incline Push-ups", "Diamond Push-ups", "Wide Push-ups", "Archer Push-ups", "Decline Push-ups"),
+        "Squats (Master)" to listOf("Squats", "Sumo Squats", "Bulgarian Split Squats", "Goblet Squats", "Jump Squats"),
+        "Dumbbell Press (Master)" to listOf("Dumbbell Floor Press", "Incline DB Press", "Dumbbell Shoulder Press", "Dumbbell Flyes"),
+        "Barbell Press (Master)" to listOf("Barbell Bench Press", "Incline Barbell Press", "Military Press", "Close Grip Press"),
+        "Rows (Master)" to listOf("Barbell Row", "One-arm Dumbbell Row", "Seated Row", "Pendlay Rows"),
+        "Plank (Master)" to listOf("Plank", "Side Plank", "Plank-to-Down-Dog", "Shoulder Taps"),
+        "Deadlift (Master)" to listOf("Deadlifts", "Romanian Deadlifts", "Sumo Deadlifts", "Stiff-Legged Deadlifts"),
+        "Curls (Master)" to listOf("Barbell Curls", "Dumbbell Curls", "Hammer Curls", "Preacher Curls", "Reverse Curls")
+    )
+
+    fun resolveMasterWorkout(name: String): String {
+        return if (name.endsWith("(Master)")) {
+            val variations = masterWorkouts[name] ?: return name.removeSuffix(" (Master)")
+            // Pick a "best" or random variation. 
+            // In a real app, this could be based on history or muscle balance.
+            // For now, we'll pick one based on the current day's hash to keep it consistent for the session.
+            val seed = java.util.Calendar.getInstance().get(java.util.Calendar.DAY_OF_YEAR)
+            variations[seed % variations.size]
+        } else {
+            name
+        }
+    }
+
     data class GeneratedProgram(
         val days: List<RoutineDayEntity>,
         val exercises: List<RoutineExerciseEntity>,
@@ -183,23 +208,113 @@ object WorkoutTemplates {
     }
 
     fun getAllExerciseNames(): List<String> {
-        val groups = listOf("Chest", "Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors")
-        return groups.flatMap { g ->
+        val groups = getAllMuscleGroups()
+        val individual = groups.flatMap { g ->
             getGymExercises(g) + getBarbellExercises(g) + getDumbbellExercises(g) + getBodyweightExercises(g)
-        }.distinct().sorted()
+        }
+        val masters = masterWorkouts.keys.toList()
+        return (masters + individual).distinct().sorted()
     }
 
-    private fun getMuscleGroupForExercise(name: String): String {
-        // Very basic mapping for included exercises if we don't know their group
-        // In a real app, we might search all pools
-        val groups = listOf("Chest", "Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors")
-        for (g in groups) {
-            if (getGymExercises(g).contains(name) || 
-                getBarbellExercises(g).contains(name) || 
-                getDumbbellExercises(g).contains(name) || 
-                getBodyweightExercises(g).contains(name)) return g
+    fun getAllMuscleGroups(): List<String> {
+        val categories = listOf("Arms", "Legs", "Back", "Chest", "Shoulders", "Core")
+        val detailed = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors")
+        return (categories + detailed).distinct().sorted()
+    }
+
+    fun getTopicForMuscle(muscle: String): String {
+        val mg = muscle.lowercase().trim()
+        return when {
+            mg.contains("chest") -> "Chest"
+            mg.contains("back") || mg.contains("lat") || mg.contains("trap") || mg.contains("erector") -> "Back"
+            mg.contains("leg") || mg.contains("quad") || mg.contains("hamstring") || mg.contains("glute") || mg.contains("calve") || mg.contains("adductor") || mg.contains("abductor") -> "Legs"
+            mg.contains("shoulder") || mg.contains("delt") -> "Shoulders"
+            mg.contains("bicep") || mg.contains("tricep") || mg.contains("arm") || mg.contains("forearm") -> "Arms"
+            mg.contains("abs") || mg.contains("core") || mg.contains("oblique") || mg.contains("abdominal") -> "Core"
+            else -> "Other"
         }
-        return "Other"
+    }
+
+    fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String): List<String> {
+        val topic = getTopicForMuscle(muscleGroup)
+        val allForGroup = getGymExercises(topic) + 
+                         getBarbellExercises(topic) + 
+                         getDumbbellExercises(topic) + 
+                         getBodyweightExercises(topic)
+        
+        val relevantMasters = masterWorkouts.keys.filter { getTopicForMuscle(getMuscleGroupForExercise(it)) == topic }
+        
+        return (allForGroup + relevantMasters).distinct()
+            .filter { it.lowercase() != currentExerciseName.lowercase() }
+            .sorted()
+    }
+
+    fun getMuscleGroupForExercise(name: String): String {
+        val cleanName = name.trim().lowercase()
+
+        // 0. Handle Master Workouts
+        if (name.endsWith("(Master)")) {
+            val variations = masterWorkouts[name]
+            if (!variations.isNullOrEmpty()) {
+                return getMuscleGroupForExercise(variations.first())
+            }
+        }
+
+        // 1. Specific matches in Pools (Returns detailed muscle)
+        val detailedGroups = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Chest")
+        for (g in detailedGroups) {
+            if (getGymExercises(g).any { it.equals(name, ignoreCase = true) } || 
+                getBarbellExercises(g).any { it.equals(name, ignoreCase = true) } || 
+                getDumbbellExercises(g).any { it.equals(name, ignoreCase = true) } || 
+                getBodyweightExercises(g).any { it.equals(name, ignoreCase = true) }) return g
+        }
+        
+        // 2. Keyword fallback
+        return when {
+            cleanName.contains("bench") || cleanName.contains("chest") || cleanName.contains("fly") -> "Chest"
+            cleanName.contains("row") || cleanName.contains("lat") || cleanName.contains("pull") -> "Lats"
+            cleanName.contains("curl") -> "Biceps"
+            cleanName.contains("press") && (cleanName.contains("shoulder") || cleanName.contains("overhead")) -> "Shoulders"
+            cleanName.contains("squat") || cleanName.contains("leg") -> "Quadriceps"
+            cleanName.contains("abs") || cleanName.contains("crunch") || cleanName.contains("plank") -> "Abs"
+            else -> "Other"
+        }
+    }
+
+    fun isExerciseTimeBased(name: String): Boolean {
+        val cleanName = name.trim().lowercase()
+        return cleanName.contains("plank") || cleanName.contains("hold") || cleanName.contains("rest")
+    }
+
+    fun getRecommendedRepsForExercise(name: String): String {
+        if (isExerciseTimeBased(name)) return "30"
+        
+        val cleanName = name.trim().lowercase()
+        val muscleGroup = getMuscleGroupForExercise(name)
+        
+        return when {
+            // Compounds / Heavy
+            cleanName.contains("squat") || cleanName.contains("deadlift") || 
+            cleanName.contains("bench") || cleanName.contains("press") ||
+            cleanName.contains("row") || cleanName.contains("pull-up") -> "8–12"
+            
+            // Isolations
+            muscleGroup in listOf("Biceps", "Triceps", "Lateral Deltoids", "Rear Deltoids", "Calves") -> "10–15"
+            
+            // Core
+            muscleGroup == "Abs" || muscleGroup == "Obliques" -> "15–20"
+            
+            else -> "8–12"
+        }
+    }
+
+    fun getRecommendedSetsForExercise(name: String): Int {
+        val cleanName = name.trim().lowercase()
+        return when {
+            cleanName.contains("deadlift") -> 2
+            cleanName.contains("plank") || cleanName.contains("hold") -> 2
+            else -> 3
+        }
     }
 
     private fun getExercisesForStrict(equipment: List<String>, bodyPart: String): List<String> {
@@ -215,95 +330,127 @@ object WorkoutTemplates {
     }
 
     // Refined "Science-Based" Exercise Lists
-    private fun getBodyweightExercises(bodyPart: String): List<String> = when(bodyPart) {
-        "Chest" -> listOf("Push-ups", "Incline Push-ups", "Decline Push-ups")
-        "Front Deltoids" -> listOf("Pike Push-ups", "Shoulder Taps")
-        "Lateral Deltoids" -> listOf("Plank-to-Down-Dog", "Side Plank Rotations")
-        "Rear Deltoids" -> emptyList() // Extremely hard without pulling equipment
-        "Lats" -> emptyList() // Requires pull-up bar
-        "Upper Back" -> emptyList() // Requires pulling equipment
-        "Upper Traps" -> listOf("Scapular Push-ups")
-        "Spinal Erectors" -> listOf("Supermans", "Bridges")
-        "Biceps" -> emptyList() // Requires pulling equipment
-        "Triceps" -> listOf("Dips (Chair)", "Diamond Push-ups", "Close-Grip Push-ups")
-        "Forearms" -> listOf("Fist Squeezes", "Towel Hangs (if possible)")
-        "Abs" -> listOf("Crunches (sit-ups)", "Leg Raises", "Plank")
-        "Obliques" -> listOf("Russian Twists", "Bicycle Crunches")
-        "Quadriceps" -> listOf("Squats", "Lunges", "Step-ups")
-        "Hamstrings" -> listOf("Glute Bridges", "Nordic Hamstring Curls")
-        "Glutes" -> listOf("Glute Bridges", "Donkey Kicks", "Fire Hydrants")
-        "Calves" -> listOf("Calf Raises", "Single Leg Calf Raises")
-        "Hip Adductors" -> listOf("Side Lying Leg Raises", "Sumo Squats")
-        "Hip Abductors" -> listOf("Clamshells", "Side Steps")
+    private fun getBodyweightExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
+        "chest" -> listOf("Push-ups", "Incline Push-ups", "Decline Push-ups")
+        "front deltoids" -> listOf("Pike Push-ups", "Shoulder Taps")
+        "lateral deltoids" -> listOf("Plank-to-Down-Dog", "Side Plank Rotations")
+        "rear deltoids" -> emptyList()
+        "lats" -> listOf("Pull-ups", "Chin-ups")
+        "upper back" -> emptyList()
+        "upper traps" -> listOf("Scapular Push-ups")
+        "spinal erectors" -> listOf("Supermans", "Bridges")
+        "biceps" -> emptyList()
+        "triceps" -> listOf("Dips (Chair)", "Diamond Push-ups", "Close-Grip Push-ups")
+        "forearms" -> listOf("Fist Squeezes", "Towel Hangs")
+        "abs" -> listOf("Crunches (sit-ups)", "Leg Raises", "Plank")
+        "obliques" -> listOf("Russian Twists", "Bicycle Crunches")
+        "quadriceps" -> listOf("Squats", "Lunges", "Step-ups")
+        "hamstrings" -> listOf("Glute Bridges", "Nordic Hamstring Curls")
+        "glutes" -> listOf("Glute Bridges", "Donkey Kicks", "Fire Hydrants")
+        "calves" -> listOf("Calf Raises", "Single Leg Calf Raises")
+        "hip adductors" -> listOf("Side Lying Leg Raises", "Sumo Squats")
+        "hip abductors" -> listOf("Clamshells", "Side Steps")
+        
+        // Broad Category Fallbacks
+        "shoulders" -> listOf("Pike Push-ups", "Shoulder Taps")
+        "back" -> listOf("Pull-ups", "Supermans")
+        "legs" -> listOf("Squats", "Lunges", "Glute Bridges")
+        "arms" -> listOf("Dips (Chair)", "Diamond Push-ups")
+        "core" -> listOf("Plank", "Crunches (sit-ups)", "Leg Raises")
+        
         else -> emptyList()
     }
 
-    private fun getDumbbellExercises(bodyPart: String): List<String> = when(bodyPart) {
-        "Chest" -> listOf("Dumbbell Floor Press", "Dumbbell Flyes", "Incline DB Press")
-        "Front Deltoids" -> listOf("Dumbbell Front Raises", "Dumbbell Shoulder Press")
-        "Lateral Deltoids" -> listOf("Lateral Raises", "Leaning Lateral Raises")
-        "Rear Deltoids" -> listOf("Bent-over Rear Delt Flyes")
-        "Lats" -> listOf("One-arm Dumbbell Row", "Dumbbell Pullover")
-        "Upper Back" -> listOf("Dumbbell Rows", "Face Pulls (with DBs)")
-        "Upper Traps" -> listOf("Dumbbell Shrugs")
-        "Spinal Erectors" -> listOf("Dumbbell Deadlifts", "DB Back Extensions")
-        "Biceps" -> listOf("Dumbbell Curls", "Hammer Curls", "Incline Curls")
-        "Triceps" -> listOf("Overhead Extension", "Kickbacks", "Skullcrushers (DB)")
-        "Forearms" -> listOf("Wrist Curls", "Reverse Curls")
-        "Abs" -> listOf("Weighted Crunches", "DB Side Bends")
-        "Obliques" -> listOf("Russian Twists (with DB)")
-        "Quadriceps" -> listOf("Dumbbell Squats", "Goblet Squats", "DB Lunges")
-        "Hamstrings" -> listOf("DB Romanian Deadlifts", "Leg Curls (DB)")
-        "Glutes" -> listOf("DB Glute Bridges", "DB Sumos")
-        "Calves" -> listOf("DB Calf Raises")
-        "Hip Adductors" -> listOf("Sumo Squats (DB)")
-        "Hip Abductors" -> listOf("Side Lying Leg Raises (with weight)")
+    private fun getDumbbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
+        "chest" -> listOf("Dumbbell Floor Press", "Dumbbell Flyes", "Incline DB Press")
+        "front deltoids" -> listOf("Dumbbell Front Raises", "Dumbbell Shoulder Press")
+        "lateral deltoids" -> listOf("Lateral Raises", "Leaning Lateral Raises")
+        "rear deltoids" -> listOf("Bent-over Rear Delt Flyes")
+        "lats" -> listOf("One-arm Dumbbell Row", "Dumbbell Pullover")
+        "upper back" -> listOf("Dumbbell Rows", "Face Pulls (with DBs)")
+        "upper traps" -> listOf("Dumbbell Shrugs")
+        "spinal erectors" -> listOf("Dumbbell Deadlifts", "DB Back Extensions")
+        "biceps" -> listOf("Dumbbell Curls", "Hammer Curls", "Incline Curls")
+        "triceps" -> listOf("Overhead Extension", "Kickbacks", "Skullcrushers (DB)")
+        "forearms" -> listOf("Wrist Curls", "Reverse Curls")
+        "abs" -> listOf("Weighted Crunches", "DB Side Bends")
+        "obliques" -> listOf("Russian Twists (with DB)")
+        "quadriceps" -> listOf("Dumbbell Squats", "Goblet Squats", "DB Lunges")
+        "hamstrings" -> listOf("DB Romanian Deadlifts", "Leg Curls (DB)")
+        "glutes" -> listOf("DB Glute Bridges", "DB Sumos")
+        "calves" -> listOf("DB Calf Raises")
+        "hip adductors" -> listOf("Sumo Squats (DB)")
+        "hip abductors" -> listOf("Side Lying Leg Raises (with weight)")
+
+        // Broad Category Fallbacks
+        "shoulders" -> listOf("Dumbbell Shoulder Press", "Lateral Raises", "Front Raises", "Thrusters")
+        "back" -> listOf("Dumbbell Rows", "One-arm Dumbbell Row", "Dumbbell Pullover")
+        "legs" -> listOf("Dumbbell Squats", "Goblet Squats", "DB Lunges", "DB Romanian Deadlifts")
+        "arms" -> listOf("Dumbbell Curls", "Hammer Curls", "Overhead Extension", "Kickbacks")
+        "core" -> listOf("Weighted Crunches", "DB Side Bends", "Russian Twists (with DB)")
+
         else -> listOf("Thrusters")
     }
 
-    private fun getBarbellExercises(bodyPart: String): List<String> = when(bodyPart) {
-        "Chest" -> listOf("Barbell Bench Press", "Barbell Floor Press", "Incline Barbell Press")
-        "Front Deltoids" -> listOf("Military Press", "Barbell Front Raises")
-        "Lateral Deltoids" -> listOf("Upright Rows", "Wide Grip Military Press")
-        "Rear Deltoids" -> listOf("Bent-over Barbell Rows")
-        "Lats" -> listOf("Barbell Row", "Barbell Pullovers")
-        "Upper Back" -> listOf("Barbell Row", "Pendlay Rows")
-        "Upper Traps" -> listOf("Barbell Shrugs")
-        "Spinal Erectors" -> listOf("Deadlifts", "Barbell Good Mornings")
-        "Biceps" -> listOf("Barbell Curls", "Reverse Barbell Curls")
-        "Triceps" -> listOf("Close Grip Press", "Skullcrushers (Barbell)")
-        "Forearms" -> listOf("Barbell Wrist Curls")
-        "Abs" -> listOf("Barbell Rollouts")
-        "Obliques" -> listOf("Barbell Side Bends")
-        "Quadriceps" -> listOf("Barbell Squats", "Front Squats", "Barbell Lunges")
-        "Hamstrings" -> listOf("Barbell Romanian Deadlifts")
-        "Glutes" -> listOf("Barbell Hip Thrusts", "Deadlifts")
-        "Calves" -> listOf("Barbell Calf Raises")
-        "Hip Adductors" -> listOf("Sumo Deadlifts")
-        "Hip Abductors" -> listOf("Barbell Curtsey Lunges")
+    private fun getBarbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
+        "chest" -> listOf("Barbell Bench Press", "Barbell Floor Press", "Incline Barbell Press")
+        "front deltoids" -> listOf("Military Press", "Barbell Front Raises")
+        "lateral deltoids" -> listOf("Upright Rows", "Wide Grip Military Press")
+        "rear deltoids" -> listOf("Bent-over Barbell Rows")
+        "lats" -> listOf("Barbell Row", "Barbell Pullovers")
+        "upper back" -> listOf("Barbell Row", "Pendlay Rows")
+        "upper traps" -> listOf("Barbell Shrugs")
+        "spinal erectors" -> listOf("Deadlifts", "Barbell Good Mornings")
+        "biceps" -> listOf("Barbell Curls", "Reverse Barbell Curls")
+        "triceps" -> listOf("Close Grip Press", "Skullcrushers (Barbell)")
+        "forearms" -> listOf("Barbell Wrist Curls")
+        "abs" -> listOf("Barbell Rollouts")
+        "obliques" -> listOf("Barbell Side Bends")
+        "quadriceps" -> listOf("Barbell Squats", "Front Squats", "Barbell Lunges")
+        "hamstrings" -> listOf("Barbell Romanian Deadlifts")
+        "glutes" -> listOf("Barbell Hip Thrusts", "Deadlifts")
+        "calves" -> listOf("Barbell Calf Raises")
+        "hip adductors" -> listOf("Sumo Deadlifts")
+        "hip abductors" -> listOf("Barbell Curtsey Lunges")
+
+        // Broad Category Fallbacks
+        "shoulders" -> listOf("Military Press", "Barbell Front Raises", "Upright Rows", "Clean & Press")
+        "back" -> listOf("Barbell Row", "Deadlifts", "Pendlay Rows")
+        "legs" -> listOf("Barbell Squats", "Barbell Romanian Deadlifts", "Barbell Lunges", "Deadlifts")
+        "arms" -> listOf("Barbell Curls", "Close Grip Press", "Skullcrushers (Barbell)")
+        "core" -> listOf("Barbell Rollouts", "Barbell Side Bends")
+
         else -> listOf("Clean & Press")
     }
 
-    private fun getGymExercises(bodyPart: String): List<String> = when(bodyPart) {
-        "Chest" -> listOf("Bench Press", "Cable Flyes", "Incline Press")
-        "Front Deltoids" -> listOf("Military Press", "Shoulder Press Machine")
-        "Lateral Deltoids" -> listOf("Side Raises", "Cable Lateral Raises")
-        "Rear Deltoids" -> listOf("Face Pulls", "Rear Delt Deck")
-        "Lats" -> listOf("Lat Pulldown", "Seated Row", "Pull-ups")
-        "Upper Back" -> listOf("Barbell Row", "T-Bar Row", "Face Pulls")
-        "Upper Traps" -> listOf("Dumbbell Shrugs", "Smith Machine Shrugs")
-        "Spinal Erectors" -> listOf("Deadlifts", "Back Extensions Machine")
-        "Biceps" -> listOf("Barbell Curls", "Preacher Curls", "Cable Curls")
-        "Triceps" -> listOf("Tricep Pushdowns", "Skullcrushers", "Dips")
-        "Forearms" -> listOf("Reverse Curls", "Hammer Curls")
-        "Abs" -> listOf("Cable Crunches", "Hanging Leg Raises")
-        "Obliques" -> listOf("Cable Woodchoppers", "Russian Twists")
-        "Quadriceps" -> listOf("Barbell Squats", "Leg Press", "Leg Extensions")
-        "Hamstrings" -> listOf("Leg Curls", "Romanian Deadlifts")
-        "Glutes" -> listOf("Hip Thrusts", "Glute Kickbacks")
-        "Calves" -> listOf("Standing Calf Raises", "Seated Calf Raises")
-        "Hip Adductors" -> listOf("Adductor Machine", "Sumo Squats")
-        "Hip Abductors" -> listOf("Abductor Machine", "Lateral Cable Leg Raises")
+    private fun getGymExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
+        "chest" -> listOf("Bench Press", "Cable Flyes", "Incline Press")
+        "front deltoids" -> listOf("Military Press", "Shoulder Press Machine")
+        "lateral deltoids" -> listOf("Side Raises", "Cable Lateral Raises")
+        "rear deltoids" -> listOf("Face Pulls", "Rear Delt Deck")
+        "lats" -> listOf("Lat Pulldown", "Seated Row", "Pull-ups")
+        "upper back" -> listOf("Barbell Row", "T-Bar Row", "Face Pulls")
+        "upper traps" -> listOf("Dumbbell Shrugs", "Smith Machine Shrugs")
+        "spinal erectors" -> listOf("Deadlifts", "Back Extensions Machine")
+        "biceps" -> listOf("Barbell Curls", "Preacher Curls", "Cable Curls")
+        "triceps" -> listOf("Tricep Pushdowns", "Skullcrushers", "Dips")
+        "forearms" -> listOf("Reverse Curls", "Hammer Curls")
+        "abs" -> listOf("Cable Crunches", "Hanging Leg Raises")
+        "obliques" -> listOf("Cable Woodchoppers", "Russian Twists")
+        "quadriceps" -> listOf("Barbell Squats", "Leg Press", "Leg Extensions")
+        "hamstrings" -> listOf("Leg Curls", "Romanian Deadlifts")
+        "glutes" -> listOf("Hip Thrusts", "Glute Kickbacks")
+        "calves" -> listOf("Standing Calf Raises", "Seated Calf Raises")
+        "hip adductors" -> listOf("Adductor Machine", "Sumo Squats")
+        "hip abductors" -> listOf("Abductor Machine", "Lateral Cable Leg Raises")
+
+        // Broad Category Fallbacks
+        "shoulders" -> listOf("Military Press", "Shoulder Press Machine", "Side Raises", "Face Pulls")
+        "back" -> listOf("Lat Pulldown", "Seated Row", "Barbell Row", "Deadlifts")
+        "legs" -> listOf("Barbell Squats", "Leg Press", "Leg Curls", "Romanian Deadlifts")
+        "arms" -> listOf("Barbell Curls", "Tricep Pushdowns", "Skullcrushers", "Cable Curls")
+        "core" -> listOf("Cable Crunches", "Hanging Leg Raises", "Cable Woodchoppers")
+
         else -> listOf("Deadlifts")
     }
 

@@ -10,9 +10,11 @@ import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
+import androidx.compose.animation.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
@@ -25,6 +27,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -37,10 +40,7 @@ import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
-import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
-import com.grafizum.repio.ui.components.MuscleGroupBadge
-import com.grafizum.repio.ui.components.getMissingMuscleGroups
-import com.grafizum.repio.ui.components.SearchableExerciseField
+import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
@@ -124,12 +124,15 @@ fun FirstTimeSetupScreen(
 
     var showAddCustomExerciseDialog by remember { mutableStateOf(false) }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    val themeOption by viewModel.themeOption.collectAsState()
 
     // Add / Edit custom exercise dialog
     if (showAddCustomExerciseDialog || editingExercise != null) {
         AddExerciseDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
+            themeKey = themeOption,
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -493,7 +496,7 @@ fun FirstTimeSetupScreen(
                                             color = MaterialTheme.colorScheme.onSurface
                                         )
                                         Text(
-                                            text = stringResource(template.daysCountResId, template.daysCountArgs.first, template.daysCountArgs.second),
+                                            text = stringResource(R.string.rest_days_only, template.daysCountArgs.second),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -849,10 +852,13 @@ fun FirstTimeSetupScreen(
                                             color = MaterialTheme.colorScheme.primaryContainer,
                                             contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
                                             shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.clickable { assistedIncludedExercises.remove(ex) }
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { assistedIncludedExercises.remove(ex) }
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                                Text(ex, style = MaterialTheme.typography.labelSmall)
+                                                Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
                                             }
@@ -890,10 +896,13 @@ fun FirstTimeSetupScreen(
                                             color = MaterialTheme.colorScheme.errorContainer,
                                             contentColor = MaterialTheme.colorScheme.onErrorContainer,
                                             shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.clickable { assistedExcludedExercises.remove(ex) }
+                                            modifier = Modifier.clickable(
+                                                interactionSource = remember { MutableInteractionSource() },
+                                                indication = null
+                                            ) { assistedExcludedExercises.remove(ex) }
                                         ) {
                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                                Text(ex, style = MaterialTheme.typography.labelSmall)
+                                                Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
                                                 Spacer(modifier = Modifier.width(4.dp))
                                                 Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
                                             }
@@ -1022,7 +1031,7 @@ fun FirstTimeSetupScreen(
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = com.grafizum.repio.ui.components.translateExerciseName(exercise.name),
+                                        text = translateExerciseName(exercise.name),
                                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }
@@ -1040,25 +1049,50 @@ fun FirstTimeSetupScreen(
                                 }
                             }
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(onClick = { 
-                                    focusManager.clearFocus()
-                                    editingExercise = exercise 
-                                }) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.spacedBy(4.dp)
+                            ) {
+                                TextButton(
+                                    onClick = { replacingExercise = exercise },
+                                    contentPadding = PaddingValues(0.dp),
+                                    modifier = Modifier.size(36.dp)
+                                ) {
                                     Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit",
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = stringResource(R.string.replace),
+                                        modifier = Modifier.size(20.dp),
                                         tint = MaterialTheme.colorScheme.primary
                                     )
                                 }
-                                IconButton(onClick = { 
-                                    focusManager.clearFocus()
-                                    customExercises.remove(exercise) 
-                                }) {
+
+                                IconButton(
+                                    onClick = { 
+                                        focusManager.clearFocus()
+                                        editingExercise = exercise 
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit",
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+
+                                IconButton(
+                                    onClick = { 
+                                        focusManager.clearFocus()
+                                        customExercises.remove(exercise) 
+                                    },
+                                    modifier = Modifier.size(36.dp)
+                                ) {
                                     Icon(
                                         imageVector = Icons.Default.Delete,
                                         contentDescription = "Delete",
-                                        tint = MaterialTheme.colorScheme.error
+                                        modifier = Modifier.size(20.dp),
+                                        tint = MaterialTheme.colorScheme.error.copy(alpha = 0.8f)
                                     )
                                 }
                             }
@@ -1195,6 +1229,80 @@ fun FirstTimeSetupScreen(
             }
         }
     }
+
+    // REPLACE EXERCISE DIALOG
+    replacingExercise?.let { exercise ->
+        val alternatives = remember(exercise.name, exercise.muscleGroup) {
+            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
+        }
+
+        AlertDialog(
+            onDismissRequest = { replacingExercise = null },
+            title = { Text(stringResource(R.string.alternative_exercises)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.select_alternative_desc, translateMuscleGroup(exercise.muscleGroup)),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    if (alternatives.isEmpty()) {
+                        Text(
+                            text = "No other exercises found for this muscle group.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(alternatives) { altName ->
+                                Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            val index = customExercises.indexOf(exercise)
+                                            if (index != -1) {
+                                                customExercises[index] = exercise.copy(name = altName)
+                                            }
+                                            replacingExercise = null
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = translateExerciseName(altName),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { replacingExercise = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1202,22 +1310,49 @@ fun FirstTimeSetupScreen(
 private fun AddExerciseDialog(
     allAvailableExercises: List<String>,
     exercise: RoutineExerciseEntity? = null,
+    themeKey: String,
     onDismiss: () -> Unit,
     onConfirm: (RoutineExerciseEntity) -> Unit
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: "MONDAY") }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
-    var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "3") }
+    var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    var isExpanded by remember { mutableStateOf(exercise != null) }
     
-    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "8-12") }
+    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "") }
+
+    var showInvalidCharToast by remember { mutableStateOf(false) }
+
+    val isRepsValid = remember(targetRepsValue, isTimeBased) {
+        if (isTimeBased) true
+        else if (targetRepsValue.isBlank()) true
+        else {
+            // Check if it only contains digits and '-'
+            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
+            if (!validChars) return@remember false
+            
+            // Cannot start or end with '-'
+            if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
+                targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
+            
+            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            if (parts.size == 2) {
+                val v1 = parts[0].toIntOrNull()
+                val v2 = parts[1].toIntOrNull()
+                if (v1 != null && v2 != null) v1 <= v2 else false
+            } else if (parts.size == 1) {
+                parts[0].toIntOrNull() != null
+            } else {
+                false
+            }
+        }
+    }
 
     var expandedDay by remember { mutableStateOf(false) }
-    var expandedMuscle by remember { mutableStateOf(false) }
 
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
-    val muscleOptions = listOf("Chest", "Back", "Legs", "Shoulders", "Biceps", "Triceps", "Abs")
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1226,22 +1361,70 @@ private fun AddExerciseDialog(
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                 // Reps / Seconds Switch
                 Row(
-                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)).padding(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                        .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf(false to stringResource(R.string.reps), true to stringResource(R.string.time_label)).forEach { (isTime, label) ->
-                        val isSelected = isTimeBased == isTime
+                    val showReps = !isExpanded || !isTimeBased
+                    val showTime = !isExpanded || isTimeBased
+
+                    AnimatedVisibility(
+                        visible = showReps,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
+                        val isSelected = !isTimeBased
                         Surface(
-                            modifier = Modifier.weight(1f).clickable { 
-                                isTimeBased = isTime 
-                                if (isTime) targetRepsValue = "30"
-                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isTimeBased = false
+                                },
                             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                text = label,
+                                text = stringResource(R.string.reps),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showTime,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
+                        val isSelected = isTimeBased
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isTimeBased = true
+                                    if (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() }) {
+                                        targetRepsValue = "30"
+                                    }
+                                },
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.time_label),
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
@@ -1286,49 +1469,71 @@ private fun AddExerciseDialog(
                 SearchableExerciseField(
                     allExercises = allAvailableExercises,
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { 
+                        name = it
+                        if (it.isBlank()) {
+                            isExpanded = false
+                            targetSets = ""
+                            targetRepsValue = ""
+                        }
+                        // Auto-update muscle group
+                        val detected = com.grafizum.repio.data.WorkoutTemplates.getMuscleGroupForExercise(it)
+                        if (detected != "Other") {
+                            muscleGroup = detected
+                        }
+                    },
+                    onItemSelected = { selectedName ->
+                        isTimeBased = com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(selectedName)
+                        isExpanded = true
+                        
+                        // Auto-fill recommendations if fields are empty (likely new exercise)
+                        if (targetSets.isBlank()) {
+                            targetSets = com.grafizum.repio.data.WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                        }
+                        if (targetRepsValue.isBlank()) {
+                            targetRepsValue = com.grafizum.repio.data.WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                        }
+                    },
                     label = stringResource(R.string.exercise_name),
                     placeholder = stringResource(R.string.exercise_name_placeholder)
                 )
 
-                // Muscle Group Dropdown
-                ExposedDropdownMenuBox(
-                    expanded = expandedMuscle,
-                    onExpandedChange = { expandedMuscle = !expandedMuscle }
-                ) {
-                    OutlinedTextField(
-                        value = muscleGroup,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(stringResource(R.string.muscle_group_body_part)) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedMuscle) },
-                        modifier = Modifier
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                            .fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedMuscle,
-                        onDismissRequest = { expandedMuscle = false }
-                    ) {
-                        muscleOptions.forEach { m ->
-                            DropdownMenuItem(
-                                text = { Text(m) },
-                                onClick = {
-                                    muscleGroup = m
-                                    expandedMuscle = false
-                                },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                            )
-                        }
+                // Muscle Group & Description (Visual indicator instead of text box)
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = stringResource(R.string.trained_muscles) + ":",
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Spacer(modifier = Modifier.width(8.dp))
+                        MuscleGroupBadge(muscleGroup = muscleGroup)
+                    }
+                    
+                    // Simple description if available
+                    val exerciseDesc = com.grafizum.repio.ui.components.getExerciseStaticDescription(name)
+                    if (exerciseDesc.isNotBlank()) {
+                        Text(
+                            text = exerciseDesc,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                            lineHeight = 14.sp
+                        )
                     }
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     OutlinedTextField(
                         value = targetSets,
-                        onValueChange = { targetSets = it },
+                        onValueChange = { 
+                            if (it.all { char -> char.isDigit() }) {
+                                targetSets = it 
+                            }
+                        },
                         label = { Text(stringResource(R.string.sets)) },
+                        placeholder = { Text(stringResource(R.string.sets)) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
                     
@@ -1369,32 +1574,40 @@ private fun AddExerciseDialog(
                     } else {
                         OutlinedTextField(
                             value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it },
+                            onValueChange = { newValue ->
+                                // Allow only digits and "-"
+                                val isCharValid = newValue.all { it.isDigit() || it == '-' || it == '–' }
+                                if (isCharValid) {
+                                    targetRepsValue = newValue
+                                } else {
+                                    showInvalidCharToast = true
+                                }
+                            },
                             label = { Text(stringResource(R.string.reps)) },
+                            placeholder = { Text(stringResource(R.string.reps)) },
+                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
+                            supportingText = if (targetRepsValue.isNotEmpty() && !isRepsValid) {
+                                { Text(stringResource(R.string.rep_format_error)) }
+                            } else null,
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
+
+                ThemedToast(
+                    message = stringResource(R.string.invalid_char_error),
+                    themeKey = themeKey,
+                    visible = showInvalidCharToast,
+                    onDismiss = { showInvalidCharToast = false }
+                )
             }
         },
         confirmButton = {
-            val isRepsValid = remember(targetRepsValue, isTimeBased) {
-                if (isTimeBased) true
-                else {
-                    val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
-                    if (parts.size == 2) {
-                        val v1 = parts[0].filter { it.isDigit() }.toIntOrNull()
-                        val v2 = parts[1].filter { it.isDigit() }.toIntOrNull()
-                        if (v1 != null && v2 != null) v1 <= v2 else true
-                    } else true
-                }
-            }
-
             Button(
                 onClick = {
                     if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
-                        val finalReps = if (isTimeBased) {
+                        val finalReps = if (isTimeBased == true) {
                             val digits = targetRepsValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
                         } else {

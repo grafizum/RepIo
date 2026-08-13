@@ -1,20 +1,31 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
     <!-- Launcher Backgrounds -->
-    <color name="ic_launcher_background">#FDFCFB</color>
+    <color name="ic_launcher_background_light">#FDFCFB</color>
     <color name="ic_launcher_background_beige">#FDFCFB</color>
+    <color name="ic_launcher_background_dark">#121212</color>
+    <color name="ic_launcher_background_orange">#121212</color>
+    <color name="ic_launcher_background">#121212</color> <!-- Default to dark for the main icon if it's "dark" -->
 
-    <!-- Splash Screen Backgrounds (STATIC) -->
-    <color name="splash_bg_light">#FFFFFF</color>
-    <color name="splash_bg_black">#000000</color>
+    <!-- Theme Primaries -->
+    <color name="theme_purple_primary">#9E7AFF</color>
+    <color name="theme_beige_primary">#8C6239</color>
+    <color name="theme_flame_primary">#FF6D00</color>
+    <color name="theme_emerald_primary">#00E676</color>
+    <color name="theme_crimson_primary">#FF1744</color>
+    <color name="theme_azure_primary">#007AFF</color>
+    <color name="theme_ocean_primary">#00B8D4</color>
+    <color name="theme_rose_primary">#F06292</color>
+
+    <!-- Splash Screen Backgrounds -->
+    <color name="splash_bg_default">#121212</color>
+    <color name="splash_bg_light">#FDFCFB</color>
+    <color name="splash_bg_dark">#121212</color>
+    <color name="splash_bg_purple">#16112C</color>
+    <color name="splash_bg_ocean">#0F1E24</color>
+    <color name="splash_bg_rose">#28111A</color>
 
     <!-- Legacy / Cleanup -->
-    <color name="splash_bg_dark">#1A0B00</color>
-    <color name="purple_200">#FFBB86FC</color>
-    <color name="purple_500">#FF6200EE</color>
-    <color name="purple_700">#FF3700B3</color>
-    <color name="teal_200">#FF03DAC5</color>
-    <color name="teal_700">#FF018786</color>
     <color name="black">#FF000000</color>
     <color name="white">#FFFFFFFF</color>
 </resources>

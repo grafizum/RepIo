@@ -78,9 +78,10 @@
     <string name="tap_bar_to_inspect">Tap any bar to inspect daily total</string>
     <string name="muscle_group_focus">Muscle Group Focus</string>
     <string name="watch_demo">Watch Demo</string>
+    <string name="edit_demo">Edit Demo</string>
     <string name="watch_demo_video">Watch Demo Video</string>
     <string name="edit_demo_link">Edit Demo Link</string>
-    <string name="input_demo">Add Demo</string>
+    <string name="input_demo">Demo</string>
     <string name="input_demo_video">Add Demo Video</string>
     <string name="demo_video_link">Demo Video Link</string>
     <string name="enter_video_url_desc">Enter a video URL for this exercise demo:</string>
@@ -97,6 +98,9 @@
     <string name="notification_channel_desc">Notifies when rest pause between sets finishes</string>
     <string name="notification_title">Rest Pause Ended! 💪</string>
     <string name="notification_text">Time to smash your next set!</string>
+    <string name="replace">Replace</string>
+    <string name="alternative_exercises">Alternative Exercises</string>
+    <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your logged workout sets.</string>
     <string name="delete_all">Delete All</string>
@@ -121,8 +125,10 @@
     <string name="weight_in_kg">Weight in kg</string>
     <string name="save_weight">Save Weight</string>
     <string name="custom">Custom</string>
+    <string name="editor">Editor</string>
     <string name="my_workout">My Workout</string>
-    <string name="workout">Workout</string>
+    <string name="workout">Edit</string>
+    <string name="trained_muscles">Muscle group</string>
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
     <string name="rest_recovery_recommendation">No scheduled lifting for %1$s. Active walking or light mobility recommended!</string>
     <string name="workout_completed_title">Workout Completed! 🎉</string>
@@ -153,12 +159,29 @@
     <string name="ex_equipment_dumbbell">Dumbbells</string>
     <string name="ex_equipment_bodyweight">Bodyweight</string>
     <string name="ex_equipment_cables">Cables / Pulleys</string>
-    <string name="ex_bench_press_desc">Lie on a flat bench and press the weight upwards from your chest. Targets the pectoral muscles.</string>
-    <string name="ex_squats_desc">Lower your hips from a standing position and then stand back up. Targets the entire lower body.</string>
-    <string name="ex_deadlifts_desc">Lift a loaded barbell or bar off the ground to the level of the hips, then lower it back. Targets the posterior chain.</string>
-    <string name="ex_pull_ups_desc">Pull your body up while hanging from a bar. Excellent for back and bicep development.</string>
-    <string name="ex_overhead_press_desc">Press the weight upwards from shoulder level until arms are fully extended. Targets shoulders and triceps.</string>
+    <string name="ex_bench_press_desc">Lie on your back. Lower the weight to your mid-chest, then press up until arms are fully extended.</string>
+    <string name="ex_squats_desc">Stand with feet shoulder-width apart. Lower your hips as if sitting in a chair, then drive back up to standing.</string>
+    <string name="ex_deadlifts_desc">Hinge at hips to grip the bar. Keeping a flat back, drive through your heels to stand up straight.</string>
+    <string name="ex_pull_ups_desc">Hang from a bar and pull your chest toward it by driving your elbows down. Lower yourself with control.</string>
+    <string name="ex_overhead_press_desc">Press the weight from shoulder level upward until arms are locked out. Keep your core tight.</string>
+    <string name="ex_curls_desc">Keep elbows close to your sides. Curl the weights toward your shoulders, then lower slowly.</string>
+    <string name="ex_rows_desc">Hinge forward with a flat back. Pull the weight toward your lower ribs, squeezing your shoulder blades.</string>
+    <string name="ex_lateral_raise_desc">Raise weights out to your sides until arms are level with shoulders. Keep a slight bend in your elbows.</string>
+    <string name="ex_plank_desc">Support weight on forearms and toes. Keep your body in a straight line; do not let your hips sag.</string>
+    <string name="ex_tricep_extension_desc">Lower the weight behind your head by bending elbows, then straighten arms to press the weight back up.</string>
+    <string name="ex_lunges_desc">Step forward and lower your hips until both knees are bent at 90 degrees. Push back up to the start.</string>
+    <string name="ex_abs_desc">For crunches, lift shoulders off the floor. For leg raises, lift straight legs from the floor toward the ceiling.</string>
+    <string name="ex_master_desc">Variable Session: The app selects the optimal variation for this exercise to keep your routine effective and varied.</string>
     <string name="save">Save</string>
+    <string name="edit">Edit</string>
+    <string name="delete">Delete</string>
+    <string name="delete_selected">Selected (%1$d)</string>
+    <string name="select_all">Select All</string>
+    <string name="deselect_all">Deselect All</string>
+    <string name="confirm_delete_title">Delete Exercise?</string>
+    <string name="confirm_delete_msg">Are you sure you want to delete this exercise?</string>
+    <string name="confirm_delete_multiple_title">Delete Exercises?</string>
+    <string name="confirm_delete_multiple_msg">Are you sure you want to delete %1$d exercises?</string>
     <string name="workout_templates">Workout Templates</string>
     <string name="switch_program_text">Switch your program to one of our designed splits anytime.</string>
     <string name="apply">Apply</string>
@@ -237,10 +260,11 @@
     <string name="fullbody_3day_desc">Efficient 3-day full body training hitting every muscle group each session. Great for busy schedules and compound strength gains.</string>
 
     <string name="most_popular">Most Popular</string>
-    <string name="strength_mass">Strength &amp; Mass</string>
+    <string name="strength_mass">6-Day Strength &amp; Mass</string>
     <string name="optimal_recovery">Optimal Recovery</string>
     <string name="time_efficient">Time Efficient</string>
     <string name="workout_days_plus_rest">%1$d Workout Days + %2$d Rest Days</string>
+    <string name="rest_days_only">%1$d Rest Days</string>
 
     <!-- Exercise Names -->
     <string name="ex_barbell_bent_over_row">Barbell bent-over row</string>
@@ -337,8 +361,8 @@
     <string name="confirm">Confirm</string>
     <string name="confirm_action_question">Applying these changes will modify your current workout configuration.</string>
     <string name="max_characters_reached">Maximum characters reached (20)</string>
-    <string name="confirm_new_program_title">Confirm New Workout</string>
-    <string name="confirm_new_program_message">Saving this will replace your current workout plan. Are you sure you want to continue?</string>
+    <string name="confirm_new_program_title">Confirm new workout?</string>
+    <string name="confirm_new_program_message">This will replace your current plan. Do you want to continue?</string>
     <string name="exit_app_title">Exit App?</string>
     <string name="exit_app_message">Are you sure you want to exit?</string>
     <string name="exit">Exit</string>
@@ -393,4 +417,7 @@
 
     <string name="equipment_limitation_title">Equipment Limitation</string>
     <string name="equipment_limitation_desc">The following muscle groups cannot be effectively trained with your current equipment: %1$s.</string>
+    <string name="rep_format_error">Format must be a number (10) or range (8-12)</string>
+    <string name="invalid_char_error">Only numbers and dashes are allowed</string>
+    <string name="only_numbers_error">Only numbers are allowed</string>
 </resources>

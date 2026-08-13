@@ -10,15 +10,37 @@ object IconSwitchHelper {
     private const val TAG = "IconSwitchHelper"
 
     // These MUST match the android:name in the AndroidManifest.xml exactly
-    private const val ORANGE_ICON_FQN = "com.grafizum.repio.MainActivityOrange"
+    private const val PURPLE_ICON_FQN = "com.grafizum.repio.MainActivityPurple"
     private const val BEIGE_ICON_FQN = "com.grafizum.repio.MainActivityBeige"
+    private const val FLAME_ICON_FQN = "com.grafizum.repio.MainActivityFlame"
+    private const val EMERALD_ICON_FQN = "com.grafizum.repio.MainActivityEmerald"
+    private const val CRIMSON_ICON_FQN = "com.grafizum.repio.MainActivityCrimson"
+    private const val AZURE_ICON_FQN = "com.grafizum.repio.MainActivityAzure"
+    private const val OCEAN_ICON_FQN = "com.grafizum.repio.MainActivityOcean"
+    private const val ROSE_ICON_FQN = "com.grafizum.repio.MainActivityRose"
 
-    fun switchIcon(context: Context, targetAlias: String) {
+    fun switchIcon(context: Context, themeKey: String) {
         val packageManager = context.packageManager
         
-        val aliases = arrayOf(ORANGE_ICON_FQN, BEIGE_ICON_FQN)
+        val targetAlias = when (themeKey.uppercase()) {
+            "PURPLE" -> PURPLE_ICON_FQN
+            "BEIGE" -> BEIGE_ICON_FQN
+            "FLAME" -> FLAME_ICON_FQN
+            "EMERALD" -> EMERALD_ICON_FQN
+            "CRIMSON" -> CRIMSON_ICON_FQN
+            "AZURE" -> AZURE_ICON_FQN
+            "OCEAN" -> OCEAN_ICON_FQN
+            "ROSE" -> ROSE_ICON_FQN
+            else -> BEIGE_ICON_FQN
+        }
+
+        val aliases = arrayOf(
+            PURPLE_ICON_FQN, BEIGE_ICON_FQN, FLAME_ICON_FQN, EMERALD_ICON_FQN,
+            CRIMSON_ICON_FQN, AZURE_ICON_FQN,
+            OCEAN_ICON_FQN, ROSE_ICON_FQN
+        )
         
-        Log.d(TAG, "Switching icon to: $targetAlias")
+        Log.d(TAG, "Switching icon for theme: $themeKey (Target: $targetAlias)")
         
         for (alias in aliases) {
             val newState = if (alias == targetAlias) {
@@ -27,7 +49,6 @@ object IconSwitchHelper {
                 PackageManager.COMPONENT_ENABLED_STATE_DISABLED
             }
             
-            // Use the actual application package name for the component resolution
             val componentName = ComponentName(context.packageName, alias)
             
             try {
@@ -45,7 +66,4 @@ object IconSwitchHelper {
             }
         }
     }
-
-    fun getOrangeAlias(context: Context) = ORANGE_ICON_FQN
-    fun getBeigeAlias(context: Context) = BEIGE_ICON_FQN
 }
