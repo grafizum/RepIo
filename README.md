@@ -29,9 +29,3 @@ A minimalist, modern Android application designed for real-time workout logging 
 - Android Studio (Ladybug / Jellyfish or newer recommended)
 - JDK 17 or higher
 - Android SDK 34+
-
-### Installation & Local Setup
-
-1. **Clone the repository:**
-   ```bash
-   git clone [https://github.com/grafizum/RepIo.git](https://github.com/grafizum/RepIo.git)
