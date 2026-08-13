@@ -6,4 +6,6 @@ plugins {
   alias(libs.plugins.roborazzi) apply false
   alias(libs.plugins.secrets) apply false
   alias(libs.plugins.google.services) apply false
+  alias(libs.plugins.kotlin.multiplatform) apply false
+  alias(libs.plugins.compose.multiplatform) apply false
 }

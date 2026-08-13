@@ -1,0 +1,11 @@
+<?xml version="1.0" encoding="utf-8"?>
+<resources>
+    <!-- Explicitly keep splash backgrounds consistent even in system night mode -->
+    <color name="splash_bg_default">#121212</color>
+    <color name="splash_bg_light">#FDFCFB</color>
+    <color name="splash_bg_black">#000000</color>
+    <color name="splash_bg_retro">#000000</color>
+
+    <color name="ic_launcher_background">#121212</color>
+    <color name="ic_launcher_background_orange">#121212</color>
+</resources>
