@@ -11,7 +11,7 @@ val ElegantPurpleLight = Color(0xFFD7C7FF)
 val WarmBeigeBackground = Color(0xFFF7F4EE)
 val WarmBeigeSurface = Color(0xFFEFEAE1)
 val WarmBeigeSurfaceVariant = Color(0xFFE2DBD0)
-val WarmBeigePrimary = Color(0xFF8C6239) // Rich warm bronze/amber
+val WarmBeigePrimary = Color(0xFF8C6239) // Rich warm bronze
 val WarmBeigeOnPrimary = Color(0xFFFFFFFF)
 val WarmBeigeText = Color(0xFF2C2520)
 val WarmBeigeTextSecondary = Color(0xFF63564A)
@@ -46,19 +46,9 @@ val CrimsonRed = Color(0xFFFF1744)
 val CrimsonDark = Color(0xFF210F0F) // Softer dark red (was 0xFF1A0000)
 val CrimsonLight = Color(0xFFFF8A80)
 
-// Gold
-val VibrantGold = Color(0xFFFFC400)
-val GoldDark = Color(0xFF24220F) // Softer dark gold (was 0xFF1E1C00)
-val GoldLight = Color(0xFFFFE57F)
-
 // Azure Sky
 val AzureSkyPrimary = Color(0xFF007AFF)
 val AzureSkySecondary = Color(0xFF5856D6)
-
-// Slate
-val SlateGrey = Color(0xFF90A4AE)
-val SlateDark = Color(0xFF263238)
-val SlateLight = Color(0xFFCFD8DC)
 
 // Ocean
 val OceanPrimary = Color(0xFF00B8D4)
@@ -69,14 +59,3 @@ val OceanLight = Color(0xFF84FFFF)
 val RosePrimary = Color(0xFFF06292)
 val RoseDark = Color(0xFF28111A) // Softer dark rose (was 0xFF21000C)
 val RoseLight = Color(0xFFFFB2C1)
-
-// Amber
-val AmberPrimary = Color(0xFFFFB300)
-val AmberDark = Color(0xFF332A14) // Softer dark amber (was 0xFF2E2000)
-val AmberLight = Color(0xFFFFE082)
-
-val Slate900 = Color(0xFF1C1B1F)
-val Slate800 = Color(0xFF2B2930)
-val Slate700 = Color(0xFF38373C)
-val Slate600 = Color(0xFF49454F)
-val Slate100 = Color(0xFFE6E1E5)

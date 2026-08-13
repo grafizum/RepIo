@@ -78,9 +78,10 @@
     <string name="tap_bar_to_inspect">Tippe auf einen Balken, um Details zu sehen</string>
     <string name="muscle_group_focus">Muskelgruppen-Fokus</string>
     <string name="watch_demo">Demo ansehen</string>
+    <string name="edit_demo">Demo bearbeiten</string>
     <string name="watch_demo_video">Demo-Video ansehen</string>
     <string name="edit_demo_link">Demo-Link bearbeiten</string>
-    <string name="input_demo">Demo hinzufügen</string>
+    <string name="input_demo">Demo</string>
     <string name="input_demo_video">Demo-Video hinzufügen</string>
     <string name="demo_video_link">Demo-Video Link</string>
     <string name="enter_video_url_desc">Gib eine Video-URL für diese Übung ein:</string>
@@ -97,6 +98,9 @@
     <string name="notification_channel_desc">Benachrichtigt, wenn die Pause zwischen den Sätzen endet</string>
     <string name="notification_title">Pause beendet! 💪</string>
     <string name="notification_text">Zeit für den nächsten Satz!</string>
+    <string name="replace">Ersetzen</string>
+    <string name="alternative_exercises">Alternative Übungen</string>
+    <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
     <string name="clear_history_title">Gesamten Verlauf löschen?</string>
     <string name="clear_history_text">Dies wird alle deine protokollierten Sätze dauerhaft entfernen.</string>
     <string name="delete_all">Alle löschen</string>
@@ -121,8 +125,10 @@
     <string name="weight_in_kg">Gewicht in kg</string>
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Benutzerdefiniert</string>
+    <string name="editor">Editor</string>
     <string name="my_workout">Mein Workout</string>
-    <string name="workout">Workout</string>
+    <string name="workout">Bearbeiten</string>
+    <string name="trained_muscles">Muskelgruppe</string>
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein geplantes Training für %1$s. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training abgeschlossen! 🎉</string>
@@ -153,12 +159,29 @@
     <string name="ex_equipment_dumbbell">Kurzhanteln</string>
     <string name="ex_equipment_bodyweight">Eigengewicht</string>
     <string name="ex_equipment_cables">Kabelzug</string>
-    <string name="ex_bench_press_desc">Flach auf die Bank legen und das Gewicht von der Brust nach oben drücken. Trainiert die Brustmuskulatur.</string>
-    <string name="ex_squats_desc">Hüfte aus dem Stand absenken und wieder aufstehen. Trainiert den gesamten Unterkörper.</string>
-    <string name="ex_deadlifts_desc">Beladene Hantel vom Boden bis zur Hüfte heben und wieder absetzen. Trainiert die hintere Kette.</string>
-    <string name="ex_pull_ups_desc">Körper an einer Stange hochziehen. Exzellent für Rücken und Bizeps.</string>
-    <string name="ex_overhead_press_desc">Gewicht von Schulterhöhe nach oben drücken, bis die Arme gestreckt sind. Trainiert Schultern und Trizeps.</string>
+    <string name="ex_bench_press_desc">Auf dem Rücken liegen. Das Gewicht zur Brust absenken und dann kontrolliert nach oben drücken.</string>
+    <string name="ex_squats_desc">Hüfte absenken, als ob man sich auf einen Stuhl setzt, und dann kraftvoll wieder aufstehen.</string>
+    <string name="ex_deadlifts_desc">Aus der Hüfte beugen, um die Stange zu greifen. Rücken gerade halten und durch die Fersen aufstehen.</string>
+    <string name="ex_pull_ups_desc">An der Stange hängen und die Brust nach oben ziehen, indem man die Ellbogen nach unten drückt.</string>
+    <string name="ex_overhead_press_desc">Gewicht von Schulterhöhe nach oben drücken, bis die Arme gestreckt sind. Rumpf anspannen.</string>
+    <string name="ex_curls_desc">Ellbogen eng am Körper halten. Die Gewichte in Richtung der Schultern beugen und langsam wieder absenken.</string>
+    <string name="ex_rows_desc">Mit geradem Rücken aus der Hüfte nach vorne beugen. Das Gewicht in Richtung der unteren Rippen ziehen.</string>
+    <string name="ex_lateral_raise_desc">Gewichte seitlich bis auf Schulterhöhe anheben. Die Ellbogen dabei leicht gebeugt lassen.</string>
+    <string name="ex_plank_desc">Auf Unterarmen und Zehen abstützen. Den Körper in einer geraden Linie halten; die Hüfte nicht durchhängen lassen.</string>
+    <string name="ex_tricep_extension_desc">Das Gewicht durch Beugen der Ellbogen hinter den Kopf führen und dann die Arme wieder strecken.</string>
+    <string name="ex_lunges_desc">Einen Schritt nach vorne machen und die Hüfte absenken, bis beide Knie einen 90-Grad-Winkel bilden.</string>
+    <string name="ex_abs_desc">Für Crunches die Schultern vom Boden abheben. Für Beinheben die gestreckten Beine in Richtung Decke führen.</string>
+    <string name="ex_master_desc">Variable Einheit: Die App wählt die optimale Variation für diese Übung aus, um dein Training effektiv und abwechslungsreich zu halten.</string>
     <string name="save">Speichern</string>
+    <string name="edit">Bearbeiten</string>
+    <string name="delete">Löschen</string>
+    <string name="delete_selected">Ausgewählt (%1$d)</string>
+    <string name="select_all">Alle auswählen</string>
+    <string name="deselect_all">Alle abwählen</string>
+    <string name="confirm_delete_title">Übung löschen?</string>
+    <string name="confirm_delete_msg">Möchtest du diese Übung wirklich löschen?</string>
+    <string name="confirm_delete_multiple_title">Übungen löschen?</string>
+    <string name="confirm_delete_multiple_msg">Möchtest du wirklich %1$d Übungen löschen?</string>
     <string name="workout_templates">Trainingsvorlagen</string>
     <string name="switch_program_text">Wechsle jederzeit zu einem unserer fertigen Split-Pläne.</string>
     <string name="apply">Anwenden</string>
@@ -237,10 +260,11 @@
     <string name="fullbody_3day_desc">Effizientes Training aller Muskelgruppen pro Einheit. Ideal für einen vollen Terminkalender.</string>
 
     <string name="most_popular">Beliebteste</string>
-    <string name="strength_mass">Kraft &amp; Masse</string>
+    <string name="strength_mass">6-Tage Kraft &amp; Masse</string>
     <string name="optimal_recovery">Optimale Erholung</string>
     <string name="time_efficient">Zeiteffizient</string>
     <string name="workout_days_plus_rest">%1$d Trainingstage + %2$d Ruhetage</string>
+    <string name="rest_days_only">%1$d Ruhetage</string>
 
     <!-- Exercise Names -->
     <string name="ex_barbell_bent_over_row">Langhantelrudern vorgebeugt</string>
@@ -342,8 +366,8 @@
     <string name="exit_app_message">Bist du sicher, dass du die App beenden möchtest?</string>
     <string name="exit">Beenden</string>
     <string name="stay">Bleiben</string>
-    <string name="confirm_new_program_title">Neues Training bestätigen</string>
-    <string name="confirm_new_program_message">Das Speichern wird deinen aktuellen Trainingsplan ersetzen. Bist du sicher, dass du fortfahren möchtest?</string>
+    <string name="confirm_new_program_title">Neues Training bestätigen?</string>
+    <string name="confirm_new_program_message">Dein aktueller Plan wird ersetzt. Möchtest du fortfahren?</string>
 
     <string name="choose_equipment">1. Wähle dein Equipment</string>
     <string name="choose_body_parts">2. Ziel-Körperpartien</string>
@@ -394,4 +418,7 @@
 
     <string name="equipment_limitation_title">Geräte-Einschränkung</string>
     <string name="equipment_limitation_desc">Die folgenden Muskelgruppen können mit deiner aktuellen Ausrüstung nicht effektiv trainiert werden: %1$s.</string>
+    <string name="rep_format_error">Format muss eine Zahl (10) oder ein Bereich (8-12) sein</string>
+    <string name="invalid_char_error">Nur Zahlen und Bindestriche sind erlaubt</string>
+    <string name="only_numbers_error">Nur Zahlen sind erlaubt</string>
 </resources>

@@ -2,23 +2,14 @@ package com.grafizum.repio.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.PaddingValues
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
@@ -31,6 +22,7 @@ import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.Info
 import androidx.compose.material.icons.filled.PlayArrow
 import androidx.compose.material.icons.filled.Refresh
 import androidx.compose.material3.AlertDialog
@@ -56,13 +48,19 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
+
 import androidx.compose.material3.TopAppBarDefaults
+import androidx.compose.animation.*
+import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableStateListOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -70,6 +68,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
@@ -82,11 +81,7 @@ import com.grafizum.repio.data.DayOfWeekEnum
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
-import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
-import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
-import com.grafizum.repio.ui.components.MuscleGroupBadge
-import com.grafizum.repio.ui.components.getMissingMuscleGroups
-import com.grafizum.repio.ui.components.SearchableExerciseField
+import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.viewmodel.getTodayDayOfWeek
 
@@ -95,13 +90,11 @@ import com.grafizum.repio.ui.viewmodel.getTodayDayOfWeek
 fun RoutineScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
-    onNavigateToWorkoutNow: ((String) -> Unit)? = null,
     initialShowAddDialog: Boolean = false,
     onAddDialogDismissed: (() -> Unit)? = null,
     onCustomClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val customWorkoutName by viewModel.customWorkoutName.collectAsState()
     val workoutState by viewModel.workoutNowState.collectAsState()
@@ -109,13 +102,18 @@ fun RoutineScreen(
     val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
 
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
     var showEditNameDialog by remember { mutableStateOf(false) }
     var showTemplatesSheet by remember { mutableStateOf(false) }
     var pendingTemplate by remember { mutableStateOf<WorkoutTemplate?>(null) }
 
-    val dayEntity = routineDays.find { it.dayOfWeek == workoutState.selectedDayOfWeek }
+    var isSelectionMode by remember { mutableStateOf(false) }
+    val selectedExerciseIds = remember { mutableStateListOf<Long>() }
+    var exerciseToDelete by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    var showDeleteMultipleConfirmation by remember { mutableStateOf(false) }
+
     val exercisesForDay = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
@@ -276,10 +274,13 @@ fun RoutineScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = customWorkoutName,
+                            text = stringResource(R.string.editor),
                             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
                             color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.clickable { showEditNameDialog = true }
+                            modifier = Modifier.clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) { showEditNameDialog = true }
                         )
                     }
                 }
@@ -405,52 +406,25 @@ fun RoutineScreen(
                                 else -> workoutState.selectedDayOfWeek
                             }
 
-                            val dayTitle = if (exercisesForDay.isNotEmpty()) {
-                                val focus = exercisesForDay.map { it.muscleGroup }
-                                    .map { stringResource(com.grafizum.repio.ui.components.getUpperCategoryResId(it)) }
+                            val focus = if (exercisesForDay.isNotEmpty()) {
+                                exercisesForDay.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
+                                    .map { com.grafizum.repio.ui.components.translateMuscleGroup(it) }
                                     .distinct()
                                     .joinToString(", ")
-                                "$dayName — $focus"
                             } else {
-                                "$dayName — ${stringResource(R.string.rest_recovery_day)}"
+                                stringResource(R.string.rest_recovery_day)
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
+                            Column(modifier = Modifier.fillMaxWidth()) {
                                 Text(
-                                    text = dayTitle,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.weight(1f)
+                                    text = dayName,
+                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                 )
-                            }
-                            Spacer(modifier = Modifier.height(4.dp))
-                            Text(
-                                text = dayEntity?.let { com.grafizum.repio.ui.components.translateDayDescription(it.description) } ?: "",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-
-                            if (dayEntity != null && workoutState.selectedDayOfWeek == today) {
-                                Spacer(modifier = Modifier.height(16.dp))
-                                Button(
-                                    onClick = { onNavigateToWorkoutNow?.invoke(workoutState.selectedDayOfWeek) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
-                                    shape = RoundedCornerShape(12.dp),
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Icon(imageVector = Icons.Default.PlayArrow, contentDescription = null)
-                                    Spacer(modifier = Modifier.width(6.dp))
-                                    Text(
-                                        text = stringResource(R.string.start_this_workout_now),
-                                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                }
+                                Text(
+                                    text = focus,
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
                             }
                         }
                     }
@@ -464,20 +438,55 @@ fun RoutineScreen(
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Text(
-                            text = stringResource(R.string.exercises_count, exercisesForDay.size),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                            text = if (isSelectionMode) stringResource(R.string.delete_selected, selectedExerciseIds.count())
+                                   else stringResource(R.string.exercises_count, exercisesForDay.count()),
+                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (isSelectionMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
                         )
 
-                        IconButton(
-                            onClick = { showAddDialog = true },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = stringResource(R.string.add_exercise),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isSelectionMode) {
+                                TextButton(onClick = {
+                                    if (selectedExerciseIds.size == exercisesForDay.size) {
+                                        selectedExerciseIds.clear()
+                                    } else {
+                                        selectedExerciseIds.clear()
+                                        selectedExerciseIds.addAll(exercisesForDay.map { it.id })
+                                    }
+                                }) {
+                                    Text(if (selectedExerciseIds.size == exercisesForDay.size) stringResource(R.string.deselect_all) else stringResource(R.string.select_all))
+                                }
+
+                                IconButton(
+                                    onClick = { if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true },
+                                    enabled = selectedExerciseIds.isNotEmpty()
+                                ) {
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (selectedExerciseIds.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                }
+
+                                IconButton(onClick = { 
+                                    isSelectionMode = false
+                                    selectedExerciseIds.clear()
+                                }) {
+                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
+                                }
+                            } else {
+                                IconButton(onClick = { isSelectionMode = true }) {
+                                    Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = MaterialTheme.colorScheme.primary)
+                                }
+
+                                IconButton(
+                                    onClick = { showAddDialog = true },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = stringResource(R.string.add_exercise),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
                         }
                     }
                 }
@@ -493,10 +502,18 @@ fun RoutineScreen(
                     }
                 } else {
                     items(exercisesForDay) { exercise ->
-                        com.grafizum.repio.ui.components.ExpandableExerciseCard(
+                        val isSelected = selectedExerciseIds.contains(exercise.id)
+                        ExpandableExerciseCard(
                             exercise = exercise,
+                            isSelectionMode = isSelectionMode,
+                            isSelected = isSelected,
+                            onSelectedChange = { checked ->
+                                if (checked) selectedExerciseIds.add(exercise.id)
+                                else selectedExerciseIds.remove(exercise.id)
+                            },
                             onEdit = { editingExercise = exercise },
-                            onDelete = { viewModel.deleteExercise(exercise.id) },
+                            onDelete = { exerciseToDelete = exercise },
+                            onReplace = { replacingExercise = exercise },
                             onSaveVideoUrl = { newUrl ->
                                 viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
                             }
@@ -509,11 +526,14 @@ fun RoutineScreen(
         }
 
     // ADD / EDIT EXERCISE DIALOG
+    val themeOption by viewModel.themeOption.collectAsState()
+
     if (showAddDialog || editingExercise != null) {
         ExerciseEditDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
             dayOfWeek = workoutState.selectedDayOfWeek,
+            themeKey = themeOption,
             onDismiss = {
                 showAddDialog = false
                 editingExercise = null
@@ -522,6 +542,129 @@ fun RoutineScreen(
                 viewModel.saveExercise(updatedExercise)
                 showAddDialog = false
                 editingExercise = null
+            }
+        )
+    }
+
+    // DELETE SINGLE CONFIRMATION
+    exerciseToDelete?.let { exercise ->
+        AlertDialog(
+            onDismissRequest = { exerciseToDelete = null },
+            title = { Text(stringResource(R.string.confirm_delete_title)) },
+            text = { Text(stringResource(R.string.confirm_delete_msg)) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        viewModel.deleteExercise(exercise.id)
+                        exerciseToDelete = null
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { exerciseToDelete = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // DELETE MULTIPLE CONFIRMATION
+    if (showDeleteMultipleConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showDeleteMultipleConfirmation = false },
+            title = { Text(stringResource(R.string.confirm_delete_multiple_title)) },
+            text = { Text(stringResource(R.string.confirm_delete_multiple_msg, selectedExerciseIds.count())) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        selectedExerciseIds.forEach { id -> viewModel.deleteExercise(id) }
+                        selectedExerciseIds.clear()
+                        isSelectionMode = false
+                        showDeleteMultipleConfirmation = false
+                    },
+                    colors = ButtonDefaults.buttonColors(containerColor = MaterialTheme.colorScheme.error)
+                ) {
+                    Text(stringResource(R.string.delete))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showDeleteMultipleConfirmation = false }) {
+                    Text(stringResource(R.string.cancel))
+                }
+            }
+        )
+    }
+
+    // REPLACE EXERCISE DIALOG
+    replacingExercise?.let { exercise ->
+        val alternatives = remember(exercise.name, exercise.muscleGroup) {
+            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
+        }
+
+        AlertDialog(
+            onDismissRequest = { replacingExercise = null },
+            title = { Text(stringResource(R.string.alternative_exercises)) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = stringResource(R.string.select_alternative_desc, translateMuscleGroup(exercise.muscleGroup)),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                    
+                    if (alternatives.isEmpty()) {
+                        Text(
+                            text = "No other exercises found for this muscle group.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(alternatives) { altName ->
+                                Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            viewModel.saveExercise(exercise.copy(name = altName))
+                                            replacingExercise = null
+                                        }
+                                ) {
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Text(
+                                            text = translateExerciseName(altName),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                                            modifier = Modifier.weight(1f)
+                                        )
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { replacingExercise = null }) {
+                    Text(stringResource(R.string.cancel))
+                }
             }
         )
     }
@@ -594,16 +737,45 @@ fun ExerciseEditDialog(
     allAvailableExercises: List<String>,
     exercise: RoutineExerciseEntity?,
     dayOfWeek: String,
+    themeKey: String,
     onDismiss: () -> Unit,
     onSave: (RoutineExerciseEntity) -> Unit
 ) {
     var name by remember { mutableStateOf(exercise?.name ?: "") }
-    var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Back") }
-    var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "3") }
+    var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
+    var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    var isExpanded by remember { mutableStateOf(exercise != null) }
     
-    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "8-12") }
+    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
+
+    var activeToastMessage by remember { mutableStateOf<String?>(null) }
+
+    val isRepsValid = remember(targetRepsValue, isTimeBased) {
+        if (isTimeBased) true
+        else if (targetRepsValue.isBlank()) true
+        else {
+            // Check if it only contains digits and '-'
+            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
+            if (!validChars) return@remember false
+            
+            // Cannot start or end with '-'
+            if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
+                targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
+            
+            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            if (parts.size == 2) {
+                val v1 = parts[0].toIntOrNull()
+                val v2 = parts[1].toIntOrNull()
+                if (v1 != null && v2 != null) v1 <= v2 else false
+            } else if (parts.size == 1) {
+                parts[0].toIntOrNull() != null
+            } else {
+                false
+            }
+        }
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -612,22 +784,70 @@ fun ExerciseEditDialog(
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
                 // Reps / Seconds Switch
                 Row(
-                    modifier = Modifier.fillMaxWidth().background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp)).padding(4.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .animateContentSize()
+                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
+                        .padding(4.dp),
                     horizontalArrangement = Arrangement.spacedBy(4.dp)
                 ) {
-                    listOf(false to stringResource(R.string.reps), true to stringResource(R.string.time_label)).forEach { (isTime, label) ->
-                        val isSelected = isTimeBased == isTime
+                    val showReps = !isExpanded || !isTimeBased
+                    val showTime = !isExpanded || isTimeBased
+
+                    AnimatedVisibility(
+                        visible = showReps,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
+                        val isSelected = !isTimeBased
                         Surface(
-                            modifier = Modifier.weight(1f).clickable { 
-                                isTimeBased = isTime 
-                                if (isTime) targetRepsValue = "30"
-                            },
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isTimeBased = false
+                                },
                             color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
                             contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
                             shape = RoundedCornerShape(6.dp)
                         ) {
                             Text(
-                                text = label,
+                                text = stringResource(R.string.reps),
+                                modifier = Modifier.padding(vertical = 8.dp),
+                                textAlign = TextAlign.Center,
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(
+                        visible = showTime,
+                        modifier = Modifier.weight(1f),
+                        enter = fadeIn() + expandHorizontally(),
+                        exit = fadeOut() + shrinkHorizontally()
+                    ) {
+                        val isSelected = isTimeBased
+                        Surface(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable(
+                                    interactionSource = remember { MutableInteractionSource() },
+                                    indication = null
+                                ) {
+                                    isTimeBased = true
+                                    if (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() }) {
+                                        targetRepsValue = "30"
+                                    }
+                                },
+                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
+                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                            shape = RoundedCornerShape(6.dp)
+                        ) {
+                            Text(
+                                text = stringResource(R.string.time_label),
                                 modifier = Modifier.padding(vertical = 8.dp),
                                 textAlign = TextAlign.Center,
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
@@ -640,25 +860,77 @@ fun ExerciseEditDialog(
                 SearchableExerciseField(
                     allExercises = allAvailableExercises,
                     value = name,
-                    onValueChange = { name = it },
+                    onValueChange = { 
+                        name = it
+                        if (it.isBlank()) {
+                            isExpanded = false
+                            targetSetsStr = ""
+                            targetRepsValue = ""
+                            muscleGroup = ""
+                        }
+                        // Auto-update muscle group
+                        val detected = com.grafizum.repio.data.WorkoutTemplates.getMuscleGroupForExercise(it)
+                        if (detected != "Other") {
+                            muscleGroup = detected
+                        }
+                    },
+                    onItemSelected = { selectedName ->
+                        isTimeBased = com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(selectedName)
+                        isExpanded = true
+                        
+                        // Auto-fill recommendations if fields are empty (likely new exercise)
+                        if (targetSetsStr.isBlank()) {
+                            targetSetsStr = com.grafizum.repio.data.WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                        }
+                        if (targetRepsValue.isBlank()) {
+                            targetRepsValue = com.grafizum.repio.data.WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                        }
+                    },
                     label = stringResource(R.string.exercise_name),
                     placeholder = stringResource(R.string.exercise_name_placeholder)
                 )
 
-                OutlinedTextField(
-                    value = muscleGroup,
-                    onValueChange = { muscleGroup = it },
-                    label = { Text(stringResource(R.string.muscle_group)) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                // Muscle Group & Description (Visual indicator instead of text box)
+                if (isExpanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = stringResource(R.string.trained_muscles) + ":",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            MuscleGroupBadge(muscleGroup = muscleGroup)
+                        }
+
+                        // Simple description if available
+                        val exerciseDesc = com.grafizum.repio.ui.components.getExerciseStaticDescription(name)
+                        if (exerciseDesc.isNotBlank()) {
+                            Text(
+                                text = exerciseDesc,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                lineHeight = 14.sp
+                            )
+                        }
+                    }
+                }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val onlyNumbersMsg = stringResource(R.string.only_numbers_error)
                     OutlinedTextField(
                         value = targetSetsStr,
-                        onValueChange = { targetSetsStr = it },
+                        onValueChange = { 
+                            if (it.all { char -> char.isDigit() }) {
+                                targetSetsStr = it 
+                            } else {
+                                activeToastMessage = onlyNumbersMsg
+                            }
+                        },
                         label = { Text(stringResource(R.string.sets)) },
+                        placeholder = { Text(stringResource(R.string.sets)) },
                         singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
 
@@ -697,15 +969,36 @@ fun ExerciseEditDialog(
                             }
                         }
                     } else {
+                        val invalidCharMsg = stringResource(R.string.invalid_char_error)
                         OutlinedTextField(
                             value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it },
+                            onValueChange = { newValue ->
+                                // Allow only digits and "-"
+                                val isCharValid = newValue.all { it.isDigit() || it == '-' || it == '–' }
+                                if (isCharValid) {
+                                    targetRepsValue = newValue
+                                } else {
+                                    activeToastMessage = invalidCharMsg
+                                }
+                            },
                             label = { Text(stringResource(R.string.reps)) },
+                            placeholder = { Text(stringResource(R.string.reps)) },
+                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
+                            supportingText = if (targetRepsValue.isNotEmpty() && !isRepsValid) {
+                                { Text(stringResource(R.string.rep_format_error)) }
+                            } else null,
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
+
+                ThemedToast(
+                    message = activeToastMessage ?: "",
+                    themeKey = themeKey,
+                    visible = activeToastMessage != null,
+                    onDismiss = { activeToastMessage = null }
+                )
 
                 OutlinedTextField(
                     value = videoUrl,
@@ -717,18 +1010,6 @@ fun ExerciseEditDialog(
             }
         },
         confirmButton = {
-            val isRepsValid = remember(targetRepsValue, isTimeBased) {
-                if (isTimeBased) true
-                else {
-                    val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
-                    if (parts.size == 2) {
-                        val v1 = parts[0].filter { it.isDigit() }.toIntOrNull()
-                        val v2 = parts[1].filter { it.isDigit() }.toIntOrNull()
-                        if (v1 != null && v2 != null) v1 <= v2 else true
-                    } else true
-                }
-            }
-
             Button(
                 onClick = {
                     if (name.isNotBlank() && targetRepsValue.isNotBlank()) {

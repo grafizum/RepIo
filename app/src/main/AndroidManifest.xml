@@ -28,28 +28,112 @@
             android:theme="@style/Theme.App.Starting">
         </activity>
 
-        <!-- Orange / Dark Theme Entry Point (STATIC BLACK SPLASH) -->
+        <!-- Flame / Dark Theme Entry Point -->
         <activity
-            android:name="com.grafizum.repio.MainActivityOrange"
-            android:enabled="true"
+            android:name="com.grafizum.repio.MainActivityFlame"
+            android:enabled="false"
             android:exported="true"
-            android:icon="@mipmap/ic_launcher_orange"
+            android:icon="@mipmap/ic_launcher_flame"
             android:label="@string/app_name"
-            android:theme="@style/Theme.App.Starting.Orange">
+            android:theme="@style/Theme.App.Starting.Flame">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
 
-        <!-- Beige / Light Theme Entry Point (STATIC WHITE SPLASH) -->
+        <!-- Beige / Light Theme Entry Point -->
         <activity
             android:name="com.grafizum.repio.MainActivityBeige"
-            android:enabled="false"
+            android:enabled="true"
             android:exported="true"
             android:icon="@mipmap/ic_launcher_beige"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting.Beige">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Purple Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityPurple"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_purple"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Purple">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Emerald Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityEmerald"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_emerald"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Emerald">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Crimson Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityCrimson"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_crimson"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Crimson">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Azure Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityAzure"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_azure"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Azure">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Ocean Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityOcean"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_ocean"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Ocean">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+                <category android:name="android.intent.category.LAUNCHER" />
+            </intent-filter>
+        </activity>
+
+        <!-- Rose Entry Point -->
+        <activity
+            android:name="com.grafizum.repio.MainActivityRose"
+            android:enabled="false"
+            android:exported="true"
+            android:icon="@mipmap/ic_launcher_rose"
+            android:label="@string/app_name"
+            android:theme="@style/Theme.App.Starting.Rose">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />

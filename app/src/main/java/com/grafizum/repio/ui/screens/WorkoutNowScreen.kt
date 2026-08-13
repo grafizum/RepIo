@@ -10,7 +10,19 @@ import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
-import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.layout.Arrangement
+import androidx.compose.foundation.layout.Box
+import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
+import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.Spacer
+import androidx.compose.foundation.layout.fillMaxSize
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
+import androidx.compose.foundation.layout.padding
+import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.rememberScrollState
@@ -41,6 +53,7 @@ import androidx.compose.ui.unit.sp
 import com.grafizum.repio.R
 import com.grafizum.repio.data.DayOfWeekEnum
 import com.grafizum.repio.data.RoutineExerciseEntity
+import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
@@ -144,7 +157,7 @@ fun WorkoutNowScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .heightIn(min = 64.dp)
                 .padding(vertical = 4.dp)
         ) {
             Row(
@@ -391,12 +404,29 @@ fun WorkoutNowScreen(
             } else {
                 // ACTIVE WORKOUT SESSION VIEW
                 val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, currentDayExercises.size - 1)
-                val currentExercise = currentDayExercises[exerciseIndex]
+                val baseExercise = currentDayExercises[exerciseIndex]
+                
+                // Resolve Master Workout for current and next
+                val currentExercise = remember(baseExercise.name, baseExercise.dayOfWeek) {
+                    val resolvedName = WorkoutTemplates.resolveMasterWorkout(baseExercise.name)
+                    if (resolvedName != baseExercise.name) {
+                        baseExercise.copy(name = resolvedName)
+                    } else baseExercise
+                }
+
                 val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
                 val totalExercises = currentDayExercises.size
-                val nextExercise = if (exerciseIndex + 1 < currentDayExercises.size) {
+
+                val baseNext = if (exerciseIndex + 1 < currentDayExercises.size) {
                     currentDayExercises[exerciseIndex + 1]
                 } else null
+                
+                val nextExercise = remember(baseNext?.name) {
+                    baseNext?.let {
+                        val resolved = WorkoutTemplates.resolveMasterWorkout(it.name)
+                        if (resolved != it.name) it.copy(name = resolved) else it
+                    }
+                }
 
                 Column {
                     Row(
@@ -516,7 +546,27 @@ fun WorkoutNowScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            MuscleGroupBadge(muscleGroup = currentExercise.muscleGroup)
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                MuscleGroupBadge(muscleGroup = currentExercise.muscleGroup)
+                                
+                                // Secondary Specific Muscle Badge (As requested: ONLY for this tab)
+                                val specificMuscle = currentExercise.muscleGroup
+                                val topic = WorkoutTemplates.getTopicForMuscle(specificMuscle)
+                                if (!specificMuscle.equals(topic, ignoreCase = true)) {
+                                    Surface(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.1f),
+                                        contentColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        shape = RoundedCornerShape(6.dp)
+                                    ) {
+                                        Text(
+                                            text = com.grafizum.repio.ui.components.translateMuscleGroup(specificMuscle),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+                                            modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                                        )
+                                    }
+                                }
+                            }
+                            
                             Surface(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                 contentColor = MaterialTheme.colorScheme.primary,
@@ -532,11 +582,57 @@ fun WorkoutNowScreen(
 
                         Spacer(modifier = Modifier.height(12.dp))
 
-                        Text(
-                            text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
-                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
+                        var showPeek by remember { mutableStateOf(false) }
+                        val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup)
+
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
+                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface,
+                                modifier = Modifier.weight(1f)
+                            )
+
+                            IconButton(
+                                onClick = { showPeek = !showPeek },
+                                modifier = Modifier.size(32.dp)
+                            ) {
+                                Icon(
+                                    imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = "Quick Peek",
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
+
+                        AnimatedVisibility(visible = showPeek) {
+                            Column(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
+                                Surface(
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                    shape = RoundedCornerShape(12.dp),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(modifier = Modifier.padding(12.dp)) {
+                                        Icon(
+                                            imageVector = Icons.Default.Info,
+                                            contentDescription = null,
+                                            modifier = Modifier.size(16.dp),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                }
+                            }
+                        }
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -562,17 +658,19 @@ fun WorkoutNowScreen(
                                 videoUrl = currentExercise.videoUrl,
                                 onSaveDemoUrl = { newUrl ->
                                     viewModel.saveExercise(currentExercise.copy(videoUrl = newUrl))
-                                }
+                                },
+                                modifier = Modifier.height(44.dp)
                             )
 
                             Surface(
                                 color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 contentColor = MaterialTheme.colorScheme.onSurface,
                                 shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.semantics { testTag = "next_up_exercise_card" }
+                                modifier = Modifier.height(44.dp).semantics { testTag = "next_up_exercise_card" }
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
+                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    verticalArrangement = Arrangement.Center,
                                     horizontalAlignment = Alignment.End
                                 ) {
                                     Text(
@@ -586,7 +684,7 @@ fun WorkoutNowScreen(
                                     Spacer(modifier = Modifier.height(2.dp))
                                     if (nextExercise != null) {
                                         Text(
-                                            text = stringResource(R.string.next_up_exercise, com.grafizum.repio.ui.components.translateExerciseName(nextExercise.name), nextExercise.targetSets),
+                                            text = com.grafizum.repio.ui.components.translateExerciseName(nextExercise.name),
                                             style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             maxLines = 1,
@@ -668,11 +766,13 @@ fun WorkoutNowScreen(
                                 verticalAlignment = Alignment.CenterVertically,
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
+                                val canDecrementWeight = workoutState.currentWeightKg > 0
                                 IconButton(
                                     onClick = { viewModel.decrementWeight() },
-                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.background)
+                                    enabled = canDecrementWeight,
+                                    modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                 ) {
-                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight")
+                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                                 }
 
                                 IconButton(
@@ -684,7 +784,7 @@ fun WorkoutNowScreen(
                             }
                         }
 
-                        // REPS or TIME
+                        // REPS or TIME (Constrained to plan range)
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
                             horizontalArrangement = Arrangement.SpaceBetween,
@@ -707,35 +807,40 @@ fun WorkoutNowScreen(
                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                             ) {
                                 if (isTimeBased) {
-                                    // Time selectors next to time label
-                                    listOf(30, 45, 60).forEach { secs ->
-                                        val isSelected = workoutState.currentExerciseSeconds == secs
-                                        Surface(
-                                            color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.background,
-                                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.clickable { viewModel.updateExerciseSeconds(secs) }
-                                        ) {
-                                            Text(
-                                                text = "${secs}s",
-                                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                                            )
-                                        }
-                                    }
-                                } else {
+                                    val canDecreaseTime = workoutState.currentExerciseSeconds > workoutState.minExerciseSeconds
                                     IconButton(
-                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
-                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.background)
+                                        onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 5) },
+                                        enabled = canDecreaseTime,
+                                        modifier = Modifier.clip(CircleShape).background(if (canDecreaseTime) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                     ) {
-                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null)
+                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseTime) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                                     }
 
+                                    val canIncreaseTime = workoutState.currentExerciseSeconds < workoutState.maxExerciseSeconds
+                                    IconButton(
+                                        onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 5) },
+                                        enabled = canIncreaseTime,
+                                        modifier = Modifier.clip(CircleShape).background(if (canIncreaseTime) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseTime) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                    }
+                                } else {
+                                    val canDecreaseReps = workoutState.currentReps > workoutState.minReps
+                                    IconButton(
+                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
+                                        enabled = canDecreaseReps,
+                                        modifier = Modifier.clip(CircleShape).background(if (canDecreaseReps) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseReps) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                    }
+
+                                    val canIncreaseReps = workoutState.currentReps < workoutState.maxReps
                                     IconButton(
                                         onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
-                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                        enabled = canIncreaseReps,
+                                        modifier = Modifier.clip(CircleShape).background(if (canIncreaseReps) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                     ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = MaterialTheme.colorScheme.primary)
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseReps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                                     }
                                 }
                             }
