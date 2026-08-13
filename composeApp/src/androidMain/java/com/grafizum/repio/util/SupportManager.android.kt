@@ -1,0 +1,37 @@
+package com.grafizum.repio.util
+
+import android.os.Build
+import com.google.firebase.firestore.FirebaseFirestore
+import kotlinx.coroutines.suspendCancellableCoroutine
+import kotlin.coroutines.resume
+
+class AndroidSupportManager : SupportManager {
+    override suspend fun sendTicket(subject: String, message: String): Result<Unit> = suspendCancellableCoroutine { continuation ->
+        try {
+            val db = FirebaseFirestore.getInstance()
+            val ticket = hashMapOf(
+                "subject" to subject,
+                "message" to message,
+                "timestamp" to com.google.firebase.firestore.FieldValue.serverTimestamp(),
+                "status" to "open",
+                "device_model" to getDeviceModel(),
+                "app_version" to getAppVersion()
+            )
+            db.collection("support_tickets").add(ticket)
+                .addOnSuccessListener {
+                    if (continuation.isActive) continuation.resume(Result.success(Unit))
+                }
+                .addOnFailureListener { e ->
+                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                }
+        } catch (e: Exception) {
+            if (continuation.isActive) continuation.resume(Result.failure(e))
+        }
+    }
+
+    override fun getDeviceModel(): String = Build.MODEL
+
+    override fun getAppVersion(): String = "1.0.0" 
+}
+
+actual fun getSupportManager(): SupportManager = AndroidSupportManager()
