@@ -22,8 +22,8 @@ This plan updates the app's default launcher icon to a "light" version with an o
 ### Manifest and Defaults
 
 #### [MODIFY] [AndroidManifest.xml](file:///C:/Users/guido/StudioProjects/RepIo/app/src/main/res/AndroidManifest.xml)
-- Set `com.example.MainActivityBeige` to `enabled="true"`.
-- Set `com.example.MainActivityOrange` to `enabled="false"`.
+- Set `com.grafizum.repio.MainActivityBeige` to `enabled="true"`.
+- Set `com.grafizum.repio.MainActivityFlame` to `enabled="false"`.
 
 ### Splash Screen Themes
 

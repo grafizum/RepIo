@@ -107,38 +107,6 @@ private val AzureSkyColorScheme = lightColorScheme(
     outline = Color(0xFFC7C7CC)
 )
 
-private val GoldColorScheme = darkColorScheme(
-    primary = VibrantGold,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF2D2B1A),
-    onPrimaryContainer = GoldLight,
-    secondary = GoldLight,
-    onSecondary = Color.Black,
-    background = Color(0xFF24220F),
-    onBackground = Color(0xFFE6E2D3),
-    surface = Color(0xFF2D2B1A),
-    onSurface = Color(0xFFE6E2D3),
-    surfaceVariant = Color(0xFF3D3C2A),
-    onSurfaceVariant = Color(0xFFD1CDB9),
-    outline = Color(0xFF9A9685)
-)
-
-private val SlateColorScheme = darkColorScheme(
-    primary = SlateGrey,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF25292D),
-    onPrimaryContainer = SlateLight,
-    secondary = SlateLight,
-    onSecondary = Color.Black,
-    background = Color(0xFF1B1E21),
-    onBackground = Color.White,
-    surface = Color(0xFF25292D),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF31373C),
-    onSurfaceVariant = Color(0xFFEEEEEE),
-    outline = Color(0xFF546E7A)
-)
-
 private val OceanColorScheme = darkColorScheme(
     primary = OceanPrimary,
     onPrimary = Color.White,
@@ -171,22 +139,6 @@ private val RoseColorScheme = darkColorScheme(
     outline = Color(0xFFC2185B)
 )
 
-private val AmberColorScheme = darkColorScheme(
-    primary = AmberPrimary,
-    onPrimary = Color.White,
-    primaryContainer = Color(0xFF3D341E),
-    onPrimaryContainer = AmberLight,
-    secondary = AmberLight,
-    onSecondary = Color.Black,
-    background = Color(0xFF332A14),
-    onBackground = Color.White,
-    surface = Color(0xFF3D341E),
-    onSurface = Color.White,
-    surfaceVariant = Color(0xFF4D432D),
-    onSurfaceVariant = Color(0xFFFFF8E1),
-    outline = Color(0xFFFFA000)
-)
-
 @Composable
 fun WorkoutTrackerTheme(
     themeOption: String = "DEFAULT",
@@ -196,7 +148,7 @@ fun WorkoutTrackerTheme(
 
     val isLightTheme = when (themeOption.uppercase()) {
         "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
-        "FLAME", "GOLD", "SLATE", "OCEAN", "ROSE", "AMBER", "PURPLE" -> false
+        "FLAME", "OCEAN", "ROSE", "PURPLE" -> false
         else -> !isDark
     }
 
@@ -206,11 +158,8 @@ fun WorkoutTrackerTheme(
         "EMERALD" -> EmeraldColorScheme
         "CRIMSON" -> CrimsonColorScheme
         "AZURE" -> AzureSkyColorScheme
-        "GOLD" -> GoldColorScheme
-        "SLATE" -> SlateColorScheme
         "OCEAN" -> OceanColorScheme
         "ROSE" -> RoseColorScheme
-        "AMBER" -> AmberColorScheme
         "PURPLE" -> PurpleColorScheme
         else -> if (isDark) FlameColorScheme else BeigeColorScheme
     }

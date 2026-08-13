@@ -341,13 +341,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                             onNavigateToWorkoutNow = { 
                                 viewModel.setRequestedWorkoutSubTab(0)
                                 navigateToTab(Screen.MyWorkout.route) 
-                            },
-                            onNavigateToRoutine = { 
-                                viewModel.setRequestedWorkoutSubTab(1)
-                                navigateToTab(Screen.MyWorkout.route) 
-                            },
-                            onNavigateToCharts = { navigateToTab(Screen.Analytics.route) },
-                            onNavigateToWeeklyReport = { navigateToTab(Screen.Analytics.route) }
+                            }
                         )
                     }
 
@@ -378,3 +372,4 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         }
     }
 }
+

@@ -2,71 +2,27 @@ package com.grafizum.repio.ui.components
 
 import android.content.Intent
 import android.net.Uri
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.animateColorAsState
-import androidx.compose.animation.core.FastOutSlowInEasing
-import androidx.compose.animation.core.animateFloatAsState
-import androidx.compose.animation.core.tween
-import androidx.compose.ui.res.stringResource
-import com.grafizum.repio.R
+import androidx.compose.animation.*
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectTapGestures
-import androidx.compose.foundation.layout.Arrangement
-import androidx.compose.foundation.layout.Box
-import androidx.compose.foundation.layout.Column
-import androidx.compose.foundation.layout.Row
-import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.fillMaxHeight
-import androidx.compose.foundation.layout.fillMaxSize
-import androidx.compose.foundation.layout.fillMaxWidth
-import androidx.compose.foundation.layout.height
-import androidx.compose.foundation.layout.padding
-import androidx.compose.foundation.layout.size
-import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.layout.*
+import androidx.compose.foundation.lazy.LazyColumn
+import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
-import androidx.compose.material.icons.filled.Add
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.Edit
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Info
-import androidx.compose.animation.animateContentSize
-import androidx.compose.material.icons.filled.Delete
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.PlayCircleFilled
-import androidx.compose.material3.HorizontalDivider
-import androidx.compose.ui.draw.alpha
-import androidx.compose.material.icons.filled.Timer
-import androidx.compose.material.icons.filled.Warning
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
-import androidx.compose.material3.MenuAnchorType
-import androidx.compose.material3.OutlinedTextField
-import com.grafizum.repio.data.RoutineExerciseEntity
-import androidx.compose.material3.Badge
-import androidx.compose.material3.Button
-import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.Icon
-import androidx.compose.material3.IconButton
-import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.Surface
-import androidx.compose.material3.Text
-import androidx.compose.runtime.Composable
-import androidx.compose.runtime.getValue
-import androidx.compose.runtime.mutableStateOf
-import androidx.compose.runtime.remember
-import androidx.compose.runtime.setValue
+import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.*
+import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
+import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
@@ -78,6 +34,8 @@ import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalContext
+import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -86,6 +44,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.grafizum.repio.R
+import kotlinx.coroutines.delay
+import com.grafizum.repio.data.RoutineExerciseEntity
+import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.theme.BrightLime
 import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
@@ -98,9 +60,9 @@ fun getMuscleGroupColor(muscleGroup: String): Color {
         "shoulders" -> Color(0xFFEC4899) // Pink
         "chest" -> Color(0xFFEF4444) // Red
         "legs" -> Color(0xFF10B981) // Emerald
-        "abs" -> Color(0xFFF59E0B) // Amber
-        "triceps" -> Color(0xFF06B6D4) // Cyan
-        else -> Color(0xFF64748B) // Slate
+        "abs" -> Color(0xFFF59E0B) 
+        "triceps" -> Color(0xFF06B6D4) 
+        else -> Color(0xFF64748B) 
     }
 }
 
@@ -109,7 +71,8 @@ fun MuscleGroupBadge(
     muscleGroup: String,
     modifier: Modifier = Modifier
 ) {
-    val color = getMuscleGroupColor(muscleGroup)
+    val topic = WorkoutTemplates.getTopicForMuscle(muscleGroup)
+    val color = getMuscleGroupColor(topic)
     Surface(
         color = color.copy(alpha = 0.2f),
         contentColor = color,
@@ -117,7 +80,7 @@ fun MuscleGroupBadge(
         modifier = modifier
     ) {
         Text(
-            text = translateMuscleGroup(muscleGroup),
+            text = translateMuscleGroup(topic),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
@@ -157,7 +120,8 @@ fun translateMuscleGroup(muscleGroup: String): String {
 
 @Composable
 fun translateExerciseName(name: String): String {
-    return when (name.trim()) {
+    val clean = name.removeSuffix(" (Master)").trim()
+    return when (clean) {
         "Barbell bent-over row" -> stringResource(R.string.ex_barbell_bent_over_row)
         "One-arm dumbbell row" -> stringResource(R.string.ex_one_arm_dumbbell_row)
         "Dumbbell pullover" -> stringResource(R.string.ex_dumbbell_pullover)
@@ -322,68 +286,81 @@ fun StatCard(
 fun ExerciseVideoLinkButton(
     videoUrl: String,
     onSaveDemoUrl: ((String) -> Unit)? = null,
+    isEditMode: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     val context = LocalContext.current
     var showInputDialog by remember { mutableStateOf(false) }
     var inputUrlText by remember { mutableStateOf(videoUrl) }
 
-    if (videoUrl.isNotBlank()) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.spacedBy(4.dp)
+    if (isEditMode && onSaveDemoUrl != null) {
+        Button(
+            onClick = {
+                inputUrlText = videoUrl
+                showInputDialog = true
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(10.dp),
+            modifier = modifier
         ) {
-            Button(
-                onClick = {
-                    try {
-                        val formattedUrl = if (!videoUrl.startsWith("http://") && !videoUrl.startsWith("https://")) {
-                            "https://$videoUrl"
-                        } else {
-                            videoUrl
-                        }
-                        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(formattedUrl))
-                        context.startActivity(intent)
-                    } catch (e: Exception) {
-                        android.widget.Toast.makeText(context, "Invalid link URL", android.widget.Toast.LENGTH_SHORT).show()
-                    }
-                },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = RoundedCornerShape(12.dp),
-                modifier = modifier.semantics { testTag = "watch_demo_button" }
-            ) {
-                Icon(
-                    imageVector = Icons.Default.PlayCircleFilled,
-                    contentDescription = stringResource(R.string.watch_demo_video),
-                    modifier = Modifier.size(18.dp)
-                )
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(
-                    text = stringResource(R.string.watch_demo),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                )
-            }
-
-            if (onSaveDemoUrl != null) {
-                IconButton(
-                    onClick = {
-                        inputUrlText = videoUrl
-                        showInputDialog = true
-                    },
-                    modifier = Modifier.size(32.dp)
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Edit,
-                        contentDescription = stringResource(R.string.edit_demo_link),
-                        modifier = Modifier.size(16.dp),
-                        tint = MaterialTheme.colorScheme.primary
-                    )
-                }
-            }
+            val icon = if (videoUrl.isNotBlank()) Icons.Default.Edit else Icons.Default.Add
+            val textId = if (videoUrl.isNotBlank()) R.string.edit_demo else R.string.input_demo
+            Icon(
+                imageVector = icon,
+                contentDescription = null,
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(textId),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                softWrap = false
+            )
         }
-    } else {
+    } else if (videoUrl.isNotBlank()) {
+        Button(
+            onClick = {
+                try {
+                    val formattedUrl = if (!videoUrl.startsWith("http://") && !videoUrl.startsWith("https://")) {
+                        "https://$videoUrl"
+                    } else {
+                        videoUrl
+                    }
+                    val intent = Intent(Intent.ACTION_VIEW, Uri.parse(formattedUrl))
+                    context.startActivity(intent)
+                } catch (e: Exception) {
+                    android.widget.Toast.makeText(context, "Invalid link URL", android.widget.Toast.LENGTH_SHORT).show()
+                }
+            },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
+            ),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(10.dp),
+            modifier = modifier.semantics { testTag = "watch_demo_button" }
+        ) {
+            Icon(
+                imageVector = Icons.Default.PlayCircleFilled,
+                contentDescription = stringResource(R.string.watch_demo_video),
+                modifier = Modifier.size(18.dp)
+            )
+            Spacer(modifier = Modifier.width(6.dp))
+            Text(
+                text = stringResource(R.string.watch_demo),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                softWrap = false
+            )
+        }
+    } else if (onSaveDemoUrl != null) {
         Button(
             onClick = {
                 inputUrlText = ""
@@ -393,7 +370,8 @@ fun ExerciseVideoLinkButton(
                 containerColor = MaterialTheme.colorScheme.primary,
                 contentColor = MaterialTheme.colorScheme.onPrimary
             ),
-            shape = RoundedCornerShape(12.dp),
+            contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
+            shape = RoundedCornerShape(10.dp),
             modifier = modifier.semantics { testTag = "input_demo_button" }
         ) {
             Icon(
@@ -404,7 +382,10 @@ fun ExerciseVideoLinkButton(
             Spacer(modifier = Modifier.width(6.dp))
             Text(
                 text = stringResource(R.string.input_demo),
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                maxLines = 1,
+                overflow = TextOverflow.Visible,
+                softWrap = false
             )
         }
     }
@@ -452,11 +433,19 @@ fun ExerciseVideoLinkButton(
 fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> {
     val cleanName = name.trim().lowercase()
     val description = when {
+        cleanName.contains("(master)") -> stringResource(R.string.ex_master_desc)
         cleanName.contains("bench press") || cleanName.contains("floor press") -> stringResource(R.string.ex_bench_press_desc)
         cleanName.contains("squat") -> stringResource(R.string.ex_squats_desc)
         cleanName.contains("deadlift") -> stringResource(R.string.ex_deadlifts_desc)
         cleanName.contains("pull-up") || cleanName.contains("pullup") || cleanName.contains("chin-up") -> stringResource(R.string.ex_pull_ups_desc)
         cleanName.contains("shoulder press") || cleanName.contains("military press") || cleanName.contains("overhead press") -> stringResource(R.string.ex_overhead_press_desc)
+        cleanName.contains("curl") -> stringResource(R.string.ex_curls_desc)
+        cleanName.contains("row") || cleanName.contains("pulldown") -> stringResource(R.string.ex_rows_desc)
+        cleanName.contains("lateral raise") || cleanName.contains("side raise") -> stringResource(R.string.ex_lateral_raise_desc)
+        cleanName.contains("plank") -> stringResource(R.string.ex_plank_desc)
+        cleanName.contains("extension") || cleanName.contains("pushdown") || cleanName.contains("skullcrusher") || cleanName.contains("dip") -> stringResource(R.string.ex_tricep_extension_desc)
+        cleanName.contains("lunge") || cleanName.contains("step-up") -> stringResource(R.string.ex_lunges_desc)
+        cleanName.contains("crunch") || cleanName.contains("leg raise") || cleanName.contains("abs") -> stringResource(R.string.ex_abs_desc)
         else -> stringResource(R.string.ex_description_generic, translateMuscleGroup(muscleGroup))
     }
 
@@ -474,9 +463,14 @@ fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> 
 @Composable
 fun ExpandableExerciseCard(
     exercise: RoutineExerciseEntity,
+    isSelectionMode: Boolean = false,
+    isSelected: Boolean = false,
+    onSelectedChange: ((Boolean) -> Unit)? = null,
     onEdit: (() -> Unit)? = null,
     onDelete: (() -> Unit)? = null,
+    onReplace: (() -> Unit)? = null,
     onSaveVideoUrl: ((String) -> Unit)? = null,
+    showDescription: Boolean = false,
     modifier: Modifier = Modifier
 ) {
     var expanded by remember { mutableStateOf(false) }
@@ -484,10 +478,23 @@ fun ExpandableExerciseCard(
 
     Card(
         shape = RoundedCornerShape(16.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        colors = CardDefaults.cardColors(
+            containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f) 
+                            else MaterialTheme.colorScheme.surfaceVariant
+        ),
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
         modifier = modifier
             .fillMaxWidth()
-            .clickable { expanded = !expanded }
+            .clickable(
+                interactionSource = remember { MutableInteractionSource() },
+                indication = null
+            ) { 
+                if (isSelectionMode) {
+                    onSelectedChange?.invoke(!isSelected)
+                } else {
+                    expanded = !expanded 
+                }
+            }
             .animateContentSize()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -496,77 +503,269 @@ fun ExpandableExerciseCard(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier.fillMaxWidth()
             ) {
-                Column(modifier = Modifier.weight(1f)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = translateExerciseName(exercise.name),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    if (isSelectionMode) {
+                        Checkbox(
+                            checked = isSelected,
+                            onCheckedChange = onSelectedChange,
+                            modifier = Modifier.padding(end = 8.dp)
                         )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        MuscleGroupBadge(muscleGroup = exercise.muscleGroup)
                     }
-                    Spacer(modifier = Modifier.height(4.dp))
-                    Text(
-                        text = if (exercise.targetReps.contains("sec", ignoreCase = true))
-                            stringResource(R.string.sets_x_time, exercise.targetSets, exercise.targetReps)
-                        else stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
-                        style = MaterialTheme.typography.bodyMedium,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
+                    Column {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = translateExerciseName(exercise.name),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            MuscleGroupBadge(muscleGroup = exercise.muscleGroup)
+                        }
+                        Spacer(modifier = Modifier.height(4.dp))
+                        Text(
+                            text = if (exercise.targetReps.contains("sec", ignoreCase = true))
+                                stringResource(R.string.sets_x_time, exercise.targetSets, exercise.targetReps)
+                            else stringResource(R.string.sets_x_reps, exercise.targetSets, exercise.targetReps),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
                 }
 
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onEdit != null) {
-                        IconButton(onClick = { onEdit() }) {
-                            Icon(imageVector = Icons.Default.Edit, contentDescription = "Edit", modifier = Modifier.size(20.dp))
-                        }
-                    }
-                    if (onDelete != null) {
-                        IconButton(onClick = { onDelete() }) {
-                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete", modifier = Modifier.size(20.dp), tint = MaterialTheme.colorScheme.error)
-                        }
-                    }
+                if (!isSelectionMode) {
                     Icon(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
-                        modifier = Modifier.size(24.dp)
+                        modifier = Modifier.size(28.dp),
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 }
             }
 
-            if (expanded) {
+            if (expanded && !isSelectionMode) {
                 Spacer(modifier = Modifier.height(12.dp))
                 HorizontalDivider(modifier = Modifier.alpha(0.1f))
                 Spacer(modifier = Modifier.height(12.dp))
 
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                    // Description
-                    Row {
-                        Icon(imageVector = Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(stringResource(R.string.description), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                            Text(description, style = MaterialTheme.typography.bodySmall)
+                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                    // Description & Equipment & Detailed Muscles
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        if (showDescription) {
+                            Row {
+                                Icon(imageVector = Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Column {
+                                    Text(stringResource(R.string.description), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                                    Text(description, style = MaterialTheme.typography.bodySmall)
+                                }
+                            }
+                        }
+
+                        val detailedMuscle = WorkoutTemplates.getMuscleGroupForExercise(exercise.name)
+                        
+                        Row {
+                            Icon(imageVector = Icons.Default.Info, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(stringResource(R.string.trained_muscles), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                                Text(translateMuscleGroup(detailedMuscle), style = MaterialTheme.typography.bodySmall)
+                            }
+                        }
+
+                        Row {
+                            Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Column {
+                                Text(stringResource(R.string.equipment), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
+                                Text(equipment, style = MaterialTheme.typography.bodySmall)
+                            }
                         }
                     }
 
-                    // Equipment
-                    Row {
-                        Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Column {
-                            Text(stringResource(R.string.equipment), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                            Text(equipment, style = MaterialTheme.typography.bodySmall)
+                    // ACTION BUTTONS GRID (2x2 for symmetry)
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (onReplace != null) {
+                                OutlinedButton(
+                                    onClick = onReplace,
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                ) {
+                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(R.string.replace), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+
+                            if (onEdit != null) {
+                                OutlinedButton(
+                                    onClick = onEdit,
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                ) {
+                                    Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(R.string.edit), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
+                        }
+
+                        Row(
+                            modifier = Modifier.fillMaxWidth(),
+                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            if (onSaveVideoUrl != null) {
+                                ExerciseVideoLinkButton(
+                                    videoUrl = exercise.videoUrl,
+                                    onSaveDemoUrl = onSaveVideoUrl,
+                                    isEditMode = true,
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                )
+                            } else if (exercise.videoUrl.isNotBlank()) {
+                                ExerciseVideoLinkButton(
+                                    videoUrl = exercise.videoUrl,
+                                    modifier = Modifier.weight(1f).height(40.dp)
+                                )
+                            } else {
+                                // Spacer to maintain grid symmetry if no demo button
+                                Spacer(modifier = Modifier.weight(1f))
+                            }
+
+                            if (onDelete != null) {
+                                OutlinedButton(
+                                    onClick = onDelete,
+                                    modifier = Modifier.weight(1f).height(40.dp),
+                                    contentPadding = PaddingValues(horizontal = 8.dp),
+                                    shape = RoundedCornerShape(10.dp),
+                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                                ) {
+                                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(stringResource(R.string.delete), style = MaterialTheme.typography.labelSmall)
+                                }
+                            }
                         }
                     }
+                }
+            }
+        }
+    }
+}
 
-                    if (exercise.videoUrl.isNotBlank() || onSaveVideoUrl != null) {
-                        Spacer(modifier = Modifier.height(8.dp))
-                        ExerciseVideoLinkButton(
-                            videoUrl = exercise.videoUrl,
-                            onSaveDemoUrl = onSaveVideoUrl,
-                            modifier = Modifier.height(36.dp)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun MuscleGroupSelector(
+    selectedMuscle: String,
+    onMuscleSelected: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val categories = listOf(
+        stringResource(R.string.arms) to listOf("Biceps", "Triceps", "Forearms"),
+        stringResource(R.string.legs) to listOf("Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"),
+        stringResource(R.string.back) to listOf("Lats", "Upper Back", "Upper Traps", "Spinal Erectors"),
+        stringResource(R.string.chest) to listOf("Chest"),
+        stringResource(R.string.shoulders) to listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids"),
+        stringResource(R.string.abs) to listOf("Abs", "Obliques")
+    )
+
+    var expandedCategory by remember { mutableStateOf<String?>(null) }
+
+    Column(modifier = modifier.fillMaxWidth(), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Text(
+            text = stringResource(R.string.muscle_group_body_part),
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary,
+            fontWeight = FontWeight.Bold
+        )
+
+        categories.forEach { (catName, parts) ->
+            val isCatExpanded = expandedCategory == catName
+            val hasSelectedInCat = parts.any { it.equals(selectedMuscle, ignoreCase = true) }
+
+            Card(
+                shape = RoundedCornerShape(10.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = if (isCatExpanded || hasSelectedInCat) MaterialTheme.colorScheme.primary.copy(alpha = 0.05f) 
+                                    else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
+                ),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = if (hasSelectedInCat) MaterialTheme.colorScheme.primary 
+                            else if (isCatExpanded) MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
+                            else Color.Transparent
+                ),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { expandedCategory = if (isCatExpanded) null else catName }
+                            .padding(12.dp)
+                    ) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = catName,
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (hasSelectedInCat) FontWeight.Bold else FontWeight.Medium),
+                                color = if (hasSelectedInCat) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                            )
+                            if (hasSelectedInCat && !isCatExpanded) {
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Icon(
+                            imageVector = if (isCatExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
+                    }
+
+                    if (isCatExpanded) {
+                        FlowRow(
+                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp),
+                            modifier = Modifier.padding(start = 12.dp, end = 12.dp, bottom = 12.dp).fillMaxWidth()
+                        ) {
+                            parts.forEach { part ->
+                                val isSelected = part.equals(selectedMuscle, ignoreCase = true)
+                                val displayName = translateMuscleGroup(part)
+                                
+                                Surface(
+                                    color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                    shape = RoundedCornerShape(10.dp),
+                                    border = BorderStroke(1.dp, if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+                                    modifier = Modifier.clickable { 
+                                        onMuscleSelected(part)
+                                        expandedCategory = null 
+                                    }
+                                ) {
+                                    Text(
+                                        text = displayName,
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp)
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
             }
@@ -879,6 +1078,7 @@ fun SearchableExerciseField(
     allExercises: List<String>,
     value: String,
     onValueChange: (String) -> Unit,
+    onItemSelected: (String) -> Unit = {},
     label: String,
     placeholder: String = ""
 ) {
@@ -886,7 +1086,14 @@ fun SearchableExerciseField(
 
     val filteredExercises = remember(value) {
         if (value.isBlank()) emptyList()
-        else allExercises.filter { it.contains(value, ignoreCase = true) && it.lowercase() != value.lowercase() }.take(5)
+        else {
+            allExercises.filter { it.contains(value, ignoreCase = true) }
+                .sortedWith(compareByDescending<String> { it.equals(value, ignoreCase = true) }
+                    .thenByDescending { it.startsWith(value, ignoreCase = true) }
+                    .thenBy { it.lowercase() }
+                )
+                .take(5)
+        }
     }
 
     ExposedDropdownMenuBox(
@@ -918,6 +1125,7 @@ fun SearchableExerciseField(
                         text = { Text(selection, style = MaterialTheme.typography.bodySmall) },
                         onClick = {
                             onValueChange(selection)
+                            onItemSelected(selection)
                             expanded = false
                         },
                         contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
@@ -925,6 +1133,19 @@ fun SearchableExerciseField(
                 }
             }
         }
+    }
+}
+
+
+@Composable
+fun getExerciseStaticDescription(name: String): String {
+    return when (name.trim()) {
+        "Bench Press", "Barbell Bench Press" -> stringResource(R.string.ex_bench_press_desc)
+        "Squats", "Barbell Squats" -> stringResource(R.string.ex_squats_desc)
+        "Deadlifts" -> stringResource(R.string.ex_deadlifts_desc)
+        "Pull-ups" -> stringResource(R.string.ex_pull_ups_desc)
+        "Military Press", "Shoulder Press" -> stringResource(R.string.ex_overhead_press_desc)
+        else -> ""
     }
 }
 
@@ -949,6 +1170,70 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
             presentGroups.any { it.contains(keyword) } 
         }
     }.map { it.first }
+}
+
+fun getThemeIconResId(themeKey: String): Int {
+    return when (themeKey.uppercase()) {
+        "PURPLE" -> R.drawable.ic_launcher_foreground_purple
+        "BEIGE" -> R.drawable.ic_launcher_foreground_beige
+        "FLAME" -> R.drawable.ic_launcher_foreground_flame
+        "EMERALD" -> R.drawable.ic_launcher_foreground_emerald
+        "CRIMSON" -> R.drawable.ic_launcher_foreground_crimson
+        "AZURE" -> R.drawable.ic_launcher_foreground_azure
+        "OCEAN" -> R.drawable.ic_launcher_foreground_ocean
+        "ROSE" -> R.drawable.ic_launcher_foreground_rose
+        else -> R.drawable.ic_launcher_foreground_beige
+    }
+}
+
+@Composable
+fun ThemedToast(
+    message: String,
+    themeKey: String,
+    visible: Boolean,
+    onDismiss: () -> Unit
+) {
+    if (visible) {
+        LaunchedEffect(visible) {
+            delay(2500L)
+            onDismiss()
+        }
+    }
+
+    AnimatedVisibility(
+        visible = visible,
+        enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
+        exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
+    ) {
+        Surface(
+            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
+            contentColor = MaterialTheme.colorScheme.onErrorContainer,
+            shape = RoundedCornerShape(12.dp),
+            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
+            tonalElevation = 6.dp,
+            modifier = Modifier
+                .padding(bottom = 8.dp)
+                .fillMaxWidth()
+        ) {
+            Row(
+                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+                verticalAlignment = Alignment.CenterVertically
+            ) {
+                Icon(
+                    painter = painterResource(id = getThemeIconResId(themeKey)),
+                    contentDescription = null,
+                    tint = Color.Unspecified,
+                    modifier = Modifier.size(24.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = message,
+                    style = MaterialTheme.typography.bodySmall,
+                    fontWeight = FontWeight.Medium
+                )
+            }
+        }
+    }
 }
 
 @Composable
