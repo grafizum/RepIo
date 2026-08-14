@@ -1,6 +1,8 @@
 import org.jetbrains.compose.desktop.application.dsl.TargetFormat
 import org.jetbrains.kotlin.gradle.ExperimentalKotlinGradlePluginApi
 import org.jetbrains.kotlin.gradle.dsl.JvmTarget
+import java.util.Properties
+import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.kotlin.multiplatform)
@@ -15,8 +17,22 @@ plugins {
 
 // Configuration for Play Store release naming
 val appName = "RepIo"
-val appVersion = "1.0.0"
-val playStoreVersion = 8
+val appVersion = "1.1.0"
+
+// Load Version Code from version.properties
+val versionPropsFile = rootProject.file("version.properties")
+val versionProps = Properties()
+if (versionPropsFile.exists()) {
+    versionPropsFile.inputStream().use { versionProps.load(it) }
+}
+var playStoreVersion = (versionProps.getProperty("VERSION_CODE") ?: "9").toInt()
+
+// Automatic increment logic for signed builds
+if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
+    playStoreVersion++
+    versionProps.setProperty("VERSION_CODE", playStoreVersion.toString())
+    versionPropsFile.outputStream().use { versionProps.store(it, null) }
+}
 
 kotlin {
     androidTarget {
@@ -89,7 +105,7 @@ android {
 
     defaultConfig {
         applicationId = "com.grafizum.repio"
-        minSdk = 24
+        minSdk = 23
         targetSdk = 37
         versionCode = playStoreVersion
         versionName = appVersion
@@ -113,14 +129,22 @@ android {
                 keyPassword = "android"
             }
         }
-        val keystorePath = System.getenv("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
+
+        // Load signing properties from .env if available
+        val envFile = rootProject.file(".env")
+        val env = Properties()
+        if (envFile.exists()) {
+            FileInputStream(envFile).use { env.load(it) }
+        }
+
+        val keystorePath = (System.getenv("KEYSTORE_PATH") ?: env.getProperty("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks") as String
         val relKeystoreFile = file(keystorePath)
         if (relKeystoreFile.exists()) {
             create("release") {
                 storeFile = relKeystoreFile
-                storePassword = System.getenv("STORE_PASSWORD") ?: "android"
-                keyAlias = "upload"
-                keyPassword = System.getenv("KEY_PASSWORD") ?: "android"
+                storePassword = System.getenv("STORE_PASSWORD") ?: env.getProperty("STORE_PASSWORD") ?: "android"
+                keyAlias = System.getenv("KEY_ALIAS") ?: env.getProperty("KEY_ALIAS") ?: "upload_key"
+                keyPassword = System.getenv("KEY_PASSWORD") ?: env.getProperty("KEY_PASSWORD") ?: "android"
             }
         }
     }
