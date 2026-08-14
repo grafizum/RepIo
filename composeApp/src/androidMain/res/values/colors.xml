@@ -34,4 +34,8 @@
     <color name="splash_bg_ocean">#0F1E24</color>
     <color name="splash_bg_rose">#28111A</color>
     <color name="splash_bg_retro">#000000</color>
+
+    <color name="splash_bg_default">#121212</color>
+    <color name="splash_bg_light">#FDFCFB</color>
+    <color name="splash_bg_black">#000000</color>
 </resources>
