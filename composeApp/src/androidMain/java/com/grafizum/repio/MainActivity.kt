@@ -54,6 +54,8 @@ import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import androidx.appcompat.app.AppCompatDelegate
+import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -129,6 +131,19 @@ open class MainActivity : AppCompatActivity() {
         setContent {
             val themeOption by viewModel.themeOption.collectAsState()
             val keepScreenOn by viewModel.keepScreenOn.collectAsState()
+            val appLanguage by viewModel.appLanguage.collectAsState()
+
+            LaunchedEffect(appLanguage) {
+                val targetLocales = if (appLanguage == "system") {
+                    LocaleListCompat.getEmptyLocaleList()
+                } else {
+                    LocaleListCompat.forLanguageTags(appLanguage)
+                }
+                
+                if (AppCompatDelegate.getApplicationLocales() != targetLocales) {
+                    AppCompatDelegate.setApplicationLocales(targetLocales)
+                }
+            }
 
             SideEffect {
                 isReady = true
