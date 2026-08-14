@@ -12,7 +12,15 @@ object DefaultData {
         DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
     )
 
-    val routineDays = emptyList<RoutineDayEntity>() // Legacy, unused now by logic
+    val routineDays = listOf(
+        RoutineDayEntity("MONDAY", "Monday — Pull", "pull_desc", false),
+        RoutineDayEntity("TUESDAY", "Tuesday — Push", "push_desc", false),
+        RoutineDayEntity("WEDNESDAY", "Wednesday — Legs & Core", "legs_desc", false),
+        RoutineDayEntity("THURSDAY", "Thursday — Upper Hypertrophy", "upper_power_desc", false),
+        RoutineDayEntity("FRIDAY", "Friday — Lower Hypertrophy", "lower_power_desc", false),
+        RoutineDayEntity("SATURDAY", "Saturday — Rest", "rest_desc", true),
+        RoutineDayEntity("SUNDAY", "Sunday — Rest", "rest_desc", true)
+    )
 
     val routineExercises = listOf(
         // MONDAY
