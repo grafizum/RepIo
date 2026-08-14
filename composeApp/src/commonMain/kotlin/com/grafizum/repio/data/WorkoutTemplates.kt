@@ -74,7 +74,7 @@ object WorkoutTemplates {
     fun generateAssistedProgram(
         equipment: List<String>, 
         bodyParts: List<String>, 
-        daysCount: Int,
+        selectedDays: List<String>,
         intensity: String,
         includedExercises: List<String> = emptyList(),
         excludedExercises: List<String> = emptyList()
@@ -84,22 +84,11 @@ object WorkoutTemplates {
         val routineExercises = mutableListOf<RoutineExerciseEntity>()
         val unsatisfiedParts = mutableListOf<String>()
 
-        if (bodyParts.isEmpty()) return GeneratedProgram(emptyList(), emptyList(), emptyList())
+        if (bodyParts.isEmpty() || selectedDays.isEmpty()) return GeneratedProgram(emptyList(), emptyList(), emptyList())
 
-        val workoutDayIndices = when(daysCount) {
-            1 -> listOf(0)
-            2 -> listOf(1, 4)
-            3 -> listOf(0, 2, 4)
-            4 -> listOf(0, 1, 3, 4)
-            5 -> listOf(0, 1, 2, 4, 5)
-            6 -> listOf(0, 1, 2, 3, 4, 5)
-            7 -> (0..6).toList()
-            else -> listOf(0, 2, 4)
-        }
-
-        val partsPerDay = List(workoutDayIndices.size) { mutableListOf<String>() }
+        val partsPerDay = List(selectedDays.size) { mutableListOf<String>() }
         bodyParts.forEachIndexed { index, part ->
-            partsPerDay[index % workoutDayIndices.size].add(part)
+            partsPerDay[index % selectedDays.size].add(part)
         }
 
         val setsPerExercise = when(intensity) {
@@ -110,8 +99,8 @@ object WorkoutTemplates {
 
         val usedIncluded = mutableSetOf<String>()
 
-        days.forEachIndexed { index, dayName ->
-            val workoutIndex = workoutDayIndices.indexOf(index)
+        days.forEach { dayName ->
+            val workoutIndex = selectedDays.indexOf(dayName)
             val isWorkout = workoutIndex != -1
             
             if (isWorkout) {

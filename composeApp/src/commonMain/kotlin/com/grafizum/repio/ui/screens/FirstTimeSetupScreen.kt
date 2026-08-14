@@ -30,6 +30,7 @@ import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import com.grafizum.repio.data.DefaultData
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
@@ -79,7 +80,7 @@ fun FirstTimeSetupScreen(
         "Abs", "Obliques",
         "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"
     ) }
-    var assistedDays by remember { mutableIntStateOf(3) }
+    val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
     var assistedIntensity by remember { mutableStateOf("Medium") }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
@@ -87,6 +88,19 @@ fun FirstTimeSetupScreen(
     val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
 
     var selectedTemplate by remember { mutableStateOf(WorkoutTemplates.template5DaySplit) }
+    val templateSelectedDays = remember { mutableStateListOf<String>() }
+    var selectedDayInCustom by remember { mutableStateOf("MONDAY") }
+
+    // Sync template days when template changes
+    LaunchedEffect(selectedTemplate) {
+        templateSelectedDays.clear()
+        templateSelectedDays.addAll(
+            selectedTemplate.dayTemplates
+                .filter { !it.isRestDay }
+                .map { it.dayOfWeek }
+        )
+    }
+
     var previewTemplateModal by remember { mutableStateOf<WorkoutTemplate?>(null) }
     var showFinalSaveConfirmation by remember { mutableStateOf(false) }
     val isManualReentry by viewModel.isManualReentry.collectAsState()
@@ -110,15 +124,9 @@ fun FirstTimeSetupScreen(
     }
 
     val customExercises = remember {
-        mutableStateListOf(
-            RoutineExerciseEntity(0, "MONDAY", "Bench Press / Floor Press", "Chest", 4, "8-12", "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Press", "Shoulders", 3, "10-12", "", 2),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Rows", "Back", 4, "8-12", "", 1),
-            RoutineExerciseEntity(0, "TUESDAY", "Bicep Curls", "Biceps", 3, "10-12", "", 2),
-            RoutineExerciseEntity(0, "THURSDAY", "Barbell Squats", "Legs", 4, "8-12", "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Overhead Tricep Extension", "Triceps", 3, "10-15", "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Crunches (sit-ups) / Leg Raises", "Abs", 3, "15-20", "", 2)
-        )
+        mutableStateListOf<RoutineExerciseEntity>().apply {
+            addAll(DefaultData.routineExercises)
+        }
     }
 
     var showAddCustomExerciseDialog by remember { mutableStateOf(false) }
@@ -131,6 +139,7 @@ fun FirstTimeSetupScreen(
         AddExerciseDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
+            initialDay = selectedDayInCustom,
             themeKey = themeOption,
             onDismiss = { 
                 showAddCustomExerciseDialog = false
@@ -574,6 +583,60 @@ fun FirstTimeSetupScreen(
                     MissingBodyPartsWarningCard(missingParts = getMissingMuscleGroups(selectedTemplate.exercises))
                 }
 
+                // STEP 3: CUSTOMIZE DAYS FOR TEMPLATE
+                item {
+                    Card(
+                        shape = RoundedCornerShape(20.dp),
+                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.padding(18.dp)) {
+                            Surface(
+                                color = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(8.dp),
+                                modifier = Modifier.padding(bottom = 12.dp)
+                            ) {
+                                Text(
+                                    text = "3. Choose Your Workout Days",
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = Color.White,
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 4.dp)
+                                )
+                            }
+                            
+                            Text(
+                                text = "Pick exactly ${selectedTemplate.daysCountArgs.first} days for this routine:",
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                            
+                            Spacer(modifier = Modifier.height(12.dp))
+                            
+                            DaySelectionRow(
+                                selectedDays = templateSelectedDays,
+                                onDayToggle = { day ->
+                                    if (templateSelectedDays.contains(day)) {
+                                        templateSelectedDays.remove(day)
+                                    } else {
+                                        // Optional: restrict to max count if you want hard enforcement here, 
+                                        // but it's better to allow and show validation on Save.
+                                        templateSelectedDays.add(day)
+                                    }
+                                }
+                            )
+                            
+                            if (templateSelectedDays.size != selectedTemplate.daysCountArgs.first) {
+                                Text(
+                                    text = "Please select ${selectedTemplate.daysCountArgs.first} days (currently ${templateSelectedDays.size})",
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.error,
+                                    modifier = Modifier.padding(top = 8.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
             } else if (selectedTab == 1) {
                 // ASSISTED BUILD CONTENT
                 item {
@@ -775,49 +838,17 @@ fun FirstTimeSetupScreen(
                             }
 
                             // 3. Days
-                            Text(getString("choose_days"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .background(MaterialTheme.colorScheme.surface, RoundedCornerShape(12.dp))
-                                    .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(12.dp))
-                                    .padding(8.dp)
-                            ) {
-                                IconButton(
-                                    onClick = { if (assistedDays > 1) assistedDays-- },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Remove,
-                                        contentDescription = "Decrease",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                            Text("3. Choose Workout Days", style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            DaySelectionRow(
+                                selectedDays = assistedSelectedDays,
+                                onDayToggle = { day ->
+                                    if (assistedSelectedDays.contains(day)) {
+                                        if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
+                                    } else {
+                                        assistedSelectedDays.add(day)
+                                    }
                                 }
-
-                                Text(
-                                    text = "$assistedDays",
-                                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.padding(horizontal = 24.dp)
-                                )
-
-                                IconButton(
-                                    onClick = { if (assistedDays < 7) assistedDays++ },
-                                    modifier = Modifier
-                                        .size(40.dp)
-                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.1f), CircleShape)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = "Increase",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
+                            )
 
                             // 4. Exercise Preferences
                             Text(getString("exercise_preferences"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
@@ -955,7 +986,7 @@ fun FirstTimeSetupScreen(
                     val program = WorkoutTemplates.generateAssistedProgram(
                         equipment = assistedEquipment, 
                         bodyParts = assistedBodyParts.toList(), 
-                        daysCount = assistedDays,
+                        selectedDays = assistedSelectedDays.toList(),
                         intensity = assistedIntensity,
                         includedExercises = assistedIncludedExercises.toList(),
                         excludedExercises = assistedExcludedExercises.toList()
@@ -970,31 +1001,60 @@ fun FirstTimeSetupScreen(
                 // CUSTOM BUILD ROUTINE TAB
                 item {
                     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = getString("exercises_count", customExercises.size),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = "3. Build Your Routine",
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary
+                            )
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (customExercises.isNotEmpty()) {
+                                    TextButton(
+                                        onClick = { customExercises.clear() },
+                                        colors = ButtonDefaults.textButtonColors(contentColor = MaterialTheme.colorScheme.error)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.DeleteSweep, contentDescription = null, modifier = Modifier.size(18.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(getString("delete_all"), style = MaterialTheme.typography.labelMedium)
+                                    }
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                }
+
+                                IconButton(
+                                    onClick = { 
+                                        focusManager.clearFocus()
+                                        showAddCustomExerciseDialog = true 
+                                    },
+                                    modifier = Modifier.size(24.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = getString("add_exercise"),
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(24.dp)
+                                    )
+                                }
+                            }
+                        }
+
+                        DaySelectionRow(
+                            selectedDays = listOf(selectedDayInCustom),
+                            onDayToggle = { selectedDayInCustom = it }
                         )
 
-                        IconButton(
-                            onClick = { 
-                                focusManager.clearFocus()
-                                showAddCustomExerciseDialog = true 
-                            },
-                            modifier = Modifier.size(24.dp)
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.Add,
-                                contentDescription = getString("add_exercise"),
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(24.dp)
-                            )
-                        }
-                    }
+                        val exercisesForSelectedDay = customExercises.filter { it.dayOfWeek == selectedDayInCustom }
+                        
+                        Text(
+                            text = if (exercisesForSelectedDay.isEmpty()) "No exercises for this day" 
+                                   else getString("exercises_count", exercisesForSelectedDay.size),
+                            style = MaterialTheme.typography.labelMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
 
                         // LIVE MISSING BODY PART WARNING CARD FOR CUSTOM ROUTINE
                         val missingParts = getMissingMuscleGroups(customExercises)
@@ -1002,7 +1062,8 @@ fun FirstTimeSetupScreen(
                     }
                 }
 
-                items(customExercises) { exercise ->
+                val exercisesForSelectedDay = customExercises.filter { it.dayOfWeek == selectedDayInCustom }
+                items(exercisesForSelectedDay) { exercise ->
                     Card(
                         shape = RoundedCornerShape(14.dp),
                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -1120,13 +1181,14 @@ fun FirstTimeSetupScreen(
                             onClick = {
                                 val finalName = workoutNameInput.trim().ifEmpty { fallbackName }
                                 if (selectedTab == 0) {
-                                    viewModel.applyWorkoutTemplate(selectedTemplate, finalName)
+                                    val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
+                                    viewModel.completeFirstTimeSetup(finalName, mapped.first, mapped.second)
                                 } else if (selectedTab == 1) {
                                     // Generate and apply assisted program
                                     val program = WorkoutTemplates.generateAssistedProgram(
                                         equipment = assistedEquipment,
                                         bodyParts = assistedBodyParts.toList(),
-                                        daysCount = assistedDays,
+                                        selectedDays = assistedSelectedDays.toList(),
                                         intensity = assistedIntensity,
                                         includedExercises = assistedIncludedExercises.toList(),
                                         excludedExercises = assistedExcludedExercises.toList()
@@ -1188,12 +1250,13 @@ fun FirstTimeSetupScreen(
                             val fallbackName = "My Workout"
                             val finalName = workoutNameInput.trim().ifEmpty { fallbackName }
                             if (selectedTab == 0) {
-                                viewModel.applyWorkoutTemplate(selectedTemplate, finalName)
+                                val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
+                                viewModel.completeFirstTimeSetup(finalName, mapped.first, mapped.second)
                             } else if (selectedTab == 1) {
                                 val program = WorkoutTemplates.generateAssistedProgram(
                                     equipment = assistedEquipment,
                                     bodyParts = assistedBodyParts.toList(),
-                                    daysCount = assistedDays,
+                                    selectedDays = assistedSelectedDays.toList(),
                                     intensity = assistedIntensity,
                                     includedExercises = assistedIncludedExercises.toList(),
                                     excludedExercises = assistedExcludedExercises.toList()
@@ -1204,6 +1267,11 @@ fun FirstTimeSetupScreen(
                             }
                             onComplete()
                         }
+                    },
+                    enabled = when(selectedTab) {
+                        0 -> templateSelectedDays.size == selectedTemplate.daysCountArgs.first
+                        1 -> assistedSelectedDays.isNotEmpty()
+                        else -> true
                     },
                     colors = ButtonDefaults.buttonColors(
                         containerColor = MaterialTheme.colorScheme.primary,
@@ -1301,16 +1369,118 @@ fun FirstTimeSetupScreen(
     }
 }
 
+@Composable
+fun DaySelectionRow(
+    selectedDays: List<String>,
+    onDayToggle: (String) -> Unit
+) {
+    val allDays = listOf(
+        "MONDAY" to "M",
+        "TUESDAY" to "T",
+        "WEDNESDAY" to "W",
+        "THURSDAY" to "T",
+        "FRIDAY" to "F",
+        "SATURDAY" to "S",
+        "SUNDAY" to "S"
+    )
+
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.SpaceBetween
+    ) {
+        allDays.forEach { (day, label) ->
+            val isSelected = selectedDays.contains(day)
+            Surface(
+                onClick = { onDayToggle(day) },
+                color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                shape = CircleShape,
+                border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                modifier = Modifier.size(40.dp)
+            ) {
+                Box(contentAlignment = Alignment.Center) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            }
+        }
+    }
+}
+
+fun remapTemplateToDays(
+    template: WorkoutTemplate,
+    targetDays: List<String>
+): Pair<List<RoutineDayEntity>, List<RoutineExerciseEntity>> {
+    val weekDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+    val logicalWorkoutDays = template.dayTemplates.filter { !it.isRestDay }
+    
+    val routineDays = mutableListOf<RoutineDayEntity>()
+    val routineExercises = mutableListOf<RoutineExerciseEntity>()
+    
+    // Sort targetDays according to week order
+    val sortedTargetDays = targetDays.sortedBy { weekDays.indexOf(it) }
+    
+    weekDays.forEach { day ->
+        val targetIndex = sortedTargetDays.indexOf(day)
+        if (targetIndex != -1) {
+            // This is a workout day
+            val logicalDay = logicalWorkoutDays.getOrNull(targetIndex % logicalWorkoutDays.size)
+            if (logicalDay != null) {
+                routineDays.add(RoutineDayEntity(
+                    dayOfWeek = day,
+                    title = day.substring(0, 1) + day.substring(1).lowercase() + " — " + getEnglishTitleFromKey(logicalDay.titleKey),
+                    description = logicalDay.descKey,
+                    isRestDay = false
+                ))
+                
+                // Map exercises
+                template.exercises.filter { it.dayOfWeek == logicalDay.dayOfWeek }.forEach { ex ->
+                    routineExercises.add(ex.copy(dayOfWeek = day))
+                }
+            }
+        } else {
+            // This is a rest day
+            routineDays.add(RoutineDayEntity(
+                dayOfWeek = day,
+                title = day.substring(0, 1) + day.substring(1).lowercase() + " — Rest",
+                description = "rest_desc",
+                isRestDay = true
+            ))
+        }
+    }
+    
+    return routineDays to routineExercises
+}
+
+private fun getEnglishTitleFromKey(key: String): String {
+    return when(key) {
+        "pull_title" -> "Pull (Back & Biceps)"
+        "push_title" -> "Push (Chest, Shoulders, Triceps)"
+        "legs_core_title" -> "Legs & Core"
+        "upper_power_title" -> "Upper Body Power"
+        "lower_power_title" -> "Lower Body & Core"
+        "upper_hypertrophy_title" -> "Upper Body Hypertrophy"
+        "lower_hypertrophy_title" -> "Lower Body Hypertrophy"
+        "full_body_a_title" -> "Full Body A"
+        "full_body_b_title" -> "Full Body B"
+        "full_body_c_title" -> "Full Body C"
+        else -> key
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun AddExerciseDialog(
     allAvailableExercises: List<String>,
     exercise: RoutineExerciseEntity? = null,
+    initialDay: String = "MONDAY",
     themeKey: String,
     onDismiss: () -> Unit,
     onConfirm: (RoutineExerciseEntity) -> Unit
 ) {
-    var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: "MONDAY") }
+    var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
