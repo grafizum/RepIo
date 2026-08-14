@@ -154,7 +154,7 @@
     <string name="program_name">My Workout</string>
     <string name="description">Description</string>
     <string name="equipment">Equipment</string>
-    <string name="ex_description_generic">A effective exercise targeting the %1$s muscle group. Focus on controlled movements and full range of motion.</string>
+    <string name="ex_description_generic">Focus on controlled movements and full range of motion while performing this exercise targeting the %1$s muscle group.</string>
     <string name="ex_equipment_gym">Full Gym / Machines</string>
     <string name="ex_equipment_barbell">Barbell</string>
     <string name="ex_equipment_dumbbell">Dumbbells</string>
@@ -172,7 +172,7 @@
     <string name="ex_tricep_extension_desc">Lower the weight behind your head by bending elbows, then straighten arms to press the weight back up.</string>
     <string name="ex_lunges_desc">Step forward and lower your hips until both knees are bent at 90 degrees. Push back up to the start.</string>
     <string name="ex_abs_desc">For crunches, lift shoulders off the floor. For leg raises, lift straight legs from the floor toward the ceiling.</string>
-    <string name="ex_master_desc">Variable Session: The app selects the optimal variation for this exercise to keep your routine effective and varied.</string>
+    <string name="ex_master_desc">Perform the exercise variation selected by the app to keep your training effective and varied.</string>
     <string name="save">Save</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>
@@ -252,13 +252,13 @@
     <string name="other">Other</string>
 
     <string name="hypertrophy_5day_name">5-Day Hypertrophy Split</string>
-    <string name="hypertrophy_5day_desc">High-volume body-part split focusing on muscle growth and balanced symmetry across 5 workout days.</string>
+    <string name="hypertrophy_5day_desc">Perform a high-volume body-part split to maximize muscle growth and ensure balanced symmetry over 5 days.</string>
     <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
-    <string name="ppl_6day_desc">Classic PPL routine separating pushing muscles (chest/shoulders/triceps), pulling muscles (back/biceps), and leg muscles.</string>
+    <string name="ppl_6day_desc">Execute a classic 6-day PPL routine, training pushing, pulling, and leg muscles in separate, focused sessions.</string>
     <string name="upper_lower_4day_name">4-Day Upper / Lower Split</string>
-    <string name="upper_lower_4day_desc">Balanced 4-day split training all upper body muscles twice a week and all lower body muscles twice a week with ample recovery time.</string>
+    <string name="upper_lower_4day_desc">Complete a balanced 4-day split, hitting all upper and lower body muscles twice per week with dedicated recovery.</string>
     <string name="fullbody_3day_name">3-Day Full Body Classic</string>
-    <string name="fullbody_3day_desc">Efficient 3-day full body training hitting every muscle group each session. Great for busy schedules and compound strength gains.</string>
+    <string name="fullbody_3day_desc">Train your entire body in 3 efficient sessions per week, focusing on compound movements for maximum strength gains.</string>
 
     <string name="most_popular">Most Popular</string>
     <string name="strength_mass">6-Day Strength &amp; Mass</string>
@@ -322,15 +322,15 @@
     <string name="full_body_b_title">Full Body B</string>
     <string name="full_body_c_title">Full Body C</string>
 
-    <string name="push_desc">Heavy chest pressing and overhead shoulder work</string>
-    <string name="pull_desc">Heavy rows, pulldowns, and bicep hypertrophy</string>
-    <string name="legs_desc">Squats, lunges, leg curls, and core stability</string>
-    <string name="upper_power_desc">Heavy chest, back, shoulders, and arm pressing</string>
-    <string name="lower_power_desc">Squats, deadlifts, and abs</string>
-    <string name="rest_desc">Active rest, foam rolling, and mobility</string>
-    <string name="full_body_a_desc">Squat, Press, Row, Core</string>
-    <string name="full_body_b_desc">Ausfallschritte, Schulterdrücken, Überzüge, Bizeps</string>
-    <string name="full_body_c_desc">Rumänisches Kreuzheben, Brustdrücken, Arme, Core</string>
+    <string name="push_desc">Perform heavy chest presses and overhead shoulder work to build upper body pushing strength.</string>
+    <string name="pull_desc">Execute heavy rows, pulldowns, and bicep exercises to develop back and pulling power.</string>
+    <string name="legs_desc">Perform squats, lunges, leg curls, and core exercises to build lower body strength and stability.</string>
+    <string name="upper_power_desc">Execute heavy compound movements for the chest, back, shoulders, and arms to build maximum upper body power.</string>
+    <string name="lower_power_desc">Perform heavy squats, deadlifts, and abdominal work to build explosive lower body strength.</string>
+    <string name="rest_desc">Engage in active recovery, light stretching, or foam rolling to prepare your muscles for the next session.</string>
+    <string name="full_body_a_desc">Execute squats, presses, rows, and core movements to hit all major muscle groups in one session.</string>
+    <string name="full_body_b_desc">Perform lunges, shoulder presses, pullovers, and bicep work to continue full-body development.</string>
+    <string name="full_body_c_desc">Complete Romanian deadlifts, chest presses, and arm work to round out your weekly full-body training.</string>
 
     <string name="warm_beige">Warm Beige</string>
     <string name="developer_theme">Developer\'s theme</string>

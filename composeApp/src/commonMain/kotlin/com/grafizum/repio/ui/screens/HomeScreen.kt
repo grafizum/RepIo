@@ -46,6 +46,7 @@ fun HomeScreen(
     val workoutName by viewModel.customWorkoutName.collectAsState()
 
     var showEditNameDialog by remember { mutableStateOf(false) }
+    var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
@@ -365,7 +366,11 @@ fun HomeScreen(
                     }
                     ExpandableExerciseCard(
                         exercise = exercise,
-                        showDescription = true
+                        showDescription = true,
+                        isExpanded = expandedExerciseId == exercise.id,
+                        onExpandedChange = { expanded ->
+                            expandedExerciseId = if (expanded) exercise.id else null
+                        }
                     )
                 }
             }
