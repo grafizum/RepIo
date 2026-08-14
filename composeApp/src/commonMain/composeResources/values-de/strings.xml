@@ -154,7 +154,7 @@
     <string name="program_name">Programmname</string>
     <string name="description">Beschreibung</string>
     <string name="equipment">Ausrüstung</string>
-    <string name="ex_description_generic">Eine effektive Übung für die %1$s-Muskulatur. Achte auf kontrollierte Bewegungen.</string>
+    <string name="ex_description_generic">Führe diese Übung für die %1$s-Muskulatur mit kontrollierten Bewegungen aus.</string>
     <string name="ex_equipment_gym">Fitnessstudio / Geräte</string>
     <string name="ex_equipment_barbell">Langhantel</string>
     <string name="ex_equipment_dumbbell">Kurzhanteln</string>
@@ -172,7 +172,7 @@
     <string name="ex_tricep_extension_desc">Das Gewicht durch Beugen der Ellbogen hinter den Kopf führen und dann die Arme wieder strecken.</string>
     <string name="ex_lunges_desc">Einen Schritt nach vorne machen und die Hüfte absenken, bis beide Knie einen 90-Grad-Winkel bilden.</string>
     <string name="ex_abs_desc">Für Crunches die Schultern vom Boden abheben. Für Beinheben die gestreckten Beine in Richtung Decke führen.</string>
-    <string name="ex_master_desc">Variable Einheit: Die App wählt die optimale Variation für diese Übung aus, um dein Training effektiv und abwechslungsreich zu halten.</string>
+    <string name="ex_master_desc">Führe die von der App ausgewählte Übungsvariation aus, um dein Training effektiv und abwechslungsreich zu gestalten.</string>
     <string name="save">Speichern</string>
     <string name="edit">Bearbeiten</string>
     <string name="delete">Löschen</string>
@@ -252,13 +252,13 @@
     <string name="other">Sonstige</string>
 
     <string name="hypertrophy_5day_name">5-Tage Hypertrophie-Split</string>
-    <string name="hypertrophy_5day_desc">Volumenreiches Training für maximales Muskelwachstum und Symmetrie über 5 Tage.</string>
+    <string name="hypertrophy_5day_desc">Führe einen volumenreichen Split aus, um maximales Muskelwachstum und Symmetrie über 5 Trainingstage zu erreichen.</string>
     <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
-    <string name="ppl_6day_desc">Klassische Routine: Trennung von Druck-, Zug- und Beinmuskulatur über 6 Tage.</string>
+    <string name="ppl_6day_desc">Absolviere eine klassische 6-Tage-PPL-Routine, bei der Druck-, Zug- und Beinmuskulatur in separaten Einheiten trainiert werden.</string>
     <string name="upper_lower_4day_name">4-Tage Ober-/Unterkörper-Split</string>
-    <string name="upper_lower_4day_desc">Ausgewogener Split: Training aller Muskelgruppen zweimal pro Woche mit ausreichend Erholung.</string>
+    <string name="upper_lower_4day_desc">Trainiere ausgewogen in einem 4-Tage-Split, bei dem Ober- und Unterkörper zweimal wöchentlich mit ausreichend Erholung beansprucht werden.</string>
     <string name="fullbody_3day_name">3-Tage Ganzkörper-Klassiker</string>
-    <string name="fullbody_3day_desc">Effizientes Training aller Muskelgruppen pro Einheit. Ideal für einen vollen Terminkalender.</string>
+    <string name="fullbody_3day_desc">Trainiere deinen gesamten Körper in 3 effizienten Einheiten pro Woche mit Fokus auf Grundübungen für maximale Kraft.</string>
 
     <string name="most_popular">Beliebteste</string>
     <string name="strength_mass">6-Tage Kraft &amp; Masse</string>
@@ -322,15 +322,15 @@
     <string name="full_body_b_title">Ganzkörper B</string>
     <string name="full_body_c_title">Ganzkörper C</string>
 
-    <string name="push_desc">Schweres Brustdrücken und Schulterdrücken über Kopf</string>
-    <string name="pull_desc">Schweres Rudern, Latzug und Bizeps-Hypertrophie</string>
-    <string name="legs_desc">Kniebeugen, Ausfallschritte, Beinbeuger und Core-Stabilität</string>
-    <string name="upper_power_desc">Schweres Training für Brust, Rücken, Schultern und Arme</string>
-    <string name="lower_power_desc">Kniebeugen, Kreuzheben und Bauchmuskeln</string>
-    <string name="rest_desc">Aktive Erholung, Faszienrollen und Mobilität</string>
-    <string name="full_body_a_desc">Kniebeugen, Drücken, Rudern, Core</string>
-    <string name="full_body_b_desc">Ausfallschritte, Schulterdrücken, Überzüge, Bizeps</string>
-    <string name="full_body_c_desc">Rumänisches Kreuzheben, Brustdrücken, Arme, Core</string>
+    <string name="push_desc">Führe schweres Brustdrücken und Schulterdrücken über Kopf aus, um die Druckkraft des Oberkörpers zu steigern.</string>
+    <string name="pull_desc">Absolviere schweres Rudern, Latzüge und Bizepsübungen, um die Zugkraft und den Rücken zu stärken.</string>
+    <string name="legs_desc">Trainiere Kniebeugen, Ausfallschritte, Beinbeuger und den Rumpf, um Kraft und Stabilität im Unterkörper aufzubauen.</string>
+    <string name="upper_power_desc">Führe schwere Grundübungen für Brust, Rücken, Schultern und Arme aus, um maximale Oberkörperkraft zu entwickeln.</string>
+    <string name="lower_power_desc">Trainiere schwere Kniebeugen, Kreuzheben und Bauchmuskeln, um eine explosive Unterkörperkraft aufzubauen.</string>
+    <string name="rest_desc">Nutze aktive Erholung, leichtes Dehnen oder Faszienrollen, um deine Muskeln auf die nächste Einheit vorzubereiten.</string>
+    <string name="full_body_a_desc">Absolviere Kniebeugen, Drückbewegungen, Rudern und Rumpfübungen, um alle großen Muskelgruppen in einer Einheit zu trainieren.</string>
+    <string name="full_body_b_desc">Führe Ausfallschritte, Schulterdrücken, Überzüge und Bizepstraining aus, um die Ganzkörperentwicklung fortzusetzen.</string>
+    <string name="full_body_c_desc">Trainiere rumänisches Kreuzheben, Brustdrücken und Arme, um dein wöchentliches Ganzkörpertraining abzurunden.</string>
 
     <string name="warm_beige">Warmes Beige</string>
     <string name="developer_theme">Entwickler-Design</string>

@@ -193,7 +193,18 @@ fun translateDayTitle(title: String): String {
 
 @Composable
 fun translateDayDescription(description: String): String {
-    return when (description.trim()) {
+    val trimmed = description.trim()
+    return when (trimmed) {
+        "push_desc" -> getString("push_desc")
+        "pull_desc" -> getString("pull_desc")
+        "legs_desc" -> getString("legs_desc")
+        "upper_power_desc" -> getString("upper_power_desc")
+        "lower_power_desc" -> getString("lower_power_desc")
+        "rest_desc" -> getString("rest_desc")
+        "full_body_a_desc" -> getString("full_body_a_desc")
+        "full_body_b_desc" -> getString("full_body_b_desc")
+        "full_body_c_desc" -> getString("full_body_c_desc")
+        
         "Heavy chest pressing and overhead shoulder work" -> getString("push_desc")
         "Heavy rows, pulldowns, and bicep hypertrophy" -> getString("pull_desc")
         "Squats, lunges, leg curls, and core stability" -> getString("legs_desc")
@@ -461,9 +472,21 @@ fun ExpandableExerciseCard(
     onReplace: (() -> Unit)? = null,
     onSaveVideoUrl: ((String) -> Unit)? = null,
     showDescription: Boolean = false,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    isExpanded: Boolean? = null,
+    onExpandedChange: ((Boolean) -> Unit)? = null
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var internalExpanded by remember { mutableStateOf(false) }
+    val expanded = isExpanded ?: internalExpanded
+    val toggleExpand = {
+        val nextValue = !expanded
+        if (isExpanded != null && onExpandedChange != null) {
+            onExpandedChange(nextValue)
+        } else {
+            internalExpanded = nextValue
+        }
+    }
+
     val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup)
     val isDeveloper = LocalDeveloperSkin.current
 
@@ -485,7 +508,7 @@ fun ExpandableExerciseCard(
                 if (isSelectionMode) {
                     onSelectedChange?.invoke(!isSelected)
                 } else {
-                    expanded = !expanded 
+                    toggleExpand()
                 }
             }
             .animateContentSize()
