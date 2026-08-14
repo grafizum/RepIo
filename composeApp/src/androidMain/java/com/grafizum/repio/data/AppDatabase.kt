@@ -7,6 +7,7 @@ import androidx.room.RoomDatabase
 import androidx.sqlite.db.SupportSQLiteDatabase
 import kotlinx.coroutines.CoroutineScope
 import kotlinx.coroutines.Dispatchers
+import kotlinx.coroutines.flow.first
 import kotlinx.coroutines.launch
 
 @Database(
@@ -32,16 +33,20 @@ abstract class AppDatabase : RoomDatabase() {
                     .addCallback(object : RoomDatabase.Callback() {
                         override fun onCreate(db: SupportSQLiteDatabase) {
                             super.onCreate(db)
-                            // Pre-populate on initial DB creation
-                            INSTANCE?.let { database ->
-                                CoroutineScope(Dispatchers.IO).launch {
-                                    database.workoutDao().insertRoutineDays(DefaultData.routineDays)
-                                    database.workoutDao().insertRoutineExercises(DefaultData.routineExercises)
-                                }
-                            }
                         }
                     })
                     .build()
+                
+                // Pre-populate on initial DB creation
+                // We use a separate thread and the instance we just built
+                CoroutineScope(Dispatchers.IO).launch {
+                    val dao = instance.workoutDao()
+                    if (dao.getAllRoutineDays().first().isEmpty()) {
+                        dao.insertRoutineDays(DefaultData.routineDays)
+                        dao.insertRoutineExercises(DefaultData.routineExercises)
+                    }
+                }
+
                 INSTANCE = instance
                 instance
             }
