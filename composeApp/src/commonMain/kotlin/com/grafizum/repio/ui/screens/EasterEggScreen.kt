@@ -30,8 +30,8 @@ import androidx.compose.ui.unit.sp
 import com.grafizum.repio.util.getString
 
 import org.jetbrains.compose.resources.painterResource
-import repio.composeapp.generated.resources.Res
-import repio.composeapp.generated.resources.ic_easter_egg
+import com.grafizum.repio.generated.resources.Res
+import com.grafizum.repio.generated.resources.ic_easter_egg
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel

@@ -77,8 +77,8 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import org.jetbrains.compose.resources.painterResource
-import repio.composeapp.generated.resources.Res
-import repio.composeapp.generated.resources.ic_easter_egg
+import com.grafizum.repio.generated.resources.Res
+import com.grafizum.repio.generated.resources.ic_easter_egg
 
 fun Context.findActivity(): Activity? = when (this) {
     is Activity -> this

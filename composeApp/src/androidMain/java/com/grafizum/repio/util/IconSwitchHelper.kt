@@ -19,6 +19,7 @@ object IconSwitchHelper {
     private const val OCEAN_ICON_FQN = "com.grafizum.repio.MainActivityOcean"
     private const val ROSE_ICON_FQN = "com.grafizum.repio.MainActivityRose"
     private const val DEVELOPER_ICON_FQN = "com.grafizum.repio.MainActivityRetro"
+    private const val BASE_ICON_FQN = "com.grafizum.repio.MainActivity"
 
     fun switchIcon(context: Context, themeKey: String, killApp: Boolean = true) {
         val packageManager = context.packageManager
@@ -39,7 +40,8 @@ object IconSwitchHelper {
         val aliases = arrayOf(
             PURPLE_ICON_FQN, BEIGE_ICON_FQN, FLAME_ICON_FQN, EMERALD_ICON_FQN,
             CRIMSON_ICON_FQN, AZURE_ICON_FQN,
-            OCEAN_ICON_FQN, ROSE_ICON_FQN, DEVELOPER_ICON_FQN
+            OCEAN_ICON_FQN, ROSE_ICON_FQN, DEVELOPER_ICON_FQN,
+            BASE_ICON_FQN
         )
         
         Log.d(TAG, "Switching icon for theme: $themeKey (Target: $targetAlias, Kill: $killApp)")
