@@ -22,7 +22,14 @@ class AndroidSupportManager : SupportManager {
                     if (continuation.isActive) continuation.resume(Result.success(Unit))
                 }
                 .addOnFailureListener { e ->
-                    if (continuation.isActive) continuation.resume(Result.failure(e))
+                    val descriptiveError = when {
+                        e.message?.contains("PERMISSION_DENIED") == true -> 
+                            Exception("Permission Denied: Check Firestore rules or authentication.", e)
+                        e.message?.contains("AppCheck") == true -> 
+                            Exception("App Check Failed: Secure connection could not be verified.", e)
+                        else -> e
+                    }
+                    if (continuation.isActive) continuation.resume(Result.failure(descriptiveError))
                 }
         } catch (e: Exception) {
             if (continuation.isActive) continuation.resume(Result.failure(e))

@@ -45,7 +45,7 @@ import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
-import com.grafizum.repio.ui.viewmodel.getTodayDayOfWeek
+import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
 import kotlinx.coroutines.delay
 

@@ -1107,11 +1107,6 @@ fun getUpperCategoryKey(muscleGroup: String): String {
     }
 }
 
-@Composable
-fun getTranslatedUpperCategory(muscleGroup: String): String {
-    return getString(getUpperCategoryKey(muscleGroup))
-}
-
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchableExerciseField(
@@ -1210,20 +1205,6 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
             presentGroups.any { it.contains(keyword) } 
         }
     }.map { it.first }
-}
-
-fun getThemeIconKey(themeKey: String): String {
-    return when (themeKey.uppercase()) {
-        "PURPLE" -> "ic_launcher_foreground_purple"
-        "BEIGE" -> "ic_launcher_foreground_beige"
-        "FLAME" -> "ic_launcher_foreground_flame"
-        "EMERALD" -> "ic_launcher_foreground_emerald"
-        "CRIMSON" -> "ic_launcher_foreground_crimson"
-        "AZURE" -> "ic_launcher_foreground_azure"
-        "OCEAN" -> "ic_launcher_foreground_ocean"
-        "ROSE" -> "ic_launcher_foreground_rose"
-        else -> "ic_launcher_foreground_beige"
-    }
 }
 
 @Composable
