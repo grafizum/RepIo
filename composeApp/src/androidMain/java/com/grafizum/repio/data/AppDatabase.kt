@@ -30,23 +30,19 @@ abstract class AppDatabase : RoomDatabase() {
                     AppDatabase::class.java,
                     "workout_tracker_db"
                 )
-                    .addCallback(object : RoomDatabase.Callback() {
-                        override fun onCreate(db: SupportSQLiteDatabase) {
-                            super.onCreate(db)
+                .addCallback(object : RoomDatabase.Callback() {
+                    override fun onCreate(db: SupportSQLiteDatabase) {
+                        super.onCreate(db)
+                        // Triggered only once when DB is created
+                        CoroutineScope(Dispatchers.IO).launch {
+                            // Use the instance we are currently building
+                            val dao = getDatabase(context).workoutDao()
+                            dao.insertRoutineDays(DefaultData.routineDays)
+                            dao.insertRoutineExercises(DefaultData.routineExercises)
                         }
-                    })
-                    .build()
-                
-                // Pre-populate on initial DB creation
-                // We use a separate thread and the instance we just built
-                CoroutineScope(Dispatchers.IO).launch {
-                    val dao = instance.workoutDao()
-                    if (dao.getAllRoutineDays().first().isEmpty()) {
-                        dao.insertRoutineDays(DefaultData.routineDays)
-                        dao.insertRoutineExercises(DefaultData.routineExercises)
                     }
-                }
-
+                })
+                .build()
                 INSTANCE = instance
                 instance
             }

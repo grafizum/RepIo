@@ -86,16 +86,7 @@ fun EasterEggScreen(
         ) {
             Box(
                 modifier = Modifier
-                    .size(42.dp)
-                    .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                    .background(
-                        if (isDeveloper) Color.White.copy(alpha = 0.1f)
-                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                    )
-                    .then(
-                        if (isDeveloper) Modifier.border(1.dp, Color.White, RoundedCornerShape(0.dp))
-                        else Modifier
-                    ),
+                    .size(42.dp),
                 contentAlignment = Alignment.Center
             ) {
                 Icon(
@@ -119,8 +110,6 @@ fun EasterEggScreen(
         Box(
             modifier = Modifier
                 .size(140.dp)
-                .clip(CircleShape)
-                .background(colorRotation.copy(alpha = 0.15f))
                 .scale(scale),
             contentAlignment = Alignment.Center
         ) {
@@ -128,7 +117,7 @@ fun EasterEggScreen(
                 painter = painterResource(Res.drawable.ic_easter_egg),
                 contentDescription = null,
                 tint = colorRotation,
-                modifier = Modifier.size(80.dp)
+                modifier = Modifier.size(100.dp)
             )
         }
 
