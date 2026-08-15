@@ -55,6 +55,7 @@
     <string name="message">Message</string>
     <string name="send_ticket">Send Ticket</string>
     <string name="ticket_sent_success">Ticket sent successfully!</string>
+    <string name="support_submit_failed">Failed to send ticket. Please try again later.</string>
     <string name="please_fill_fields">Please fill in both fields</string>
     <string name="daily_limit_reached">Daily limit reached. Please try again tomorrow.</string>
     <string name="please_wait_cooldown">Please wait %1$d min before sending another ticket.</string>

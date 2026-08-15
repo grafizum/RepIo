@@ -1,7 +1,6 @@
 package com.grafizum.repio.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -66,8 +65,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
-// import com.google.firebase.firestore.FirebaseFirestore
-// import com.google.firebase.firestore.FieldValue
 
 data class ThemeColorItem(
     val key: String,
@@ -656,15 +653,24 @@ private fun SupportTicketForm(viewModel: WorkoutViewModel) {
         )
 
         if (supportUiState.error != null) {
-            Text(
-                text = if (supportUiState.error == "please_wait_cooldown") {
-                    getString(supportUiState.error!!, supportUiState.cooldownMessage)
-                } else {
-                    getString(supportUiState.error!!)
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.error
-            )
+            Column {
+                Text(
+                    text = if (supportUiState.error == "please_wait_cooldown") {
+                        getString(supportUiState.error!!, supportUiState.cooldownMessage)
+                    } else {
+                        getString(supportUiState.error!!)
+                    },
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.error
+                )
+                supportUiState.errorDetail?.let { detail ->
+                    Text(
+                        text = detail,
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
+                    )
+                }
+            }
         }
 
         if (supportUiState.success) {

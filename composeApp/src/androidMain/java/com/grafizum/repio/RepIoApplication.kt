@@ -17,36 +17,42 @@ class RepIoApplication : Application() {
         val savedTheme = prefs.getString("theme_option", null)
         val hasAutoSelected = prefs.getBoolean("auto_theme_selected", false)
         
-        if (savedTheme != null) {
-            // Force sync the launcher icon with the saved theme on every startup
-            IconSwitchHelper.switchIcon(this, savedTheme, killApp = false)
-        } else if (!hasAutoSelected) {
+        if (savedTheme == null && !hasAutoSelected) {
             val uiMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             val isSystemDark = uiMode == Configuration.UI_MODE_NIGHT_YES
             
             val initialTheme = if (isSystemDark) "FLAME" else "BEIGE"
             prefs.edit().putString("theme_option", initialTheme).putBoolean("auto_theme_selected", true).apply()
+            // Only switch icon on first auto-selection to set the initial state
             IconSwitchHelper.switchIcon(this, initialTheme, killApp = false)
         }
 
         // Initialize platform utils for commonMain
-        com.grafizum.repio.util.initPlatformUtils(this)
-        com.grafizum.repio.util.initTimerManager(this)
-        com.grafizum.repio.util.initSettings(this)
+        try {
+            com.grafizum.repio.util.initPlatformUtils(this)
+            com.grafizum.repio.util.initTimerManager(this)
+            com.grafizum.repio.util.initSettings(this)
+        } catch (e: Exception) {
+            android.util.Log.e("RepIoApplication", "Failed to initialize internal utils", e)
+        }
 
         // Initialize Firebase
-        FirebaseApp.initializeApp(this)
-        
-        // Initialize App Check for security (Abuse Prevention)
-        val firebaseAppCheck = FirebaseAppCheck.getInstance()
-        if (BuildConfig.DEBUG) {
-            firebaseAppCheck.installAppCheckProviderFactory(
-                DebugAppCheckProviderFactory.getInstance()
-            )
-        } else {
-            firebaseAppCheck.installAppCheckProviderFactory(
-                PlayIntegrityAppCheckProviderFactory.getInstance()
-            )
+        try {
+            FirebaseApp.initializeApp(this)
+            
+            // Initialize App Check for security (Abuse Prevention)
+            val firebaseAppCheck = FirebaseAppCheck.getInstance()
+            if (BuildConfig.DEBUG) {
+                firebaseAppCheck.installAppCheckProviderFactory(
+                    DebugAppCheckProviderFactory.getInstance()
+                )
+            } else {
+                firebaseAppCheck.installAppCheckProviderFactory(
+                    PlayIntegrityAppCheckProviderFactory.getInstance()
+                )
+            }
+        } catch (e: Exception) {
+            android.util.Log.e("RepIoApplication", "Firebase initialization failed", e)
         }
     }
 }

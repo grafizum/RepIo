@@ -29,7 +29,7 @@ import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
-import com.grafizum.repio.ui.viewmodel.getTodayDayOfWeek
+import com.grafizum.repio.util.getTodayDayOfWeek
 
 import androidx.compose.foundation.BorderStroke
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin

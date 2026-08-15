@@ -4,6 +4,7 @@ import android.content.Intent
 import android.net.Uri
 import android.app.Application
 import com.grafizum.repio.RepIoApplication
+import java.util.Calendar
 
 private var appInstance: Application? = null
 
@@ -14,6 +15,20 @@ fun initPlatformUtils(application: Application) {
 actual fun applyAppIconChange(themeKey: String) {
     val context = appInstance ?: return
     IconSwitchHelper.switchIcon(context, themeKey)
+}
+
+actual fun getTodayDayOfWeek(): String {
+    val calendar = Calendar.getInstance()
+    return when (calendar.get(Calendar.DAY_OF_WEEK)) {
+        Calendar.MONDAY -> "MONDAY"
+        Calendar.TUESDAY -> "TUESDAY"
+        Calendar.WEDNESDAY -> "WEDNESDAY"
+        Calendar.THURSDAY -> "THURSDAY"
+        Calendar.FRIDAY -> "FRIDAY"
+        Calendar.SATURDAY -> "SATURDAY"
+        Calendar.SUNDAY -> "SUNDAY"
+        else -> "MONDAY"
+    }
 }
 
 actual fun openUrl(url: String) {

@@ -90,7 +90,7 @@ import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
-import com.grafizum.repio.ui.viewmodel.getTodayDayOfWeek
+import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
 
 @OptIn(ExperimentalMaterial3Api::class)
