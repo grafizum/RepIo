@@ -12,26 +12,21 @@ class RepIoApplication : Application() {
     override fun onCreate() {
         super.onCreate()
         
-        // Handle First-Time Launcher Activity based on System Theme
+        // Handle Launcher Activity Icon and Splash Screen based on saved theme or system theme
         val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
-        val isFirstTime = prefs.getBoolean("is_first_time", true)
+        val savedTheme = prefs.getString("theme_option", null)
         val hasAutoSelected = prefs.getBoolean("auto_theme_selected", false)
         
-        if (isFirstTime && !hasAutoSelected) {
+        if (savedTheme != null) {
+            // Force sync the launcher icon with the saved theme on every startup
+            IconSwitchHelper.switchIcon(this, savedTheme, killApp = false)
+        } else if (!hasAutoSelected) {
             val uiMode = resources.configuration.uiMode and Configuration.UI_MODE_NIGHT_MASK
             val isSystemDark = uiMode == Configuration.UI_MODE_NIGHT_YES
             
-            // Mark that we've performed the auto-selection
-            prefs.edit().putBoolean("auto_theme_selected", true).apply()
-
-            // Set the theme option so the app UI matches the system theme immediately
-            // We DO NOT call switchIcon here because it kills the process on first launch
-            // Default to BEIGE (Light) if not specifically in dark mode
-            if (isSystemDark) {
-                prefs.edit().putString("theme_option", "FLAME").apply()
-            } else {
-                prefs.edit().putString("theme_option", "BEIGE").apply()
-            }
+            val initialTheme = if (isSystemDark) "FLAME" else "BEIGE"
+            prefs.edit().putString("theme_option", initialTheme).putBoolean("auto_theme_selected", true).apply()
+            IconSwitchHelper.switchIcon(this, initialTheme, killApp = false)
         }
 
         // Initialize platform utils for commonMain
