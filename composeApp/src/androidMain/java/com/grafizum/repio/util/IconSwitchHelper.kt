@@ -20,7 +20,7 @@ object IconSwitchHelper {
     private const val ROSE_ICON_FQN = "com.grafizum.repio.MainActivityRose"
     private const val DEVELOPER_ICON_FQN = "com.grafizum.repio.MainActivityRetro"
 
-    fun switchIcon(context: Context, themeKey: String) {
+    fun switchIcon(context: Context, themeKey: String, killApp: Boolean = true) {
         val packageManager = context.packageManager
         
         val targetAlias = when (themeKey.uppercase()) {
@@ -42,7 +42,7 @@ object IconSwitchHelper {
             OCEAN_ICON_FQN, ROSE_ICON_FQN, DEVELOPER_ICON_FQN
         )
         
-        Log.d(TAG, "Switching icon for theme: $themeKey (Target: $targetAlias)")
+        Log.d(TAG, "Switching icon for theme: $themeKey (Target: $targetAlias, Kill: $killApp)")
         
         for (alias in aliases) {
             val newState = if (alias == targetAlias) {
@@ -59,7 +59,7 @@ object IconSwitchHelper {
                     packageManager.setComponentEnabledSetting(
                         componentName,
                         newState,
-                        PackageManager.DONT_KILL_APP
+                        if (killApp) 0 else PackageManager.DONT_KILL_APP
                     )
                     Log.d(TAG, "Component $alias set to state $newState")
                 }

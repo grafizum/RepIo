@@ -21,9 +21,10 @@
         android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.MyApplication">
 
-        <!-- Base MainActivity (Disabled as a launcher) -->
+        <!-- Base MainActivity (Enabled to allow IDE launch, but no launcher intent) -->
         <activity
             android:name="com.grafizum.repio.MainActivity"
+            android:enabled="true"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">

@@ -332,6 +332,8 @@
     <string name="full_body_c_desc">Rumänisches Kreuzheben, Brustdrücken, Arme, Core</string>
 
     <string name="warm_beige">Warm Beige</string>
+    <string name="developer_theme">Developer Theme</string>
+    <string name="unlock_developer_theme">Unlock Developer Theme</string>
     <string name="emerald_mint">Emerald Mint</string>
     <string name="crimson_red">Crimson Red</string>
     <string name="elegant_purple">Elegant Purple</string>
