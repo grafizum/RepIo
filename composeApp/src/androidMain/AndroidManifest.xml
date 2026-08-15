@@ -21,10 +21,10 @@
         android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.MyApplication">
 
-        <!-- Base MainActivity (Disabled as a launcher, using variants instead) -->
+        <!-- Base MainActivity (Internal only, variants handle the launcher) -->
         <activity
             android:name="com.grafizum.repio.MainActivity"
-            android:enabled="true"
+            android:enabled="false"
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">
