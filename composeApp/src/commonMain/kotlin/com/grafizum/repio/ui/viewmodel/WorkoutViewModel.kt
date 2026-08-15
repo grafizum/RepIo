@@ -231,6 +231,13 @@ class WorkoutViewModel(
         }
     }
 
+    fun updateThemeOptionSilent(theme: String) {
+        if (_themeOption.value != theme) {
+            _themeOption.value = theme
+            prefs.putString("theme_option", theme)
+        }
+    }
+
     fun setDeveloperThemeEnabled(enabled: Boolean) {
         _developerThemeEnabled.value = enabled
         prefs.putBoolean("developer_theme_enabled", enabled)
