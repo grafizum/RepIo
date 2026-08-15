@@ -56,6 +56,7 @@ object IconSwitchHelper {
             val componentName = ComponentName(context.packageName, alias)
             
             try {
+                // Only update if the state is actually different to avoid unnecessary kills/launcher reloads
                 val currentState = packageManager.getComponentEnabledSetting(componentName)
                 if (currentState != newState) {
                     packageManager.setComponentEnabledSetting(

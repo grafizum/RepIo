@@ -128,6 +128,22 @@ open class MainActivity : AppCompatActivity() {
         // Handle initial intent
         handleIntent(intent)
 
+        // Sync theme preference with the launched activity variant to prevent startup conflicts
+        val launchedActivityName = this::class.java.name
+        val themeFromActivity = when (launchedActivityName) {
+            "com.grafizum.repio.MainActivityPurple" -> "PURPLE"
+            "com.grafizum.repio.MainActivityBeige" -> "BEIGE"
+            "com.grafizum.repio.MainActivityFlame" -> "FLAME"
+            "com.grafizum.repio.MainActivityEmerald" -> "EMERALD"
+            "com.grafizum.repio.MainActivityCrimson" -> "CRIMSON"
+            "com.grafizum.repio.MainActivityAzure" -> "AZURE"
+            "com.grafizum.repio.MainActivityOcean" -> "OCEAN"
+            "com.grafizum.repio.MainActivityRose" -> "ROSE"
+            "com.grafizum.repio.MainActivityRetro" -> "DEVELOPER"
+            else -> null
+        }
+        themeFromActivity?.let { viewModel.updateThemeOptionSilent(it) }
+
         setContent {
             val themeOption by viewModel.themeOption.collectAsState()
             val keepScreenOn by viewModel.keepScreenOn.collectAsState()

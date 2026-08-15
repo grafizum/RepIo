@@ -2,9 +2,9 @@
 <project version="4">
   <component name="deploymentTargetSelector">
     <selectionStates>
-      <SelectionState runConfigName="composeApp">
+      <SelectionState runConfigName="Run">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-15T17:46:40.560784900Z">
+        <DropdownSelection timestamp="2026-08-15T20:11:15.228687700Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\guido\.android\avd\RepIo.avd" />
@@ -13,12 +13,12 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="Run">
+      <SelectionState runConfigName="New Run Config">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-14T09:07:29.295743300Z">
+        <DropdownSelection timestamp="2026-08-15T20:42:46.208985500Z">
           <Target type="DEFAULT_BOOT">
             <handle>
-              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\guido\.android\avd\Medium_Phone.avd" />
+              <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\guido\.android\avd\RepIo.avd" />
             </handle>
           </Target>
         </DropdownSelection>
