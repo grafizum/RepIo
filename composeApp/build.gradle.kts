@@ -60,7 +60,13 @@ kotlin {
             isStatic = true
         }
     }
+}
 
+compose.resources {
+    packageOfResClass = "com.grafizum.repio.generated.resources"
+}
+
+kotlin {
     sourceSets {
         commonMain.dependencies {
             implementation(compose.runtime)

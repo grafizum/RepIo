@@ -4,7 +4,7 @@
     <selectionStates>
       <SelectionState runConfigName="composeApp">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-15T09:43:06.361737500Z">
+        <DropdownSelection timestamp="2026-08-15T17:46:40.560784900Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\guido\.android\avd\RepIo.avd" />
@@ -13,7 +13,7 @@
         </DropdownSelection>
         <DialogSelection />
       </SelectionState>
-      <SelectionState runConfigName="New Run Config">
+      <SelectionState runConfigName="Run">
         <option name="selectionMode" value="DROPDOWN" />
         <DropdownSelection timestamp="2026-08-14T09:07:29.295743300Z">
           <Target type="DEFAULT_BOOT">

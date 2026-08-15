@@ -17,8 +17,8 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.font.FontFamily
 import org.jetbrains.compose.resources.Font
-import repio.composeapp.generated.resources.Res
-import repio.composeapp.generated.resources.pixelify_sans
+import com.grafizum.repio.generated.resources.Res
+import com.grafizum.repio.generated.resources.pixelify_sans
 
 val LocalDeveloperSkin = staticCompositionLocalOf { false }
 
