@@ -5,11 +5,11 @@
     <color name="bg_emerald">#FBFFFF</color>
     <color name="bg_crimson">#FFFBFA</color>
     <color name="bg_azure">#FFFFFF</color>
-    <color name="bg_purple">#16112C</color>
+    <color name="bg_purple">#121212</color>
     <color name="bg_flame">#121212</color>
-    <color name="bg_ocean">#0F1E24</color>
-    <color name="bg_rose">#28111A</color>
-    <color name="bg_retro">#000000</color>
+    <color name="bg_ocean">#121212</color>
+    <color name="bg_rose">#121212</color>
+    <color name="bg_retro">#121212</color>
 
     <!-- Primaries (Match Theme.kt exactly) -->
     <color name="theme_beige_primary">#8C6239</color>
@@ -30,12 +30,12 @@
     <color name="ic_launcher_background_beige">#FDFCFB</color>
     <color name="ic_launcher_background_orange">#121212</color>
     <color name="ic_launcher_background">#121212</color>
-    <color name="splash_bg_purple">#16112C</color>
-    <color name="splash_bg_ocean">#0F1E24</color>
-    <color name="splash_bg_rose">#28111A</color>
-    <color name="splash_bg_retro">#000000</color>
+    <color name="splash_bg_purple">#121212</color>
+    <color name="splash_bg_ocean">#121212</color>
+    <color name="splash_bg_rose">#121212</color>
+    <color name="splash_bg_retro">#121212</color>
 
     <color name="splash_bg_default">#121212</color>
     <color name="splash_bg_light">#FDFCFB</color>
-    <color name="splash_bg_black">#000000</color>
+    <color name="splash_bg_black">#121212</color>
 </resources>
