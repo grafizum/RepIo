@@ -11,6 +11,8 @@ import com.grafizum.repio.data.LoggedSetEntity
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutRepository
+import com.grafizum.repio.data.WorkoutTemplates
+import com.grafizum.repio.ui.screens.remapTemplateToDays
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
 import kotlin.math.floor
@@ -23,6 +25,7 @@ data class WorkoutNowState(
     val currentExerciseIndex: Int = 0,
     val currentSetNumber: Int = 1,
     val currentWeightKg: Double = 20.0,
+    val recommendedWeightKg: Double = 20.0,
     val currentReps: Int = 10,
     val minReps: Int = 1,
     val maxReps: Int = 100,
@@ -71,11 +74,17 @@ class WorkoutViewModel(
     private val _themeOption = MutableStateFlow(prefs.getString("theme_option", "DEFAULT") ?: "DEFAULT")
     val themeOption: StateFlow<String> = _themeOption.asStateFlow()
 
+    private val _minSets = MutableStateFlow(prefs.getInt("setup_min_sets", 0))
+    val minSets: StateFlow<Int> = _minSets.asStateFlow()
+
+    private val _maxSets = MutableStateFlow(prefs.getInt("setup_max_sets", 0))
+    val maxSets: StateFlow<Int> = _maxSets.asStateFlow()
+
+    private val _workoutGoal = MutableStateFlow(prefs.getString("workout_goal", "goal_bodybuilding") ?: "goal_bodybuilding")
+    val workoutGoal: StateFlow<String> = _workoutGoal.asStateFlow()
+
     private val _developerThemeEnabled = MutableStateFlow(prefs.getBoolean("developer_theme_enabled", false))
     val developerThemeEnabled: StateFlow<Boolean> = _developerThemeEnabled.asStateFlow()
-
-    private val _customWorkoutName = MutableStateFlow(prefs.getString("custom_workout_name", "My Workout") ?: "My Workout")
-    val customWorkoutName: StateFlow<String> = _customWorkoutName.asStateFlow()
 
     private val _isFirstTimeUser = MutableStateFlow(prefs.getBoolean("is_first_time", true))
     val isFirstTimeUser: StateFlow<Boolean> = _isFirstTimeUser.asStateFlow()
@@ -157,6 +166,7 @@ class WorkoutViewModel(
 
                             state.copy(
                                 currentWeightKg = if (isNewExercise) cachedWeight else state.currentWeightKg,
+                                recommendedWeightKg = cachedWeight,
                                 currentReps = nextReps,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
@@ -241,10 +251,32 @@ class WorkoutViewModel(
         prefs.putInt("default_rest_timer_seconds", validSecs)
     }
 
+    fun overrideAllWorkoutsRestTimer(seconds: Int) {
+        val validSecs = seconds.coerceAtLeast(10)
+        setDefaultRestTimerSeconds(validSecs)
+        viewModelScope.launch {
+            val currentExercises = repository.allRoutineExercises.first()
+            val currentDays = repository.allRoutineDays.first()
+            val updated = currentExercises.map { it.copy(restSeconds = validSecs) }
+            repository.applyProgram(currentDays, updated)
+        }
+    }
+
     fun setDefaultExerciseTimerSeconds(seconds: Int) {
         val validSecs = seconds.coerceAtLeast(10)
         _defaultExerciseTimerSeconds.value = validSecs
         prefs.putInt("default_exercise_timer_seconds", validSecs)
+    }
+
+    fun overrideAllWorkoutsTransitionTimer(seconds: Int) {
+        val validSecs = seconds.coerceAtLeast(10)
+        setDefaultExerciseTimerSeconds(validSecs)
+        viewModelScope.launch {
+            val currentExercises = repository.allRoutineExercises.first()
+            val currentDays = repository.allRoutineDays.first()
+            val updated = currentExercises.map { it.copy(transitionRestSeconds = validSecs) }
+            repository.applyProgram(currentDays, updated)
+        }
     }
 
     fun setThemeOption(theme: String) {
@@ -282,35 +314,114 @@ class WorkoutViewModel(
         prefs.putString("app_language", languageCode)
     }
 
+    fun setWorkoutGoal(goal: String) {
+        _workoutGoal.value = goal
+        prefs.putString("workout_goal", goal)
+    }
+
+    fun setMinSets(value: Int) {
+        _minSets.value = value
+        prefs.putInt("setup_min_sets", value)
+    }
+
+    fun setMaxSets(value: Int) {
+        _maxSets.value = value
+        prefs.putInt("setup_max_sets", value)
+    }
+
     fun setRequestedWorkoutSubTab(tab: Int) {
         _requestedWorkoutSubTab.value = tab
     }
 
-    fun updateWorkoutName(newName: String) {
-        val trimmed = newName.trim().take(20).ifEmpty { "My Workout" }
-        _customWorkoutName.value = trimmed
-        prefs.putString("custom_workout_name", trimmed)
-    }
 
     fun completeFirstTimeSetup(
-        customName: String,
         days: List<RoutineDayEntity>,
-        exercises: List<RoutineExerciseEntity>
+        exercises: List<RoutineExerciseEntity>,
+        setupType: String = "CUSTOM",
+        equipment: List<String> = emptyList(),
+        bodyParts: List<String> = emptyList(),
+        selectedDays: List<String> = emptyList(),
+        intensity: String = "",
+        templateId: String = "",
+        minSets: Int = 0,
+        maxSets: Int = 0
     ) {
-        updateWorkoutName(customName)
         viewModelScope.launch {
             repository.applyProgram(days, exercises)
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
             prefs.putBoolean("is_first_time", false)
+            
+            // Persist setup parameters for later goal changes
+            prefs.putString("setup_type", setupType)
+            prefs.putString("setup_equipment", equipment.joinToString(","))
+            prefs.putString("setup_body_parts", bodyParts.joinToString(","))
+            prefs.putString("setup_days", selectedDays.joinToString(","))
+            prefs.putString("setup_intensity", intensity)
+            prefs.putString("setup_template_id", templateId)
+            prefs.putInt("setup_min_sets", minSets)
+            prefs.putInt("setup_max_sets", maxSets)
+            
             setRequestedWorkoutSubTab(0)
         }
     }
 
-    fun applyWorkoutTemplate(template: com.grafizum.repio.data.WorkoutTemplate, customName: String? = null) {
-        if (!customName.isNullOrBlank()) {
-            updateWorkoutName(customName)
+    fun regenerateProgramWithNewGoal(newGoal: String) {
+        viewModelScope.launch {
+            setWorkoutGoal(newGoal)
+            
+            val setupType = prefs.getString("setup_type", "CUSTOM") ?: "CUSTOM"
+            val equipment = prefs.getString("setup_equipment", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+            val bodyParts = prefs.getString("setup_body_parts", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+            val selectedDays = prefs.getString("setup_days", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
+            val intensity = prefs.getString("setup_intensity", "") ?: ""
+            val templateId = prefs.getString("setup_template_id", "") ?: ""
+
+            when (setupType) {
+                "ASSISTED" -> {
+                    val program = WorkoutTemplates.generateAssistedProgram(
+                        equipment = equipment,
+                        bodyParts = bodyParts,
+                        selectedDays = selectedDays,
+                        intensity = intensity,
+                        workoutGoal = newGoal,
+                        minSets = prefs.getInt("setup_min_sets", 0),
+                        maxSets = prefs.getInt("setup_max_sets", 0)
+                    )
+                    repository.applyProgram(program.days, program.exercises)
+                }
+                "PREMADE" -> {
+                    val template = WorkoutTemplates.allTemplates.find { it.id == templateId }
+                    if (template != null) {
+                        // For premade, we need to know which days were selected. 
+                        // setup_days should contain the selected week days.
+                        val mapped = remapTemplateToDays(template, selectedDays)
+                        val mappedExercises = mapped.second.map { 
+                            it.copy(
+                                targetReps = WorkoutTemplates.getGoalReps(it.name, newGoal),
+                                restSeconds = WorkoutTemplates.getGoalRestSeconds(newGoal, it.name)
+                            ) 
+                        }
+                        repository.applyProgram(mapped.first, mappedExercises)
+                    }
+                }
+                else -> {
+                    // CUSTOM: Just update reps for existing exercises
+                    val currentExercises = repository.allRoutineExercises.first()
+                    val currentDays = repository.allRoutineDays.first()
+                    val updatedExercises = currentExercises.map {
+                        it.copy(
+                            targetReps = WorkoutTemplates.getGoalReps(it.name, newGoal),
+                            restSeconds = WorkoutTemplates.getGoalRestSeconds(newGoal, it.name)
+                        )
+                    }
+                    repository.applyProgram(currentDays, updatedExercises)
+                }
+            }
         }
+    }
+
+    fun applyWorkoutTemplate(template: com.grafizum.repio.data.WorkoutTemplate) {
         viewModelScope.launch {
             repository.applyProgram(template.dayTemplates.map {
                 RoutineDayEntity(it.dayOfWeek, it.dayOfWeek, "", it.isRestDay)
@@ -408,14 +519,21 @@ class WorkoutViewModel(
             val currentState = _workoutNowState.value
             val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
             val currentExercise = exercises[exerciseIndex]
+            
+            // Save weight to cache for next time
+            prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
+            
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
             val nextSetNumber = currentState.currentSetNumber + 1
+            
+            var isTransition = false
             _workoutNowState.update { state ->
                 if (nextSetNumber <= currentExercise.targetSets) {
                     state.copy(currentSetNumber = nextSetNumber, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
                 } else {
                     val nextExerciseIndex = exerciseIndex + 1
                     if (nextExerciseIndex < exercises.size) {
+                        isTransition = true
                         state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
                     } else {
                         state.copy(isWorkoutCompleted = true, totalSetsLoggedToday = state.totalSetsLoggedToday + 1, restTimerSeconds = 0, isTimerActive = false)
@@ -424,8 +542,11 @@ class WorkoutViewModel(
             }
             val updatedState = _workoutNowState.value
             if (!updatedState.isWorkoutCompleted) {
-                val duration = if (updatedState.currentSetNumber == 1) 90 else 60
-                startRestTimer(duration)
+                if (isTransition) {
+                    startRestTimer(currentExercise.transitionRestSeconds)
+                } else {
+                    startRestTimer(currentExercise.restSeconds)
+                }
             }
             saveWorkoutNowState(_workoutNowState.value)
         }
@@ -486,6 +607,10 @@ class WorkoutViewModel(
         val currentState = _workoutNowState.value
         val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
         val currentExercise = exercises[exerciseIndex]
+        
+        // Save weight to cache for next time
+        prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
+
         viewModelScope.launch {
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
             _workoutNowState.update { it.copy(totalSetsLoggedToday = it.totalSetsLoggedToday + 1) }

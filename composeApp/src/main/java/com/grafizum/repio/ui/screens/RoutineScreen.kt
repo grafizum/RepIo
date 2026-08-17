@@ -99,7 +99,7 @@ import com.grafizum.repio.util.getString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
-fun RoutineScreen(
+fun WorkoutScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
     initialShowAddDialog: Boolean = false,
@@ -108,7 +108,6 @@ fun RoutineScreen(
     modifier: Modifier = Modifier
 ) {
     val allExercises by viewModel.allRoutineExercises.collectAsState()
-    val customWorkoutName by viewModel.customWorkoutName.collectAsState()
     val workoutState by viewModel.workoutNowState.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val today = remember { getTodayDayOfWeek() }
@@ -118,9 +117,9 @@ fun RoutineScreen(
     var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var showAddDialog by remember { mutableStateOf(false) }
     var showResetDialog by remember { mutableStateOf(false) }
-    var showEditNameDialog by remember { mutableStateOf(false) }
     var showTemplatesSheet by remember { mutableStateOf(false) }
     var pendingTemplate by remember { mutableStateOf<WorkoutTemplate?>(null) }
+    var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
 
     var isSelectionMode by remember { mutableStateOf(false) }
     val selectedExerciseIds = remember { mutableStateListOf<Long>() }
@@ -131,56 +130,15 @@ fun RoutineScreen(
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
 
+    androidx.compose.runtime.LaunchedEffect(workoutState.selectedDayOfWeek) {
+        expandedExerciseId = null
+    }
+
     androidx.compose.runtime.LaunchedEffect(initialShowAddDialog) {
         if (initialShowAddDialog) {
             showAddDialog = true
             onAddDialogDismissed?.invoke()
         }
-    }
-
-    if (showEditNameDialog) {
-        var tempName by remember { mutableStateOf(customWorkoutName) }
-        AlertDialog(
-            onDismissRequest = { showEditNameDialog = false },
-            title = { Text(getString("edit_workout_program_name")) },
-            text = {
-                OutlinedTextField(
-                    value = tempName,
-                    onValueChange = { if (it.length <= 20) tempName = it },
-                    label = { Text(getString("my_workout")) },
-                    placeholder = {
-                        Text(
-                            text = getString("workout_program_name_placeholder"),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    },
-                    supportingText = {
-                        Text(
-                            text = if (tempName.length >= 20) getString("max_characters_reached") else "${tempName.length}/20",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = if (tempName.length >= 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    isError = tempName.length >= 20,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.updateWorkoutName(tempName)
-                    showEditNameDialog = false
-                }) {
-                    Text(getString("save"))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) {
-                    Text(getString("cancel"))
-                }
-            }
-        )
     }
 
     if (showTemplatesSheet) {
@@ -227,7 +185,7 @@ fun RoutineScreen(
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                         Text(
-                                            text = getString(template.daysCountKey, template.daysCountArgs.first, template.daysCountArgs.second),
+                                            text = getString(template.daysCountKey, template.daysCountArgs.first),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -255,7 +213,7 @@ fun RoutineScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // COMPACT HEADER (Matches HomeScreen)
             Row(
@@ -263,7 +221,7 @@ fun RoutineScreen(
                 horizontalArrangement = Arrangement.SpaceBetween,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .heightIn(min = 72.dp)
                     .padding(vertical = 4.dp)
             ) {
                 Row(
@@ -287,13 +245,9 @@ fun RoutineScreen(
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = getString("editor"),
+                            text = getString("edit"),
                             style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onBackground,
-                            modifier = Modifier.clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) { showEditNameDialog = true }
+                            color = MaterialTheme.colorScheme.onBackground
                         )
                     }
                 }
@@ -453,26 +407,38 @@ fun RoutineScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        Text(
-                            text = if (isSelectionMode) getString("delete_selected", selectedExerciseIds.count())
-                                   else getString("exercises_count", exercisesForDay.count()),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (isSelectionMode) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface
-                        )
-
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (isSelectionMode) {
-                                TextButton(onClick = {
+                        if (isSelectionMode) {
+                            Surface(
+                                onClick = {
                                     if (selectedExerciseIds.size == exercisesForDay.size) {
                                         selectedExerciseIds.clear()
                                     } else {
                                         selectedExerciseIds.clear()
                                         selectedExerciseIds.addAll(exercisesForDay.map { it.id })
                                     }
-                                }) {
-                                    Text(if (selectedExerciseIds.size == exercisesForDay.size) getString("deselect_all") else getString("select_all"))
-                                }
+                                },
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                contentColor = MaterialTheme.colorScheme.primary,
+                                shape = RoundedCornerShape(10.dp),
+                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                            ) {
+                                val label = if (selectedExerciseIds.size == exercisesForDay.size) getString("deselect_all") else getString("select_all")
+                                Text(
+                                    text = "$label (${selectedExerciseIds.size})",
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                                )
+                            }
+                        } else {
+                            Text(
+                                text = getString("exercises_count", exercisesForDay.count()),
+                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurface
+                            )
+                        }
 
+                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            if (isSelectionMode) {
                                 IconButton(
                                     onClick = { if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true },
                                     enabled = selectedExerciseIds.isNotEmpty()
@@ -509,12 +475,34 @@ fun RoutineScreen(
 
                 if (exercisesForDay.isEmpty()) {
                     item {
-                        Text(
-                            text = getString("no_exercises_scheduled"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(16.dp)
-                        )
+                        Card(
+                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                            border = if (isDeveloper) BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .clickable { showAddDialog = true }
+                        ) {
+                            Row(
+                                modifier = Modifier
+                                    .padding(20.dp)
+                                    .fillMaxWidth(),
+                                horizontalArrangement = Arrangement.Center,
+                                verticalAlignment = Alignment.CenterVertically
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = getString("add_workout"),
+                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary
+                                )
+                            }
+                        }
                     }
                 } else {
                     items(exercisesForDay) { exercise ->
@@ -523,6 +511,10 @@ fun RoutineScreen(
                             exercise = exercise,
                             isSelectionMode = isSelectionMode,
                             isSelected = isSelected,
+                            isExpanded = expandedExerciseId == exercise.id,
+                            onExpandedChange = { expanded ->
+                                expandedExerciseId = if (expanded) exercise.id else null
+                            },
                             onSelectedChange = { checked ->
                                 if (checked) selectedExerciseIds.add(exercise.id)
                                 else selectedExerciseIds.remove(exercise.id)
@@ -534,6 +526,39 @@ fun RoutineScreen(
                                 viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
                             }
                         )
+                    }
+
+                    if (!isSelectionMode) {
+                        item {
+                            Card(
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                border = if (isDeveloper) BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null,
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { showAddDialog = true }
+                            ) {
+                                Row(
+                                    modifier = Modifier
+                                        .padding(16.dp)
+                                        .fillMaxWidth(),
+                                    horizontalArrangement = Arrangement.Center,
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = getString("add_exercise"),
+                                        style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -653,11 +678,11 @@ fun RoutineScreen(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
                                         ) {
-                                            viewModel.saveExercise(exercise.copy(name = altName))
+                                            viewModel.saveExercise(exercise.copy(name = altName, videoUrl = ""))
                                             replacingExercise = null
                                         }
                                 ) {
-                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup)
+                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup, exercise.targetIntensity)
                                     Row(
                                         modifier = Modifier.padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically

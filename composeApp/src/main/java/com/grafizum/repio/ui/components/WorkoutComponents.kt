@@ -33,8 +33,10 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -436,9 +438,34 @@ fun ExerciseVideoLinkButton(
 }
 
 @Composable
-fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> {
+fun getRpeRirExplanation(intensity: String): String {
+    if (intensity.isBlank()) return ""
+    
+    // Regex for "RPE X" or "RPE X-Y"
+    val rpeRegex = Regex("RPE\\s*(\\d+)(?:-(\\d+))?", RegexOption.IGNORE_CASE)
+    val match = rpeRegex.find(intensity) ?: return ""
+    
+    val low = match.groups[1]?.value?.toIntOrNull() ?: return ""
+    val high = match.groups[2]?.value?.toIntOrNull()
+    
+    return if (high != null) {
+        val rirLow = (10 - high).coerceAtLeast(0)
+        val rirHigh = (10 - low).coerceAtLeast(0)
+        if (rirLow == rirHigh) {
+             getString("rpe_explanation_rir_$rirLow")
+        } else {
+             getString("rpe_explanation_rir_range", rirLow, rirHigh)
+        }
+    } else {
+        val rir = (10 - low).coerceAtLeast(0)
+        getString("rpe_explanation_rir_$rir")
+    }
+}
+
+@Composable
+fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""): Pair<String, String> {
     val cleanName = name.trim().lowercase()
-    val description = when {
+    var description = when {
         cleanName.contains("bench press") || cleanName.contains("floor press") -> getString("ex_bench_press_desc")
         cleanName.contains("squat") -> getString("ex_squats_desc")
         cleanName.contains("deadlift") -> getString("ex_deadlifts_desc")
@@ -452,6 +479,13 @@ fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> 
         cleanName.contains("lunge") || cleanName.contains("step-up") -> getString("ex_lunges_desc")
         cleanName.contains("crunch") || cleanName.contains("leg raise") || cleanName.contains("abs") -> getString("ex_abs_desc")
         else -> getString("ex_description_generic", translateMuscleGroup(muscleGroup))
+    }
+
+    if (intensity.contains("RPE", ignoreCase = true)) {
+        val rirExplanation = getRpeRirExplanation(intensity)
+        if (rirExplanation.isNotBlank()) {
+            description += "\n\n" + getString("rpe_long_description", intensity, rirExplanation)
+        }
     }
 
     val equipment = when {
@@ -510,7 +544,8 @@ fun ExpandableExerciseCard(
     showDescription: Boolean = false,
     modifier: Modifier = Modifier,
     isExpanded: Boolean? = null,
-    onExpandedChange: ((Boolean) -> Unit)? = null
+    onExpandedChange: ((Boolean) -> Unit)? = null,
+    showActions: Boolean = true
 ) {
     var internalExpanded by remember { mutableStateOf(false) }
     val expanded = isExpanded ?: internalExpanded
@@ -523,7 +558,7 @@ fun ExpandableExerciseCard(
         }
     }
 
-    val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup)
+    val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
     val isDeveloper = LocalDeveloperSkin.current
 
     Card(
@@ -574,14 +609,27 @@ fun ExpandableExerciseCard(
                             Spacer(modifier = Modifier.width(8.dp))
                             MuscleGroupBadge(muscleGroup = exercise.muscleGroup)
                         }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        Text(
-                            text = if (exercise.targetReps.contains("sec", ignoreCase = true))
-                                getString("sets_x_time", exercise.targetSets, exercise.targetReps)
-                            else getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
+                        if (showActions) {
+                            Spacer(modifier = Modifier.height(4.dp))
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (exercise.targetReps.contains("sec", ignoreCase = true))
+                                        getString("sets_x_time", exercise.targetSets, exercise.targetReps)
+                                    else getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (exercise.targetIntensity.isNotBlank()) {
+                                    val rpeExpl = getRpeRirExplanation(exercise.targetIntensity)
+                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                    Text(
+                                        text = " • $displayIntensity",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -636,73 +684,75 @@ fun ExpandableExerciseCard(
                     }
 
                     // ACTION BUTTONS GRID (2x2 for symmetry)
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (onReplace != null) {
-                                OutlinedButton(
-                                    onClick = onReplace,
-                                    modifier = Modifier.weight(1f).height(40.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                                ) {
-                                    Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(getString("replace"), style = MaterialTheme.typography.labelSmall)
+                    if (showActions) {
+                        Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (onReplace != null) {
+                                    OutlinedButton(
+                                        onClick = onReplace,
+                                        modifier = Modifier.weight(1f).height(40.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp),
+                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(getString("replace"), style = MaterialTheme.typography.labelSmall)
+                                    }
+                                }
+
+                                if (onEdit != null) {
+                                    OutlinedButton(
+                                        onClick = onEdit,
+                                        modifier = Modifier.weight(1f).height(40.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp),
+                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(getString("edit"), style = MaterialTheme.typography.labelSmall)
+                                    }
                                 }
                             }
 
-                            if (onEdit != null) {
-                                OutlinedButton(
-                                    onClick = onEdit,
-                                    modifier = Modifier.weight(1f).height(40.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                    border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                                ) {
-                                    Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(getString("edit"), style = MaterialTheme.typography.labelSmall)
+                            Row(
+                                modifier = Modifier.fillMaxWidth(),
+                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            ) {
+                                if (onSaveVideoUrl != null) {
+                                    ExerciseVideoLinkButton(
+                                        videoUrl = exercise.videoUrl,
+                                        onSaveDemoUrl = onSaveVideoUrl,
+                                        isEditMode = true,
+                                        modifier = Modifier.weight(1f).height(40.dp)
+                                    )
+                                } else if (exercise.videoUrl.isNotBlank()) {
+                                    ExerciseVideoLinkButton(
+                                        videoUrl = exercise.videoUrl,
+                                        modifier = Modifier.weight(1f).height(40.dp)
+                                    )
+                                } else {
+                                    // Spacer to maintain grid symmetry if no demo button
+                                    Spacer(modifier = Modifier.weight(1f))
                                 }
-                            }
-                        }
 
-                        Row(
-                            modifier = Modifier.fillMaxWidth(),
-                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            if (onSaveVideoUrl != null) {
-                                ExerciseVideoLinkButton(
-                                    videoUrl = exercise.videoUrl,
-                                    onSaveDemoUrl = onSaveVideoUrl,
-                                    isEditMode = true,
-                                    modifier = Modifier.weight(1f).height(40.dp)
-                                )
-                            } else if (exercise.videoUrl.isNotBlank()) {
-                                ExerciseVideoLinkButton(
-                                    videoUrl = exercise.videoUrl,
-                                    modifier = Modifier.weight(1f).height(40.dp)
-                                )
-                            } else {
-                                // Spacer to maintain grid symmetry if no demo button
-                                Spacer(modifier = Modifier.weight(1f))
-                            }
-
-                            if (onDelete != null) {
-                                OutlinedButton(
-                                    onClick = onDelete,
-                                    modifier = Modifier.weight(1f).height(40.dp),
-                                    contentPadding = PaddingValues(horizontal = 8.dp),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                    colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.error),
-                                    border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
-                                ) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(getString("delete"), style = MaterialTheme.typography.labelSmall)
+                                if (onDelete != null) {
+                                    OutlinedButton(
+                                        onClick = onDelete,
+                                        modifier = Modifier.weight(1f).height(40.dp),
+                                        contentPadding = PaddingValues(horizontal = 8.dp),
+                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.error),
+                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(getString("delete"), style = MaterialTheme.typography.labelSmall)
+                                    }
                                 }
                             }
                         }
@@ -832,6 +882,159 @@ fun MuscleGroupSelector(
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun TimersMergedCard(
+    restValue: Int,
+    transitionValue: Int,
+    onRestSelected: (Int) -> Unit,
+    onTransitionSelected: (Int) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    var expandedTimer by remember { mutableStateOf<String?>(null) }
+
+    Card(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column {
+            // Header
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(16.dp)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.Timer,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(20.dp)
+                )
+                Spacer(modifier = Modifier.width(12.dp))
+                Text(
+                    text = getString("timer_durations"),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+
+            // REST TIMER ROW
+            TimerExpandableRow(
+                label = getString("resting_timer_duration"),
+                description = getString("auto_countdown_interval"),
+                value = formatTimerValue(restValue),
+                isExpanded = expandedTimer == "REST",
+                onClick = { expandedTimer = if (expandedTimer == "REST") null else "REST" }
+            )
+            AnimatedVisibility(visible = expandedTimer == "REST") {
+                TimerOptionsGrid(
+                    options = listOf(30, 45, 60, 90, 120, 180),
+                    selected = restValue,
+                    onSelect = { onRestSelected(it); expandedTimer = null }
+                )
+            }
+
+            HorizontalDivider(
+                modifier = Modifier.padding(horizontal = 16.dp),
+                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
+            )
+
+            // TRANSITION TIMER ROW
+            TimerExpandableRow(
+                label = getString("exercise_transition_timer"),
+                description = getString("exercise_transition_timer_desc"),
+                value = formatTimerValue(transitionValue),
+                isExpanded = expandedTimer == "TRANSITION",
+                onClick = { expandedTimer = if (expandedTimer == "TRANSITION") null else "TRANSITION" }
+            )
+            AnimatedVisibility(visible = expandedTimer == "TRANSITION") {
+                TimerOptionsGrid(
+                    options = listOf(60, 90, 120, 150, 180, 210),
+                    selected = transitionValue,
+                    onSelect = { onTransitionSelected(it); expandedTimer = null }
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun TimerExpandableRow(
+    label: String,
+    description: String,
+    value: String,
+    isExpanded: Boolean,
+    onClick: () -> Unit
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.SpaceBetween,
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable { onClick() }
+            .padding(horizontal = 16.dp, vertical = 12.dp)
+    ) {
+        Column(modifier = Modifier.weight(1f)) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+            )
+            Text(
+                text = if (isExpanded) description else value,
+                style = MaterialTheme.typography.bodySmall,
+                color = if (isExpanded) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
+            )
+        }
+        Icon(
+            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier.size(20.dp)
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun TimerOptionsGrid(
+    options: List<Int>,
+    selected: Int,
+    onSelect: (Int) -> Unit
+) {
+    FlowRow(
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp),
+        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp).fillMaxWidth()
+    ) {
+        options.forEach { value ->
+            val isSelected = value == selected
+            FilterChip(
+                selected = isSelected,
+                onClick = { onSelect(value) },
+                label = { Text(formatTimerValue(value), style = MaterialTheme.typography.labelMedium) },
+                shape = RoundedCornerShape(10.dp),
+                colors = FilterChipDefaults.filterChipColors(
+                    selectedContainerColor = MaterialTheme.colorScheme.primary,
+                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
+                )
+            )
+        }
+    }
+}
+
+fun formatTimerValue(seconds: Int): String {
+    return when {
+        seconds == 90 -> "1.5m"
+        seconds == 150 -> "2.5m"
+        seconds == 210 -> "3.5m"
+        seconds >= 60 && seconds % 60 == 0 -> "${seconds / 60}m"
+        seconds >= 60 -> "${seconds / 60}m ${seconds % 60}s"
+        else -> "${seconds}s"
     }
 }
 
@@ -1170,11 +1373,14 @@ fun RepsTimeToggle(
         )
 
         // Sliding Indicator
+        val density = LocalDensity.current
         Surface(
             modifier = Modifier
                 .width(tWidth)
                 .fillMaxHeight()
-                .offset(x = indicatorPosition),
+                .graphicsLayer {
+                    translationX = with(density) { indicatorPosition.toPx() }
+                },
             color = MaterialTheme.colorScheme.primary,
             shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
             shadowElevation = if (isDeveloper) 0.dp else 1.dp
@@ -1282,7 +1488,7 @@ fun SearchableExerciseField(
                         text = { 
                             Column {
                                 Text(selection, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-                                val (desc, _) = getExerciseDetails(selection, WorkoutTemplates.getMuscleGroupForExercise(selection))
+                                val (desc, _) = getExerciseDetails(selection, WorkoutTemplates.getMuscleGroupForExercise(selection), "")
                                 if (desc.isNotBlank()) {
                                     Text(
                                         text = desc,
@@ -1331,8 +1537,8 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
         "back" to listOf("back", "lats", "upper back", "traps"),
         "legs" to listOf("legs", "quads", "quadriceps", "hamstrings", "calves", "glutes", "adductors", "abductors"),
         "shoulders" to listOf("shoulders", "delt", "deltoid"),
-        "biceps" to listOf("biceps"),
-        "triceps" to listOf("triceps"),
+        "biceps" to listOf("biceps", "bicep"),
+        "triceps" to listOf("triceps", "tricep"),
         "core" to listOf("abs", "core", "abdominals", "obliques", "erectors")
     )
 
@@ -1374,8 +1580,7 @@ fun ThemedToast(
         ) {
             Row(
                 modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically
-            ) {
+                verticalAlignment = Alignment.CenterVertically) {
                 // Placeholder for icon for now
                 Spacer(modifier = Modifier.width(12.dp))
                 Text(
@@ -1514,6 +1719,8 @@ fun ExerciseEditDialog(
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
     var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
+    var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
+    var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     var isExpanded by remember { mutableStateOf(exercise != null) }
     
@@ -1526,14 +1733,10 @@ fun ExerciseEditDialog(
         if (isTimeBased) true
         else if (targetRepsValue.isBlank()) true
         else {
-            // Check if it only contains digits and '-'
             val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
             if (!validChars) return@remember false
-            
-            // Cannot start or end with '-'
             if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
                 targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
-            
             val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
             if (parts.size == 2) {
                 val v1 = parts[0].toIntOrNull()
@@ -1541,9 +1744,7 @@ fun ExerciseEditDialog(
                 if (v1 != null && v2 != null) v1 <= v2 else false
             } else if (parts.size == 1) {
                 parts[0].toIntOrNull() != null
-            } else {
-                false
-            }
+            } else false
         }
     }
 
@@ -1552,10 +1753,9 @@ fun ExerciseEditDialog(
         title = { Text(if (exercise == null) getString("add_exercise") else getString("edit_exercise")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Reps / Seconds Sliding Toggle
                 RepsTimeToggle(
                     isTimeBased = isTimeBased,
-                    onToggle = { newValue: Boolean ->
+                    onToggle = { newValue ->
                         isTimeBased = newValue
                         if (newValue && (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() })) {
                             targetRepsValue = "30"
@@ -1564,7 +1764,6 @@ fun ExerciseEditDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // Exercise Name
                 SearchableExerciseField(
                     allExercises = allAvailableExercises,
                     value = name,
@@ -1576,64 +1775,39 @@ fun ExerciseEditDialog(
                             targetRepsValue = ""
                             muscleGroup = ""
                         }
-                        // Auto-update muscle group
                         val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
-                        if (detected != "Other") {
-                            muscleGroup = detected
-                        }
+                        if (detected != "Other") muscleGroup = detected
                     },
                     onItemSelected = { selectedName ->
                         isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
                         isExpanded = true
-                        
-                        // Auto-fill recommendations if fields are empty (likely new exercise)
-                        if (targetSetsStr.isBlank()) {
-                            targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        }
-                        if (targetRepsValue.isBlank()) {
-                            targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
-                        }
+                        // Reset videoUrl if name changed via selection to allow repository inheritance
+                        if (name != selectedName) videoUrl = ""
+                        if (targetSetsStr.isBlank()) targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                        if (targetRepsValue.isBlank()) targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
                     },
                     label = getString("exercise_name"),
                     placeholder = getString("exercise_name_placeholder")
                 )
 
-                // Muscle Group & Description (Visual indicator instead of text box)
                 if (isExpanded) {
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = getString("trained_muscles") + ":",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Text(getString("trained_muscles") + ":", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                             Spacer(modifier = Modifier.width(8.dp))
                             MuscleGroupBadge(muscleGroup = muscleGroup)
                         }
-
-                        // Detailed description in a prominent box
-                        val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup)
+                        val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup, targetIntensityStr)
                         if (exerciseDesc.isNotBlank()) {
-                            val isDeveloper = LocalDeveloperSkin.current
                             Surface(
-                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Row(modifier = Modifier.padding(12.dp)) {
-                                    Icon(
-                                        imageVector = Icons.Default.Info,
-                                        contentDescription = null,
-                                        modifier = Modifier.size(16.dp),
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
+                                    Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                                     Spacer(modifier = Modifier.width(8.dp))
-                                    Text(
-                                        text = exerciseDesc,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
+                                    Text(exerciseDesc, style = MaterialTheme.typography.bodySmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
                                 }
                             }
                         }
@@ -1641,133 +1815,86 @@ fun ExerciseEditDialog(
                 }
 
                 Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val onlyNumbersMsg = getString("only_numbers_error")
                     OutlinedTextField(
                         value = targetSetsStr,
-                        onValueChange = { 
-                            if (it.all { char -> char.isDigit() }) {
-                                targetSetsStr = it 
-                            } else {
-                                activeToastMessage = onlyNumbersMsg
-                            }
-                        },
+                        onValueChange = { if (it.all { char -> char.isDigit() }) targetSetsStr = it },
                         label = { Text(getString("sets")) },
-                        placeholder = { Text(getString("sets")) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
                         modifier = Modifier.weight(1f)
                     )
+                    OutlinedTextField(
+                        value = targetIntensityStr,
+                        onValueChange = { targetIntensityStr = it },
+                        label = { Text(getString("intensity_label")) },
+                        placeholder = { Text("RPE 8") },
+                        singleLine = true,
+                        modifier = Modifier.weight(1.5f)
+                    )
+                }
+                OutlinedTextField(
+                    value = restSecondsStr,
+                    onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
+                    label = { Text(getString("rest_timer_label")) },
+                    suffix = { Text("s") },
+                    singleLine = true,
+                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                    modifier = Modifier.fillMaxWidth()
+                )
 
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (isTimeBased) {
                         var expandedTime by remember { mutableStateOf(false) }
-                        val timeOptions = listOf("30", "45", "60", "90", "120")
                         ExposedDropdownMenuBox(
                             expanded = expandedTime,
                             onExpandedChange = { expandedTime = !expandedTime },
                             modifier = Modifier.weight(1f)
                         ) {
                             val digitsOnly = targetRepsValue.filter { it.isDigit() }
-                            val displayValue = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s"
                             OutlinedTextField(
-                                value = displayValue,
+                                value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
                                 onValueChange = {},
                                 readOnly = true,
                                 label = { Text(getString("time_label")) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
-                            ExposedDropdownMenu(
-                                expanded = expandedTime,
-                                onDismissRequest = { expandedTime = false },
-                                modifier = Modifier.padding(horizontal = 4.dp)
-                            ) {
-                                timeOptions.forEach { t ->
-                                    DropdownMenuItem(
-                                        text = { Text("${t}s", style = MaterialTheme.typography.bodySmall) },
-                                        onClick = {
-                                            targetRepsValue = t
-                                            expandedTime = false
-                                        },
-                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
-                                    )
+                            ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
+                                listOf("30", "45", "60", "90", "120").forEach { t ->
+                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetRepsValue = t; expandedTime = false })
                                 }
                             }
                         }
                     } else {
-                        val invalidCharMsg = getString("invalid_char_error")
                         OutlinedTextField(
                             value = targetRepsValue,
-                            onValueChange = { newValue ->
-                                // Allow only digits and "-"
-                                val isCharValid = newValue.all { it.isDigit() || it == '-' || it == '–' }
-                                if (isCharValid) {
-                                    targetRepsValue = newValue
-                                } else {
-                                    activeToastMessage = invalidCharMsg
-                                }
-                            },
+                            onValueChange = { if (it.all { c -> c.isDigit() || c == '-' || c == '–' }) targetRepsValue = it },
                             label = { Text(getString("reps")) },
-                            placeholder = { Text(getString("reps")) },
                             isError = targetRepsValue.isNotEmpty() && !isRepsValid,
-                            supportingText = if (targetRepsValue.isNotEmpty() && !isRepsValid) {
-                                { Text(getString("rep_format_error")) }
-                            } else null,
                             singleLine = true,
                             modifier = Modifier.weight(1f)
                         )
                     }
                 }
 
-                ThemedToast(
-                    message = activeToastMessage ?: "",
-                    themeKey = themeKey,
-                    visible = activeToastMessage != null,
-                    onDismiss = { activeToastMessage = null }
-                )
-
-                OutlinedTextField(
-                    value = videoUrl,
-                    onValueChange = { videoUrl = it },
-                    label = { Text(getString("demo_link_optional")) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
+                ThemedToast(activeToastMessage ?: "", themeKey, activeToastMessage != null) { activeToastMessage = null }
+                OutlinedTextField(value = videoUrl, onValueChange = { videoUrl = it }, label = { Text(getString("demo_link_optional")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
             }
         },
         confirmButton = {
             Button(
                 onClick = {
                     if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
-                        val sets = targetSetsStr.toIntOrNull() ?: 3
                         val finalReps = if (isTimeBased) {
                             val digits = targetRepsValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                        } else {
-                            targetRepsValue.trim()
-                        }
-                        onSave(
-                            RoutineExerciseEntity(
-                                id = exercise?.id ?: 0L,
-                                dayOfWeek = dayOfWeek,
-                                name = name,
-                                muscleGroup = muscleGroup,
-                                targetSets = sets,
-                                targetReps = finalReps,
-                                videoUrl = videoUrl,
-                                orderIndex = exercise?.orderIndex ?: 99
-                            )
-                        )
+                        } else targetRepsValue.trim()
+                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99))
                     }
                 },
                 enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
-            ) {
-                Text(getString("save"))
-            }
+            ) { Text(getString("save")) }
         },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(getString("cancel"))
-            }
-        }
+        dismissButton = { TextButton(onClick = onDismiss) { Text(getString("cancel")) } }
     )
 }
