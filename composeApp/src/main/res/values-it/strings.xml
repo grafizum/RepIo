@@ -106,6 +106,7 @@
     <string name="delete_all">Elimina tutto</string>
     <string name="cancel">Annulla</string>
 
+    <string name="allow_notifications">Consenti Notifiche</string>
     <string name="language">Lingua</string>
     <string name="change_app_language">Cambia la lingua dell\'app</string>
     <string name="system_default">Predefinita di sistema</string>
@@ -171,7 +172,7 @@
     <string name="ex_tricep_extension_desc">Abbassa il peso dietro la testa flettendo i gomiti, quindi distendi le braccia per spingerlo verso l\'alto.</string>
     <string name="ex_lunges_desc">Fai un passo avanti e abbassa i fianchi fino a formare un angolo di 90 gradi con entrambe le ginocchia.</string>
     <string name="ex_abs_desc">Per i crunch, solleva le spalle dal pavimento. Per il sollevamento gambe, solleva le gambe tese verso il soffitto.</string>
-    <string name="ex_master_desc">Sessione Variabile: L\'app seleziona la variazione ottimale per questo esercizio per mantenere la tua routine efficace e varia.</string>
+
     <string name="save">Salva</string>
     <string name="edit">Modifica</string>
     <string name="delete">Elimina</string>

@@ -21,6 +21,8 @@ import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Delete
 import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -72,6 +74,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.material3.ModalBottomSheet
@@ -82,10 +85,11 @@ import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExpandableExerciseCard
+import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
-import com.grafizum.repio.ui.components.getExerciseStaticDescription
+import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
@@ -638,11 +642,13 @@ fun RoutineScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(alternatives) { altName ->
+                                var expanded by remember { mutableStateOf(false) }
                                 Card(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .animateContentSize()
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
@@ -651,15 +657,37 @@ fun RoutineScreen(
                                             replacingExercise = null
                                         }
                                 ) {
+                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup)
                                     Row(
                                         modifier = Modifier.padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = translateExerciseName(altName),
-                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = translateExerciseName(altName),
+                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            if (altDesc.isNotBlank()) {
+                                                Text(
+                                                    text = altDesc,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+
+                                        if (altDesc.isNotBlank()) {
+                                            IconButton(onClick = { expanded = !expanded }) {
+                                                Icon(
+                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+
                                         Icon(
                                             imageVector = Icons.Default.Add,
                                             contentDescription = null,
@@ -743,318 +771,3 @@ fun RoutineScreen(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class)
-@Composable
-fun ExerciseEditDialog(
-    allAvailableExercises: List<String>,
-    exercise: RoutineExerciseEntity?,
-    dayOfWeek: String,
-    themeKey: String,
-    onDismiss: () -> Unit,
-    onSave: (RoutineExerciseEntity) -> Unit
-) {
-    var name by remember { mutableStateOf(exercise?.name ?: "") }
-    var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
-    var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
-    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
-    var isExpanded by remember { mutableStateOf(exercise != null) }
-    
-    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "") }
-    var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
-
-    var activeToastMessage by remember { mutableStateOf<String?>(null) }
-
-    val isRepsValid = remember(targetRepsValue, isTimeBased) {
-        if (isTimeBased) true
-        else if (targetRepsValue.isBlank()) true
-        else {
-            // Check if it only contains digits and '-'
-            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
-            if (!validChars) return@remember false
-            
-            // Cannot start or end with '-'
-            if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
-                targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
-            
-            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
-            if (parts.size == 2) {
-                val v1 = parts[0].toIntOrNull()
-                val v2 = parts[1].toIntOrNull()
-                if (v1 != null && v2 != null) v1 <= v2 else false
-            } else if (parts.size == 1) {
-                parts[0].toIntOrNull() != null
-            } else {
-                false
-            }
-        }
-    }
-
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = { Text(if (exercise == null) getString("add_exercise") else getString("edit_exercise")) },
-        text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                // Reps / Seconds Switch
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val showReps = !isExpanded || !isTimeBased
-                    val showTime = !isExpanded || isTimeBased
-
-                    AnimatedVisibility(
-                        visible = showReps,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        val isSelected = !isTimeBased
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    isTimeBased = false
-                                },
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = getString("reps"),
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-
-                    AnimatedVisibility(
-                        visible = showTime,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        val isSelected = isTimeBased
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    isTimeBased = true
-                                    if (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() }) {
-                                        targetRepsValue = "30"
-                                    }
-                                },
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = getString("time_label"),
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-
-                // Exercise Name
-                SearchableExerciseField(
-                    allExercises = allAvailableExercises,
-                    value = name,
-                    onValueChange = { 
-                        name = it
-                        if (it.isBlank()) {
-                            isExpanded = false
-                            targetSetsStr = ""
-                            targetRepsValue = ""
-                            muscleGroup = ""
-                        }
-                        // Auto-update muscle group
-                        val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
-                        if (detected != "Other") {
-                            muscleGroup = detected
-                        }
-                    },
-                    onItemSelected = { selectedName ->
-                        isTimeBased = com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(selectedName)
-                        isExpanded = true
-                        
-                        // Auto-fill recommendations if fields are empty (likely new exercise)
-                        if (targetSetsStr.isBlank()) {
-                            targetSetsStr = com.grafizum.repio.data.WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        }
-                        if (targetRepsValue.isBlank()) {
-                            targetRepsValue = com.grafizum.repio.data.WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
-                        }
-                    },
-                    label = getString("exercise_name"),
-                    placeholder = getString("exercise_name_placeholder")
-                )
-
-                // Muscle Group & Description (Visual indicator instead of text box)
-                if (isExpanded) {
-                    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = getString("trained_muscles") + ":",
-                                style = MaterialTheme.typography.labelMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            MuscleGroupBadge(muscleGroup = muscleGroup)
-                        }
-
-                        // Simple description if available
-                        val exerciseDesc = getExerciseStaticDescription(name)
-                        if (exerciseDesc.isNotBlank()) {
-                            Text(
-                                text = exerciseDesc,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                lineHeight = 14.sp
-                            )
-                        }
-                    }
-                }
-
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                    val onlyNumbersMsg = getString("only_numbers_error")
-                    OutlinedTextField(
-                        value = targetSetsStr,
-                        onValueChange = { 
-                            if (it.all { char -> char.isDigit() }) {
-                                targetSetsStr = it 
-                            } else {
-                                activeToastMessage = onlyNumbersMsg
-                            }
-                        },
-                        label = { Text(getString("sets")) },
-                        placeholder = { Text(getString("sets")) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    if (isTimeBased) {
-                        var expandedTime by remember { mutableStateOf(false) }
-                        val timeOptions = listOf("30", "45", "60", "90", "120")
-                        ExposedDropdownMenuBox(
-                            expanded = expandedTime,
-                            onExpandedChange = { expandedTime = !expandedTime },
-                            modifier = Modifier.weight(1f)
-                        ) {
-                            val digitsOnly = targetRepsValue.filter { it.isDigit() }
-                            val displayValue = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s"
-                            OutlinedTextField(
-                                value = displayValue,
-                                onValueChange = {},
-                                readOnly = true,
-                                label = { Text(getString("time_label")) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                            )
-                            ExposedDropdownMenu(
-                                expanded = expandedTime,
-                                onDismissRequest = { expandedTime = false }
-                            ) {
-                                timeOptions.forEach { t ->
-                                    DropdownMenuItem(
-                                        text = { Text("${t}s") },
-                                        onClick = {
-                                            targetRepsValue = t
-                                            expandedTime = false
-                                        },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                    )
-                                }
-                            }
-                        }
-                    } else {
-                        val invalidCharMsg = getString("invalid_char_error")
-                        OutlinedTextField(
-                            value = targetRepsValue,
-                            onValueChange = { newValue ->
-                                // Allow only digits and "-"
-                                val isCharValid = newValue.all { it.isDigit() || it == '-' || it == '–' }
-                                if (isCharValid) {
-                                    targetRepsValue = newValue
-                                } else {
-                                    activeToastMessage = invalidCharMsg
-                                }
-                            },
-                            label = { Text(getString("reps")) },
-                            placeholder = { Text(getString("reps")) },
-                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
-                            supportingText = if (targetRepsValue.isNotEmpty() && !isRepsValid) {
-                                { Text(getString("rep_format_error")) }
-                            } else null,
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
-                        )
-                    }
-                }
-
-                ThemedToast(
-                    message = activeToastMessage ?: "",
-                    themeKey = themeKey,
-                    visible = activeToastMessage != null,
-                    onDismiss = { activeToastMessage = null }
-                )
-
-                OutlinedTextField(
-                    value = videoUrl,
-                    onValueChange = { videoUrl = it },
-                    label = { Text(getString("demo_link_optional")) },
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
-                        val sets = targetSetsStr.toIntOrNull() ?: 3
-                        val finalReps = if (isTimeBased) {
-                            val digits = targetRepsValue.filter { it.isDigit() }
-                            if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                        } else {
-                            targetRepsValue.trim()
-                        }
-                        onSave(
-                            RoutineExerciseEntity(
-                                id = exercise?.id ?: 0L,
-                                dayOfWeek = dayOfWeek,
-                                name = name,
-                                muscleGroup = muscleGroup,
-                                targetSets = sets,
-                                targetReps = finalReps,
-                                videoUrl = videoUrl,
-                                orderIndex = exercise?.orderIndex ?: 99
-                            )
-                        )
-                    }
-                },
-                enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
-            ) {
-                Text(getString("save"))
-            }
-        },
-        dismissButton = {
-            TextButton(onClick = onDismiss) {
-                Text(getString("cancel"))
-            }
-        }
-    )
-}

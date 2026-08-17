@@ -2,6 +2,9 @@ package com.grafizum.repio.ui.components
 
 import com.grafizum.repio.util.openUrl
 import androidx.compose.animation.*
+import androidx.compose.animation.core.Spring
+import androidx.compose.animation.core.animateDpAsState
+import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.Image
@@ -40,6 +43,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.ui.text.input.KeyboardType
 import com.grafizum.repio.util.getString
 import kotlinx.coroutines.delay
 import com.grafizum.repio.data.RoutineExerciseEntity
@@ -120,7 +125,7 @@ fun translateMuscleGroup(muscleGroup: String): String {
 
 @Composable
 fun translateExerciseName(name: String): String {
-    val clean = name.removeSuffix(" (Master)").trim()
+    val clean = name.trim()
     return when (clean) {
         "Barbell bent-over row" -> getString("ex_barbell_bent_over_row")
         "One-arm dumbbell row" -> getString("ex_one_arm_dumbbell_row")
@@ -434,7 +439,6 @@ fun ExerciseVideoLinkButton(
 fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> {
     val cleanName = name.trim().lowercase()
     val description = when {
-        cleanName.contains("(master)") -> getString("ex_master_desc")
         cleanName.contains("bench press") || cleanName.contains("floor press") -> getString("ex_bench_press_desc")
         cleanName.contains("squat") -> getString("ex_squats_desc")
         cleanName.contains("deadlift") -> getString("ex_deadlifts_desc")
@@ -451,10 +455,42 @@ fun getExerciseDetails(name: String, muscleGroup: String): Pair<String, String> 
     }
 
     val equipment = when {
-        cleanName.contains("barbell") -> getString("ex_equipment_barbell")
-        cleanName.contains("dumbbell") || cleanName.contains("db") -> getString("ex_equipment_dumbbell")
+        cleanName.contains("barbell") || 
+        cleanName.contains("military press") || 
+        cleanName.contains("deadlift") || 
+        cleanName.contains("clean & press") || 
+        cleanName.contains("pendlay row") || 
+        cleanName.contains("upright row") || 
+        cleanName.contains("front squat") || 
+        cleanName.contains("good morning") || 
+        cleanName.contains("rollout") -> getString("ex_equipment_barbell")
+        
+        cleanName.contains("dumbbell") || 
+        cleanName.contains("db") || 
+        cleanName.contains("lateral raise") || 
+        cleanName.contains("front raise") || 
+        cleanName.contains("hammer curl") || 
+        cleanName.contains("kickback") || 
+        cleanName.contains("goblet squat") || 
+        cleanName.contains("thruster") || 
+        cleanName.contains("incline curl") || 
+        cleanName.contains("overhead extension") -> getString("ex_equipment_dumbbell")
+        
         cleanName.contains("cable") -> getString("ex_equipment_cables")
-        cleanName.contains("push-up") || (cleanName.contains("squat") && !cleanName.contains("barbell") && !cleanName.contains("dumbbell")) || cleanName.contains("plank") || cleanName.contains("dip") -> getString("ex_equipment_bodyweight")
+        
+        cleanName.contains("push-up") || 
+        cleanName.contains("pull-up") || 
+        cleanName.contains("pullup") || 
+        cleanName.contains("chin-up") || 
+        cleanName.contains("crunch") || 
+        cleanName.contains("leg raise") || 
+        cleanName.contains("russian twist") || 
+        cleanName.contains("clamshell") || 
+        cleanName.contains("bridge") || 
+        (cleanName.contains("squat") && !cleanName.contains("barbell") && !cleanName.contains("dumbbell")) || 
+        cleanName.contains("plank") || 
+        cleanName.contains("dip") -> getString("ex_equipment_bodyweight")
+        
         else -> getString("ex_equipment_gym")
     }
 
@@ -1107,6 +1143,91 @@ fun getUpperCategoryKey(muscleGroup: String): String {
     }
 }
 
+@Composable
+fun RepsTimeToggle(
+    isTimeBased: Boolean,
+    onToggle: (Boolean) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    
+    BoxWithConstraints(
+        modifier = modifier
+            .fillMaxWidth()
+            .height(44.dp)
+            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+            .background(MaterialTheme.colorScheme.surfaceVariant)
+            .padding(4.dp)
+    ) {
+        val tWidth = maxWidth / 2
+        val indicatorPosition by animateDpAsState(
+            targetValue = if (isTimeBased) tWidth else 0.dp,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioLowBouncy,
+                stiffness = Spring.StiffnessLow
+            ),
+            label = "indicatorPosition"
+        )
+
+        // Sliding Indicator
+        Surface(
+            modifier = Modifier
+                .width(tWidth)
+                .fillMaxHeight()
+                .offset(x = indicatorPosition),
+            color = MaterialTheme.colorScheme.primary,
+            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
+            shadowElevation = if (isDeveloper) 0.dp else 1.dp
+        ) {}
+
+        Row(modifier = Modifier.fillMaxSize()) {
+            // Reps Tab
+            val repsColor by animateColorAsState(
+                targetValue = if (!isTimeBased) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                label = "repsColor"
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onToggle(false) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = getString("reps"),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = repsColor
+                )
+            }
+
+            // Time Tab
+            val timeColor by animateColorAsState(
+                targetValue = if (isTimeBased) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
+                label = "timeColor"
+            )
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .fillMaxHeight()
+                    .clickable(
+                        interactionSource = remember { MutableInteractionSource() },
+                        indication = null
+                    ) { onToggle(true) },
+                contentAlignment = Alignment.Center
+            ) {
+                Text(
+                    text = getString("time_label"),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = timeColor
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun SearchableExerciseField(
@@ -1153,17 +1274,32 @@ fun SearchableExerciseField(
         if (filteredExercises.isNotEmpty()) {
             ExposedDropdownMenu(
                 expanded = expanded,
-                onDismissRequest = { expanded = false }
+                onDismissRequest = { expanded = false },
+                modifier = Modifier.padding(horizontal = 8.dp)
             ) {
                 filteredExercises.forEach { selection ->
                     DropdownMenuItem(
-                        text = { Text(selection, style = MaterialTheme.typography.bodySmall) },
+                        text = { 
+                            Column {
+                                Text(selection, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                val (desc, _) = getExerciseDetails(selection, WorkoutTemplates.getMuscleGroupForExercise(selection))
+                                if (desc.isNotBlank()) {
+                                    Text(
+                                        text = desc,
+                                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                        maxLines = 1,
+                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+                        },
                         onClick = {
                             onValueChange(selection)
                             onItemSelected(selection)
                             expanded = false
                         },
-                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                     )
                 }
             }
@@ -1363,4 +1499,275 @@ fun MissingBodyPartsWarningCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun ExerciseEditDialog(
+    allAvailableExercises: List<String>,
+    exercise: RoutineExerciseEntity?,
+    dayOfWeek: String,
+    themeKey: String,
+    onDismiss: () -> Unit,
+    onSave: (RoutineExerciseEntity) -> Unit
+) {
+    var name by remember { mutableStateOf(exercise?.name ?: "") }
+    var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
+    var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
+    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    var isExpanded by remember { mutableStateOf(exercise != null) }
+    
+    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "") }
+    var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
+
+    var activeToastMessage by remember { mutableStateOf<String?>(null) }
+
+    val isRepsValid = remember(targetRepsValue, isTimeBased) {
+        if (isTimeBased) true
+        else if (targetRepsValue.isBlank()) true
+        else {
+            // Check if it only contains digits and '-'
+            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
+            if (!validChars) return@remember false
+            
+            // Cannot start or end with '-'
+            if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
+                targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
+            
+            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            if (parts.size == 2) {
+                val v1 = parts[0].toIntOrNull()
+                val v2 = parts[1].toIntOrNull()
+                if (v1 != null && v2 != null) v1 <= v2 else false
+            } else if (parts.size == 1) {
+                parts[0].toIntOrNull() != null
+            } else {
+                false
+            }
+        }
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(if (exercise == null) getString("add_exercise") else getString("edit_exercise")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                // Reps / Seconds Sliding Toggle
+                RepsTimeToggle(
+                    isTimeBased = isTimeBased,
+                    onToggle = { newValue: Boolean ->
+                        isTimeBased = newValue
+                        if (newValue && (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() })) {
+                            targetRepsValue = "30"
+                        }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
+
+                // Exercise Name
+                SearchableExerciseField(
+                    allExercises = allAvailableExercises,
+                    value = name,
+                    onValueChange = { 
+                        name = it
+                        if (it.isBlank()) {
+                            isExpanded = false
+                            targetSetsStr = ""
+                            targetRepsValue = ""
+                            muscleGroup = ""
+                        }
+                        // Auto-update muscle group
+                        val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
+                        if (detected != "Other") {
+                            muscleGroup = detected
+                        }
+                    },
+                    onItemSelected = { selectedName ->
+                        isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
+                        isExpanded = true
+                        
+                        // Auto-fill recommendations if fields are empty (likely new exercise)
+                        if (targetSetsStr.isBlank()) {
+                            targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                        }
+                        if (targetRepsValue.isBlank()) {
+                            targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                        }
+                    },
+                    label = getString("exercise_name"),
+                    placeholder = getString("exercise_name_placeholder")
+                )
+
+                // Muscle Group & Description (Visual indicator instead of text box)
+                if (isExpanded) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = getString("trained_muscles") + ":",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            MuscleGroupBadge(muscleGroup = muscleGroup)
+                        }
+
+                        // Detailed description in a prominent box
+                        val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup)
+                        if (exerciseDesc.isNotBlank()) {
+                            val isDeveloper = LocalDeveloperSkin.current
+                            Surface(
+                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = exerciseDesc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+
+                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                    val onlyNumbersMsg = getString("only_numbers_error")
+                    OutlinedTextField(
+                        value = targetSetsStr,
+                        onValueChange = { 
+                            if (it.all { char -> char.isDigit() }) {
+                                targetSetsStr = it 
+                            } else {
+                                activeToastMessage = onlyNumbersMsg
+                            }
+                        },
+                        label = { Text(getString("sets")) },
+                        placeholder = { Text(getString("sets")) },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        modifier = Modifier.weight(1f)
+                    )
+
+                    if (isTimeBased) {
+                        var expandedTime by remember { mutableStateOf(false) }
+                        val timeOptions = listOf("30", "45", "60", "90", "120")
+                        ExposedDropdownMenuBox(
+                            expanded = expandedTime,
+                            onExpandedChange = { expandedTime = !expandedTime },
+                            modifier = Modifier.weight(1f)
+                        ) {
+                            val digitsOnly = targetRepsValue.filter { it.isDigit() }
+                            val displayValue = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s"
+                            OutlinedTextField(
+                                value = displayValue,
+                                onValueChange = {},
+                                readOnly = true,
+                                label = { Text(getString("time_label")) },
+                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                            )
+                            ExposedDropdownMenu(
+                                expanded = expandedTime,
+                                onDismissRequest = { expandedTime = false },
+                                modifier = Modifier.padding(horizontal = 4.dp)
+                            ) {
+                                timeOptions.forEach { t ->
+                                    DropdownMenuItem(
+                                        text = { Text("${t}s", style = MaterialTheme.typography.bodySmall) },
+                                        onClick = {
+                                            targetRepsValue = t
+                                            expandedTime = false
+                                        },
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
+                                    )
+                                }
+                            }
+                        }
+                    } else {
+                        val invalidCharMsg = getString("invalid_char_error")
+                        OutlinedTextField(
+                            value = targetRepsValue,
+                            onValueChange = { newValue ->
+                                // Allow only digits and "-"
+                                val isCharValid = newValue.all { it.isDigit() || it == '-' || it == '–' }
+                                if (isCharValid) {
+                                    targetRepsValue = newValue
+                                } else {
+                                    activeToastMessage = invalidCharMsg
+                                }
+                            },
+                            label = { Text(getString("reps")) },
+                            placeholder = { Text(getString("reps")) },
+                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
+                            supportingText = if (targetRepsValue.isNotEmpty() && !isRepsValid) {
+                                { Text(getString("rep_format_error")) }
+                            } else null,
+                            singleLine = true,
+                            modifier = Modifier.weight(1f)
+                        )
+                    }
+                }
+
+                ThemedToast(
+                    message = activeToastMessage ?: "",
+                    themeKey = themeKey,
+                    visible = activeToastMessage != null,
+                    onDismiss = { activeToastMessage = null }
+                )
+
+                OutlinedTextField(
+                    value = videoUrl,
+                    onValueChange = { videoUrl = it },
+                    label = { Text(getString("demo_link_optional")) },
+                    singleLine = true,
+                    modifier = Modifier.fillMaxWidth()
+                )
+            }
+        },
+        confirmButton = {
+            Button(
+                onClick = {
+                    if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
+                        val sets = targetSetsStr.toIntOrNull() ?: 3
+                        val finalReps = if (isTimeBased) {
+                            val digits = targetRepsValue.filter { it.isDigit() }
+                            if (digits.isNotBlank()) "$digits sec" else "30 sec"
+                        } else {
+                            targetRepsValue.trim()
+                        }
+                        onSave(
+                            RoutineExerciseEntity(
+                                id = exercise?.id ?: 0L,
+                                dayOfWeek = dayOfWeek,
+                                name = name,
+                                muscleGroup = muscleGroup,
+                                targetSets = sets,
+                                targetReps = finalReps,
+                                videoUrl = videoUrl,
+                                orderIndex = exercise?.orderIndex ?: 99
+                            )
+                        )
+                    }
+                },
+                enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
+            ) {
+                Text(getString("save"))
+            }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) {
+                Text(getString("cancel"))
+            }
+        }
+    )
 }

@@ -43,27 +43,6 @@ object WorkoutTemplates {
         "Hip Abductors" to "4–10 sets (Isolation for hip health)"
     )
 
-    // Master Workouts: Groups of related exercises for automatic variation
-    val masterWorkouts = mapOf(
-        "Push-ups (Master)" to listOf("Push-ups", "Incline Push-ups", "Diamond Push-ups", "Wide Push-ups", "Archer Push-ups", "Decline Push-ups"),
-        "Squats (Master)" to listOf("Squats", "Sumo Squats", "Bulgarian Split Squats", "Goblet Squats", "Jump Squats"),
-        "Dumbbell Press (Master)" to listOf("Dumbbell Floor Press", "Incline DB Press", "Dumbbell Shoulder Press", "Dumbbell Flyes"),
-        "Barbell Press (Master)" to listOf("Barbell Bench Press", "Incline Barbell Press", "Military Press", "Close Grip Press"),
-        "Rows (Master)" to listOf("Barbell Row", "One-arm Dumbbell Row", "Seated Row", "Pendlay Rows"),
-        "Plank (Master)" to listOf("Plank", "Side Plank", "Plank-to-Down-Dog", "Shoulder Taps"),
-        "Deadlift (Master)" to listOf("Deadlifts", "Romanian Deadlifts", "Sumo Deadlifts", "Stiff-Legged Deadlifts"),
-        "Curls (Master)" to listOf("Barbell Curls", "Dumbbell Curls", "Hammer Curls", "Preacher Curls", "Reverse Curls")
-    )
-
-    fun resolveMasterWorkout(name: String): String {
-        return if (name.endsWith("(Master)")) {
-            val variations = masterWorkouts[name] ?: return name.removeSuffix(" (Master)")
-            val seed = 1 // Placeholder for seed
-            variations[seed % variations.size]
-        } else {
-            name
-        }
-    }
 
     data class GeneratedProgram(
         val days: List<RoutineDayEntity>,
@@ -178,12 +157,15 @@ object WorkoutTemplates {
     }
 
     fun getAllExerciseNames(): List<String> {
-        val groups = getAllMuscleGroups()
-        val individual = groups.flatMap { g ->
-            getGymExercises(g) + getBarbellExercises(g) + getDumbbellExercises(g) + getBodyweightExercises(g)
+        val muscles = getAllMuscleGroups()
+        val all = mutableListOf<String>()
+        muscles.forEach {
+            all.addAll(getBodyweightExercises(it))
+            all.addAll(getDumbbellExercises(it))
+            all.addAll(getBarbellExercises(it))
+            all.addAll(getGymExercises(it))
         }
-        val masters = masterWorkouts.keys.toList()
-        return (masters + individual).distinct().sorted()
+        return all.distinct().sorted()
     }
 
     fun getAllMuscleGroups(): List<String> {
@@ -206,29 +188,19 @@ object WorkoutTemplates {
     }
 
     fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String): List<String> {
-        val topic = getTopicForMuscle(muscleGroup)
-        val allForGroup = getGymExercises(topic) + 
-                         getBarbellExercises(topic) + 
-                         getDumbbellExercises(topic) + 
-                         getBodyweightExercises(topic)
+        // Get all exercises for the SPECIFIC muscle group (using the provided granular muscleGroup)
+        val allForGroup = getGymExercises(muscleGroup) + 
+                         getBarbellExercises(muscleGroup) + 
+                         getDumbbellExercises(muscleGroup) + 
+                         getBodyweightExercises(muscleGroup)
         
-        val relevantMasters = masterWorkouts.keys.filter { getTopicForMuscle(getMuscleGroupForExercise(it)) == topic }
-        
-        return (allForGroup + relevantMasters).distinct()
+        return allForGroup.distinct()
             .filter { it.lowercase() != currentExerciseName.lowercase() }
             .sorted()
     }
 
     fun getMuscleGroupForExercise(name: String): String {
         val cleanName = name.trim().lowercase()
-
-        // 0. Handle Master Workouts
-        if (name.endsWith("(Master)")) {
-            val variations = masterWorkouts[name]
-            if (!variations.isNullOrEmpty()) {
-                return getMuscleGroupForExercise(variations.first())
-            }
-        }
 
         // 1. Specific matches in Pools
         val detailedGroups = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Chest")
