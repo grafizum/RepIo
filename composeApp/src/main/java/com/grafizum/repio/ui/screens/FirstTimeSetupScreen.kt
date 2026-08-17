@@ -38,6 +38,7 @@ import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
+import com.grafizum.repio.ui.components.RepsTimeToggle
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.getExerciseDetails
@@ -1576,79 +1577,17 @@ private fun AddExerciseDialog(
         title = { Text(getString(if (exercise == null) "add_custom_exercise" else "edit_exercise")) },
         text = {
             Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-                // Reps / Seconds Switch
-                Row(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .animateContentSize()
-                        .background(MaterialTheme.colorScheme.surfaceVariant, RoundedCornerShape(8.dp))
-                        .padding(4.dp),
-                    horizontalArrangement = Arrangement.spacedBy(4.dp)
-                ) {
-                    val showReps = !isExpanded || !isTimeBased
-                    val showTime = !isExpanded || isTimeBased
-
-                    AnimatedVisibility(
-                        visible = showReps,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        val isSelected = !isTimeBased
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    isTimeBased = false
-                                },
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = getString("reps"),
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
+                // Reps / Seconds Sliding Toggle
+                RepsTimeToggle(
+                    isTimeBased = isTimeBased,
+                    onToggle = { newValue: Boolean ->
+                        isTimeBased = newValue
+                        if (newValue && (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() })) {
+                            targetRepsValue = "30"
                         }
-                    }
-
-                    AnimatedVisibility(
-                        visible = showTime,
-                        modifier = Modifier.weight(1f),
-                        enter = fadeIn() + expandHorizontally(),
-                        exit = fadeOut() + shrinkHorizontally()
-                    ) {
-                        val isSelected = isTimeBased
-                        Surface(
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable(
-                                    interactionSource = remember { MutableInteractionSource() },
-                                    indication = null
-                                ) {
-                                    isTimeBased = true
-                                    if (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() }) {
-                                        targetRepsValue = "30"
-                                    }
-                                },
-                            color = if (isSelected) MaterialTheme.colorScheme.primary else Color.Transparent,
-                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurfaceVariant,
-                            shape = RoundedCornerShape(6.dp)
-                        ) {
-                            Text(
-                                text = getString("time_label"),
-                                modifier = Modifier.padding(vertical = 8.dp),
-                                textAlign = TextAlign.Center,
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
+                    },
+                    modifier = Modifier.fillMaxWidth()
+                )
 
                 // Day of Week Dropdown
                 ExposedDropdownMenuBox(

@@ -1159,7 +1159,7 @@ fun RepsTimeToggle(
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp)
     ) {
-        val tWidth = maxWidth / 2
+        val tWidth = this.maxWidth / 2
         val indicatorPosition by animateDpAsState(
             targetValue = if (isTimeBased) tWidth else 0.dp,
             animationSpec = spring(
