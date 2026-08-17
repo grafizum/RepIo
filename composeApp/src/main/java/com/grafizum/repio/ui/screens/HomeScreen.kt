@@ -3,7 +3,6 @@ package com.grafizum.repio.ui.screens
 import com.grafizum.repio.util.getString
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -11,7 +10,6 @@ import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.CheckCircle
@@ -31,7 +29,6 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
-import androidx.compose.ui.text.style.TextOverflow
 import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -49,16 +46,9 @@ fun HomeScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
-    val workoutName by viewModel.customWorkoutName.collectAsState()
 
-    var showEditNameDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
     
-    var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
-    var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
-    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
-    val themeKey by viewModel.themeOption.collectAsState()
-
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
     val todayExercises = allExercises.filter { it.dayOfWeek == todayStr }
@@ -67,57 +57,12 @@ fun HomeScreen(
     val totalVolumeThisWeek = loggedSets.sumOf { it.weightKg * it.reps }
     val isDeveloper = LocalDeveloperSkin.current
 
-    if (showEditNameDialog) {
-        var tempName by remember { mutableStateOf(workoutName) }
-        AlertDialog(
-            onDismissRequest = { showEditNameDialog = false },
-            title = { Text(getString("edit_workout_program_name")) },
-            text = {
-                OutlinedTextField(
-                    value = tempName,
-                    onValueChange = { if (it.length <= 20) tempName = it },
-                    label = { Text(getString("my_workout")) },
-                    placeholder = {
-                        Text(
-                            text = getString("workout_program_name_placeholder"),
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        )
-                    },
-                    supportingText = {
-                        Text(
-                            text = if (tempName.length >= 20) getString("max_characters_reached") else "${tempName.length}/20",
-                            modifier = Modifier.fillMaxWidth(),
-                            textAlign = TextAlign.End,
-                            color = if (tempName.length >= 20) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    },
-                    isError = tempName.length >= 20,
-                    singleLine = true,
-                    modifier = Modifier.fillMaxWidth()
-                )
-            },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.updateWorkoutName(tempName)
-                    showEditNameDialog = false
-                }) {
-                    Text(getString("save"))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showEditNameDialog = false }) {
-                    Text(getString("cancel"))
-                }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // TOP APP HEADER
         Row(
@@ -125,14 +70,13 @@ fun HomeScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 64.dp)
+                .heightIn(min = 72.dp)
                 .padding(vertical = 4.dp)
         ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 modifier = Modifier
                     .clip(RoundedCornerShape(12.dp))
-                    .clickable { showEditNameDialog = true }
                     .padding(4.dp)
             ) {
                 Box(
@@ -152,7 +96,7 @@ fun HomeScreen(
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
                     Text(
-                        text = workoutName,
+                        text = getString("smart_workout_assistant"),
                         style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
                         color = MaterialTheme.colorScheme.onBackground
                     )
@@ -378,125 +322,12 @@ fun HomeScreen(
                         onExpandedChange = { expanded ->
                             expandedExerciseId = if (expanded) exercise.id else null
                         },
-                        onEdit = { editingExercise = exercise },
-                        onReplace = { replacingExercise = exercise },
-                        onDelete = { viewModel.deleteExercise(exercise.id) },
-                        onSaveVideoUrl = { newUrl -> viewModel.saveExercise(exercise.copy(videoUrl = newUrl)) }
+                        showActions = false
                     )
                 }
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
-    }
-
-    // EXERCISE EDIT DIALOG
-    editingExercise?.let { exercise ->
-        ExerciseEditDialog(
-            allAvailableExercises = allAvailableExercises,
-            exercise = exercise,
-            dayOfWeek = exercise.dayOfWeek,
-            themeKey = themeKey,
-            onDismiss = { editingExercise = null },
-            onSave = { updated ->
-                viewModel.saveExercise(updated)
-                editingExercise = null
-            }
-        )
-    }
-
-    // REPLACE EXERCISE DIALOG
-    replacingExercise?.let { exercise ->
-        val alternatives = remember(exercise.name, exercise.muscleGroup) {
-            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
-        }
-
-        AlertDialog(
-            onDismissRequest = { replacingExercise = null },
-            title = { Text(getString("alternative_exercises")) },
-            text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-                    Text(
-                        text = getString("select_alternative_desc", translateMuscleGroup(exercise.muscleGroup)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-
-                    if (alternatives.isEmpty()) {
-                        Text(
-                            text = "No other exercises found for this muscle group.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 300.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(alternatives) { altName ->
-                                var expanded by remember { mutableStateOf(false) }
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateContentSize()
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            viewModel.saveExercise(exercise.copy(name = altName))
-                                            replacingExercise = null
-                                        }
-                                ) {
-                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup)
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = translateExerciseName(altName),
-                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                                            )
-                                            if (altDesc.isNotBlank()) {
-                                                Text(
-                                                    text = altDesc,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                        
-                                        if (altDesc.isNotBlank()) {
-                                            IconButton(onClick = { expanded = !expanded }) {
-                                                Icon(
-                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                                )
-                                            }
-                                        }
-
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = { replacingExercise = null }) {
-                    Text(getString("cancel"))
-                }
-            }
-        )
     }
 }

@@ -15,7 +15,7 @@ import androidx.compose.ui.Modifier
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 
 @Composable
-fun MyWorkoutTabScreen(
+fun WorkoutTabScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
     initialTab: Int = 0,
@@ -45,7 +45,7 @@ fun MyWorkoutTabScreen(
                 onChangeRoutine = { selectedSubTab = 1 }
             )
         } else {
-            RoutineScreen(
+            WorkoutScreen(
                 viewModel = viewModel,
                 onBack = { selectedSubTab = 0 },
                 initialShowAddDialog = showAddDialogOnLoad,

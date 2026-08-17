@@ -181,7 +181,7 @@ fun WorkoutNowScreen(
             .fillMaxSize()
             .padding(horizontal = 16.dp)
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // COMPACT HEADER
         Row(
@@ -189,7 +189,7 @@ fun WorkoutNowScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .heightIn(min = 72.dp)
                 .padding(vertical = 4.dp)
         ) {
             Row(
@@ -637,7 +637,7 @@ fun WorkoutNowScreen(
                         Spacer(modifier = Modifier.height(12.dp))
 
                         var showPeek by remember { mutableStateOf(false) }
-                        val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup)
+                        val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup, currentExercise.targetIntensity)
 
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -654,17 +654,6 @@ fun WorkoutNowScreen(
                             )
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = { editingExercise = currentExercise },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Edit,
-                                        contentDescription = "Edit Exercise",
-                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
-                                        modifier = Modifier.size(20.dp)
-                                    )
-                                }
                                 IconButton(
                                     onClick = { showPeek = !showPeek },
                                     modifier = Modifier.size(32.dp)
@@ -709,12 +698,23 @@ fun WorkoutNowScreen(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(
-                                text = if (isTimeBased) getString("sets_x_time", currentExercise.targetSets, currentExercise.targetReps)
-                                       else getString("sets_x_reps", currentExercise.targetSets, currentExercise.targetReps),
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = if (isTimeBased) getString("sets_x_time", currentExercise.targetSets, currentExercise.targetReps)
+                                           else getString("sets_x_reps", currentExercise.targetSets, currentExercise.targetReps),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                if (currentExercise.targetIntensity.isNotBlank()) {
+                                    val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(currentExercise.targetIntensity)
+                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${currentExercise.targetIntensity} ($rpeExpl)" else currentExercise.targetIntensity
+                                    Text(
+                                        text = " • $displayIntensity",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
                         }
 
                         Spacer(modifier = Modifier.height(16.dp))
@@ -732,17 +732,22 @@ fun WorkoutNowScreen(
                                 modifier = Modifier.height(44.dp)
                             )
 
+                            Spacer(modifier = Modifier.width(8.dp))
+
                             Surface(
                                 color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                                 contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                                 border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                                modifier = Modifier.height(44.dp).semantics { testTag = "next_up_exercise_card" }
+                                modifier = Modifier
+                                    .height(44.dp)
+                                    .weight(1f, fill = false)
+                                    .semantics { testTag = "next_up_exercise_card" }
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(horizontal = 16.dp),
+                                    modifier = Modifier.padding(start = 16.dp, end = 12.dp),
                                     verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = if (isDeveloper) Alignment.CenterHorizontally else Alignment.End
+                                    horizontalAlignment = Alignment.End
                                 ) {
                                     Text(
                                         text = getString("next_up"),

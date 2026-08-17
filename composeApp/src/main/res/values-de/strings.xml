@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">RepIo</string>
-    <string name="smart_workout_assistant">Smarter Trainingsassistent</string>
+    <string name="smart_workout_assistant">Home</string>
     <string name="settings">Einstellungen</string>
     <string name="todays_workout">HEUTIGES TRAINING</string>
     <string name="workout_routine">Trainingsroutine</string>
@@ -42,8 +42,12 @@
     <string name="recreate">Neu erstellen</string>
     <string name="support_requests">Support-Anfragen</string>
     <string name="submit_feedback">Feedback senden oder Probleme melden</string>
-    <string name="open_support">Support öffnen</string>
+    <string name="open_support">Chat</string>
+    <string name="open">Öffnen</string>
     <string name="done">Fertig</string>
+    <string name="confirm_timer_change_title">Timer-Änderung bestätigen</string>
+    <string name="confirm_timer_change_msg">Das Ändern dieser Einstellung aktualisiert den Standard-Timer für zukünftige Workouts.</string>
+    <string name="timer_override_warning">Warnung: Dies überschreibt auch die Timer für alle Übungen in Ihrem aktuell erstellten Workout!</string>
 
     <string name="support">Support</string>
     <string name="today">Heute</string>
@@ -127,7 +131,6 @@
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Benutzerdefiniert</string>
     <string name="editor">Editor</string>
-    <string name="my_workout">Mein Workout</string>
     <string name="workout">Bearbeiten</string>
     <string name="trained_muscles">Muskelgruppe</string>
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
@@ -137,6 +140,8 @@
     <string name="start_workout_again">TRAINING ERNEUT STARTEN</string>
     <string name="exercise_x_of_y">Übung %1$d von %2$d • Satz %3$d/%4$d</string>
     <string name="rest_timer">SATZ-PAUSE</string>
+    <string name="intensity_label">Ziel-Intensität (RPE)</string>
+    <string name="rest_timer_label">Pausenzeit</string>
     <string name="exercise_transition_label">NÄCHSTE ÜBUNG IN</string>
     <string name="seconds_remaining">%1$ds verbleibend</string>
     <string name="set_x_of_y">SATZ %1$d / %2$d</string>
@@ -150,8 +155,7 @@
     <string name="log_set_x_next">SATZ %1$d SPEICHERN &amp; WEITER ➔</string>
     <string name="start_timer_x_and_log">TIMER %1$ds STARTEN &amp; LOG</string>
     <string name="start_timer_x">STARTE %1$ds TIMER</string>
-    <string name="edit_workout_program_name">Programmname bearbeiten</string>
-    <string name="program_name">Programmname</string>
+    <string name="program_name">Mein Workout</string>
     <string name="description">Beschreibung</string>
     <string name="equipment">Ausrüstung</string>
     <string name="ex_description_generic">Eine effektive Übung für die %1$s-Muskulatur. Achte auf kontrollierte Bewegungen.</string>
@@ -190,6 +194,7 @@
     <string name="no_exercises_scheduled">Keine Übungen für diesen Tag geplant.</string>
     <string name="start_this_workout_now">DIESES TRAINING JETZT STARTEN</string>
     <string name="add_exercise">Übung hinzufügen</string>
+    <string name="add_workout">Workout hinzufügen</string>
     <string name="edit_exercise">Übung bearbeiten</string>
     <string name="exercise_name">Name der Übung</string>
     <string name="muscle_group">Muskelgruppe</string>
@@ -201,14 +206,11 @@
     <string name="reset">Zurücksetzen</string>
     <string name="welcome_title">Willkommen auf deiner Fitness-Reise!</string>
     <string name="welcome_text">Richte deinen Programmnamen ein und wähle eine Vorlage oder erstelle einen eigenen Split.</string>
-    <string name="name_workout_program">1. Benenne dein Trainingsprogramm</string>
-    <string name="name_workout_program_desc">Dieser Titel ersetzt „Workout“ oben in deinem Dashboard.</string>
-    <string name="workout_program_name_placeholder">z.B. Training, Sommer-Split, PPL</string>
-    <string name="select_routine_type">2. Art der Routine wählen</string>
+    <string name="select_routine_type">Art der Routine wählen</string>
     <string name="premade_templates">Vordefinierter Build</string>
     <string name="assisted_build">Geführter Build</string>
     <string name="build_custom">Eigener Build</string>
-    <string name="choose_recommended_template">Wähle eine empfohlene Vorlage</string>
+    <string name="choose_recommended_template">Wähle eine Trainingsvorlage</string>
     <string name="selected">Ausgewählt</string>
     <string name="preview_breakdown">Vorschau anzeigen</string>
     <string name="rest_and_recovery">Ruhe &amp; Erholung</string>
@@ -226,6 +228,7 @@
     <string name="start">Start</string>
     <string name="select">Wählen</string>
     <string name="select_time">Zeit wählen</string>
+    <string name="timer_durations">Timer-Dauer</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Trainingsprogramm?</string>
     <string name="faq_change_program_a">Gehe zum Tab „Mein Training“ und tippe oben auf „Benutzerdefiniertes Training“, um eine neue Vorlage zu wählen oder einen eigenen Split zu erstellen.</string>
@@ -251,19 +254,20 @@
     <string name="core">Core</string>
     <string name="other">Sonstige</string>
 
-    <string name="hypertrophy_5day_name">5-Tage Hypertrophie-Split</string>
+    <string name="hypertrophy_5day_name">Hypertrophie-Split</string>
     <string name="hypertrophy_5day_desc">Volumenreiches Training für maximales Muskelwachstum und Symmetrie über 5 Tage.</string>
     <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
     <string name="ppl_6day_desc">Klassische Routine: Trennung von Druck-, Zug- und Beinmuskulatur über 6 Tage.</string>
-    <string name="upper_lower_4day_name">4-Tage Ober-/Unterkörper-Split</string>
+    <string name="upper_lower_4day_name">Ober-/Unterkörper-Split</string>
     <string name="upper_lower_4day_desc">Ausgewogener Split: Training aller Muskelgruppen zweimal pro Woche mit ausreichend Erholung.</string>
-    <string name="fullbody_3day_name">3-Tage Ganzkörper-Klassiker</string>
+    <string name="fullbody_3day_name">Ganzkörper-Klassiker</string>
     <string name="fullbody_3day_desc">Effizientes Training aller Muskelgruppen pro Einheit. Ideal für einen vollen Terminkalender.</string>
 
     <string name="most_popular">Beliebteste</string>
-    <string name="strength_mass">6-Tage Kraft &amp; Masse</string>
+    <string name="strength_mass">Kraft &amp; Masse</string>
     <string name="optimal_recovery">Optimale Erholung</string>
     <string name="time_efficient">Zeiteffizient</string>
+    <string name="workout_days_format">%1$d Tage</string>
     <string name="workout_days_plus_rest">%1$d Trainingstage + %2$d Ruhetage</string>
     <string name="rest_days_only">%1$d Ruhetage</string>
 
@@ -372,26 +376,32 @@
     <string name="confirm_new_program_title">Neues Training bestätigen?</string>
     <string name="confirm_new_program_message">Dein aktueller Plan wird ersetzt. Möchtest du fortfahren?</string>
 
-    <string name="choose_equipment">1. Wähle dein Equipment</string>
-    <string name="choose_body_parts">2. Ziel-Körperpartien</string>
-    <string name="choose_days">3. Trainingstage pro Woche</string>
+    <string name="choose_equipment">Wähle dein Equipment</string>
+    <string name="choose_intensity">Schwierigkeit wählen</string>
+    <string name="choose_body_parts">Ziel-Körperpartien</string>
+    <string name="choose_days">Trainingstage pro Woche</string>
     <string name="full_gym">Fitnessstudio</string>
+    <string name="full_gym_desc">Alle Geräte und Maschinen</string>
     <string name="dumbbells_only">Kurzhanteln</string>
     <string name="bodyweight_only">Körpergewicht</string>
     <string name="barbell_only">Langhantel</string>
     <string name="cables_only">Kabel &amp; Geräte</string>
+    <string name="specific_equipment">ODER SPEZIFISCHE AUSRÜSTUNG</string>
 
-    <string name="choose_intensity">5. Trainingsintensität</string>
-    <string name="exercise_preferences">4. Übungsvorlieben (Optional)</string>
+    <string name="min_sets">Min. Sätze pro Übung</string>
+    <string name="max_sets">Max. Sätze pro Übung</string>
+    <string name="sets_allocation">Satzverteilung</string>
+    <string name="no_limit">Keine Begrenzung</string>
+    <string name="additional_preferences">Zusätzliche Einstellungen</string>
     <string name="include_exercises">Bestimmte Übungen einschließen</string>
     <string name="exclude_exercises">Bestimmte Übungen ausschließen</string>
     <string name="add_pref">Hinzufügen</string>
-    <string name="intensity_easy">Einfach</string>
-    <string name="intensity_medium">Mittel</string>
-    <string name="intensity_difficult">Schwer</string>
-    <string name="intensity_easy_desc">Geringes Volumen (6-10 Sätze/Woche). Fokus auf Erhalt.</string>
-    <string name="intensity_medium_desc">Mittleres Volumen (10-15 Sätze/Woche). Optimal für Aufbau.</string>
-    <string name="intensity_difficult_desc">Hohes Volumen (15-20+ Sätze/Woche). Limit austesten.</string>
+    <string name="intensity_easy">Einfach (3-4 RIR)</string>
+    <string name="intensity_medium">Mittel (1-2 RIR)</string>
+    <string name="intensity_hard">Schwer (0-1 RIR)</string>
+    <string name="intensity_easy_desc">Erhaltungsvolumen (6-10 Sätze/Woche). Geringe neurologische Belastung, Fokus auf Technik und Konstanz.</string>
+    <string name="intensity_medium_desc">Optimales Aufbauvolumen (10-15 Sätze/Woche). Ausgewogene Intensität für Muskelhypertrophie (MEV/MAV).</string>
+    <string name="intensity_hard_desc">Maximales regenerierbares Volumen (15-20+ Sätze/Woche). Hohe Intensität an der Belastungsgrenze (MRV).</string>
 
     <string name="major_muscle_groups">Hauptgruppen</string>
     <string name="specialized_body_parts">Detail-Fokus</string>
@@ -424,4 +434,43 @@
     <string name="rep_format_error">Format muss eine Zahl (10) oder ein Bereich (8-12) sein</string>
     <string name="invalid_char_error">Nur Zahlen und Bindestriche sind erlaubt</string>
     <string name="only_numbers_error">Nur Zahlen sind erlaubt</string>
+
+    <!-- Workout Goals -->
+    <string name="workout_goal">Trainingsziel</string>
+    <string name="choose_workout_goal">Was ist dein primäres Trainingsziel?</string>
+    <string name="workout_goal_desc">Dies beeinflusst Wiederholungsbereiche, Satzzahlen und Übungspriorität.</string>
+    <string name="goal_bodybuilding">Bodybuilding / Hypertrophie</string>
+    <string name="goal_strength">Krafttraining / Powerlifting</string>
+    <string name="goal_calisthenics">Calisthenics</string>
+    <string name="goal_functional">Funktionelles Training</string>
+    <string name="goal_olympic">Olympisches Gewichtheben</string>
+    <string name="goal_powerbuilding">Powerbuilding</string>
+    <string name="goal_crossfit">CrossFit / Hybrid</string>
+    <string name="goal_athletic">Athletik / Sport-Performance</string>
+
+    <string name="confirm_goal_change_title">Trainingsziel ändern?</string>
+    <string name="confirm_goal_change_msg">Das Ändern deines Ziels erfordert eine Neuerstellung deiner gesamten Routine. Alle aktuellen Fortschritte in der Konfiguration gehen verloren. Fortfahren?</string>
+
+    <!-- RPE Explanations -->
+    <string name="rpe_explanation_rir_1">1 Wdh. im Tank lassen</string>
+    <string name="rpe_explanation_rir_2">2 Wdh. im Tank lassen</string>
+    <string name="rpe_explanation_rir_3">3 Wdh. im Tank lassen</string>
+    <string name="rpe_explanation_rir_4">4 Wdh. im Tank lassen</string>
+    <string name="rpe_explanation_rir_0">Absolutes Versagen</string>
+    <string name="rpe_explanation_rir_range">%1$d–%2$d Wdh. im Tank lassen</string>
+    <string name="rpe_long_description">Intensität: %1$s. Nutze ein Gewicht, bei dem du am Ende noch %2$s hättest.</string>
+
+    <!-- FAQ RPE & RIR -->
+    <string name="rpe_rir_faq">RPE &amp; RIR Guide</string>
+    <string name="rpe_rir_explanation">Trainingsintensität schnell verstehen</string>
+    <string name="what_is_rpe">Was ist RPE?</string>
+    <string name="rpe_desc">Rate of Perceived Exertion (1–10 Skala). Misst, wie anstrengend ein Satz war.</string>
+    <string name="rpe_10">RPE 10: Maximale Anstrengung. Keine weiteren Wiederholungen im Tank.</string>
+    <string name="rpe_9">RPE 9: Sehr schwer. Noch 1 Wdh. im Tank.</string>
+    <string name="rpe_8">RPE 8: Schwer. Noch 2 Wdh. im Tank.</string>
+    <string name="what_is_rir">Was ist RIR?</string>
+    <string name="rir_desc">Reps In Reserve. Wie viele Wiederholungen du \"im Tank\" lässt, bevor du versagst.</string>
+    <string name="rir_0">0 RIR = RPE 10 (Absolutes Versagen)</string>
+    <string name="rir_1">1 RIR = RPE 9</string>
+    <string name="rir_2">2 RIR = RPE 8</string>
 </resources>

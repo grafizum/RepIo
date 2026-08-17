@@ -32,7 +32,7 @@ This plan implements a "recommended reps" and "recommended sets" feature. When a
 - Run `gradle_build` to ensure the project still compiles.
 
 ### Manual Verification
-1. Open the "Add Exercise" dialog in the Routine screen.
+1. Open the "Add Exercise" dialog in the Workout screen.
 2. Observe that "Sets" and "Reps" are empty and show placeholders.
 3. Start typing an exercise name (e.g., "Barbell squats").
 4. Observe that "Sets" fills with "3" and "Reps" fills with "8-12".
