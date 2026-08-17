@@ -25,16 +25,16 @@ val LocalDeveloperSkin = staticCompositionLocalOf { false }
 private val PurpleColorScheme = darkColorScheme(
     primary = ElegantPurple,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF2C2548), // Softer dark purple container (was 0xFF231B3A)
+    primaryContainer = Color(0xFF3B2F63), // Slightly lighter for black background
     onPrimaryContainer = Color.White,
     secondary = ElegantPurpleLight,
     onSecondary = Color.Black,
-    background = ElegantPurpleDark,
+    background = DarkBackground,
     onBackground = Color.White,
     surface = DarkSurface,
     onSurface = Color.White,
     surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Color(0xFFF5F5F5),
+    onSurfaceVariant = Color.White,
     outline = DarkBorder
 )
 
@@ -57,17 +57,17 @@ private val BeigeColorScheme = lightColorScheme(
 private val FlameColorScheme = darkColorScheme(
     primary = FlameOrange,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF3E2723),
+    primaryContainer = Color(0xFF4E342E), // Slightly lighter for black background
     onPrimaryContainer = Color.White,
     secondary = FlameOrangeLight,
     onSecondary = Color.Black,
-    background = Color(0xFF121212),
+    background = DarkBackground,
     onBackground = Color.White,
-    surface = Color(0xFF1E1E1E),
+    surface = DarkSurface,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF2C2C2C),
+    surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = Color.White,
-    outline = Color(0xFF3D3D3D)
+    outline = DarkBorder
 )
 
 private val EmeraldColorScheme = lightColorScheme(
@@ -121,48 +121,48 @@ private val AzureSkyColorScheme = lightColorScheme(
 private val OceanColorScheme = darkColorScheme(
     primary = OceanPrimary,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF1A2A30),
+    primaryContainer = Color(0xFF243B42), // Slightly lighter for black background
     onPrimaryContainer = OceanLight,
     secondary = OceanLight,
     onSecondary = Color.Black,
-    background = Color(0xFF0F1E24),
+    background = DarkBackground,
     onBackground = Color.White,
-    surface = Color(0xFF1A2A30),
+    surface = DarkSurface,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF253B42),
-    onSurfaceVariant = Color(0xFFE0F7FA),
-    outline = Color(0xFF00838F)
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = Color.White,
+    outline = DarkBorder
 )
 
 private val RoseColorScheme = darkColorScheme(
     primary = RosePrimary,
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF321A24),
+    primaryContainer = Color(0xFF422230), // Slightly lighter for black background
     onPrimaryContainer = RoseLight,
     secondary = RoseLight,
     onSecondary = Color.Black,
-    background = Color(0xFF28111A),
+    background = DarkBackground,
     onBackground = Color.White,
-    surface = Color(0xFF321A24),
+    surface = DarkSurface,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF45202C),
-    onSurfaceVariant = Color(0xFFFCE4EC),
-    outline = Color(0xFFC2185B)
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = Color.White,
+    outline = DarkBorder
 )
 
 private val RainbowColorScheme = darkColorScheme(
     primary = Color(0xFFFF00FF), // Magenta
     onPrimary = Color.White,
-    primaryContainer = Color(0xFF4D004D),
+    primaryContainer = Color(0xFF5E005E), // Slightly lighter for black background
     onPrimaryContainer = Color.White,
     secondary = Color(0xFF00FFFF), // Cyan
     onSecondary = Color.Black,
-    background = Color(0xFF000000),
+    background = DarkBackground,
     onBackground = Color.White,
-    surface = Color(0xFF1A1A1A),
+    surface = DarkSurface,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF2B2B2B),
-    onSurfaceVariant = Color(0xFFF5F5F5),
+    surfaceVariant = DarkSurfaceVariant,
+    onSurfaceVariant = Color.White,
     outline = Color(0xFFFF00FF)
 )
 
@@ -173,11 +173,11 @@ private val DeveloperColorScheme = darkColorScheme(
     onPrimaryContainer = Color.Black,
     secondary = Color.White,
     onSecondary = Color.Black,
-    background = Color.Black,
+    background = DarkBackground,
     onBackground = Color.White,
-    surface = Color.Black,
+    surface = DarkSurface,
     onSurface = Color.White,
-    surfaceVariant = Color(0xFF1A1A1A),
+    surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = Color.White,
     outline = Color.White
 )
@@ -215,7 +215,7 @@ fun WorkoutTrackerTheme(
 
     val isLightTheme = when (themeOption.uppercase()) {
         "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
-        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER" -> false
+        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER", "RAINBOW" -> false
         else -> !isDark
     }
 

@@ -106,6 +106,7 @@
     <string name="delete_all">Delete All</string>
     <string name="cancel">Cancel</string>
 
+    <string name="allow_notifications">Allow Notifications</string>
     <string name="language">Language</string>
     <string name="change_app_language">Change the app language</string>
     <string name="system_default">System Default</string>
@@ -171,7 +172,7 @@
     <string name="ex_tricep_extension_desc">Lower the weight behind your head by bending elbows, then straighten arms to press the weight back up.</string>
     <string name="ex_lunges_desc">Step forward and lower your hips until both knees are bent at 90 degrees. Push back up to the start.</string>
     <string name="ex_abs_desc">For crunches, lift shoulders off the floor. For leg raises, lift straight legs from the floor toward the ceiling.</string>
-    <string name="ex_master_desc">Variable Session: The app selects the optimal variation for this exercise to keep your routine effective and varied.</string>
+
     <string name="save">Save</string>
     <string name="edit">Edit</string>
     <string name="delete">Delete</string>

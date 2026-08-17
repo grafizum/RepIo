@@ -33,7 +33,9 @@ data class WorkoutNowState(
     val currentExerciseSeconds: Int = 30,
     val minExerciseSeconds: Int = 10,
     val maxExerciseSeconds: Int = 600,
-    val totalSetsLoggedToday: Int = 0
+    val totalSetsLoggedToday: Int = 0,
+    val currentExerciseId: Long = -1L,
+    val currentExerciseName: String = ""
 )
 
 data class SupportUiState(
@@ -97,8 +99,14 @@ class WorkoutViewModel(
     val supportUiState: StateFlow<SupportUiState> = _supportUiState.asStateFlow()
 
     init {
-        _workoutNowState.value = loadSavedWorkoutNowState()
-        refreshTodaySelection()
+        val savedState = loadSavedWorkoutNowState()
+        _workoutNowState.value = savedState
+
+        val today = getTodayDayOfWeek()
+        if (savedState.selectedDayOfWeek != today) {
+            // Only force-select today if it's a new day, which will reset progress correctly
+            selectDayForWorkoutNow(today)
+        }
 
         allRoutineDays = repository.allRoutineDays.stateIn(
             viewModelScope,
@@ -123,7 +131,7 @@ class WorkoutViewModel(
             combine(_workoutNowState, allRoutineExercises) { state, exercises ->
                 val currentDayExs = exercises.filter { it.dayOfWeek == state.selectedDayOfWeek }
                 currentDayExs.getOrNull(state.currentExerciseIndex)
-            }.distinctUntilChanged { old, new -> old?.id == new?.id }
+            }.distinctUntilChanged()
                 .collect { exercise ->
                     exercise?.let {
                         val cachedWeight = getCachedWeightForExercise(it.name)
@@ -131,16 +139,36 @@ class WorkoutViewModel(
                         val (minVal, maxVal) = parseRepsRange(it.targetReps)
 
                         _workoutNowState.update { state ->
+                            val isNewExercise = state.currentExerciseId != it.id || state.currentExerciseName != it.name
+                            
+                            // If it's the same exercise but the range changed, we keep current progress but respect new limits.
+                            // If it's a different exercise, we reset to the new exercise's defaults.
+                            val nextReps = if (isNewExercise) {
+                                if (!isTimeBased) maxVal else state.currentReps
+                            } else {
+                                state.currentReps.coerceIn(minVal, maxVal)
+                            }
+                            
+                            val nextSeconds = if (isNewExercise) {
+                                if (isTimeBased) maxVal else state.currentExerciseSeconds
+                            } else {
+                                state.currentExerciseSeconds.coerceIn(minVal, maxVal)
+                            }
+
                             state.copy(
-                                currentWeightKg = cachedWeight,
-                                currentReps = if (!isTimeBased) maxVal else state.currentReps,
+                                currentWeightKg = if (isNewExercise) cachedWeight else state.currentWeightKg,
+                                currentReps = nextReps,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
-                                currentExerciseSeconds = if (isTimeBased) maxVal else state.currentExerciseSeconds,
+                                currentExerciseSeconds = nextSeconds,
                                 minExerciseSeconds = if (isTimeBased) minVal else 10,
-                                maxExerciseSeconds = if (isTimeBased) maxVal else 600
+                                maxExerciseSeconds = if (isTimeBased) maxVal else 600,
+                                currentExerciseId = it.id,
+                                currentExerciseName = it.name
                             )
                         }
+                    } ?: run {
+                        _workoutNowState.update { it.copy(currentExerciseId = -1L, currentExerciseName = "") }
                     }
                 }
         }
@@ -162,6 +190,8 @@ class WorkoutViewModel(
         prefs.putInt("saved_exercise_seconds", state.currentExerciseSeconds)
         prefs.putBoolean("saved_is_completed", state.isWorkoutCompleted)
         prefs.putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
+        prefs.putLong("saved_exercise_id", state.currentExerciseId)
+        prefs.putString("saved_exercise_name", state.currentExerciseName)
     }
 
     private fun loadSavedWorkoutNowState(): WorkoutNowState {
@@ -173,6 +203,8 @@ class WorkoutViewModel(
         val savedExSeconds = prefs.getInt("saved_exercise_seconds", 30)
         val savedIsCompleted = prefs.getBoolean("saved_is_completed", false)
         val savedTotalSetsLogged = prefs.getInt("saved_total_sets_logged", 0)
+        val savedExId = prefs.getLong("saved_exercise_id", -1L)
+        val savedExName = prefs.getString("saved_exercise_name", "") ?: ""
 
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
         val isExTimer = prefs.getBoolean("is_exercise_timer", false)
@@ -190,7 +222,9 @@ class WorkoutViewModel(
             restTimerSeconds = remainingSecs,
             isTimerActive = remainingSecs > 0,
             isExerciseTimerActive = if (remainingSecs > 0) isExTimer else false,
-            totalSetsLoggedToday = savedTotalSetsLogged
+            totalSetsLoggedToday = savedTotalSetsLogged,
+            currentExerciseId = savedExId,
+            currentExerciseName = savedExName
         )
     }
 
@@ -302,11 +336,16 @@ class WorkoutViewModel(
     }
 
     fun selectDayForWorkoutNow(dayOfWeek: String) {
-        val newState = _workoutNowState.value.copy(
+        val currentState = _workoutNowState.value
+        // If it's already the selected day, don't reset progress (preserves state on tab switch/app resume)
+        if (currentState.selectedDayOfWeek == dayOfWeek) return
+
+        val newState = currentState.copy(
             selectedDayOfWeek = dayOfWeek,
             currentExerciseIndex = 0,
             currentSetNumber = 1,
-            isWorkoutCompleted = false
+            isWorkoutCompleted = false,
+            totalSetsLoggedToday = 0 // Reset for the new day
         )
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
