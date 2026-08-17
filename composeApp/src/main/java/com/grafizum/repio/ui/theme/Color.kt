@@ -25,7 +25,7 @@ val EmeraldDark = Color(0xFF004D40)
 val EmeraldLight = Color(0xFFA7F3D0)
 
 // Common Dark palette
-val DarkBackground = Color(0xFF000000) // True black
+val DarkBackground = Color(0xFF121212) // Dark grey (less black)
 val DarkSurface = Color(0xFF121212) // Dark grey
 val DarkSurfaceVariant = Color(0xFF1E1E1E) // Lighter grey
 val DarkBorder = Color(0xFF2C2C2C) // Border color
