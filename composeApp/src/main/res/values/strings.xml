@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">RepIo</string>
-    <string name="smart_workout_assistant">Smart Workout Assistant</string>
+    <string name="smart_workout_assistant">Home</string>
     <string name="settings">Settings</string>
     <string name="todays_workout">TODAY\'S WORKOUT</string>
     <string name="workout_routine">Workout Routine</string>
@@ -42,8 +42,12 @@
     <string name="recreate">Recreate</string>
     <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
-    <string name="open_support">Open Support</string>
+    <string name="open_support">Chat</string>
+    <string name="open">Open</string>
     <string name="done">Done</string>
+    <string name="confirm_timer_change_title">Confirm Timer Change</string>
+    <string name="confirm_timer_change_msg">Changing this setting will update the default timer for future workouts.</string>
+    <string name="timer_override_warning">Warning: This will also override the timers for all exercises in your currently created workout!</string>
 
     <string name="support">Support</string>
     <string name="today">Today</string>
@@ -127,7 +131,6 @@
     <string name="save_weight">Save Weight</string>
     <string name="custom">Custom</string>
     <string name="editor">Editor</string>
-    <string name="my_workout">My Workout</string>
     <string name="workout">Edit</string>
     <string name="trained_muscles">Muscle group</string>
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
@@ -137,6 +140,8 @@
     <string name="start_workout_again">START WORKOUT AGAIN</string>
     <string name="exercise_x_of_y">Exercise %1$d of %2$d • Set %3$d/%4$d</string>
     <string name="rest_timer">SET REST</string>
+    <string name="intensity_label">Target Intensity (RPE)</string>
+    <string name="rest_timer_label">Rest Time</string>
     <string name="exercise_transition_label">NEXT EXERCISE IN</string>
     <string name="seconds_remaining">%1$ds remaining</string>
     <string name="set_x_of_y">SET %1$d / %2$d</string>
@@ -150,7 +155,6 @@
     <string name="log_set_x_next">LOG SET %1$d &amp; NEXT ➔</string>
     <string name="start_timer_x_and_log">START %1$ds TIMER &amp; LOG</string>
     <string name="start_timer_x">START %1$ds TIMER</string>
-    <string name="edit_workout_program_name">Edit Workout Program Name</string>
     <string name="program_name">My Workout</string>
     <string name="description">Description</string>
     <string name="equipment">Equipment</string>
@@ -190,6 +194,7 @@
     <string name="no_exercises_scheduled">No exercises scheduled for this day.</string>
     <string name="start_this_workout_now">START THIS WORKOUT NOW</string>
     <string name="add_exercise">Add Exercise</string>
+    <string name="add_workout">Add a workout</string>
     <string name="edit_exercise">Edit Exercise</string>
     <string name="exercise_name">Exercise Name</string>
     <string name="muscle_group">Muscle Group</string>
@@ -201,14 +206,11 @@
     <string name="reset">Reset</string>
     <string name="welcome_title">Welcome to Your Fitness Journey!</string>
     <string name="welcome_text">Set up your workout routine name and choose a structured template or build a custom split.</string>
-    <string name="name_workout_program">1. Name Your Workout Program</string>
-    <string name="name_workout_program_desc">This title replaces \'Workout\' at the top of your dashboard.</string>
-    <string name="workout_program_name_placeholder">e.g. Workout, Summer Shred, PPL Split</string>
-    <string name="select_routine_type">2. Select Workout Routine Type</string>
+    <string name="select_routine_type">Select Workout Routine Type</string>
     <string name="premade_templates">Premade Build</string>
     <string name="assisted_build">Assisted Build</string>
     <string name="build_custom">Custom Build</string>
-    <string name="choose_recommended_template">Choose a Recommended Workout Template</string>
+    <string name="choose_recommended_template">Choose a Workout Template</string>
     <string name="selected">Selected</string>
     <string name="preview_breakdown">Preview Breakdown</string>
     <string name="rest_and_recovery">Rest &amp; Recovery</string>
@@ -226,6 +228,7 @@
     <string name="start">Start</string>
     <string name="select">Select</string>
     <string name="select_time">Select Time</string>
+    <string name="timer_durations">Timer Durations</string>
 
     <string name="faq_change_program_q">How to change my workout program?</string>
     <string name="faq_change_program_a">Go to the \'My Workout\' tab and tap \'Custom Workout\' at the top to select a new template or build your own.</string>
@@ -251,19 +254,20 @@
     <string name="core">Core</string>
     <string name="other">Other</string>
 
-    <string name="hypertrophy_5day_name">5-Day Hypertrophy Split</string>
+    <string name="hypertrophy_5day_name">Hypertrophy Split</string>
     <string name="hypertrophy_5day_desc">High-volume body-part split focusing on muscle growth and balanced symmetry across 5 workout days.</string>
     <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
     <string name="ppl_6day_desc">Classic PPL routine separating pushing muscles (chest/shoulders/triceps), pulling muscles (back/biceps), and leg muscles.</string>
-    <string name="upper_lower_4day_name">4-Day Upper / Lower Split</string>
+    <string name="upper_lower_4day_name">Upper / Lower Split</string>
     <string name="upper_lower_4day_desc">Balanced 4-day split training all upper body muscles twice a week and all lower body muscles twice a week with ample recovery time.</string>
-    <string name="fullbody_3day_name">3-Day Full Body Classic</string>
+    <string name="fullbody_3day_name">Full Body Classic</string>
     <string name="fullbody_3day_desc">Efficient 3-day full body training hitting every muscle group each session. Great for busy schedules and compound strength gains.</string>
 
     <string name="most_popular">Most Popular</string>
-    <string name="strength_mass">6-Day Strength &amp; Mass</string>
+    <string name="strength_mass">Strength &amp; Mass</string>
     <string name="optimal_recovery">Optimal Recovery</string>
     <string name="time_efficient">Time Efficient</string>
+    <string name="workout_days_format">%1$d Days</string>
     <string name="workout_days_plus_rest">%1$d Workout Days + %2$d Rest Days</string>
     <string name="rest_days_only">%1$d Rest Days</string>
 
@@ -371,26 +375,32 @@
     <string name="exit">Exit</string>
     <string name="stay">Stay</string>
 
-    <string name="choose_equipment">1. Choose Your Equipment</string>
-    <string name="choose_body_parts">2. Target Body Parts</string>
-    <string name="choose_days">3. Training Days Per Week</string>
+    <string name="choose_equipment">Choose Your Equipment</string>
+    <string name="choose_intensity">Choose Difficulty</string>
+    <string name="choose_body_parts">Target Body Parts</string>
+    <string name="choose_days">Training Days Per Week</string>
     <string name="full_gym">Full Gym</string>
+    <string name="full_gym_desc">All equipment and machines</string>
     <string name="dumbbells_only">Dumbbells</string>
     <string name="bodyweight_only">Bodyweight</string>
     <string name="barbell_only">Barbell</string>
     <string name="cables_only">Cables &amp; Machines</string>
+    <string name="specific_equipment">OR SPECIFIC EQUIPMENT</string>
 
-    <string name="choose_intensity">5. Training Intensity</string>
-    <string name="exercise_preferences">4. Exercise Preferences (Optional)</string>
+    <string name="min_sets">Min Sets Per Exercise</string>
+    <string name="max_sets">Max Sets Per Exercise</string>
+    <string name="sets_allocation">Sets Allocation</string>
+    <string name="no_limit">No Limit</string>
+    <string name="additional_preferences">Additional Preferences</string>
     <string name="include_exercises">Include specific exercises</string>
     <string name="exclude_exercises">Exclude specific exercises</string>
     <string name="add_pref">Add</string>
-    <string name="intensity_easy">Easy</string>
-    <string name="intensity_medium">Medium</string>
-    <string name="intensity_difficult">Difficult</string>
-    <string name="intensity_easy_desc">Low volume (6-10 sets/week). Focus on maintenance and consistency.</string>
-    <string name="intensity_medium_desc">Moderate volume (10-15 sets/week). Optimal for muscle growth (MAV).</string>
-    <string name="intensity_difficult_desc">High volume (15-20+ sets/week). Pushing your recovery limits (MRV).</string>
+    <string name="intensity_easy">Easy (3-4 RIR)</string>
+    <string name="intensity_medium">Medium (1-2 RIR)</string>
+    <string name="intensity_hard">Hard (0-1 RIR)</string>
+    <string name="intensity_easy_desc">Maintenance volume (6-10 sets/week). Lower neurological demand, focus on technique and consistency.</string>
+    <string name="intensity_medium_desc">Optimal Growth volume (10-15 sets/week). Balanced intensity for muscle hypertrophy (MEV/MAV).</string>
+    <string name="intensity_hard_desc">Max Recoverable Volume (15-20+ sets/week). High intensity pushing your recovery capacity (MRV).</string>
 
     <string name="major_muscle_groups">Major Groups</string>
     <string name="specialized_body_parts">Detailed Focus</string>
@@ -423,4 +433,43 @@
     <string name="rep_format_error">Format must be a number (10) or range (8-12)</string>
     <string name="invalid_char_error">Only numbers and dashes are allowed</string>
     <string name="only_numbers_error">Only numbers are allowed</string>
+
+    <!-- Workout Goals -->
+    <string name="workout_goal">Workout Goal</string>
+    <string name="choose_workout_goal">What is your primary training goal?</string>
+    <string name="workout_goal_desc">This influences rep ranges, set counts, and exercise prioritization.</string>
+    <string name="goal_bodybuilding">Bodybuilding / Hypertrophy</string>
+    <string name="goal_strength">Strength Training / Powerlifting</string>
+    <string name="goal_calisthenics">Calisthenics</string>
+    <string name="goal_functional">Functional Training</string>
+    <string name="goal_olympic">Olympic Weightlifting</string>
+    <string name="goal_powerbuilding">Powerbuilding</string>
+    <string name="goal_crossfit">CrossFit / Hybrid</string>
+    <string name="goal_athletic">Athletic / Sports Performance</string>
+
+    <string name="confirm_goal_change_title">Change Workout Goal?</string>
+    <string name="confirm_goal_change_msg">Changing your goal will require regenerating your entire workout routine. All current progress on your routine setup will be lost. Continue?</string>
+
+    <!-- RPE Explanations -->
+    <string name="rpe_explanation_rir_1">1 rep in the tank</string>
+    <string name="rpe_explanation_rir_2">2 reps in the tank</string>
+    <string name="rpe_explanation_rir_3">3 reps in the tank</string>
+    <string name="rpe_explanation_rir_4">4 reps in the tank</string>
+    <string name="rpe_explanation_rir_0">Absolute failure</string>
+    <string name="rpe_explanation_rir_range">%1$d–%2$d reps in the tank</string>
+    <string name="rpe_long_description">Intensity: %1$s. Use a weight where you would still have %2$s at the end of your set.</string>
+
+    <!-- FAQ RPE & RIR -->
+    <string name="rpe_rir_faq">RPE &amp; RIR Guide</string>
+    <string name="rpe_rir_explanation">Quickly understand training intensity</string>
+    <string name="what_is_rpe">What is RPE?</string>
+    <string name="rpe_desc">Rate of Perceived Exertion (1–10 scale). It measures how hard a set felt.</string>
+    <string name="rpe_10">RPE 10: Maximum effort. No more reps left in the tank.</string>
+    <string name="rpe_9">RPE 9: Very hard. 1 rep left in the tank.</string>
+    <string name="rpe_8">RPE 8: Hard. 2 reps left in the tank.</string>
+    <string name="what_is_rir">What is RIR?</string>
+    <string name="rir_desc">Reps In Reserve. How many reps you \"left in the tank\" before failure.</string>
+    <string name="rir_0">0 RIR = RPE 10 (Absolute failure)</string>
+    <string name="rir_1">1 RIR = RPE 9</string>
+    <string name="rir_2">2 RIR = RPE 8</string>
 </resources>

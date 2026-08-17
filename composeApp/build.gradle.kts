@@ -13,7 +13,7 @@ plugins {
 
 // Configuration for Play Store release naming
 val appName = "RepIo"
-val appVersion = "1.1.2"
+val appVersion = "1.2.2"
 
 // Load Version Code from version.properties
 val versionPropsFile = rootProject.file("version.properties")

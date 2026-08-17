@@ -1,6 +1,6 @@
 <resources>
     <string name="app_name">RepIo</string>
-    <string name="smart_workout_assistant">Assistente Smart per Allenamento</string>
+    <string name="smart_workout_assistant">Home</string>
     <string name="settings">Impostazioni</string>
     <string name="todays_workout">ALLENAMENTO DI OGGI</string>
     <string name="workout_routine">Routine di Allenamento</string>
@@ -42,8 +42,12 @@
     <string name="recreate">Ricrea</string>
     <string name="support_requests">Richieste di supporto</string>
     <string name="submit_feedback">Invia feedback o segnala problemi</string>
-    <string name="open_support">Apri supporto</string>
+    <string name="open_support">Chat</string>
+    <string name="open">Apri</string>
     <string name="done">Fatto</string>
+    <string name="confirm_timer_change_title">Conferma Modifica Timer</string>
+    <string name="confirm_timer_change_msg">La modifica di questa impostazione aggiornerà il timer predefinito per i workout futuri.</string>
+    <string name="timer_override_warning">Attenzione: Questo sovrascriverà anche i timer per tutti gli esercizi nel workout attualmente creato!</string>
 
     <string name="support">Supporto</string>
     <string name="today">Oggi</string>
@@ -127,7 +131,6 @@
     <string name="save_weight">Salva peso</string>
     <string name="custom">Personalizza</string>
     <string name="editor">Editor</string>
-    <string name="my_workout">Mio Allenamento</string>
     <string name="workout">Modifica</string>
     <string name="trained_muscles">Gruppo muscolare</string>
     <string name="rest_recovery_day">Giorno di riposo e recupero</string>
@@ -137,6 +140,8 @@
     <string name="start_workout_again">INIZIA DI NUOVO L\'ALLENAMENTO</string>
     <string name="exercise_x_of_y">Esercizio %1$d di %2$d • Serie %3$d/%4$d</string>
     <string name="rest_timer">RIPOSO SERIE</string>
+    <string name="intensity_label">Intensità Obiettivo (RPE)</string>
+    <string name="rest_timer_label">Tempo di Riposo</string>
     <string name="exercise_transition_label">PROSSIMO ESERCIZIO IN</string>
     <string name="seconds_remaining">%1$ds rimanenti</string>
     <string name="set_x_of_y">SERIE %1$d / %2$d</string>
@@ -150,8 +155,7 @@
     <string name="log_set_x_next">REGISTRA SERIE %1$d &amp; PROSSIMO ➔</string>
     <string name="start_timer_x_and_log">AVVIA TIMER %1$ds &amp; LOG</string>
     <string name="start_timer_x">AVVIA TIMER %1$ds</string>
-    <string name="edit_workout_program_name">Modifica nome programma</string>
-    <string name="program_name">Nome programma</string>
+    <string name="program_name">Mio Allenamento</string>
     <string name="description">Descrizione</string>
     <string name="equipment">Attrezzatura</string>
     <string name="ex_description_generic">Un esercizio efficace per il gruppo muscolare %1$s. Concentrati su movimenti controllati.</string>
@@ -190,6 +194,7 @@
     <string name="no_exercises_scheduled">Nessun esercizio pianificato per oggi.</string>
     <string name="start_this_workout_now">INIZIA QUESTO ALLENAMENTO ORA</string>
     <string name="add_exercise">Aggiungi esercizio</string>
+    <string name="add_workout">Aggiungi allenamento</string>
     <string name="edit_exercise">Modifica esercizio</string>
     <string name="exercise_name">Nome esercizio</string>
     <string name="muscle_group">Gruppo muscolare</string>
@@ -201,14 +206,11 @@
     <string name="reset">Ripristina</string>
     <string name="welcome_title">Benvenuto nel tuo percorso fitness!</string>
     <string name="welcome_text">Configura il nome della tua routine e scegli un modello strutturato o creane uno personalizzato.</string>
-    <string name="name_workout_program">1. Dai un nome al tuo programma</string>
-    <string name="name_workout_program_desc">Questo titolo sostituisce \"Allenamento\" nella parte superiore della dashboard.</string>
-    <string name="workout_program_name_placeholder">es. Allenamento, Summer Shred, PPL Split</string>
-    <string name="select_routine_type">2. Seleziona il tipo di routine</string>
+    <string name="select_routine_type">Seleziona il tipo di routine</string>
     <string name="premade_templates">Premade Build</string>
     <string name="assisted_build">Assisted Build</string>
     <string name="build_custom">Custom Build</string>
-    <string name="choose_recommended_template">Scegli un modello consigliato</string>
+    <string name="choose_recommended_template">Scegli un modello di allenamento</string>
     <string name="selected">Selezionato</string>
     <string name="preview_breakdown">Anteprima dettagli</string>
     <string name="rest_and_recovery">Riposo e recupero</string>
@@ -226,6 +228,7 @@
     <string name="start">Avvia</string>
     <string name="select">Seleziona</string>
     <string name="select_time">Scegli tempo</string>
+    <string name="timer_durations">Durata Timer</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma di allenamento?</string>
     <string name="faq_change_program_a">Vai nella scheda \"Il mio allenamento\" e tocca \"Allenamento personalizzato\" in alto per selezionare un nuovo modello o crearne uno tuo.</string>
@@ -251,19 +254,20 @@
     <string name="core">Core</string>
     <string name="other">Altro</string>
 
-    <string name="hypertrophy_5day_name">Split Ipertrofia 5 Giorni</string>
+    <string name="hypertrophy_5day_name">Split Ipertrofia</string>
     <string name="hypertrophy_5day_desc">Allenamento ad alto volume focalizzato sulla crescita muscolare e simmetria in 5 giorni.</string>
     <string name="ppl_6day_name">Push / Pull / Legs (PPL)</string>
     <string name="ppl_6day_desc">Routine classica: separa muscoli di spinta, trazione e gambe in 6 giorni.</string>
-    <string name="upper_lower_4day_name">Split Upper / Lower 4 Giorni</string>
+    <string name="upper_lower_4day_name">Split Upper / Lower</string>
     <string name="upper_lower_4day_desc">Split equilibrato: allena tutti i muscoli due volte a settimana con ampio recupero.</string>
-    <string name="fullbody_3day_name">Full Body Classico 3 Giorni</string>
+    <string name="fullbody_3day_name">Full Body Classico</string>
     <string name="fullbody_3day_desc">Allenamento efficiente di tutti i gruppi muscolari ogni sessione. Ideale per chi ha poco tempo.</string>
 
     <string name="most_popular">Più popolare</string>
-    <string name="strength_mass">6-Day Forza e massa</string>
+    <string name="strength_mass">Forza e massa</string>
     <string name="optimal_recovery">Recupero ottimale</string>
     <string name="time_efficient">Efficienza temporale</string>
+    <string name="workout_days_format">%1$d Giorni</string>
     <string name="workout_days_plus_rest">%1$d Giorni Allenamento + %2$d Giorni Riposo</string>
     <string name="rest_days_only">%1$d giorni riposo</string>
 
@@ -371,26 +375,32 @@
     <string name="exit">Esci</string>
     <string name="stay">Resta</string>
 
-    <string name="choose_equipment">1. Scegli l\'attrezzatura</string>
-    <string name="choose_body_parts">2. Parti del corpo target</string>
-    <string name="choose_days">3. Giorni di allenamento a settimana</string>
+    <string name="choose_equipment">Scegli l\'attrezzatura</string>
+    <string name="choose_body_parts">Parti del corpo target</string>
+    <string name="choose_days">Giorni di allenamento a settimana</string>
     <string name="full_gym">Palestra completa</string>
+    <string name="full_gym_desc">Tutte le attrezzature e macchine</string>
     <string name="dumbbells_only">Manubri</string>
     <string name="bodyweight_only">Corpo libero</string>
     <string name="barbell_only">Bilanciere</string>
     <string name="cables_only">Cavi e Macchinari</string>
+    <string name="specific_equipment">O ATTREZZATURA SPECIFICA</string>
 
-    <string name="choose_intensity">5. Intensità di allenamento</string>
-    <string name="exercise_preferences">4. Preferenze Esercizi (Opzionale)</string>
+    <string name="min_sets">Min Set per Esercizio</string>
+    <string name="max_sets">Max Set per Esercizio</string>
+    <string name="sets_allocation">Allocazione Set</string>
+    <string name="no_limit">Nessun Limite</string>
+    <string name="choose_intensity">Scegli difficoltà</string>
+    <string name="additional_preferences">Preferenze Aggiuntive</string>
     <string name="include_exercises">Includi esercizi specifici</string>
     <string name="exclude_exercises">Escludi esercizi specifici</string>
     <string name="add_pref">Aggiungi</string>
-    <string name="intensity_easy">Leggera</string>
-    <string name="intensity_medium">Media</string>
-    <string name="intensity_difficult">Difficile</string>
-    <string name="intensity_easy_desc">Basso volume (6-10 serie/settimana). Focus su mantenimento.</string>
-    <string name="intensity_medium_desc">Volume moderato (10-15 serie/settimana). Ottimale per la crescita.</string>
-    <string name="intensity_difficult_desc">Alto volume (15-20+ serie/settimana). Limite massimo di recupero.</string>
+    <string name="intensity_easy">Leggera (3-4 RIR)</string>
+    <string name="intensity_medium">Media (1-2 RIR)</string>
+    <string name="intensity_hard">Difficile (0-1 RIR)</string>
+    <string name="intensity_easy_desc">Volume di mantenimento (6-10 serie/settimana). Basso stress neurologico, focus su tecnica e costanza.</string>
+    <string name="intensity_medium_desc">Volume ottimale per la crescita (10-15 serie/settimana). Intensità bilanciata per l\'ipertrofia (MEV/MAV).</string>
+    <string name="intensity_hard_desc">Volume massimo recuperabile (15-20+ serie/settimana). Alta intensità al limite della capacità di recupero (MRV).</string>
 
     <string name="major_muscle_groups">Gruppi principali</string>
     <string name="specialized_body_parts">Focus dettagliato</string>
@@ -423,4 +433,43 @@
     <string name="rep_format_error">Il formato deve essere un numero (10) o un intervallo (8-12)</string>
     <string name="invalid_char_error">Sono ammessi solo numeri e trattini</string>
     <string name="only_numbers_error">Sono ammessi solo numeri</string>
+
+    <!-- Workout Goals -->
+    <string name="workout_goal">Obiettivo Allenamento</string>
+    <string name="choose_workout_goal">Qual è il tuo obiettivo principale?</string>
+    <string name="workout_goal_desc">Questo influisce su ripetizioni, serie e priorità degli esercizi.</string>
+    <string name="goal_bodybuilding">Bodybuilding / Ipertrofia</string>
+    <string name="goal_strength">Forza / Powerlifting</string>
+    <string name="goal_calisthenics">Calisthenics</string>
+    <string name="goal_functional">Allenamento Funzionale</string>
+    <string name="goal_olympic">Pesistica Olimpica</string>
+    <string name="goal_powerbuilding">Powerbuilding</string>
+    <string name="goal_crossfit">CrossFit / Hybrid</string>
+    <string name="goal_athletic">Performance Atletica</string>
+
+    <string name="confirm_goal_change_title">Cambiare obiettivo?</string>
+    <string name="confirm_goal_change_msg">Cambiare l\'obiettivo richiederà la rigenerazione dell\'intera routine. Tutti i progressi attuali nella configurazione andranno persi. Continuare?</string>
+
+    <!-- RPE Explanations -->
+    <string name="rpe_explanation_rir_1">1 rip di riserva</string>
+    <string name="rpe_explanation_rir_2">2 rip di riserva</string>
+    <string name="rpe_explanation_rir_3">3 rip di riserva</string>
+    <string name="rpe_explanation_rir_4">4 rip di riserva</string>
+    <string name="rpe_explanation_rir_0">Cedimento totale</string>
+    <string name="rpe_explanation_rir_range">%1$d–%2$d rip di riserva</string>
+    <string name="rpe_long_description">Intensità: %1$s. Usa un peso con cui avresti ancora %2$s alla fine della serie.</string>
+
+    <!-- FAQ RPE & RIR -->
+    <string name="rpe_rir_faq">Guida RPE e RIR</string>
+    <string name="rpe_rir_explanation">Comprendi rapidamente l\'intensità dell\'allenamento</string>
+    <string name="what_is_rpe">Cos\'è l\'RPE?</string>
+    <string name="rpe_desc">Rate of Perceived Exertion (scala 1–10). Misura quanto è stata dura una serie.</string>
+    <string name="rpe_10">RPE 10: Massimo sforzo. Nessuna ripetizione rimasta nel serbatoio.</string>
+    <string name="rpe_9">RPE 9: Molto dura. 1 ripetizione rimasta nel serbatoio.</string>
+    <string name="rpe_8">RPE 8: Dura. 2 ripetizioni rimaste nel serbatoio.</string>
+    <string name="what_is_rir">Cos\'è il RIR?</string>
+    <string name="rir_desc">Reps In Reserve. Quante ripetizioni lasci \"nel serbatoio\" prima del cedimento.</string>
+    <string name="rir_0">0 RIR = RPE 10 (Cedimento totale)</string>
+    <string name="rir_1">1 RIR = RPE 9</string>
+    <string name="rir_2">2 RIR = RPE 8</string>
 </resources>

@@ -51,12 +51,12 @@ object NotificationHelper {
 
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("TARGET_SCREEN", "my_workout")
+            putExtra("TARGET_SCREEN", "workout")
         } ?: Intent(context, com.grafizum.repio.MainActivity::class.java).apply {
             action = Intent.ACTION_MAIN
             addCategory(Intent.CATEGORY_LAUNCHER)
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("TARGET_SCREEN", "my_workout")
+            putExtra("TARGET_SCREEN", "workout")
             setPackage(context.packageName)
         }
         val pendingIntent = PendingIntent.getActivity(

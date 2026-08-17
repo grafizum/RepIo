@@ -88,7 +88,7 @@ fun Context.findActivity(): Activity? = when (this) {
 
 sealed class Screen(val route: String, val title: String) {
     object Home : Screen("home", "Home") { override val icon = Icons.Default.Home }
-    object MyWorkout : Screen("my_workout", "My Workout") { override val icon = Icons.Default.FitnessCenter }
+    object Workout : Screen("workout", "Workout") { override val icon = Icons.Default.FitnessCenter }
     object Analytics : Screen("analytics", "Analytics") { override val icon = Icons.Default.Assessment }
     object Settings : Screen("settings", "Settings") { override val icon = Icons.Default.Settings }
     object EasterEgg : Screen("easter_egg", "Creator") { override val drawableRes = R.drawable.ic_easter_egg }
@@ -216,7 +216,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     val baseNavigationItems = listOf(
         Screen.Home,
-        Screen.MyWorkout,
+        Screen.Workout,
         Screen.Analytics,
         Screen.Settings
     )
@@ -271,7 +271,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             navSequence = emptyList()
         }
 
-        if (navigationItems[pagerState.currentPage] == Screen.MyWorkout) {
+        if (navigationItems[pagerState.currentPage] == Screen.Workout) {
             viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
         }
 
@@ -376,7 +376,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                     // ViewModel updates isFirstTimeUser, which triggers recomposition
                 },
                 onCancel = {
-                    viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Routine"
+                    viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Workout"
                     viewModel.cancelFirstTimeSetup()
                     coroutineScope.launch {
                         pagerState.scrollToPage(1) // Set main pager to "My Workout"
@@ -408,7 +408,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                         }
                                     }
 
-                                    if (screen == Screen.MyWorkout) {
+                                    if (screen == Screen.Workout) {
                                         viewModel.setRequestedWorkoutSubTab(0) // Default to "Workout Now" on tab click
                                         viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
                                     }
@@ -487,13 +487,13 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                             viewModel = viewModel,
                             onNavigateToWorkoutNow = { 
                                 viewModel.setRequestedWorkoutSubTab(0)
-                                navigateToTab(Screen.MyWorkout.route) 
+                                navigateToTab(Screen.Workout.route) 
                             }
                         )
                     }
 
-                    is Screen.MyWorkout -> {
-                        MyWorkoutTabScreen(
+                    is Screen.Workout -> {
+                        WorkoutTabScreen(
                             viewModel = viewModel,
                             onBack = {
                                 coroutineScope.launch {

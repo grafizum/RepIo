@@ -79,10 +79,23 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     }
 
     suspend fun saveExercise(exercise: RoutineExerciseEntity) {
-        if (exercise.id == 0L) {
-            dao.insertExercise(exercise)
+        var finalExercise = exercise
+        if (exercise.videoUrl.isBlank()) {
+            val existingUrl = dao.getVideoUrlForExercise(exercise.name)
+            if (existingUrl != null) {
+                finalExercise = exercise.copy(videoUrl = existingUrl)
+            }
+        }
+
+        if (finalExercise.id == 0L) {
+            dao.insertExercise(finalExercise)
         } else {
-            dao.updateExercise(exercise)
+            dao.updateExercise(finalExercise)
+        }
+
+        // Sync to all others with the same name
+        if (finalExercise.videoUrl.isNotBlank()) {
+            dao.updateVideoUrlForExercise(finalExercise.name, finalExercise.videoUrl)
         }
     }
 
@@ -91,18 +104,38 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     }
 
     suspend fun applyProgram(days: List<RoutineDayEntity>, exercises: List<RoutineExerciseEntity>) {
+        val existingUrls = dao.getAllRoutineExercises().first()
+            .filter { it.videoUrl.isNotBlank() }
+            .associate { it.name to it.videoUrl }
+
+        val syncedExercises = exercises.map { ex ->
+            if (ex.videoUrl.isBlank()) {
+                existingUrls[ex.name]?.let { url -> ex.copy(videoUrl = url) } ?: ex
+            } else ex
+        }
+
         dao.clearAllRoutineExercises()
         dao.clearAllRoutineDays()
         dao.insertRoutineDays(days)
-        dao.insertRoutineExercises(exercises)
+        dao.insertRoutineExercises(syncedExercises)
     }
 
     suspend fun resetRoutineToDefault() {
+        val existingUrls = dao.getAllRoutineExercises().first()
+            .filter { it.videoUrl.isNotBlank() }
+            .associate { it.name to it.videoUrl }
+
         dao.clearAllRoutineExercises()
         dao.clearAllRoutineDays()
         val localizedDays = localizeDayTemplates(DefaultData.dayTemplates)
         dao.insertRoutineDays(localizedDays)
-        dao.insertRoutineExercises(DefaultData.routineExercises)
+
+        val syncedExercises = DefaultData.routineExercises.map { ex ->
+            if (ex.videoUrl.isBlank()) {
+                existingUrls[ex.name]?.let { url -> ex.copy(videoUrl = url) } ?: ex
+            } else ex
+        }
+        dao.insertRoutineExercises(syncedExercises)
     }
 
     suspend fun clearHistory() {

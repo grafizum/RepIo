@@ -223,3 +223,18 @@ resolved statuses always carry their resolution date
 **Suggested improvement:** Centralize shared UI components into a single source of truth. Use `App.kt` as the primary entry point for the UI and have `MainActivity.kt` delegate to it, avoiding local duplication of the same sealed classes and composables.
 
 **Principle:** Shared structural definitions (navigation items, screen state) should be defined once to prevent sync issues and build-time collisions.
+
+### Observation 15: Structural dependency tracking in surgical edits
+
+**Status:** OPEN
+**Date:** 2026-08-17
+**Session context:** Fixing unresolved `majorMuscles` reference.
+**Skill:** New skill candidate: Surgical Refactoring
+**Type:** open-source
+**Phase/Area:** code modification
+
+**Issue:** When removing a local variable or constant from a function during a surgical edit, there is a risk of leaving "ghost" references in other parts of the same file (e.g., in a `sortedBy` block later in the function). The IDE's error reporting is excellent, but catching this before the tool call prevents build failures.
+
+**Suggested improvement:** Before deleting a declaration, always perform a project-wide (or at least file-wide) `grep` for the symbol to identify dependent blocks.
+
+**Principle:** Deleting a symbol is a structural change; always map the dependency graph of a symbol before removing its definition to maintain build integrity.

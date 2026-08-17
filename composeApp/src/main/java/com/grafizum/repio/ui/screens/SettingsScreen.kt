@@ -12,6 +12,7 @@ import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
@@ -20,11 +21,14 @@ import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.ContactSupport
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
@@ -41,12 +45,14 @@ import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
 import androidx.compose.material3.SwitchDefaults
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
@@ -65,6 +71,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
+import com.grafizum.repio.ui.components.TimersMergedCard
+import com.grafizum.repio.ui.components.TimerGroupSelector
 
 data class ThemeColorItem(
     val key: String,
@@ -95,6 +103,7 @@ fun SettingsScreen(
 ) {
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
+    val workoutGoal by viewModel.workoutGoal.collectAsState()
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
     val defaultExerciseTimerSeconds by viewModel.defaultExerciseTimerSeconds.collectAsState()
@@ -102,7 +111,100 @@ fun SettingsScreen(
     val showRestartDialog by viewModel.showRestartDialog.collectAsState()
     // val context = LocalContext.current
     var expandedLanguage by remember { mutableStateOf(false) }
+    var expandedGoal by remember { mutableStateOf(false) }
     var showSupportCard by remember { mutableStateOf(false) }
+    var showFAQ by remember { mutableStateOf(false) }
+    var showGoalConfirmation by remember { mutableStateOf(false) }
+    var showRestTimerConfirmation by remember { mutableStateOf(false) }
+    var showTransitionTimerConfirmation by remember { mutableStateOf(false) }
+    var pendingGoal by remember { mutableStateOf("") }
+    var pendingRestTimer by remember { mutableStateOf(defaultRestTimerSeconds) }
+    var pendingTransitionTimer by remember { mutableStateOf(defaultExerciseTimerSeconds) }
+
+    if (showGoalConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showGoalConfirmation = false },
+            title = { Text(getString("confirm_goal_change_title")) },
+            text = { Text(getString("confirm_goal_change_msg")) },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.regenerateProgramWithNewGoal(pendingGoal)
+                    showGoalConfirmation = false
+                }) {
+                    Text(getString("confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showGoalConfirmation = false }) {
+                    Text(getString("cancel"))
+                }
+            }
+        )
+    }
+
+    if (showRestTimerConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showRestTimerConfirmation = false },
+            title = { Text(getString("confirm_timer_change_title")) },
+            text = {
+                Column {
+                    Text(getString("confirm_timer_change_msg"))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = getString("timer_override_warning"),
+                        color = Color.Red.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.overrideAllWorkoutsRestTimer(pendingRestTimer)
+                    showRestTimerConfirmation = false
+                }) {
+                    Text(getString("confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showRestTimerConfirmation = false }) {
+                    Text(getString("cancel"))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+
+    if (showTransitionTimerConfirmation) {
+        AlertDialog(
+            onDismissRequest = { showTransitionTimerConfirmation = false },
+            title = { Text(getString("confirm_timer_change_title")) },
+            text = {
+                Column {
+                    Text(getString("confirm_timer_change_msg"))
+                    Spacer(modifier = Modifier.height(12.dp))
+                    Text(
+                        text = getString("timer_override_warning"),
+                        color = Color.Red.copy(alpha = 0.9f),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
+            },
+            confirmButton = {
+                Button(onClick = {
+                    viewModel.overrideAllWorkoutsTransitionTimer(pendingTransitionTimer)
+                    showTransitionTimerConfirmation = false
+                }) {
+                    Text(getString("confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showTransitionTimerConfirmation = false }) {
+                    Text(getString("cancel"))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
 
     if (showRestartDialog) {
         AlertDialog(
@@ -134,14 +236,14 @@ fun SettingsScreen(
             .padding(horizontal = 16.dp)
             .verticalScroll(rememberScrollState())
     ) {
-        Spacer(modifier = Modifier.height(12.dp))
+        Spacer(modifier = Modifier.height(16.dp))
 
         // COMPACT HEADER
         Row(
             verticalAlignment = Alignment.CenterVertically,
             modifier = Modifier
                 .fillMaxWidth()
-                .height(64.dp)
+                .heightIn(min = 72.dp)
                 .padding(vertical = 4.dp)
         ) {
             Row(
@@ -266,6 +368,110 @@ fun SettingsScreen(
                 }
             }
 
+            // WORKOUT GOAL CARD
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Timer, // Using Timer as placeholder icon
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = getString("workout_goal"),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = getString("workout_goal_desc"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    val selectedGoalLabel = when(workoutGoal) {
+                        "goal_bodybuilding" -> getString("goal_bodybuilding")
+                        "goal_strength" -> getString("goal_strength")
+                        "goal_calisthenics" -> getString("goal_calisthenics")
+                        "goal_functional" -> getString("goal_functional")
+                        "goal_olympic" -> getString("goal_olympic")
+                        "goal_powerbuilding" -> getString("goal_powerbuilding")
+                        "goal_crossfit" -> getString("goal_crossfit")
+                        "goal_athletic" -> getString("goal_athletic")
+                        else -> getString("goal_bodybuilding")
+                    }
+
+                    ExposedDropdownMenuBox(
+                        expanded = expandedGoal,
+                        onExpandedChange = { expandedGoal = !expandedGoal },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        OutlinedTextField(
+                            value = selectedGoalLabel,
+                            onValueChange = {},
+                            readOnly = true,
+                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGoal) },
+                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                                focusedBorderColor = MaterialTheme.colorScheme.primary,
+                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                            ),
+                            modifier = Modifier
+                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                                .fillMaxWidth(),
+                            shape = RoundedCornerShape(12.dp),
+                            textStyle = MaterialTheme.typography.bodyMedium
+                        )
+
+                        ExposedDropdownMenu(
+                            expanded = expandedGoal,
+                            onDismissRequest = { expandedGoal = false }
+                        ) {
+                            listOf(
+                                "goal_bodybuilding", "goal_strength", "goal_calisthenics",
+                                "goal_functional", "goal_olympic", "goal_powerbuilding",
+                                "goal_crossfit", "goal_athletic"
+                            ).forEach { goalKey ->
+                                val label = when(goalKey) {
+                                    "goal_bodybuilding" -> getString("goal_bodybuilding")
+                                    "goal_strength" -> getString("goal_strength")
+                                    "goal_calisthenics" -> getString("goal_calisthenics")
+                                    "goal_functional" -> getString("goal_functional")
+                                    "goal_olympic" -> getString("goal_olympic")
+                                    "goal_powerbuilding" -> getString("goal_powerbuilding")
+                                    "goal_crossfit" -> getString("goal_crossfit")
+                                    "goal_athletic" -> getString("goal_athletic")
+                                    else -> ""
+                                }
+                                DropdownMenuItem(
+                                    text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+                                    onClick = {
+                                        if (workoutGoal != goalKey) {
+                                            pendingGoal = goalKey
+                                            showGoalConfirmation = true
+                                        }
+                                        expandedGoal = false
+                                    },
+                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // SET REST TIMER DURATION CARD
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -300,115 +506,18 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val timerOptions = listOf(30, 45, 60, 90, 120, 180)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        timerOptions.forEach { seconds ->
-                            val isSelected = defaultRestTimerSeconds == seconds
-                            Button(
-                                onClick = { viewModel.setDefaultRestTimerSeconds(seconds) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .semantics { testTag = "rest_timer_option_${seconds}s" }
-                            ) {
-                                val timerLabel = when (seconds) {
-                                    120 -> "2m"
-                                    180 -> "3m"
-                                    else -> "${seconds}s"
-                                }
-                                Text(
-                                    text = timerLabel,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                )
-                            }
+                    TimersMergedCard(
+                        restValue = defaultRestTimerSeconds,
+                        transitionValue = defaultExerciseTimerSeconds,
+                        onRestSelected = { seconds ->
+                            pendingRestTimer = seconds
+                            showRestTimerConfirmation = true
+                        },
+                        onTransitionSelected = { seconds ->
+                            pendingTransitionTimer = seconds
+                            showTransitionTimerConfirmation = true
                         }
-                    }
-                }
-            }
-
-            // EXERCISE TRANSITION TIMER DURATION CARD
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Timer,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = getString("exercise_transition_timer"),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = getString("exercise_transition_timer_desc"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    val transitionOptions = listOf(60, 90, 120, 150, 180, 210)
-                    Row(
-                        horizontalArrangement = Arrangement.spacedBy(6.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        transitionOptions.forEach { seconds ->
-                            val isSelected = defaultExerciseTimerSeconds == seconds
-                            Button(
-                                onClick = { viewModel.setDefaultExerciseTimerSeconds(seconds) },
-                                colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                                    contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface
-                                ),
-                                shape = RoundedCornerShape(10.dp),
-                                contentPadding = androidx.compose.foundation.layout.PaddingValues(horizontal = 6.dp, vertical = 4.dp),
-                                modifier = Modifier
-                                    .weight(1f)
-                                    .height(38.dp)
-                                    .semantics { testTag = "exercise_timer_option_${seconds}s" }
-                            ) {
-                                val timerLabel = when (seconds) {
-                                    60 -> "1m"
-                                    90 -> "1.5m"
-                                    120 -> "2m"
-                                    150 -> "2.5m"
-                                    180 -> "3m"
-                                    210 -> "3.5m"
-                                    else -> "${seconds}s"
-                                }
-                                Text(
-                                    text = timerLabel,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                )
-                            }
-                        }
-                    }
+                    )
                 }
             }
 
@@ -545,6 +654,48 @@ fun SettingsScreen(
                 }
             }
 
+            // FAQ SECTION
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Column(modifier = Modifier.weight(1f)) {
+                            Text(
+                                text = getString("rpe_rir_faq"),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = getString("rpe_rir_explanation"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+
+                        IconButton(onClick = { showFAQ = !showFAQ }) {
+                            Icon(
+                                imageVector = if (showFAQ) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
+                        }
+                    }
+
+                    AnimatedVisibility(visible = showFAQ) {
+                        Column(modifier = Modifier.padding(top = 16.dp)) {
+                            FAQContent()
+                        }
+                    }
+                }
+            }
+
             // CUSTOMER SUPPORT SECTION
             Card(
                 shape = RoundedCornerShape(16.dp),
@@ -575,8 +726,6 @@ fun SettingsScreen(
                             shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.semantics { testTag = "settings_support_button" }
                         ) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ContactSupport, contentDescription = null, modifier = Modifier.size(16.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
                             Text(getString(if (showSupportCard) "close" else "open_support"))
                         }
                     }
@@ -795,6 +944,49 @@ private fun ThemeOptionRow(
                 tint = MaterialTheme.colorScheme.primary,
                 modifier = Modifier.size(18.dp)
             )
+        }
+    }
+}
+
+@Composable
+private fun FAQContent() {
+    Column(
+        verticalArrangement = Arrangement.spacedBy(16.dp)
+    ) {
+        // RPE Section
+        Column {
+            Text(
+                text = getString("what_is_rpe"),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = getString("rpe_desc"),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = getString("rpe_10"), style = MaterialTheme.typography.bodySmall)
+            Text(text = getString("rpe_9"), style = MaterialTheme.typography.bodySmall)
+            Text(text = getString("rpe_8"), style = MaterialTheme.typography.bodySmall)
+        }
+
+        // RIR Section
+        Column {
+            Text(
+                text = getString("what_is_rir"),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Spacer(modifier = Modifier.height(4.dp))
+            Text(
+                text = getString("rir_desc"),
+                style = MaterialTheme.typography.bodyMedium
+            )
+            Spacer(modifier = Modifier.height(8.dp))
+            Text(text = getString("rir_0"), style = MaterialTheme.typography.bodySmall)
+            Text(text = getString("rir_1"), style = MaterialTheme.typography.bodySmall)
+            Text(text = getString("rir_2"), style = MaterialTheme.typography.bodySmall)
         }
     }
 }

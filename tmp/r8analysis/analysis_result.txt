@@ -1,0 +1,3 @@
+Optimization Score: 84.68%
+Obfuscation Score:  84.99%
+Shrinking Score:    84.87%
