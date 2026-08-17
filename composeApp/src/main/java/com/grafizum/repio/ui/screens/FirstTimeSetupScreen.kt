@@ -28,6 +28,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.input.KeyboardType
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.DefaultData
@@ -39,7 +40,7 @@ import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
-import com.grafizum.repio.ui.components.getExerciseStaticDescription
+import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
@@ -84,6 +85,7 @@ fun FirstTimeSetupScreen(
     var assistedIntensity by remember { mutableStateOf("Medium") }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
+    var preferencesExpanded by remember { mutableStateOf(false) }
 
     val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
 
@@ -851,90 +853,115 @@ fun FirstTimeSetupScreen(
                             )
 
                             // 4. Exercise Preferences
-                            Text(getString("exercise_preferences"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                            Row(
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable { preferencesExpanded = !preferencesExpanded }
+                                    .padding(vertical = 4.dp),
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween
+                            ) {
+                                Text(
+                                    getString("exercise_preferences"),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Icon(
+                                    imageVector = if (preferencesExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary
+                                )
+                            }
                             
-                            // Include Section
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(getString("include_exercises"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                var includeInput by remember { mutableStateOf("") }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        SearchableExerciseField(
-                                            allExercises = allAvailableExercises,
-                                            value = includeInput,
-                                            onValueChange = { includeInput = it },
-                                            label = "",
-                                            placeholder = "Search or type..."
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { if (includeInput.isNotBlank()) { assistedIncludedExercises.add(includeInput.trim()); includeInput = "" } },
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.height(50.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp)
-                                    ) {
-                                        Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    assistedIncludedExercises.forEach { ex ->
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.primaryContainer,
-                                            contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) { assistedIncludedExercises.remove(ex) }
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                                Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                            AnimatedVisibility(
+                                visible = preferencesExpanded,
+                                enter = expandVertically() + fadeIn(),
+                                exit = shrinkVertically() + fadeOut()
+                            ) {
+                                Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                    // Include Section
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(getString("include_exercises"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        var includeInput by remember { mutableStateOf("") }
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                SearchableExerciseField(
+                                                    allExercises = allAvailableExercises,
+                                                    value = includeInput,
+                                                    onValueChange = { includeInput = it },
+                                                    label = "",
+                                                    placeholder = "Search or type..."
+                                                )
+                                            }
+                                            Button(
+                                                onClick = { if (includeInput.isNotBlank()) { assistedIncludedExercises.add(includeInput.trim()); includeInput = "" } },
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.height(50.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp)
+                                            ) {
+                                                Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            assistedIncludedExercises.forEach { ex ->
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.primaryContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { assistedIncludedExercises.remove(ex) }
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                                        Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                    }
+                                                }
                                             }
                                         }
                                     }
-                                }
-                            }
 
-                            // Exclude Section
-                            Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                Text(getString("exclude_exercises"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                                var excludeInput by remember { mutableStateOf("") }
-                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    Box(modifier = Modifier.weight(1f)) {
-                                        SearchableExerciseField(
-                                            allExercises = allAvailableExercises,
-                                            value = excludeInput,
-                                            onValueChange = { excludeInput = it },
-                                            label = "",
-                                            placeholder = "Search or type..."
-                                        )
-                                    }
-                                    Button(
-                                        onClick = { if (excludeInput.isNotBlank()) { assistedExcludedExercises.add(excludeInput.trim()); excludeInput = "" } },
-                                        shape = RoundedCornerShape(10.dp),
-                                        modifier = Modifier.height(50.dp),
-                                        contentPadding = PaddingValues(horizontal = 12.dp)
-                                    ) {
-                                        Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall)
-                                    }
-                                }
-                                FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                                    assistedExcludedExercises.forEach { ex ->
-                                        Surface(
-                                            color = MaterialTheme.colorScheme.errorContainer,
-                                            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                                            shape = RoundedCornerShape(8.dp),
-                                            modifier = Modifier.clickable(
-                                                interactionSource = remember { MutableInteractionSource() },
-                                                indication = null
-                                            ) { assistedExcludedExercises.remove(ex) }
-                                        ) {
-                                            Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
-                                                Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
-                                                Spacer(modifier = Modifier.width(4.dp))
-                                                Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                    // Exclude Section
+                                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Text(getString("exclude_exercises"), style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                                        var excludeInput by remember { mutableStateOf("") }
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            Box(modifier = Modifier.weight(1f)) {
+                                                SearchableExerciseField(
+                                                    allExercises = allAvailableExercises,
+                                                    value = excludeInput,
+                                                    onValueChange = { excludeInput = it },
+                                                    label = "",
+                                                    placeholder = "Search or type..."
+                                                )
+                                            }
+                                            Button(
+                                                onClick = { if (excludeInput.isNotBlank()) { assistedExcludedExercises.add(excludeInput.trim()); excludeInput = "" } },
+                                                shape = RoundedCornerShape(10.dp),
+                                                modifier = Modifier.height(50.dp),
+                                                contentPadding = PaddingValues(horizontal = 12.dp)
+                                            ) {
+                                                Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall)
+                                            }
+                                        }
+                                        FlowRow(horizontalArrangement = Arrangement.spacedBy(8.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            assistedExcludedExercises.forEach { ex ->
+                                                Surface(
+                                                    color = MaterialTheme.colorScheme.errorContainer,
+                                                    contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                                                    shape = RoundedCornerShape(8.dp),
+                                                    modifier = Modifier.clickable(
+                                                        interactionSource = remember { MutableInteractionSource() },
+                                                        indication = null
+                                                    ) { assistedExcludedExercises.remove(ex) }
+                                                ) {
+                                                    Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
+                                                        Text(translateExerciseName(ex), style = MaterialTheme.typography.labelSmall)
+                                                        Spacer(modifier = Modifier.width(4.dp))
+                                                        Icon(imageVector = Icons.Default.Close, contentDescription = null, modifier = Modifier.size(14.dp))
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -1322,11 +1349,13 @@ fun FirstTimeSetupScreen(
                             verticalArrangement = Arrangement.spacedBy(8.dp)
                         ) {
                             items(alternatives) { altName ->
+                                var expanded by remember { mutableStateOf(false) }
                                 Card(
                                     shape = RoundedCornerShape(12.dp),
                                     colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                                     modifier = Modifier
                                         .fillMaxWidth()
+                                        .animateContentSize()
                                         .clickable(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
@@ -1338,15 +1367,37 @@ fun FirstTimeSetupScreen(
                                             replacingExercise = null
                                         }
                                 ) {
+                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup)
                                     Row(
                                         modifier = Modifier.padding(16.dp),
                                         verticalAlignment = Alignment.CenterVertically
                                     ) {
-                                        Text(
-                                            text = translateExerciseName(altName),
-                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
-                                            modifier = Modifier.weight(1f)
-                                        )
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = translateExerciseName(altName),
+                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            if (altDesc.isNotBlank()) {
+                                                Text(
+                                                    text = altDesc,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+
+                                        if (altDesc.isNotBlank()) {
+                                            IconButton(onClick = { expanded = !expanded }) {
+                                                Icon(
+                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+
                                         Icon(
                                             imageVector = Icons.Default.Add,
                                             contentDescription = null,
@@ -1616,16 +1667,17 @@ private fun AddExerciseDialog(
                     )
                     ExposedDropdownMenu(
                         expanded = expandedDay,
-                        onDismissRequest = { expandedDay = false }
+                        onDismissRequest = { expandedDay = false },
+                        modifier = Modifier.padding(horizontal = 4.dp)
                     ) {
                         daysOptions.forEach { d ->
                             DropdownMenuItem(
-                                text = { Text(d) },
+                                text = { Text(d, style = MaterialTheme.typography.bodySmall) },
                                 onClick = {
                                     dayOfWeek = d
                                     expandedDay = false
                                 },
-                                contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                             )
                         }
                     }
@@ -1665,26 +1717,44 @@ private fun AddExerciseDialog(
                 )
 
                 // Muscle Group & Description (Visual indicator instead of text box)
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = getString("trained_muscles") + ":",
-                            style = MaterialTheme.typography.labelMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                        Spacer(modifier = Modifier.width(8.dp))
-                        MuscleGroupBadge(muscleGroup = muscleGroup)
-                    }
-                    
-                    // Simple description if available
-                    val exerciseDesc = getExerciseStaticDescription(name)
-                    if (exerciseDesc.isNotBlank()) {
-                        Text(
-                            text = exerciseDesc,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                            lineHeight = 14.sp
-                        )
+                if (name.isNotBlank()) {
+                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = getString("trained_muscles") + ":",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
+                            MuscleGroupBadge(muscleGroup = muscleGroup)
+                        }
+                        
+                        // Detailed description in a prominent box
+                        val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup)
+                        if (exerciseDesc.isNotBlank()) {
+                            val isDeveloper = LocalDeveloperSkin.current
+                            Surface(
+                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Row(modifier = Modifier.padding(12.dp)) {
+                                    Icon(
+                                        imageVector = Icons.Default.Info,
+                                        contentDescription = null,
+                                        modifier = Modifier.size(16.dp),
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(
+                                        text = exerciseDesc,
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                }
+                            }
+                        }
                     }
                 }
 
@@ -1723,16 +1793,17 @@ private fun AddExerciseDialog(
                             )
                             ExposedDropdownMenu(
                                 expanded = expandedTime,
-                                onDismissRequest = { expandedTime = false }
+                                onDismissRequest = { expandedTime = false },
+                                modifier = Modifier.padding(horizontal = 4.dp)
                             ) {
                                 timeOptions.forEach { t ->
                                     DropdownMenuItem(
-                                        text = { Text("${t}s") },
+                                        text = { Text("${t}s", style = MaterialTheme.typography.bodySmall) },
                                         onClick = {
                                             targetRepsValue = t
                                             expandedTime = false
                                         },
-                                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                                        contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
                                     )
                                 }
                             }

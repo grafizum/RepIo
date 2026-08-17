@@ -1,5 +1,12 @@
 package com.grafizum.repio.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import android.provider.Settings
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.animation.fadeIn
 import androidx.compose.animation.fadeOut
@@ -30,6 +37,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
 import androidx.compose.ui.text.font.FontWeight
@@ -38,6 +46,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.core.app.NotificationManagerCompat
+import androidx.lifecycle.Lifecycle
+import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.grafizum.repio.data.DayOfWeekEnum
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
@@ -47,6 +59,7 @@ import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.ui.components.ExerciseEditDialog
 import kotlinx.coroutines.delay
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
@@ -62,10 +75,38 @@ fun WorkoutNowScreen(
     val workoutState by viewModel.workoutNowState.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
+    val context = LocalContext.current
+    val lifecycleOwner = LocalLifecycleOwner.current
+
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+
+    // Refresh notification status when app comes to foreground
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        notificationsEnabled = isGranted || NotificationManagerCompat.from(context).areNotificationsEnabled()
+    }
 
     var showRestartDialog by remember { mutableStateOf(false) }
     var showCustomWeightDialog by remember { mutableStateOf(false) }
     var customWeightInput by remember { mutableStateOf("") }
+    var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
+    val themeKey by viewModel.themeOption.collectAsState()
 
     val currentDayExercises = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
@@ -397,29 +438,14 @@ fun WorkoutNowScreen(
             } else {
                 // ACTIVE WORKOUT SESSION VIEW
                 val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, currentDayExercises.size - 1)
-                val baseExercise = currentDayExercises[exerciseIndex]
+                val currentExercise = currentDayExercises[exerciseIndex]
                 
-                // Resolve Master Workout for current and next
-                val currentExercise = remember(baseExercise.name, baseExercise.dayOfWeek) {
-                    val resolvedName = WorkoutTemplates.resolveMasterWorkout(baseExercise.name)
-                    if (resolvedName != baseExercise.name) {
-                        baseExercise.copy(name = resolvedName)
-                    } else baseExercise
-                }
-
                 val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
                 val totalExercises = currentDayExercises.size
 
-                val baseNext = if (exerciseIndex + 1 < currentDayExercises.size) {
+                val nextExercise = if (exerciseIndex + 1 < currentDayExercises.size) {
                     currentDayExercises[exerciseIndex + 1]
                 } else null
-                
-                val nextExercise = remember(baseNext?.name) {
-                    baseNext?.let {
-                        val resolved = WorkoutTemplates.resolveMasterWorkout(it.name)
-                        if (resolved != it.name) it.copy(name = resolved) else it
-                    }
-                }
 
                 Column {
                     Row(
@@ -523,12 +549,34 @@ fun WorkoutNowScreen(
                                 }
                             }
 
-                            IconButton(onClick = { viewModel.stopTimer() }) {
-                                Icon(
-                                    imageVector = Icons.Default.SkipNext,
-                                    contentDescription = "Skip Timer",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                if (!notificationsEnabled) {
+                                    IconButton(onClick = {
+                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                        } else {
+                                            // Open app settings for older versions if they manually disabled them
+                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                data = Uri.fromParts("package", context.packageName, null)
+                                            }
+                                            context.startActivity(intent)
+                                        }
+                                    }) {
+                                        Icon(
+                                            imageVector = Icons.Default.NotificationsActive,
+                                            contentDescription = getString("allow_notifications"),
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+
+                                IconButton(onClick = { viewModel.stopTimer() }) {
+                                    Icon(
+                                        imageVector = Icons.Default.SkipNext,
+                                        contentDescription = "Skip Timer",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
                     }
@@ -605,15 +653,28 @@ fun WorkoutNowScreen(
                                 overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
                             )
 
-                            IconButton(
-                                onClick = { showPeek = !showPeek },
-                                modifier = Modifier.size(32.dp)
-                            ) {
-                                Icon(
-                                    imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                    contentDescription = "Quick Peek",
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                IconButton(
+                                    onClick = { editingExercise = currentExercise },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Edit,
+                                        contentDescription = "Edit Exercise",
+                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                                IconButton(
+                                    onClick = { showPeek = !showPeek },
+                                    modifier = Modifier.size(32.dp)
+                                ) {
+                                    Icon(
+                                        imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                        contentDescription = "Quick Peek",
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
                             }
                         }
 
@@ -929,6 +990,21 @@ fun WorkoutNowScreen(
 
             Spacer(modifier = Modifier.height(24.dp))
         }
+    }
+
+    // EXERCISE EDIT DIALOG
+    editingExercise?.let { exercise ->
+        ExerciseEditDialog(
+            allAvailableExercises = allAvailableExercises,
+            exercise = exercise,
+            dayOfWeek = exercise.dayOfWeek,
+            themeKey = themeKey,
+            onDismiss = { editingExercise = null },
+            onSave = { updated ->
+                viewModel.saveExercise(updated)
+                editingExercise = null
+            }
+        )
     }
 }
 

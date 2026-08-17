@@ -3,12 +3,17 @@ package com.grafizum.repio.ui.screens
 import com.grafizum.repio.util.getString
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
+import androidx.compose.animation.animateContentSize
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
+import androidx.compose.material.icons.filled.Add
+import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.Home
@@ -26,6 +31,7 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.text.style.TextOverflow
 import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -47,6 +53,11 @@ fun HomeScreen(
 
     var showEditNameDialog by remember { mutableStateOf(false) }
     var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
+    
+    var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
+    val themeKey by viewModel.themeOption.collectAsState()
 
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
@@ -359,23 +370,133 @@ fun HomeScreen(
                     }
                 }
             } else {
-                items(todayExercises) { baseExercise ->
-                    val exercise = remember(baseExercise.name, baseExercise.dayOfWeek) {
-                        val resolved = WorkoutTemplates.resolveMasterWorkout(baseExercise.name)
-                        if (resolved != baseExercise.name) baseExercise.copy(name = resolved) else baseExercise
-                    }
+                items(todayExercises) { exercise ->
                     ExpandableExerciseCard(
                         exercise = exercise,
                         showDescription = true,
                         isExpanded = expandedExerciseId == exercise.id,
                         onExpandedChange = { expanded ->
                             expandedExerciseId = if (expanded) exercise.id else null
-                        }
+                        },
+                        onEdit = { editingExercise = exercise },
+                        onReplace = { replacingExercise = exercise },
+                        onDelete = { viewModel.deleteExercise(exercise.id) },
+                        onSaveVideoUrl = { newUrl -> viewModel.saveExercise(exercise.copy(videoUrl = newUrl)) }
                     )
                 }
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
+    }
+
+    // EXERCISE EDIT DIALOG
+    editingExercise?.let { exercise ->
+        ExerciseEditDialog(
+            allAvailableExercises = allAvailableExercises,
+            exercise = exercise,
+            dayOfWeek = exercise.dayOfWeek,
+            themeKey = themeKey,
+            onDismiss = { editingExercise = null },
+            onSave = { updated ->
+                viewModel.saveExercise(updated)
+                editingExercise = null
+            }
+        )
+    }
+
+    // REPLACE EXERCISE DIALOG
+    replacingExercise?.let { exercise ->
+        val alternatives = remember(exercise.name, exercise.muscleGroup) {
+            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
+        }
+
+        AlertDialog(
+            onDismissRequest = { replacingExercise = null },
+            title = { Text(getString("alternative_exercises")) },
+            text = {
+                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                    Text(
+                        text = getString("select_alternative_desc", translateMuscleGroup(exercise.muscleGroup)),
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+
+                    if (alternatives.isEmpty()) {
+                        Text(
+                            text = "No other exercises found for this muscle group.",
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    } else {
+                        LazyColumn(
+                            modifier = Modifier.heightIn(max = 300.dp),
+                            verticalArrangement = Arrangement.spacedBy(8.dp)
+                        ) {
+                            items(alternatives) { altName ->
+                                var expanded by remember { mutableStateOf(false) }
+                                Card(
+                                    shape = RoundedCornerShape(12.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .animateContentSize()
+                                        .clickable(
+                                            interactionSource = remember { MutableInteractionSource() },
+                                            indication = null
+                                        ) {
+                                            viewModel.saveExercise(exercise.copy(name = altName))
+                                            replacingExercise = null
+                                        }
+                                ) {
+                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup)
+                                    Row(
+                                        modifier = Modifier.padding(16.dp),
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Column(modifier = Modifier.weight(1f)) {
+                                            Text(
+                                                text = translateExerciseName(altName),
+                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                            if (altDesc.isNotBlank()) {
+                                                Text(
+                                                    text = altDesc,
+                                                    style = MaterialTheme.typography.bodySmall,
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                        }
+                                        
+                                        if (altDesc.isNotBlank()) {
+                                            IconButton(onClick = { expanded = !expanded }) {
+                                                Icon(
+                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = null,
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                                                )
+                                            }
+                                        }
+
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
+            },
+            confirmButton = {},
+            dismissButton = {
+                TextButton(onClick = { replacingExercise = null }) {
+                    Text(getString("cancel"))
+                }
+            }
+        )
     }
 }
