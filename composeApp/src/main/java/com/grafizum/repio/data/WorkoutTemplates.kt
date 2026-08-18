@@ -349,18 +349,18 @@ object WorkoutTemplates {
         return when(intensity) {
             "Hard" -> {
                 if (goal == "goal_strength" || goal == "goal_olympic") {
-                    if (isCompound) "Very Heavy (RPE 9-10)" else "Heavy (RPE 9)"
+                    if (isCompound) "Very Heavy" else "Heavy"
                 } else if (goal == "goal_bodybuilding") {
-                    "To Failure (RPE 10)"
+                    "To Failure"
                 } else {
-                    "High Intensity (RPE 9)"
+                    "High Intensity"
                 }
             }
             "Easy" -> {
-                "Light (RPE 6-7)"
+                "Light"
             }
             else -> {
-                if (isCompound) "Moderate (RPE 8)" else "RPE 8"
+                "Moderate"
             }
         }
     }
@@ -745,5 +745,32 @@ object WorkoutTemplates {
             cleanName.contains("plank") || cleanName.contains("hold") -> 2
             else -> 3
         }
+    }
+
+    fun isBodyweightExercise(name: String): Boolean {
+        val lowerName = name.lowercase().trim()
+        
+        // 1. Explicit common bodyweight patterns
+        if (lowerName.contains("push-up") || 
+            lowerName.contains("pull-up") || 
+            lowerName.contains("chin-up") || 
+            lowerName.contains("dip") ||
+            lowerName.contains("plank") || 
+            lowerName.contains("crunch") ||
+            lowerName.contains("leg raise") || 
+            lowerName.contains("sit-up") ||
+            lowerName.contains("muscle-up") ||
+            lowerName.contains("burpee") ||
+            lowerName.contains("squat") && !lowerName.contains("barbell") && !lowerName.contains("dumbbell") && !lowerName.contains("machine") && !lowerName.contains("hack") && !lowerName.contains("goblet") ||
+            lowerName.contains("lunge") && !lowerName.contains("db") && !lowerName.contains("barbell") ||
+            lowerName.contains("(bw)") || 
+            lowerName.contains("bodyweight")
+        ) return true
+
+        // 2. Check against the strict bodyweight lists defined in getBodyweightExercises
+        // We can do a quick check for common muscle groups first to avoid a full flatMap if possible,
+        // but for robustness we check all.
+        val allBW = getAllMuscleGroups().flatMap { getBodyweightExercises(it) }
+        return allBW.any { it.equals(name, ignoreCase = true) }
     }
 }

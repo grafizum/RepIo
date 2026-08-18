@@ -119,9 +119,6 @@ open class MainActivity : AppCompatActivity() {
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
 
-        var isReady by mutableStateOf(false)
-        splashScreen.setKeepOnScreenCondition { !isReady }
-
         // Create notification channel for rest timer
         NotificationHelper.createNotificationChannel(this)
 
@@ -161,8 +158,8 @@ open class MainActivity : AppCompatActivity() {
                 }
             }
 
-            SideEffect {
-                isReady = true
+            LaunchedEffect(Unit) {
+                delay(200) // Small warm up to avoid black flicker
             }
 
             val context = LocalContext.current
@@ -369,7 +366,11 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     // Force Onboarding screen if it's the first time
     WorkoutTrackerTheme(themeOption = themeOption, pageIndex = if (isFirstTimeUser) -1 else pagerState.currentPage) {
-        if (isFirstTimeUser) {
+        var showAppSplash by remember { mutableStateOf(true) }
+
+        if (showAppSplash) {
+            AppSplashScreen(onComplete = { showAppSplash = false })
+        } else if (isFirstTimeUser) {
             FirstTimeSetupScreen(
                 viewModel = viewModel,
                 onComplete = {

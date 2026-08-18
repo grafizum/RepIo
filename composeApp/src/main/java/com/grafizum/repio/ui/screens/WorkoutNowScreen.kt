@@ -441,6 +441,7 @@ fun WorkoutNowScreen(
                 val currentExercise = currentDayExercises[exerciseIndex]
                 
                 val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
+                val isBodyweight = WorkoutTemplates.isBodyweightExercise(currentExercise.name)
                 val totalExercises = currentDayExercises.size
 
                 val nextExercise = if (exerciseIndex + 1 < currentDayExercises.size) {
@@ -812,51 +813,68 @@ fun WorkoutNowScreen(
                                     horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
                                     Text(
-                                        text = getString("weight_kg_intl", workoutState.currentWeightKg),
+                                        text = if (isBodyweight) getString("bodyweight_label") else getString("weight_kg_intl", workoutState.currentWeightKg),
                                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = if (isBodyweight) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                                     )
 
-                                    Box(
-                                        contentAlignment = Alignment.Center,
-                                        modifier = Modifier
-                                            .size(20.dp)
-                                            .clip(CircleShape)
-                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                            .clickable {
-                                                customWeightInput = workoutState.currentWeightKg.toString()
-                                                showCustomWeightDialog = true
-                                            }
-                                            .semantics { testTag = "modify_weight_button" }
-                                    ) {
-                                        Icon(
-                                            imageVector = Icons.Default.Edit,
-                                            contentDescription = "Modify Weight",
-                                            modifier = Modifier.size(11.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
+                                    if (!isBodyweight) {
+                                        Box(
+                                            contentAlignment = Alignment.Center,
+                                            modifier = Modifier
+                                                .size(20.dp)
+                                                .clip(CircleShape)
+                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                .clickable {
+                                                    customWeightInput = workoutState.currentWeightKg.toString()
+                                                    showCustomWeightDialog = true
+                                                }
+                                                .semantics { testTag = "modify_weight_button" }
+                                        ) {
+                                            Icon(
+                                                imageVector = Icons.Default.Edit,
+                                                contentDescription = "Modify Weight",
+                                                modifier = Modifier.size(11.dp),
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                        }
                                     }
                                 }
                             }
 
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                            ) {
-                                val canDecrementWeight = workoutState.currentWeightKg > 0
-                                IconButton(
-                                    onClick = { viewModel.decrementWeight() },
-                                    enabled = canDecrementWeight,
-                                    modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                            if (!isBodyweight) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                }
+                                    val canDecrementWeight = workoutState.currentWeightKg > 0
+                                    IconButton(
+                                        onClick = { viewModel.decrementWeight() },
+                                        enabled = canDecrementWeight,
+                                        modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                    }
 
-                                IconButton(
-                                    onClick = { viewModel.incrementWeight() },
-                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    IconButton(
+                                        onClick = { viewModel.incrementWeight() },
+                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
+                                    }
+                                }
+                            } else {
+                                // Inform user it's bodyweight
+                                Surface(
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                    shape = RoundedCornerShape(8.dp)
                                 ) {
-                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
+                                    Text(
+                                        text = getString("no_weight_needed"),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
                                 }
                             }
                         }

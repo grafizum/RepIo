@@ -1,6 +1,7 @@
 package com.grafizum.repio.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
+import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -22,7 +23,6 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
-import androidx.compose.material.icons.automirrored.filled.ContactSupport
 import androidx.compose.material.icons.automirrored.filled.Send
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
@@ -72,7 +72,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.components.TimersMergedCard
-import com.grafizum.repio.ui.components.TimerGroupSelector
+import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 
 data class ThemeColorItem(
     val key: String,
@@ -101,9 +101,9 @@ fun SettingsScreen(
     viewModel: WorkoutViewModel,
     modifier: Modifier = Modifier
 ) {
+    val isDeveloper = LocalDeveloperSkin.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
-    val workoutGoal by viewModel.workoutGoal.collectAsState()
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
     val defaultExerciseTimerSeconds by viewModel.defaultExerciseTimerSeconds.collectAsState()
@@ -111,36 +111,12 @@ fun SettingsScreen(
     val showRestartDialog by viewModel.showRestartDialog.collectAsState()
     // val context = LocalContext.current
     var expandedLanguage by remember { mutableStateOf(false) }
-    var expandedGoal by remember { mutableStateOf(false) }
     var showSupportCard by remember { mutableStateOf(false) }
     var showFAQ by remember { mutableStateOf(false) }
-    var showGoalConfirmation by remember { mutableStateOf(false) }
     var showRestTimerConfirmation by remember { mutableStateOf(false) }
     var showTransitionTimerConfirmation by remember { mutableStateOf(false) }
-    var pendingGoal by remember { mutableStateOf("") }
     var pendingRestTimer by remember { mutableStateOf(defaultRestTimerSeconds) }
     var pendingTransitionTimer by remember { mutableStateOf(defaultExerciseTimerSeconds) }
-
-    if (showGoalConfirmation) {
-        AlertDialog(
-            onDismissRequest = { showGoalConfirmation = false },
-            title = { Text(getString("confirm_goal_change_title")) },
-            text = { Text(getString("confirm_goal_change_msg")) },
-            confirmButton = {
-                Button(onClick = {
-                    viewModel.regenerateProgramWithNewGoal(pendingGoal)
-                    showGoalConfirmation = false
-                }) {
-                    Text(getString("confirm"))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = { showGoalConfirmation = false }) {
-                    Text(getString("cancel"))
-                }
-            }
-        )
-    }
 
     if (showRestTimerConfirmation) {
         AlertDialog(
@@ -368,158 +344,19 @@ fun SettingsScreen(
                 }
             }
 
-            // WORKOUT GOAL CARD
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Timer, // Using Timer as placeholder icon
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = getString("workout_goal"),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = getString("workout_goal_desc"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    val selectedGoalLabel = when(workoutGoal) {
-                        "goal_bodybuilding" -> getString("goal_bodybuilding")
-                        "goal_strength" -> getString("goal_strength")
-                        "goal_calisthenics" -> getString("goal_calisthenics")
-                        "goal_functional" -> getString("goal_functional")
-                        "goal_olympic" -> getString("goal_olympic")
-                        "goal_powerbuilding" -> getString("goal_powerbuilding")
-                        "goal_crossfit" -> getString("goal_crossfit")
-                        "goal_athletic" -> getString("goal_athletic")
-                        else -> getString("goal_bodybuilding")
-                    }
-
-                    ExposedDropdownMenuBox(
-                        expanded = expandedGoal,
-                        onExpandedChange = { expandedGoal = !expandedGoal },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        OutlinedTextField(
-                            value = selectedGoalLabel,
-                            onValueChange = {},
-                            readOnly = true,
-                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedGoal) },
-                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                                focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                unfocusedBorderColor = MaterialTheme.colorScheme.outline
-                            ),
-                            modifier = Modifier
-                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                .fillMaxWidth(),
-                            shape = RoundedCornerShape(12.dp),
-                            textStyle = MaterialTheme.typography.bodyMedium
-                        )
-
-                        ExposedDropdownMenu(
-                            expanded = expandedGoal,
-                            onDismissRequest = { expandedGoal = false }
-                        ) {
-                            listOf(
-                                "goal_bodybuilding", "goal_strength", "goal_calisthenics",
-                                "goal_functional", "goal_olympic", "goal_powerbuilding",
-                                "goal_crossfit", "goal_athletic"
-                            ).forEach { goalKey ->
-                                val label = when(goalKey) {
-                                    "goal_bodybuilding" -> getString("goal_bodybuilding")
-                                    "goal_strength" -> getString("goal_strength")
-                                    "goal_calisthenics" -> getString("goal_calisthenics")
-                                    "goal_functional" -> getString("goal_functional")
-                                    "goal_olympic" -> getString("goal_olympic")
-                                    "goal_powerbuilding" -> getString("goal_powerbuilding")
-                                    "goal_crossfit" -> getString("goal_crossfit")
-                                    "goal_athletic" -> getString("goal_athletic")
-                                    else -> ""
-                                }
-                                DropdownMenuItem(
-                                    text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
-                                    onClick = {
-                                        if (workoutGoal != goalKey) {
-                                            pendingGoal = goalKey
-                                            showGoalConfirmation = true
-                                        }
-                                        expandedGoal = false
-                                    },
-                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                )
-                            }
-                        }
-                    }
+            // TIMERS SECTION
+            TimersMergedCard(
+                restValue = defaultRestTimerSeconds,
+                transitionValue = defaultExerciseTimerSeconds,
+                onRestSelected = { seconds ->
+                    pendingRestTimer = seconds
+                    showRestTimerConfirmation = true
+                },
+                onTransitionSelected = { seconds ->
+                    pendingTransitionTimer = seconds
+                    showTransitionTimerConfirmation = true
                 }
-            }
-
-            // SET REST TIMER DURATION CARD
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Timer,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(22.dp)
-                        )
-                        Spacer(modifier = Modifier.width(10.dp))
-                        Column {
-                            Text(
-                                text = getString("resting_timer_duration"),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = getString("auto_countdown_interval"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.height(12.dp))
-
-                    TimersMergedCard(
-                        restValue = defaultRestTimerSeconds,
-                        transitionValue = defaultExerciseTimerSeconds,
-                        onRestSelected = { seconds ->
-                            pendingRestTimer = seconds
-                            showRestTimerConfirmation = true
-                        },
-                        onTransitionSelected = { seconds ->
-                            pendingTransitionTimer = seconds
-                            showTransitionTimerConfirmation = true
-                        }
-                    )
-                }
-            }
+            )
 
             // SCREEN KEEP ALIVE TOGGLE
             Card(
@@ -656,9 +493,17 @@ fun SettingsScreen(
 
             // FAQ SECTION
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
+                border = BorderStroke(
+                    width = if (isDeveloper) 2.dp else 1.dp,
+                    color = if (showFAQ) MaterialTheme.colorScheme.primary 
+                            else if (isDeveloper) Color.White 
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showFAQ = !showFAQ }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -698,9 +543,17 @@ fun SettingsScreen(
 
             // CUSTOMER SUPPORT SECTION
             Card(
-                shape = RoundedCornerShape(16.dp),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                modifier = Modifier.fillMaxWidth()
+                border = BorderStroke(
+                    width = if (isDeveloper) 2.dp else 1.dp,
+                    color = if (showSupportCard) MaterialTheme.colorScheme.primary 
+                            else if (isDeveloper) Color.White 
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { showSupportCard = !showSupportCard }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -721,12 +574,15 @@ fun SettingsScreen(
                             )
                         }
 
-                        Button(
+                        IconButton(
                             onClick = { showSupportCard = !showSupportCard },
-                            shape = RoundedCornerShape(12.dp),
                             modifier = Modifier.semantics { testTag = "settings_support_button" }
                         ) {
-                            Text(getString(if (showSupportCard) "close" else "open_support"))
+                            Icon(
+                                imageVector = if (showSupportCard) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary
+                            )
                         }
                     }
 

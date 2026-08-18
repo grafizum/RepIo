@@ -7,11 +7,15 @@ import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.Canvas
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
@@ -60,14 +64,17 @@ import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 // Color mappings per muscle group
 fun getMuscleGroupColor(muscleGroup: String): Color {
     return when (muscleGroup.lowercase().trim()) {
-        "back" -> Color(0xFF3B82F6) // Blue
-        "biceps" -> Color(0xFF8B5CF6) // Purple
-        "shoulders" -> Color(0xFFEC4899) // Pink
+        "back", "lats", "upper back", "traps", "spinal erectors" -> Color(0xFF3B82F6) // Blue
         "chest" -> Color(0xFFEF4444) // Red
-        "legs" -> Color(0xFF10B981) // Emerald
-        "abs" -> Color(0xFFF59E0B) 
-        "triceps" -> Color(0xFF06B6D4) 
-        else -> Color(0xFF64748B) 
+        "legs", "quadriceps", "hamstrings", "glutes", "calves" -> Color(0xFF10B981) // Emerald
+        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFEC4899) // Pink
+        "biceps" -> Color(0xFF8B5CF6) // Purple
+        "triceps" -> Color(0xFF06B6D4) // Cyan
+        "arms" -> Color(0xFF6366F1) // Indigo
+        "abs" -> Color(0xFFF59E0B) // Amber
+        "core", "obliques" -> Color(0xFFD946EF) // Fuchsia
+        "forearms" -> Color(0xFFF97316) // Orange
+        else -> Color(0xFF64748B) // Grey
     }
 }
 
@@ -128,49 +135,67 @@ fun translateMuscleGroup(muscleGroup: String): String {
 @Composable
 fun translateExerciseName(name: String): String {
     val clean = name.trim()
-    return when (clean) {
-        "Barbell bent-over row" -> getString("ex_barbell_bent_over_row")
-        "One-arm dumbbell row" -> getString("ex_one_arm_dumbbell_row")
-        "Dumbbell pullover" -> getString("ex_dumbbell_pullover")
-        "Dumbbell curls" -> getString("ex_dumbbell_curls")
-        "Hammer curls" -> getString("ex_hammer_curls")
-        "Dumbbell shoulder press" -> getString("ex_dumbbell_shoulder_press")
-        "Dumbbell lateral raises" -> getString("ex_dumbbell_lateral_raises")
-        "Crunches (sit-ups)" -> getString("ex_crunches")
-        "Crunches" -> getString("ex_crunches")
-        "Barbell floor press" -> getString("ex_barbell_floor_press")
-        "Dumbbell floor press" -> getString("ex_dumbbell_floor_press")
-        "Leg raises" -> getString("ex_leg_raises")
-        "Barbell squats" -> getString("ex_barbell_squats")
-        "Romanian deadlifts" -> getString("ex_romanian_deadlifts")
-        "Dumbbell lunges" -> getString("ex_dumbbell_lunges")
-        "Plank" -> getString("ex_plank")
-        "Barbell row" -> getString("ex_barbell_row")
-        "Tricep dips / extensions" -> getString("ex_tricep_dips_extensions")
-        "Overhead tricep extension" -> getString("ex_overhead_tricep_extension")
-        "Overhead dumbbell extension" -> getString("ex_overhead_dumbbell_extension")
-        "Bench Press / Floor Press" -> getString("ex_bench_press_floor_press")
-        "Barbell Rows" -> getString("ex_barbell_rows_generic")
-        "Bicep Curls" -> getString("ex_bicep_curls_generic")
-        "Rear-delt dumbbell fly" -> getString("ex_rear_delt_dumbbell_fly")
-        "Rear-delt fly" -> getString("ex_rear_delt_fly")
-        "Deadlifts" -> getString("ex_deadlifts")
-        "Calves" -> getString("ex_calves")
-        "Abs" -> getString("ex_abs")
-        "Pull-ups" -> getString("ex_pull_ups")
-        "Squats" -> getString("ex_squats")
-        "Press" -> getString("ex_press")
-        "Row" -> getString("ex_row")
-        "Lunge" -> getString("ex_lunge")
-        "Biceps" -> getString("ex_biceps_generic")
-        "Chest Press" -> getString("ex_chest_press")
-        "Arms" -> getString("ex_arms")
-        "Core" -> getString("ex_core")
-        "Triceps" -> getString("ex_triceps_generic")
-        "Shoulders" -> getString("ex_shoulders_generic")
-        "Back" -> getString("ex_back_generic")
-        "Legs" -> getString("ex_legs_generic")
-        "Flyes" -> getString("ex_flyes")
+    val lower = clean.lowercase()
+    
+    return when {
+        lower == "push-ups" -> getString("ex_push_ups")
+        lower == "pull-ups" -> getString("ex_pull_ups")
+        lower == "chin-ups" -> getString("ex_chin_ups")
+        lower == "bench press" -> getString("ex_bench_press")
+        lower == "squats" -> getString("ex_squats")
+        lower == "deadlifts" -> getString("ex_deadlifts")
+        lower == "military press" -> getString("ex_military_press")
+        lower == "lat pulldown" -> getString("ex_lat_pulldown")
+        lower == "seated row" -> getString("ex_seated_row")
+        lower == "leg press" -> getString("ex_leg_press")
+        lower == "leg curls" -> getString("ex_leg_curls")
+        lower == "leg extensions" -> getString("ex_leg_extensions")
+        lower == "calf raises" -> getString("ex_calf_raises")
+        lower == "hip thrusts" -> getString("ex_hip_thrusts")
+        lower == "glute bridges" -> getString("ex_glute_bridges")
+        lower == "tricep pushdowns" -> getString("ex_tricep_pushdowns")
+        lower == "face pulls" -> getString("ex_face_pulls")
+        lower == "side raises" -> getString("ex_side_raises")
+        
+        clean == "Barbell bent-over row" -> getString("ex_barbell_bent_over_row")
+        clean == "One-arm dumbbell row" -> getString("ex_one_arm_dumbbell_row")
+        clean == "Dumbbell pullover" -> getString("ex_dumbbell_pullover")
+        clean == "Dumbbell curls" -> getString("ex_dumbbell_curls")
+        clean == "Hammer curls" -> getString("ex_hammer_curls")
+        clean == "Dumbbell shoulder press" -> getString("ex_dumbbell_shoulder_press")
+        clean == "Dumbbell lateral raises" -> getString("ex_dumbbell_lateral_raises")
+        clean == "Crunches (sit-ups)" -> getString("ex_crunches")
+        clean == "Crunches" -> getString("ex_crunches")
+        clean == "Barbell floor press" -> getString("ex_barbell_floor_press")
+        clean == "Dumbbell floor press" -> getString("ex_dumbbell_floor_press")
+        clean == "Leg raises" -> getString("ex_leg_raises")
+        clean == "Barbell squats" -> getString("ex_barbell_squats")
+        clean == "Romanian deadlifts" -> getString("ex_romanian_deadlifts")
+        clean == "Dumbbell lunges" -> getString("ex_dumbbell_lunges")
+        clean == "Plank" -> getString("ex_plank")
+        lower == "barbell row" -> getString("ex_barbell_row")
+        clean == "Tricep dips / extensions" -> getString("ex_tricep_dips_extensions")
+        clean == "Overhead tricep extension" -> getString("ex_overhead_tricep_extension")
+        clean == "Overhead dumbbell extension" -> getString("ex_overhead_dumbbell_extension")
+        clean == "Bench Press / Floor Press" -> getString("ex_bench_press_floor_press")
+        clean == "Barbell Rows" -> getString("ex_barbell_rows_generic")
+        clean == "Bicep Curls" -> getString("ex_bicep_curls_generic")
+        clean == "Rear-delt dumbbell fly" -> getString("ex_rear_delt_dumbbell_fly")
+        clean == "Rear-delt fly" -> getString("ex_rear_delt_fly")
+        clean == "Calves" -> getString("ex_calves")
+        clean == "Abs" -> getString("ex_abs")
+        clean == "Press" -> getString("ex_press")
+        clean == "Row" -> getString("ex_row")
+        clean == "Lunge" -> getString("ex_lunge")
+        clean == "Biceps" -> getString("ex_biceps_generic")
+        clean == "Chest Press" -> getString("ex_chest_press")
+        clean == "Arms" -> getString("ex_arms")
+        clean == "Core" -> getString("ex_core")
+        clean == "Triceps" -> getString("ex_triceps_generic")
+        clean == "Shoulders" -> getString("ex_shoulders_generic")
+        clean == "Back" -> getString("ex_back_generic")
+        clean == "Legs" -> getString("ex_legs_generic")
+        clean == "Flyes" -> getString("ex_flyes")
         else -> name
     }
 }
@@ -482,10 +507,7 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
     }
 
     if (intensity.contains("RPE", ignoreCase = true)) {
-        val rirExplanation = getRpeRirExplanation(intensity)
-        if (rirExplanation.isNotBlank()) {
-            description += "\n\n" + getString("rpe_long_description", intensity, rirExplanation)
-        }
+        description += "\n\n" + getString("intensity_label") + ": " + intensity
     }
 
     val equipment = when {
@@ -885,7 +907,7 @@ fun MuscleGroupSelector(
     }
 }
 
-@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@OptIn(ExperimentalLayoutApi::class, ExperimentalFoundationApi::class)
 @Composable
 fun TimersMergedCard(
     restValue: Int,
@@ -895,134 +917,147 @@ fun TimersMergedCard(
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    var expandedTimer by remember { mutableStateOf<String?>(null) }
+    var expandedType by remember { mutableStateOf<String?>(null) } // "REST", "TRANSITION", or null
+
+    val restOptions = listOf(30, 45, 60, 90, 120, 180)
+    val transitionOptions = listOf(60, 90, 120, 150, 180, 210)
 
     Card(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = modifier.fillMaxWidth()
     ) {
-        Column {
-            // Header
+        Column(modifier = Modifier.padding(16.dp)) {
+            // Main Header
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(16.dp)
+                modifier = Modifier.fillMaxWidth()
             ) {
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
                     tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(20.dp)
+                    modifier = Modifier.size(22.dp)
                 )
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = getString("timer_durations"),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                Spacer(modifier = Modifier.width(10.dp))
+                Column {
+                    Text(
+                        text = getString("timer_durations"),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = getString("timer_settings_desc"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+            }
+
+            Spacer(modifier = Modifier.height(16.dp))
+
+            // Two Buttons in a Row (exactly like muscle group dropdown style in onboarding)
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.spacedBy(8.dp)
+            ) {
+                TimerSelectionButton(
+                    label = getString("resting_timer_duration"),
+                    value = formatTimerValue(restValue),
+                    isSelected = expandedType == "REST",
+                    onClick = { expandedType = if (expandedType == "REST") null else "REST" },
+                    modifier = Modifier.weight(1f)
+                )
+                TimerSelectionButton(
+                    label = getString("exercise_transition_timer"),
+                    value = formatTimerValue(transitionValue),
+                    isSelected = expandedType == "TRANSITION",
+                    onClick = { expandedType = if (expandedType == "TRANSITION") null else "TRANSITION" },
+                    modifier = Modifier.weight(1f)
                 )
             }
 
-            // REST TIMER ROW
-            TimerExpandableRow(
-                label = getString("resting_timer_duration"),
-                description = getString("auto_countdown_interval"),
-                value = formatTimerValue(restValue),
-                isExpanded = expandedTimer == "REST",
-                onClick = { expandedTimer = if (expandedTimer == "REST") null else "REST" }
-            )
-            AnimatedVisibility(visible = expandedTimer == "REST") {
-                TimerOptionsGrid(
-                    options = listOf(30, 45, 60, 90, 120, 180),
-                    selected = restValue,
-                    onSelect = { onRestSelected(it); expandedTimer = null }
-                )
-            }
+            // Shared Dropdown Area (Expands the box)
+            AnimatedVisibility(
+                visible = expandedType != null,
+                enter = expandVertically() + fadeIn(),
+                exit = shrinkVertically() + fadeOut()
+            ) {
+                val options = if (expandedType == "REST") restOptions else transitionOptions
+                val current = if (expandedType == "REST") restValue else transitionValue
+                val onSelect = if (expandedType == "REST") onRestSelected else onTransitionSelected
 
-            HorizontalDivider(
-                modifier = Modifier.padding(horizontal = 16.dp),
-                color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.3f)
-            )
+                Column {
+                    Spacer(modifier = Modifier.height(8.dp))
+                    HorizontalDivider(color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f))
+                    Spacer(modifier = Modifier.height(8.dp))
 
-            // TRANSITION TIMER ROW
-            TimerExpandableRow(
-                label = getString("exercise_transition_timer"),
-                description = getString("exercise_transition_timer_desc"),
-                value = formatTimerValue(transitionValue),
-                isExpanded = expandedTimer == "TRANSITION",
-                onClick = { expandedTimer = if (expandedTimer == "TRANSITION") null else "TRANSITION" }
-            )
-            AnimatedVisibility(visible = expandedTimer == "TRANSITION") {
-                TimerOptionsGrid(
-                    options = listOf(60, 90, 120, 150, 180, 210),
-                    selected = transitionValue,
-                    onSelect = { onTransitionSelected(it); expandedTimer = null }
-                )
+                    Row(
+                        modifier = Modifier.fillMaxWidth().horizontalScroll(rememberScrollState()),
+                        horizontalArrangement = Arrangement.spacedBy(6.dp)
+                    ) {
+                        options.forEach { opt ->
+                            val isSel = opt == current
+                            Surface(
+                                onClick = { 
+                                    onSelect(opt)
+                                    expandedType = null
+                                },
+                                shape = RoundedCornerShape(8.dp),
+                                color = if (isSel) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                                contentColor = if (isSel) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                                border = if (!isSel) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null
+                            ) {
+                                Text(
+                                    text = formatTimerValue(opt),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                                    modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                                )
+                            }
+                        }
+                    }
+                }
             }
         }
     }
 }
 
 @Composable
-private fun TimerExpandableRow(
+private fun TimerSelectionButton(
     label: String,
-    description: String,
     value: String,
-    isExpanded: Boolean,
-    onClick: () -> Unit
+    isSelected: Boolean,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
 ) {
-    Row(
-        verticalAlignment = Alignment.CenterVertically,
-        horizontalArrangement = Arrangement.SpaceBetween,
-        modifier = Modifier
-            .fillMaxWidth()
-            .clickable { onClick() }
-            .padding(horizontal = 16.dp, vertical = 12.dp)
+    val isDeveloper = LocalDeveloperSkin.current
+    Surface(
+        onClick = onClick,
+        shape = RoundedCornerShape(12.dp),
+        color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+        contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+        border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+        modifier = modifier.height(40.dp)
     ) {
-        Column(modifier = Modifier.weight(1f)) {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                color = if (isExpanded) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = if (isExpanded) description else value,
-                style = MaterialTheme.typography.bodySmall,
-                color = if (isExpanded) MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f) else MaterialTheme.colorScheme.primary
-            )
-        }
-        Icon(
-            imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-            contentDescription = null,
-            tint = MaterialTheme.colorScheme.primary,
-            modifier = Modifier.size(20.dp)
-        )
-    }
-}
-
-@OptIn(ExperimentalLayoutApi::class)
-@Composable
-private fun TimerOptionsGrid(
-    options: List<Int>,
-    selected: Int,
-    onSelect: (Int) -> Unit
-) {
-    FlowRow(
-        horizontalArrangement = Arrangement.spacedBy(8.dp),
-        verticalArrangement = Arrangement.spacedBy(8.dp),
-        modifier = Modifier.padding(start = 16.dp, end = 16.dp, bottom = 16.dp).fillMaxWidth()
-    ) {
-        options.forEach { value ->
-            val isSelected = value == selected
-            FilterChip(
-                selected = isSelected,
-                onClick = { onSelect(value) },
-                label = { Text(formatTimerValue(value), style = MaterialTheme.typography.labelMedium) },
-                shape = RoundedCornerShape(10.dp),
-                colors = FilterChipDefaults.filterChipColors(
-                    selectedContainerColor = MaterialTheme.colorScheme.primary,
-                    selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                )
-            )
+        Box(contentAlignment = Alignment.Center) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier.padding(horizontal = 6.dp)
+            ) {
+                Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                    Text(
+                        text = label,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp, fontWeight = FontWeight.Bold),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        maxLines = 1
+                    )
+                }
+            }
         }
     }
 }
@@ -1353,7 +1388,9 @@ fun RepsTimeToggle(
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    
+    val density = LocalDensity.current
+    val swipeThreshold = with(density) { 40.dp.toPx() }
+
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
@@ -1361,6 +1398,22 @@ fun RepsTimeToggle(
             .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp)
+            .pointerInput(isTimeBased) {
+                var totalDrag = 0f
+                detectHorizontalDragGestures(
+                    onDragEnd = {
+                        if (totalDrag > swipeThreshold) {
+                            if (!isTimeBased) onToggle(true)
+                        } else if (totalDrag < -swipeThreshold) {
+                            if (isTimeBased) onToggle(false)
+                        }
+                        totalDrag = 0f
+                    },
+                    onHorizontalDrag = { _, dragAmount ->
+                        totalDrag += dragAmount
+                    }
+                )
+            }
     ) {
         val tWidth = this.maxWidth / 2
         val indicatorPosition by animateDpAsState(
@@ -1664,8 +1717,20 @@ fun MissingBodyPartsWarningCard(
                                 color = MaterialTheme.colorScheme.onErrorContainer
                             )
                         )
+                        val translatedLimited = mutableListOf<String>()
+                        for (part in equipmentLimitedParts) {
+                            translatedLimited.add(translateMuscleGroup(part))
+                        }
+
                         Text(
-                            text = getString("equipment_limitation_desc", equipmentLimitedParts.joinToString(", ")),
+                            text = getString("equipment_limitation_title"),
+                            style = MaterialTheme.typography.titleSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
+                        )
+                        Text(
+                            text = getString("equipment_limitation_desc", translatedLimited.joinToString(", ")),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
                         )
@@ -1693,9 +1758,13 @@ fun MissingBodyPartsWarningCard(
                         }
                         Spacer(modifier = Modifier.height(4.dp))
                         
-                        val translatedMissing = missingParts.joinToString(", ")
+                        val translatedMissing = mutableListOf<String>()
+                        for (part in missingParts) {
+                            translatedMissing.add(translateMuscleGroup(part))
+                        }
+                        
                         Text(
-                            text = getString("missing_parts_desc", translatedMissing),
+                            text = getString("missing_parts_desc", translatedMissing.joinToString(", ")),
                             style = MaterialTheme.typography.bodySmall,
                             color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
                         )

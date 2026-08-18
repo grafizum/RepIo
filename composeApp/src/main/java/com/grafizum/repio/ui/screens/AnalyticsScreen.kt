@@ -107,7 +107,7 @@ fun AnalyticsScreen(
                 "SUNDAY" -> sunShort
                 else -> monShort
             }
-            val vol = set.weightKg * set.reps
+            val vol = if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(set.exerciseName)) 0.0 else set.weightKg * set.reps
             map[shortDay] = (map[shortDay] ?: 0.0) + vol
         }
         map
@@ -137,11 +137,15 @@ fun AnalyticsScreen(
     }
 
     val maxWeightForExercise = exerciseLogs.maxOfOrNull { it.weightKg } ?: 0.0
-    val totalVolumeForExercise = exerciseLogs.sumOf { it.weightKg * it.reps }
+    val totalVolumeForExercise = exerciseLogs.sumOf { 
+        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    }
 
     // Logic for Weekly Report
     val totalSets = loggedSets.size
-    val totalVolume = loggedSets.sumOf { it.weightKg * it.reps }
+    val totalVolume = loggedSets.sumOf { 
+        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    }
     val topMuscleGroup = muscleGroupDistribution.maxByOrNull { it.value }?.key ?: "None"
     val activeDaysCount = remember(loggedSets) {
         loggedSets.map { it.dayOfWeek }.distinct().size
@@ -444,6 +448,16 @@ fun AnalyticsScreen(
                         } else {
                             exerciseLogs.take(5).forEach { set ->
                                 val dateStr = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(set.timestamp))
+                                val isBW = com.grafizum.repio.data.WorkoutTemplates.isBodyweightExercise(set.exerciseName)
+                                val isTime = com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(set.exerciseName)
+                                
+                                val logDetail = when {
+                                    isTime && isBW -> "${set.reps} sec"
+                                    isTime -> getString("weight_kg_intl", set.weightKg) + " x ${set.reps} sec"
+                                    isBW -> getString("reps_count", set.reps)
+                                    else -> getString("kg_x_reps", set.weightKg, set.reps)
+                                }
+
                                 Row(
                                     horizontalArrangement = Arrangement.SpaceBetween,
                                     modifier = Modifier
@@ -456,7 +470,7 @@ fun AnalyticsScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                     Text(
-                                        text = getString("kg_x_reps", set.weightKg, set.reps),
+                                        text = logDetail,
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
                                     )
                                 }

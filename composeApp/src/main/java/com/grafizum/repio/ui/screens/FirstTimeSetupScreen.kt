@@ -4,6 +4,8 @@ import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectHorizontalDragGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -360,10 +362,10 @@ fun FirstTimeSetupScreen(
 
                                         // GOAL IMPACT SUMMARY
                                         val goalImpactText = when(selectedWorkoutGoal) {
-                                            "goal_strength", "goal_olympic" -> "Focus: High intensity, low reps (1–5) for maximum neurological adaptation and strength."
-                                            "goal_bodybuilding", "goal_powerbuilding" -> "Focus: Moderate reps (8–12) for metabolic stress and maximum hypertrophy."
-                                            "goal_calisthenics", "goal_crossfit" -> "Focus: Higher reps (12–20) to build muscular endurance and skill-based capacity."
-                                            "goal_functional", "goal_athletic" -> "Focus: Dynamic movements with 10–15 reps to improve athletic performance."
+                                            "goal_strength", "goal_olympic" -> getString("goal_strength_desc")
+                                            "goal_bodybuilding", "goal_powerbuilding" -> getString("goal_bodybuilding_desc")
+                                            "goal_calisthenics", "goal_crossfit" -> getString("goal_calisthenics_desc")
+                                            "goal_functional", "goal_athletic" -> getString("goal_functional_desc")
                                             else -> ""
                                         }
                                         
@@ -398,8 +400,27 @@ fun FirstTimeSetupScreen(
                             modifier = Modifier
                                 .fillMaxWidth()
                                 .padding(4.dp)
+                                .pointerInput(selectedTab) {
+                                    var totalDrag = 0f
+                                    detectHorizontalDragGestures(
+                                        onDragEnd = {
+                                            if (totalDrag > 50) {
+                                                if (selectedTab < 2) selectedTab++
+                                            } else if (totalDrag < -50) {
+                                                if (selectedTab > 0) selectedTab--
+                                            }
+                                            totalDrag = 0f
+                                        },
+                                        onHorizontalDrag = { _, dragAmount ->
+                                            totalDrag += dragAmount
+                                        }
+                                    )
+                                }
                         ) {
                             val tabWidth = this.maxWidth / 3
+                            val density = LocalDensity.current
+                            val swipeThreshold = with(density) { 40.dp.toPx() }
+
                             val indicatorPosition by animateDpAsState(
                                 targetValue = tabWidth * selectedTab,
                                 animationSpec = spring(
@@ -410,7 +431,6 @@ fun FirstTimeSetupScreen(
                             )
 
                             // Sliding Indicator
-                            val density = LocalDensity.current
                             Surface(
                                 modifier = Modifier
                                     .width(tabWidth)
@@ -424,7 +444,24 @@ fun FirstTimeSetupScreen(
                             ) {}
 
                             Row(
-                                modifier = Modifier.fillMaxWidth(),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .pointerInput(selectedTab) {
+                                        var totalDrag = 0f
+                                        detectHorizontalDragGestures(
+                                            onDragEnd = {
+                                                if (totalDrag > swipeThreshold) {
+                                                    if (selectedTab < 2) selectedTab++
+                                                } else if (totalDrag < -swipeThreshold) {
+                                                    if (selectedTab > 0) selectedTab--
+                                                }
+                                                totalDrag = 0f
+                                            },
+                                            onHorizontalDrag = { _, dragAmount ->
+                                                totalDrag += dragAmount
+                                            }
+                                        )
+                                    },
                                 horizontalArrangement = Arrangement.spacedBy(0.0.dp)
                             ) {
                                 val tabs = listOf(
@@ -860,6 +897,15 @@ fun FirstTimeSetupScreen(
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
+                                                                if (exercise.targetIntensity.isNotBlank()) {
+                                                                    val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(exercise.targetIntensity)
+                                                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                                                    Text(
+                                                                        text = " • $displayIntensity",
+                                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                                        color = MaterialTheme.colorScheme.primary
+                                                                    )
+                                                                }
                                                             }
                                                         }
                                                         if (!isCustomSelectionMode) {
@@ -1253,7 +1299,7 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                 verticalAlignment = Alignment.CenterVertically
             ) {
                 Text(
-                    text = "Select all to train or use preset:",
+                    text = getString("select_body_parts_desc"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -1273,7 +1319,7 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                     ) {
                         Icon(Icons.Default.AutoFixHigh, null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text("Balanced Preset", style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        Text(getString("balanced_preset"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
             }
@@ -1390,7 +1436,7 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                         if (isSel) selected.remove(part) 
                                         else selected.add(part) 
                                     },
-                                    label = { Text(part, style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)) },
+                                    label = { Text(translateMuscleGroup(part), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)) },
                                     shape = RoundedCornerShape(10.dp),
                                     colors = FilterChipDefaults.filterChipColors(
                                         selectedContainerColor = MaterialTheme.colorScheme.primary,
@@ -1413,6 +1459,9 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
     val isDeveloper = LocalDeveloperSkin.current
     
     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        val density = LocalDensity.current
+        val swipeThreshold = with(density) { 40.dp.toPx() }
+        
         BoxWithConstraints(
             modifier = Modifier
                 .fillMaxWidth()
@@ -1421,6 +1470,22 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
                 .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
                 .padding(4.dp)
+                .pointerInput(selected) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (totalDrag > swipeThreshold) {
+                                if (selectedIndex < levels.size - 1) onSelect(levels[selectedIndex + 1])
+                            } else if (totalDrag < -swipeThreshold) {
+                                if (selectedIndex > 0) onSelect(levels[selectedIndex - 1])
+                            }
+                            totalDrag = 0f
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            totalDrag += dragAmount
+                        }
+                    )
+                }
         ) {
             val tabWidth = this.maxWidth / levels.size
             val indicatorPosition by animateDpAsState(
@@ -1585,11 +1650,22 @@ private fun TemplatePreviewDialog(
                                 Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(translateExerciseName(ex.name), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-                                        Text(
-                                            text = if (reps.contains("sec")) "${sets}x $reps | ${rest}s Rest" else "${sets}x $reps reps | ${rest}s Rest",
-                                            style = MaterialTheme.typography.labelSmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = if (reps.contains("sec")) "${sets}x $reps | ${rest}s Rest" else "${sets}x $reps reps | ${rest}s Rest",
+                                                style = MaterialTheme.typography.labelSmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (ex.targetIntensity.isNotBlank()) {
+                                                val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(ex.targetIntensity)
+                                                val displayIntensity = if (rpeExpl.isNotBlank()) "${ex.targetIntensity} ($rpeExpl)" else ex.targetIntensity
+                                                Text(
+                                                    text = " • $displayIntensity",
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
                                     }
                                 }
                             }
