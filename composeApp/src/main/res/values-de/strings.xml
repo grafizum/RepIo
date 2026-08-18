@@ -27,9 +27,9 @@
     <string name="app_settings">App-Einstellungen</string>
     <string name="keep_screen_on">Bildschirm anlassen</string>
     <string name="force_screen_stay_active">Bildschirm bleibt aktiv, solange die App offen ist</string>
-    <string name="resting_timer_duration">Satz-Pausen-Timer</string>
+    <string name="resting_timer_duration">Sätze</string>
     <string name="auto_countdown_interval">Zeit zwischen Sätzen der gleichen Übung</string>
-    <string name="exercise_transition_timer">Übungswechsel-Timer</string>
+    <string name="exercise_transition_timer">Workout</string>
     <string name="exercise_transition_timer_desc">Zeit beim Wechsel zu einer neuen Übung</string>
     <string name="color_theme">Farbschema</string>
     <string name="app_icon_selection">App-Symbol Auswahl</string>
@@ -42,7 +42,7 @@
     <string name="recreate">Neu erstellen</string>
     <string name="support_requests">Support-Anfragen</string>
     <string name="submit_feedback">Feedback senden oder Probleme melden</string>
-    <string name="open_support">Chat</string>
+    <string name="open_support">Support öffnen</string>
     <string name="open">Öffnen</string>
     <string name="done">Fertig</string>
     <string name="confirm_timer_change_title">Timer-Änderung bestätigen</string>
@@ -229,6 +229,7 @@
     <string name="select">Wählen</string>
     <string name="select_time">Zeit wählen</string>
     <string name="timer_durations">Timer-Dauer</string>
+    <string name="timer_settings_desc">\'Sätze\' für Pause zwischen Sätzen; \'Workout\' für Wechsel zwischen Übungen.</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Trainingsprogramm?</string>
     <string name="faq_change_program_a">Gehe zum Tab „Mein Training“ und tippe oben auf „Benutzerdefiniertes Training“, um eine neue Vorlage zu wählen oder einen eigenen Split zu erstellen.</string>
@@ -396,9 +397,9 @@
     <string name="include_exercises">Bestimmte Übungen einschließen</string>
     <string name="exclude_exercises">Bestimmte Übungen ausschließen</string>
     <string name="add_pref">Hinzufügen</string>
-    <string name="intensity_easy">Einfach (3-4 RIR)</string>
-    <string name="intensity_medium">Mittel (1-2 RIR)</string>
-    <string name="intensity_hard">Schwer (0-1 RIR)</string>
+    <string name="intensity_easy">Einfach</string>
+    <string name="intensity_medium">Mittel</string>
+    <string name="intensity_hard">Schwer</string>
     <string name="intensity_easy_desc">Erhaltungsvolumen (6-10 Sätze/Woche). Geringe neurologische Belastung, Fokus auf Technik und Konstanz.</string>
     <string name="intensity_medium_desc">Optimales Aufbauvolumen (10-15 Sätze/Woche). Ausgewogene Intensität für Muskelhypertrophie (MEV/MAV).</string>
     <string name="intensity_hard_desc">Maximales regenerierbares Volumen (15-20+ Sätze/Woche). Hohe Intensität an der Belastungsgrenze (MRV).</string>
@@ -473,4 +474,40 @@
     <string name="rir_0">0 RIR = RPE 10 (Absolutes Versagen)</string>
     <string name="rir_1">1 RIR = RPE 9</string>
     <string name="rir_2">2 RIR = RPE 8</string>
+    <string name="exercise_x_of_y_simple">Übung %1$d von %2$d</string>
+    <string name="bodyweight_label">Eigengewicht</string>
+    <string name="no_weight_needed">Kein Gewicht nötig</string>
+    <string name="balanced_preset">Ausgewogene Voreinstellung</string>
+    <string name="select_body_parts_desc">Alles auswählen oder Voreinstellung nutzen:</string>
+    <string name="goal_strength_desc">Fokus: Hohe Intensität, niedrige Wiederholungen (1–5) für maximale neurologische Anpassung und Kraft.</string>
+    <string name="goal_bodybuilding_desc">Fokus: Moderate Wiederholungen (8–12) für metabolischen Stress und maximale Hypertrophie.</string>
+    <string name="goal_calisthenics_desc">Fokus: Höhere Wiederholungen (12–20) zum Aufbau von Muskelausdauer und Körperbeherrschung.</string>
+    <string name="goal_functional_desc">Fokus: Dynamische Bewegungen mit 10–15 Wiederholungen zur Verbesserung der athletischen Langlebigkeit und Core-Kraft.</string>
+    <string name="insight_volume_title">Trainingsvolumen</string>
+    <string name="insight_volume_hard_desc">Hohes Volumen, das deine Regenerationsgrenzen austestet. Ideal für maximale Hypertrophie bei gutem Regenerationsmanagement.</string>
+    <string name="insight_volume_medium_desc">Optimales Volumen für stetiges Muskelwachstum und nachhaltige Fortschritte.</string>
+    <string name="insight_volume_easy_desc">Geringeres Volumen mit Fokus auf Technikerhalt und aktive Erholung.</string>
+    <string name="insight_frequency_title">Trainingsfrequenz</string>
+    <string name="insight_frequency_desc">Das Training von Muskelgruppen zweimal pro Woche liefert oft bessere Ergebnisse als einmalige Splits.</string>
+    <string name="insight_goal_title">Ziel-Ausrichtung</string>
+    <string name="insight_rest_title">Pausenintervalle</string>
+    <string name="insight_goal_bodybuilding_desc">Auf Hypertrophie ausgerichtetes Training mit moderaten Wiederholungsbereichen zur Maximierung des metabolischen Stresses.</string>
+    <string name="insight_rest_goal_bodybuilding_desc">Pausen von 60–90 Sekunden werden empfohlen, um Ermüdung und Volumen auszubalancieren.</string>
+    <string name="insight_goal_strength_desc">Kraftorientiertes Training mit hoher Intensität zur Verbesserung der motorischen Rekrutierung.</string>
+    <string name="insight_rest_goal_strength_desc">Längere Pausen (3–5 Min.) sind optimal für die Erholung des ATP-CP-Systems.</string>
+    <string name="ex_push_ups">Liegestütze</string>
+    <string name="ex_chin_ups">Klimmzüge (Untergriff)</string>
+    <string name="ex_bench_press">Bankdrücken</string>
+    <string name="ex_military_press">Military Press</string>
+    <string name="ex_lat_pulldown">Latzug</string>
+    <string name="ex_seated_row">Rudern am Kabelzug</string>
+    <string name="ex_leg_press">Beinpresse</string>
+    <string name="ex_leg_curls">Beinbeuger</string>
+    <string name="ex_leg_extensions">Beinstrecker</string>
+    <string name="ex_calf_raises">Wadenheben</string>
+    <string name="ex_hip_thrusts">Hip Thrusts</string>
+    <string name="ex_glute_bridges">Glute Bridges</string>
+    <string name="ex_tricep_pushdowns">Trizeps-Pushdowns</string>
+    <string name="ex_face_pulls">Face Pulls</string>
+    <string name="ex_side_raises">Seitheben</string>
 </resources>
