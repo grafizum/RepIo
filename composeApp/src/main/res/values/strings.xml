@@ -27,9 +27,9 @@
     <string name="app_settings">App Settings</string>
     <string name="keep_screen_on">Keep Screen On</string>
     <string name="force_screen_stay_active">Force screen to stay active while app is open</string>
-    <string name="resting_timer_duration">Set Rest Timer</string>
+    <string name="resting_timer_duration">Sets</string>
     <string name="auto_countdown_interval">Time between sets of the same exercise</string>
-    <string name="exercise_transition_timer">Exercise Transition Timer</string>
+    <string name="exercise_transition_timer">Workout</string>
     <string name="exercise_transition_timer_desc">Time when moving to a new exercise</string>
     <string name="color_theme">Color Theme</string>
     <string name="app_icon_selection">App Icon Selection</string>
@@ -42,7 +42,7 @@
     <string name="recreate">Recreate</string>
     <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
-    <string name="open_support">Chat</string>
+    <string name="open_support">Open Support</string>
     <string name="open">Open</string>
     <string name="done">Done</string>
     <string name="confirm_timer_change_title">Confirm Timer Change</string>
@@ -229,6 +229,7 @@
     <string name="select">Select</string>
     <string name="select_time">Select Time</string>
     <string name="timer_durations">Timer Durations</string>
+    <string name="timer_settings_desc">\'Sets\' for rest between sets; \'Workout\' for transitions between exercises.</string>
 
     <string name="faq_change_program_q">How to change my workout program?</string>
     <string name="faq_change_program_a">Go to the \'My Workout\' tab and tap \'Custom Workout\' at the top to select a new template or build your own.</string>
@@ -395,9 +396,9 @@
     <string name="include_exercises">Include specific exercises</string>
     <string name="exclude_exercises">Exclude specific exercises</string>
     <string name="add_pref">Add</string>
-    <string name="intensity_easy">Easy (3-4 RIR)</string>
-    <string name="intensity_medium">Medium (1-2 RIR)</string>
-    <string name="intensity_hard">Hard (0-1 RIR)</string>
+    <string name="intensity_easy">Easy</string>
+    <string name="intensity_medium">Medium</string>
+    <string name="intensity_hard">Hard</string>
     <string name="intensity_easy_desc">Maintenance volume (6-10 sets/week). Lower neurological demand, focus on technique and consistency.</string>
     <string name="intensity_medium_desc">Optimal Growth volume (10-15 sets/week). Balanced intensity for muscle hypertrophy (MEV/MAV).</string>
     <string name="intensity_hard_desc">Max Recoverable Volume (15-20+ sets/week). High intensity pushing your recovery capacity (MRV).</string>
@@ -472,4 +473,40 @@
     <string name="rir_0">0 RIR = RPE 10 (Absolute failure)</string>
     <string name="rir_1">1 RIR = RPE 9</string>
     <string name="rir_2">2 RIR = RPE 8</string>
+    <string name="exercise_x_of_y_simple">Exercise %1$d of %2$d</string>
+    <string name="bodyweight_label">Bodyweight</string>
+    <string name="no_weight_needed">No weight needed</string>
+    <string name="balanced_preset">Balanced Preset</string>
+    <string name="select_body_parts_desc">Select all to train or use preset:</string>
+    <string name="goal_strength_desc">Focus: High intensity, low reps (1–5) for maximum neurological adaptation and strength.</string>
+    <string name="goal_bodybuilding_desc">Focus: Moderate reps (8–12) for metabolic stress and maximum hypertrophy.</string>
+    <string name="goal_calisthenics_desc">Focus: Higher reps (12–20) to build muscular endurance and body mastery.</string>
+    <string name="goal_functional_desc">Focus: Dynamic movements with 10–15 reps to improve athletic longevity and core strength.</string>
+    <string name="insight_volume_title">Training Volume</string>
+    <string name="insight_volume_hard_desc">High volume pushing your recovery limits. Ideal for maximizing hypertrophy if recovery is managed well.</string>
+    <string name="insight_volume_medium_desc">Optimal volume for consistent muscle growth and sustainable progress.</string>
+    <string name="insight_volume_easy_desc">Lower volume focused on technique maintenance and active recovery.</string>
+    <string name="insight_frequency_title">Training Frequency</string>
+    <string name="insight_frequency_desc">Distributing muscle groups twice a week often yields superior results compared to once-a-week splits.</string>
+    <string name="insight_goal_title">Goal Alignment</string>
+    <string name="insight_rest_title">Rest Intervals</string>
+    <string name="insight_goal_bodybuilding_desc">Hypertrophy-focused training using moderate rep ranges to maximize metabolic stress.</string>
+    <string name="insight_rest_goal_bodybuilding_desc">Rest periods of 60–90 seconds are recommended to balance fatigue and volume.</string>
+    <string name="insight_goal_strength_desc">Strength-focused training with high intensity to improve motor unit recruitment.</string>
+    <string name="insight_rest_goal_strength_desc">Longer rest (3–5 mins) is optimal for recovery of the ATP-CP system.</string>
+    <string name="ex_push_ups">Push-ups</string>
+    <string name="ex_chin_ups">Chin-ups</string>
+    <string name="ex_bench_press">Bench Press</string>
+    <string name="ex_military_press">Military Press</string>
+    <string name="ex_lat_pulldown">Lat Pulldown</string>
+    <string name="ex_seated_row">Seated Row</string>
+    <string name="ex_leg_press">Leg Press</string>
+    <string name="ex_leg_curls">Leg Curls</string>
+    <string name="ex_leg_extensions">Leg Extensions</string>
+    <string name="ex_calf_raises">Calf Raises</string>
+    <string name="ex_hip_thrusts">Hip Thrusts</string>
+    <string name="ex_glute_bridges">Glute Bridges</string>
+    <string name="ex_tricep_pushdowns">Tricep Pushdowns</string>
+    <string name="ex_face_pulls">Face Pulls</string>
+    <string name="ex_side_raises">Side Raises</string>
 </resources>

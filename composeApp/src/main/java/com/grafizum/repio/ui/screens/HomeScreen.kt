@@ -54,7 +54,9 @@ fun HomeScreen(
     val todayExercises = allExercises.filter { it.dayOfWeek == todayStr }
 
     val totalSetsThisWeek = loggedSets.size
-    val totalVolumeThisWeek = loggedSets.sumOf { it.weightKg * it.reps }
+    val totalVolumeThisWeek = loggedSets.sumOf { 
+        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    }
     val isDeveloper = LocalDeveloperSkin.current
 
     Column(
@@ -322,7 +324,7 @@ fun HomeScreen(
                         onExpandedChange = { expanded ->
                             expandedExerciseId = if (expanded) exercise.id else null
                         },
-                        showActions = false
+                        showActions = true
                     )
                 }
             }

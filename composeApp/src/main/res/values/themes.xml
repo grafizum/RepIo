@@ -3,74 +3,120 @@
 
     <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar" />
 
+    <!-- Post-splash themes for seamless transition -->
+    <style name="Theme.App.PostSplash.Flame" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_flame</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Beige" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_beige</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Purple" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_purple</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Emerald" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_emerald</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Crimson" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_crimson</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Azure" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_azure</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Ocean" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_ocean</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Rose" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_rose</item>
+    </style>
+
+    <style name="Theme.App.PostSplash.Retro" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_retro</item>
+    </style>
+
     <!-- Base splash screen theme -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
         <item name="windowSplashScreenBackground">@color/bg_flame</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_main_logo_foreground_orange</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_flame</item>
     </style>
 
     <!-- Flame / Dark Theme Splash -->
     <style name="Theme.App.Starting.Flame" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Flame</item>
         <item name="windowSplashScreenBackground">@color/bg_flame</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_main_logo_foreground_orange</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_flame</item>
     </style>
 
     <!-- Beige / Light Theme Splash -->
     <style name="Theme.App.Starting.Beige" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Beige</item>
         <item name="windowSplashScreenBackground">@color/bg_beige</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_main_logo_foreground_beige</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_beige</item>
     </style>
 
     <!-- Purple Splash -->
     <style name="Theme.App.Starting.Purple" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Purple</item>
         <item name="windowSplashScreenBackground">@color/bg_purple</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_purple</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_purple</item>
     </style>
 
     <!-- Emerald Splash -->
     <style name="Theme.App.Starting.Emerald" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Emerald</item>
         <item name="windowSplashScreenBackground">@color/bg_emerald</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_emerald</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_emerald</item>
     </style>
 
     <!-- Crimson Splash -->
     <style name="Theme.App.Starting.Crimson" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Crimson</item>
         <item name="windowSplashScreenBackground">@color/bg_crimson</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_crimson</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_crimson</item>
     </style>
 
     <!-- Azure Splash -->
     <style name="Theme.App.Starting.Azure" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Azure</item>
         <item name="windowSplashScreenBackground">@color/bg_azure</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_azure</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_azure</item>
     </style>
 
     <!-- Ocean Splash -->
     <style name="Theme.App.Starting.Ocean" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Ocean</item>
         <item name="windowSplashScreenBackground">@color/bg_ocean</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_ocean</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_ocean</item>
     </style>
 
     <!-- Rose Splash -->
     <style name="Theme.App.Starting.Rose" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Rose</item>
         <item name="windowSplashScreenBackground">@color/bg_rose</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_rose</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_rose</item>
     </style>
 
     <!-- Retro / Developer Splash -->
     <style name="Theme.App.Starting.Retro" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Retro</item>
         <item name="windowSplashScreenBackground">@color/bg_retro</item>
-        <item name="windowSplashScreenAnimatedIcon">@drawable/ic_launcher_foreground_retro</item>
+        <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_retro</item>
     </style>
 

@@ -27,9 +27,9 @@
     <string name="app_settings">Impostazioni App</string>
     <string name="keep_screen_on">Mantieni schermo attivo</string>
     <string name="force_screen_stay_active">Forza lo schermo a restare attivo con l\'app aperta</string>
-    <string name="resting_timer_duration">Timer Riposo Serie</string>
+    <string name="resting_timer_duration">Serie</string>
     <string name="auto_countdown_interval">Tempo tra le serie dello stesso esercizio</string>
-    <string name="exercise_transition_timer">Timer Transizione Esercizio</string>
+    <string name="exercise_transition_timer">Workout</string>
     <string name="exercise_transition_timer_desc">Tempo quando si passa a un nuovo esercizio</string>
     <string name="color_theme">Tema colori</string>
     <string name="app_icon_selection">Selezione Icona App</string>
@@ -42,7 +42,7 @@
     <string name="recreate">Ricrea</string>
     <string name="support_requests">Richieste di supporto</string>
     <string name="submit_feedback">Invia feedback o segnala problemi</string>
-    <string name="open_support">Chat</string>
+    <string name="open_support">Apri supporto</string>
     <string name="open">Apri</string>
     <string name="done">Fatto</string>
     <string name="confirm_timer_change_title">Conferma Modifica Timer</string>
@@ -229,6 +229,7 @@
     <string name="select">Seleziona</string>
     <string name="select_time">Scegli tempo</string>
     <string name="timer_durations">Durata Timer</string>
+    <string name="timer_settings_desc">\'Serie\' per il riposo tra le serie; \'Workout\' per le transizioni tra gli esercizi.</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma di allenamento?</string>
     <string name="faq_change_program_a">Vai nella scheda \"Il mio allenamento\" e tocca \"Allenamento personalizzato\" in alto per selezionare un nuovo modello o crearne uno tuo.</string>
@@ -395,9 +396,9 @@
     <string name="include_exercises">Includi esercizi specifici</string>
     <string name="exclude_exercises">Escludi esercizi specifici</string>
     <string name="add_pref">Aggiungi</string>
-    <string name="intensity_easy">Leggera (3-4 RIR)</string>
-    <string name="intensity_medium">Media (1-2 RIR)</string>
-    <string name="intensity_hard">Difficile (0-1 RIR)</string>
+    <string name="intensity_easy">Leggera</string>
+    <string name="intensity_medium">Media</string>
+    <string name="intensity_hard">Difficile</string>
     <string name="intensity_easy_desc">Volume di mantenimento (6-10 serie/settimana). Basso stress neurologico, focus su tecnica e costanza.</string>
     <string name="intensity_medium_desc">Volume ottimale per la crescita (10-15 serie/settimana). Intensità bilanciata per l\'ipertrofia (MEV/MAV).</string>
     <string name="intensity_hard_desc">Volume massimo recuperabile (15-20+ serie/settimana). Alta intensità al limite della capacità di recupero (MRV).</string>
@@ -472,4 +473,40 @@
     <string name="rir_0">0 RIR = RPE 10 (Cedimento totale)</string>
     <string name="rir_1">1 RIR = RPE 9</string>
     <string name="rir_2">2 RIR = RPE 8</string>
+    <string name="exercise_x_of_y_simple">Esercizio %1$d di %2$d</string>
+    <string name="bodyweight_label">Corpo libero</string>
+    <string name="no_weight_needed">Nessun peso necessario</string>
+    <string name="balanced_preset">Preset Bilanciato</string>
+    <string name="select_body_parts_desc">Seleziona tutto o usa un preset:</string>
+    <string name="goal_strength_desc">Focus: Alta intensità, basse ripetizioni (1–5) per massimo adattamento neurologico e forza.</string>
+    <string name="goal_bodybuilding_desc">Focus: Ripetizioni moderate (8–12) per stress metabolico e massima ipertrofia.</string>
+    <string name="goal_calisthenics_desc">Focus: Ripetizioni elevate (12–20) per costruire resistenza muscolare e padronanza del corpo.</string>
+    <string name="goal_functional_desc">Focus: Movimenti dinamici con 10–15 ripetizioni per migliorare la longevità atletica e la forza del core.</string>
+    <string name="insight_volume_title">Volume di Allenamento</string>
+    <string name="insight_volume_hard_desc">Volume elevato che mette alla prova i tuoi limiti di recupero. Ideale per massimizzare l\'ipertrofia se il recupero è gestito bene.</string>
+    <string name="insight_volume_medium_desc">Volume ottimale per una crescita muscolare costante e progressi sostenibili.</string>
+    <string name="insight_volume_easy_desc">Volume ridotto focalizzato sul mantenimento della tecnica e sul recupero attivo.</string>
+    <string name="insight_frequency_title">Frequenza di Allenamento</string>
+    <string name="insight_frequency_desc">Allenare i gruppi muscolari due volte a settimana spesso produce risultati superiori rispetto agli split mono-settimanali.</string>
+    <string name="insight_goal_title">Allineamento Obiettivi</string>
+    <string name="insight_rest_title">Intervalli di Riposo</string>
+    <string name="insight_goal_bodybuilding_desc">Allenamento focalizzato sull\'ipertrofia con intervalli di ripetizioni moderati per massimizzare lo stress metabolico.</string>
+    <string name="insight_rest_goal_bodybuilding_desc">Si raccomandano periodi di riposo di 60–90 secondi per bilanciare fatica e volume.</string>
+    <string name="insight_goal_strength_desc">Allenamento focalizzato sulla forza con alta intensità per migliorare il reclutamento delle unità motorie.</string>
+    <string name="insight_rest_goal_strength_desc">Un riposo più lungo (3–5 min) è ottimale per il recupero del sistema ATP-CP.</string>
+    <string name="ex_push_ups">Piegamenti</string>
+    <string name="ex_chin_ups">Trazioni presa inversa</string>
+    <string name="ex_bench_press">Panca piana</string>
+    <string name="ex_military_press">Military Press</string>
+    <string name="ex_lat_pulldown">Lat Pulldown</string>
+    <string name="ex_seated_row">Rematore seduto</string>
+    <string name="ex_leg_press">Leg Press</string>
+    <string name="ex_leg_curls">Leg Curl</string>
+    <string name="ex_leg_extensions">Leg Extension</string>
+    <string name="ex_calf_raises">Calf Raise</string>
+    <string name="ex_hip_thrusts">Hip Thrust</string>
+    <string name="ex_glute_bridges">Ponte glutei</string>
+    <string name="ex_tricep_pushdowns">Pushdown tricipiti</string>
+    <string name="ex_face_pulls">Face Pull</string>
+    <string name="ex_side_raises">Alzate laterali</string>
 </resources>
