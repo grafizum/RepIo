@@ -66,11 +66,12 @@ object IconSwitchHelper {
             }
         }
 
-        // 2. Disable the base activity as well, just in case
+        // 2. We keep the base MainActivity enabled so Android Studio can always launch it for debugging
+        // even if the icon variants are toggled.
         try {
             val baseComponent = ComponentName(packageName, BASE_ICON_FQN)
-            if (packageManager.getComponentEnabledSetting(baseComponent) != PackageManager.COMPONENT_ENABLED_STATE_DISABLED) {
-                packageManager.setComponentEnabledSetting(baseComponent, PackageManager.COMPONENT_ENABLED_STATE_DISABLED, PackageManager.DONT_KILL_APP)
+            if (packageManager.getComponentEnabledSetting(baseComponent) != PackageManager.COMPONENT_ENABLED_STATE_ENABLED) {
+                packageManager.setComponentEnabledSetting(baseComponent, PackageManager.COMPONENT_ENABLED_STATE_ENABLED, PackageManager.DONT_KILL_APP)
             }
         } catch (e: Exception) {}
 

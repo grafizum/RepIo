@@ -28,6 +28,9 @@
             android:exported="true"
             android:label="@string/app_name"
             android:theme="@style/Theme.App.Starting">
+            <intent-filter>
+                <action android:name="android.intent.action.MAIN" />
+            </intent-filter>
         </activity>
 
         <!-- Flame / Dark Theme Entry Point -->
