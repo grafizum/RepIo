@@ -1,5 +1,6 @@
 package com.grafizum.repio.ui.screens
 
+import androidx.compose.ui.layout.layout
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -7,17 +8,14 @@ import android.os.Build
 import android.provider.Settings
 import androidx.activity.compose.rememberLauncherForActivityResult
 import androidx.activity.result.contract.ActivityResultContracts
-import androidx.compose.animation.AnimatedVisibility
-import androidx.compose.animation.fadeIn
-import androidx.compose.animation.fadeOut
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
 import androidx.compose.foundation.lazy.items
@@ -35,6 +33,7 @@ import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.platform.LocalContext
@@ -46,6 +45,10 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.layout.MeasureResult
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
@@ -70,36 +73,12 @@ fun WorkoutNowScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
     onChangeRoutine: (() -> Unit)? = null,
+    isActive: Boolean = true,
     modifier: Modifier = Modifier
 ) {
     val workoutState by viewModel.workoutNowState.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
-    val context = LocalContext.current
-    val lifecycleOwner = LocalLifecycleOwner.current
-
-    var notificationsEnabled by remember {
-        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
-    }
-
-    // Refresh notification status when app comes to foreground
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
-        }
-    }
-
-    val permissionLauncher = rememberLauncherForActivityResult(
-        ActivityResultContracts.RequestPermission()
-    ) { isGranted ->
-        notificationsEnabled = isGranted || NotificationManagerCompat.from(context).areNotificationsEnabled()
-    }
 
     var showRestartDialog by remember { mutableStateOf(false) }
     var showCustomWeightDialog by remember { mutableStateOf(false) }
@@ -107,6 +86,15 @@ fun WorkoutNowScreen(
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
     val themeKey by viewModel.themeOption.collectAsState()
+
+    // Reset edit state when tab becomes inactive
+    LaunchedEffect(isActive) {
+        if (!isActive) {
+            editingExercise = null
+            showCustomWeightDialog = false
+            showRestartDialog = false
+        }
+    }
 
     val currentDayExercises = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
@@ -183,7 +171,7 @@ fun WorkoutNowScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // COMPACT HEADER
+        // COMPACT HEADER (FIXED)
         Row(
             verticalAlignment = Alignment.CenterVertically,
             horizontalArrangement = Arrangement.SpaceBetween,
@@ -199,14 +187,14 @@ fun WorkoutNowScreen(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.FitnessCenter,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -232,7 +220,9 @@ fun WorkoutNowScreen(
                         Text(
                             text = trainingType,
                             style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
@@ -242,15 +232,27 @@ fun WorkoutNowScreen(
                 if (onChangeRoutine != null) {
                     OutlinedButton(
                         onClick = onChangeRoutine,
-                        shape = RoundedCornerShape(10.dp),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.outlinedButtonColors(
+                            containerColor = if (isDeveloper) Color.Transparent else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        ),
+                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier
-                            .height(32.dp)
+                            .height(36.dp)
                             .semantics { testTag = "change_workout_button" }
                     ) {
-                        Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(getString("workout"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        Icon(
+                            imageVector = Icons.Default.Edit,
+                            contentDescription = null,
+                            modifier = Modifier.size(16.dp)
+                        )
+                        Spacer(modifier = Modifier.width(6.dp))
+                        Text(
+                            text = getString("workout"),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
+                        )
                     }
                 }
             }
@@ -258,761 +260,721 @@ fun WorkoutNowScreen(
 
         Spacer(modifier = Modifier.height(16.dp))
 
-        Column(
+        val today = remember { getTodayDayOfWeek() }
+        com.grafizum.repio.ui.components.WorkoutDayWheel(
+            selectedDay = workoutState.selectedDayOfWeek,
+            onDaySelected = { viewModel.selectDayForWorkoutNow(it) },
+            today = today
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(
             modifier = Modifier
                 .fillMaxSize()
-                .verticalScroll(rememberScrollState()),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+                .weight(1f)
         ) {
-            val today = remember { getTodayDayOfWeek() }
-            val allDays = DayOfWeekEnum.entries
-            val todayIndex = allDays.indexOfFirst { it.name == today }.coerceAtLeast(0)
-            val orderedDays = allDays.drop(todayIndex) + allDays.take(todayIndex)
-
-            val nestedScrollConnection = remember {
-                object : NestedScrollConnection {
-                    override fun onPostScroll(
-                        consumed: Offset,
-                        available: Offset,
-                        source: NestedScrollSource
-                    ): Offset {
-                        return Offset(x = available.x, y = 0f)
-                    }
-                }
-            }
-
-            // DAY SELECTOR CHIPS
-            Box(
-                modifier = Modifier
-                    .nestedScroll(nestedScrollConnection)
-                    .fillMaxWidth(),
-                contentAlignment = Alignment.CenterEnd
-            ) {
-                LazyRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    contentPadding = PaddingValues(end = 24.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    items(orderedDays) { dayEnum ->
-                        val isSelected = dayEnum.name == workoutState.selectedDayOfWeek
-                        val isToday = dayEnum.name == today
-                        FilterChip(
-                            selected = isSelected,
-                            onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
-                            label = {
-                                val shortName = when (dayEnum) {
-                                    DayOfWeekEnum.MONDAY -> getString("monday_short")
-                                    DayOfWeekEnum.TUESDAY -> getString("tuesday_short")
-                                    DayOfWeekEnum.WEDNESDAY -> getString("wednesday_short")
-                                    DayOfWeekEnum.THURSDAY -> getString("thursday_short")
-                                    DayOfWeekEnum.FRIDAY -> getString("friday_short")
-                                    DayOfWeekEnum.SATURDAY -> getString("saturday_short")
-                                    DayOfWeekEnum.SUNDAY -> getString("sunday_short")
-                                }
-                                Text(
-                                    text = shortName,
-                                    fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Normal
-                                )
-                            },
-                            border = FilterChipDefaults.filterChipBorder(
-                                enabled = true,
-                                selected = isSelected,
-                                borderColor = if (isToday && !isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                borderWidth = if (isToday && !isSelected) 2.dp else 1.dp,
-                                selectedBorderColor = MaterialTheme.colorScheme.primary,
-                                selectedBorderWidth = if (isToday) 2.dp else 1.dp
-                            ),
-                            colors = FilterChipDefaults.filterChipColors(
-                                selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                                selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
-                            )
-                        )
-                    }
-                }
-
-                Icon(
-                    imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
-                    modifier = Modifier
-                        .size(14.dp)
-                        .padding(end = 4.dp)
-                )
-            }
-
-            if (currentDayExercises.isEmpty()) {
-                // Empty / Rest Day State
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(48.dp)
-                        )
-                        Spacer(modifier = Modifier.height(12.dp))
-                        Text(
-                            text = getString("rest_recovery_day"),
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = getString("rest_recovery_recommendation", dayOfWeekDisplayName(workoutState.selectedDayOfWeek)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            textAlign = TextAlign.Center,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-                }
-            } else if (workoutState.isWorkoutCompleted) {
-                // WORKOUT COMPLETED CELEBRATION VIEW
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier
-                            .padding(24.dp)
-                            .fillMaxWidth(),
-                        horizontalAlignment = Alignment.CenterHorizontally
-                    ) {
-                        Box(
-                            modifier = Modifier
-                                .size(72.dp)
-                                .clip(CircleShape)
-                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                            contentAlignment = Alignment.Center
-                        ) {
-                            Icon(
-                                imageVector = Icons.Default.EmojiEvents,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(40.dp)
-                            )
-                        }
-                        Spacer(modifier = Modifier.height(16.dp))
-                        Text(
-                            text = getString("workout_completed_title"),
-                            style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onSurface
-                        )
-                        Spacer(modifier = Modifier.height(8.dp))
-                        Text(
-                            text = getString("workout_completed_text", workoutState.totalSetsLoggedToday, dayOfWeekDisplayName(workoutState.selectedDayOfWeek)),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            textAlign = TextAlign.Center
-                        )
-                        Spacer(modifier = Modifier.height(24.dp))
-
-                        Button(
-                            onClick = { viewModel.resetWorkoutSession() },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = MaterialTheme.colorScheme.primary,
-                                contentColor = MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = RoundedCornerShape(16.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = getString("start_workout_again"),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                }
-            } else {
-                // ACTIVE WORKOUT SESSION VIEW
-                val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, currentDayExercises.size - 1)
-                val currentExercise = currentDayExercises[exerciseIndex]
+            AnimatedContent(
+                targetState = workoutState.selectedDayOfWeek,
+                transitionSpec = {
+                    val allDaysEnum = DayOfWeekEnum.entries
+                    val initialIndex = allDaysEnum.indexOfFirst { it.name == initialState }
+                    val targetIndex = allDaysEnum.indexOfFirst { it.name == targetState }
+                    
+                    if (targetIndex > initialIndex) {
+                        (slideInHorizontally { width -> width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> -width } + fadeOut(tween(300)))
+                    } else {
+                        (slideInHorizontally { width -> -width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> width } + fadeOut(tween(300)))
+                    }.using(SizeTransform(clip = false))
+                },
+                label = "DayTransition"
+            ) { targetDay ->
+                val dayExercises = allExercises.filter { it.dayOfWeek == targetDay }
                 
-                val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
-                val isBodyweight = WorkoutTemplates.isBodyweightExercise(currentExercise.name)
-                val totalExercises = currentDayExercises.size
-
-                val nextExercise = if (exerciseIndex + 1 < currentDayExercises.size) {
-                    currentDayExercises[exerciseIndex + 1]
-                } else null
-
-                Column {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        val labelText = if (isDeveloper) {
-                            getString("exercise_x_of_y_simple", exerciseIndex + 1, totalExercises)
-                        } else {
-                            getString("exercise_x_of_y", exerciseIndex + 1, totalExercises, workoutState.currentSetNumber, currentExercise.targetSets)
-                        }
-                        
-                        Text(
-                            text = labelText,
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary
-                        )
-
-                        Button(
-                            onClick = { showRestartDialog = true },
-                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                            ),
-                            border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                Column(modifier = Modifier.fillMaxSize()) {
+                    if (dayExercises.isEmpty()) {
+                        // Empty / Rest Day State
+                        Column(
                             modifier = Modifier
-                                .height(32.dp)
-                                .semantics { testTag = "restart_workout_button" }
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Icon(
-                                imageVector = Icons.Default.Refresh,
-                                contentDescription = getString("restart"),
-                                modifier = Modifier.size(14.dp)
-                            )
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(
-                                getString("restart"),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                            )
-                        }
-                    }
-                    Spacer(modifier = Modifier.height(6.dp))
-                    val progress = ((exerciseIndex.toFloat() + (workoutState.currentSetNumber.toFloat() / currentExercise.targetSets)) / totalExercises.toFloat()).coerceIn(0f, 1f)
-                    LinearProgressIndicator(
-                        progress = { progress },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .height(8.dp)
-                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(4.dp))
-                            .border(if (isDeveloper) BorderStroke(1.dp, Color.White) else BorderStroke(0.dp, Color.Transparent)),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                        trackColor = MaterialTheme.colorScheme.surfaceVariant
-                    )
-                }
-
-                // TIMER AREA
-                val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
-                val isExTimer = workoutState.isExerciseTimerActive
-
-                if (isTimerActive && !isExTimer) {
-                    // Running Rest Timer Card (Only for Rest)
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(
-                            containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                            contentColor = MaterialTheme.colorScheme.primary
-                        ),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.padding(16.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(
-                                    imageVector = Icons.Default.Timer,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Column {
-                                    val label = if (workoutState.currentSetNumber == 1) {
-                                        getString("exercise_transition_label")
-                                    } else {
-                                        getString("rest_timer")
-                                    }
-                                    Text(
-                                        text = label,
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
-                                    )
-                                    Text(
-                                        text = getString("seconds_remaining", workoutState.restTimerSeconds),
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                if (!notificationsEnabled) {
-                                    IconButton(onClick = {
-                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
-                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
-                                        } else {
-                                            // Open app settings for older versions if they manually disabled them
-                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
-                                                data = Uri.fromParts("package", context.packageName, null)
-                                            }
-                                            context.startActivity(intent)
-                                        }
-                                    }) {
-                                        Icon(
-                                            imageVector = Icons.Default.NotificationsActive,
-                                            contentDescription = getString("allow_notifications"),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-
-                                IconButton(onClick = { viewModel.stopTimer() }) {
-                                    Icon(
-                                        imageVector = Icons.Default.SkipNext,
-                                        contentDescription = "Skip Timer",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // CURRENT EXERCISE CARD
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 4.dp),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                MuscleGroupBadge(muscleGroup = currentExercise.muscleGroup)
-                                
-                                val specificMuscle = currentExercise.muscleGroup
-                                val topic = WorkoutTemplates.getTopicForMuscle(specificMuscle)
-                                if (!specificMuscle.equals(topic, ignoreCase = true)) {
-                                    Surface(
-                                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-                                        contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary,
-                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(4.dp),
-                                        border = BorderStroke(if (isDeveloper) 1.dp else 0.5.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
-                                    ) {
-                                        Text(
-                                            text = com.grafizum.repio.ui.components.translateMuscleGroup(specificMuscle).uppercase(),
-                                            style = MaterialTheme.typography.labelSmall.copy(
-                                                fontWeight = FontWeight.ExtraBold,
-                                                fontSize = 9.sp,
-                                                letterSpacing = 0.5.sp
-                                            ),
-                                            modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                        )
-                                    }
-                                }
-                            }
-                            
-                            Surface(
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(8.dp)
-                            ) {
-                                Text(
-                                    text = getString("set_x_of_y", workoutState.currentSetNumber, currentExercise.targetSets),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        var showPeek by remember { mutableStateOf(false) }
-                        val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup, currentExercise.targetIntensity)
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
-                                style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface,
-                                modifier = Modifier.weight(1f),
-                                maxLines = if (isDeveloper) 2 else 1,
-                                overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
-                            )
-
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                IconButton(
-                                    onClick = { showPeek = !showPeek },
-                                    modifier = Modifier.size(32.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                        contentDescription = "Quick Peek",
-                                        tint = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-
-                        AnimatedVisibility(visible = showPeek) {
-                            Column(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
-                                Surface(
-                                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                                    modifier = Modifier.fillMaxWidth()
-                                ) {
-                                    Row(modifier = Modifier.padding(12.dp)) {
-                                        Icon(
-                                            imageVector = Icons.Default.Info,
-                                            contentDescription = null,
-                                            modifier = Modifier.size(16.dp),
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = description,
-                                            style = MaterialTheme.typography.bodySmall,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = if (isTimeBased) getString("sets_x_time", currentExercise.targetSets, currentExercise.targetReps)
-                                           else getString("sets_x_reps", currentExercise.targetSets, currentExercise.targetReps),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (currentExercise.targetIntensity.isNotBlank()) {
-                                    val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(currentExercise.targetIntensity)
-                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${currentExercise.targetIntensity} ($rpeExpl)" else currentExercise.targetIntensity
-                                    Text(
-                                        text = " • $displayIntensity",
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
-                                    )
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            ExerciseVideoLinkButton(
-                                videoUrl = currentExercise.videoUrl,
-                                onSaveDemoUrl = { newUrl ->
-                                    viewModel.saveExercise(currentExercise.copy(videoUrl = newUrl))
-                                },
-                                modifier = Modifier.height(44.dp)
-                            )
-
-                            Spacer(modifier = Modifier.width(8.dp))
-
-                            Surface(
-                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                                modifier = Modifier
-                                    .height(44.dp)
-                                    .weight(1f, fill = false)
-                                    .semantics { testTag = "next_up_exercise_card" }
+                            Card(
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(
-                                    modifier = Modifier.padding(start = 16.dp, end = 12.dp),
-                                    verticalArrangement = Arrangement.Center,
-                                    horizontalAlignment = Alignment.End
+                                    modifier = Modifier
+                                        .padding(24.dp)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
                                 ) {
-                                    Text(
-                                        text = getString("next_up"),
-                                        style = MaterialTheme.typography.labelSmall.copy(
-                                            fontWeight = FontWeight.ExtraBold,
-                                            letterSpacing = 0.5.sp
-                                        ),
-                                        color = MaterialTheme.colorScheme.primary
+                                    Icon(
+                                        imageVector = Icons.Default.FitnessCenter,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(48.dp)
                                     )
-                                    Spacer(modifier = Modifier.height(2.dp))
-                                    if (nextExercise != null) {
-                                        Text(
-                                            text = com.grafizum.repio.ui.components.translateExerciseName(nextExercise.name),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            maxLines = 1,
-                                            overflow = TextOverflow.Ellipsis
-                                        )
-                                    } else {
-                                        Text(
-                                            text = getString("next_up_none"),
-                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-
-                // STEPPERS AND WEIGHT CUSTOMIZATION
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(
-                        modifier = Modifier.padding(20.dp),
-                        verticalArrangement = Arrangement.spacedBy(16.dp)
-                    ) {
-                        Text(
-                            text = getString("log_current_set_parameters"),
-                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                        )
-
-                        // WEIGHT SECTION
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column {
-                                Text(
-                                    text = getString("weight"),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
+                                    Spacer(modifier = Modifier.height(12.dp))
                                     Text(
-                                        text = if (isBodyweight) getString("bodyweight_label") else getString("weight_kg_intl", workoutState.currentWeightKg),
-                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isBodyweight) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                                        text = getString("rest_recovery_day"),
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                     )
-
-                                    if (!isBodyweight) {
-                                        Box(
-                                            contentAlignment = Alignment.Center,
-                                            modifier = Modifier
-                                                .size(20.dp)
-                                                .clip(CircleShape)
-                                                .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                                .clickable {
-                                                    customWeightInput = workoutState.currentWeightKg.toString()
-                                                    showCustomWeightDialog = true
-                                                }
-                                                .semantics { testTag = "modify_weight_button" }
-                                        ) {
-                                            Icon(
-                                                imageVector = Icons.Default.Edit,
-                                                contentDescription = "Modify Weight",
-                                                modifier = Modifier.size(11.dp),
-                                                tint = MaterialTheme.colorScheme.primary
-                                            )
-                                        }
-                                    }
-                                }
-                            }
-
-                            if (!isBodyweight) {
-                                Row(
-                                    verticalAlignment = Alignment.CenterVertically,
-                                    horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                ) {
-                                    val canDecrementWeight = workoutState.currentWeightKg > 0
-                                    IconButton(
-                                        onClick = { viewModel.decrementWeight() },
-                                        enabled = canDecrementWeight,
-                                        modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                    }
-
-                                    IconButton(
-                                        onClick = { viewModel.incrementWeight() },
-                                        modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
-                                    }
-                                }
-                            } else {
-                                // Inform user it's bodyweight
-                                Surface(
-                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                                    shape = RoundedCornerShape(8.dp)
-                                ) {
+                                    Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = getString("no_weight_needed"),
-                                        style = MaterialTheme.typography.labelSmall,
-                                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                        text = getString("rest_recovery_recommendation", dayOfWeekDisplayName(targetDay)),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        textAlign = TextAlign.Center,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant
                                     )
                                 }
                             }
                         }
-
-                        // REPS or TIME (Constrained to plan range)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
+                    } else if (workoutState.isWorkoutCompleted && targetDay == workoutState.selectedDayOfWeek) {
+                        // WORKOUT COMPLETED CELEBRATION VIEW
+                        Column(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .verticalScroll(rememberScrollState()),
+                            verticalArrangement = Arrangement.Center
                         ) {
-                            Column {
-                                Text(
-                                    text = if (isTimeBased) getString("time_label") else getString("reps_completed"),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else getString("reps_count", workoutState.currentReps),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                            }
-
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                            Card(
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
                             ) {
-                                if (isTimeBased) {
-                                    val canDecreaseTime = workoutState.currentExerciseSeconds > workoutState.minExerciseSeconds
-                                    IconButton(
-                                        onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 5) },
-                                        enabled = canDecreaseTime,
-                                        modifier = Modifier.clip(CircleShape).background(if (canDecreaseTime) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                Column(
+                                    modifier = Modifier
+                                        .padding(24.dp)
+                                        .fillMaxWidth(),
+                                    horizontalAlignment = Alignment.CenterHorizontally
+                                ) {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(72.dp)
+                                            .clip(CircleShape)
+                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                        contentAlignment = Alignment.Center
                                     ) {
-                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseTime) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                        Icon(
+                                            imageVector = Icons.Default.EmojiEvents,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(40.dp)
+                                        )
                                     }
+                                    Spacer(modifier = Modifier.height(16.dp))
+                                    Text(
+                                        text = getString("workout_completed_title"),
+                                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                        color = MaterialTheme.colorScheme.onSurface
+                                    )
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Text(
+                                        text = getString("workout_completed_text", workoutState.totalSetsLoggedToday, dayOfWeekDisplayName(targetDay)),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        textAlign = TextAlign.Center
+                                    )
+                                    Spacer(modifier = Modifier.height(24.dp))
 
-                                    val canIncreaseTime = workoutState.currentExerciseSeconds < workoutState.maxExerciseSeconds
-                                    IconButton(
-                                        onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 5) },
-                                        enabled = canIncreaseTime,
-                                        modifier = Modifier.clip(CircleShape).background(if (canIncreaseTime) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                    Button(
+                                        onClick = { viewModel.resetWorkoutSession() },
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = MaterialTheme.colorScheme.primary,
+                                            contentColor = MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        shape = RoundedCornerShape(16.dp),
+                                        modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseTime) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                    }
-                                } else {
-                                    val canDecreaseReps = workoutState.currentReps > workoutState.minReps
-                                    IconButton(
-                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
-                                        enabled = canDecreaseReps,
-                                        modifier = Modifier.clip(CircleShape).background(if (canDecreaseReps) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseReps) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                    }
-
-                                    val canIncreaseReps = workoutState.currentReps < workoutState.maxReps
-                                    IconButton(
-                                        onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
-                                        enabled = canIncreaseReps,
-                                        modifier = Modifier.clip(CircleShape).background(if (canIncreaseReps) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                    ) {
-                                        Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseReps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                        Text(
+                                            text = getString("start_workout_again"),
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                        )
                                     }
                                 }
-                            }
-                        }
-                    }
-                }
-
-                // PRIMARY ACTION
-                val isSelectedDayToday = workoutState.selectedDayOfWeek == today
-                val isExTimerRunning = isTimerActive && isExTimer
-                
-                if (isSelectedDayToday) {
-                    if (isExTimerRunning) {
-                        // COUNTER / SKIP BUTTON (Full Width)
-                        Button(
-                            onClick = { viewModel.advanceAfterTimer(currentDayExercises) },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                            border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                            modifier = Modifier.fillMaxWidth().height(64.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(24.dp))
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Text(
-                                    text = "${workoutState.restTimerSeconds}s",
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = "(${getString("skip")})",
-                                    style = MaterialTheme.typography.labelSmall
-                                )
                             }
                         }
                     } else {
-                        Button(
-                            onClick = { 
-                                if (isTimeBased) {
-                                    viewModel.startExerciseTimerWithLog(currentDayExercises, workoutState.currentExerciseSeconds)
+                        // ACTIVE WORKOUT SESSION VIEW
+                        val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, dayExercises.size - 1)
+                        val currentExercise = dayExercises[exerciseIndex]
+                        
+                        val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
+                        val isBodyweight = WorkoutTemplates.isBodyweightExercise(currentExercise.name)
+                        val totalExercises = dayExercises.size
+
+                        val nextExercise = if (exerciseIndex + 1 < dayExercises.size) {
+                            dayExercises[exerciseIndex + 1]
+                        } else null
+
+                        // Pinned Top Progress
+                        Column {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                val labelText = if (isDeveloper) {
+                                    getString("exercise_x_of_y_simple", exerciseIndex + 1, totalExercises)
                                 } else {
-                                    viewModel.logCurrentSetAndAdvance(currentDayExercises) 
-                                }
-                            },
-                            colors = ButtonDefaults.buttonColors(
-                                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                            ),
-                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                            border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                            modifier = Modifier.fillMaxWidth().height(64.dp)
-                        ) {
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                val icon = if (isTimeBased) Icons.Default.Timer else Icons.Default.CheckCircle
-                                val text = if (isTimeBased) {
-                                    getString("start_timer_x_and_log", workoutState.currentExerciseSeconds)
-                                } else {
-                                    getString("log_set_x_next", workoutState.currentSetNumber)
+                                    getString("exercise_x_of_y", exerciseIndex + 1, totalExercises, workoutState.currentSetNumber, currentExercise.targetSets)
                                 }
                                 
-                                Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(28.dp))
-                                Spacer(modifier = Modifier.width(10.dp))
                                 Text(
-                                    text = text,
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                    text = labelText,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = if (isDeveloper) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.primary
                                 )
+
+                                Button(
+                                    onClick = { showRestartDialog = true },
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                    modifier = Modifier
+                                        .height(32.dp)
+                                        .semantics { testTag = "restart_workout_button" }
+                                ) {
+                                    Icon(
+                                        imageVector = Icons.Default.Refresh,
+                                        contentDescription = getString("restart"),
+                                        modifier = Modifier.size(14.dp)
+                                    )
+                                    Spacer(modifier = Modifier.width(4.dp))
+                                    Text(
+                                        getString("restart"),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(6.dp))
+                            val progress = ((exerciseIndex.toFloat() + (workoutState.currentSetNumber.toFloat() / currentExercise.targetSets)) / totalExercises.toFloat()).coerceIn(0f, 1f)
+                            LinearProgressIndicator(
+                                progress = { progress },
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .height(8.dp)
+                                    .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(4.dp))
+                                    .border(if (isDeveloper) BorderStroke(1.dp, Color.White) else BorderStroke(0.dp, Color.Transparent)),
+                                color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                trackColor = MaterialTheme.colorScheme.surfaceVariant
+                            )
+                        }
+
+                        Spacer(modifier = Modifier.height(16.dp))
+
+                        // Scrollable middle section
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxWidth()
+                                .verticalScroll(viewModel.workoutNowScrollState),
+                            verticalArrangement = Arrangement.spacedBy(16.dp)
+                        ) {
+                            // TIMER AREA
+                            val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
+                            val isExTimer = workoutState.isExerciseTimerActive
+
+                            if (isTimerActive && !isExTimer) {
+                                // Running Rest Timer Card (Only for Rest)
+                                Card(
+                                    shape = RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Timer,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                val label = if (workoutState.currentSetNumber == 1) {
+                                                    getString("exercise_transition_label")
+                                                } else {
+                                                    getString("rest_timer")
+                                                }
+                                                Text(
+                                                    text = label,
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                                )
+                                                Text(
+                                                    text = getString("seconds_remaining", workoutState.restTimerSeconds),
+                                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(onClick = { viewModel.stopTimer() }) {
+                                                Icon(
+                                                    imageVector = Icons.Default.SkipNext,
+                                                    contentDescription = "Skip Timer",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // CURRENT EXERCISE CARD
+                            Card(
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 4.dp),
+                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(modifier = Modifier.padding(20.dp)) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                            MuscleGroupBadge(muscleGroup = currentExercise.muscleGroup)
+                                            
+                                            val specificMuscle = currentExercise.muscleGroup
+                                            val topic = WorkoutTemplates.getTopicForMuscle(specificMuscle)
+                                            if (!specificMuscle.equals(topic, ignoreCase = true)) {
+                                                Surface(
+                                                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
+                                                    contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary,
+                                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(4.dp),
+                                                    border = BorderStroke(if (isDeveloper) 1.dp else 0.5.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
+                                                ) {
+                                                    Text(
+                                                        text = com.grafizum.repio.ui.components.translateMuscleGroup(specificMuscle).uppercase(),
+                                                        style = MaterialTheme.typography.labelSmall.copy(
+                                                            fontWeight = FontWeight.ExtraBold,
+                                                            fontSize = 9.sp,
+                                                            letterSpacing = 0.5.sp
+                                                        ),
+                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                        
+                                        Surface(
+                                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
+                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
+                                        ) {
+                                            Text(
+                                                text = getString("set_x_of_y", workoutState.currentSetNumber, currentExercise.targetSets),
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    var showPeek by remember { mutableStateOf(false) }
+                                    val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup, currentExercise.targetIntensity)
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Text(
+                                            text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
+                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.onSurface,
+                                            modifier = Modifier.weight(1f),
+                                            maxLines = if (isDeveloper) 2 else 1,
+                                            overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
+                                        )
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(
+                                                onClick = { showPeek = !showPeek },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                                    contentDescription = "Quick Peek",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    AnimatedVisibility(visible = showPeek) {
+                                        Column(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
+                                            Surface(
+                                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                                modifier = Modifier.fillMaxWidth()
+                                            ) {
+                                                Row(modifier = Modifier.padding(12.dp)) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Info,
+                                                        contentDescription = null,
+                                                        modifier = Modifier.size(16.dp),
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Text(
+                                                        text = description,
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Text(
+                                                text = if (isTimeBased) getString("sets_x_time", currentExercise.targetSets, currentExercise.targetReps)
+                                                       else getString("sets_x_reps", currentExercise.targetSets, currentExercise.targetReps),
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            if (currentExercise.targetIntensity.isNotBlank()) {
+                                                val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(currentExercise.targetIntensity)
+                                                val displayIntensity = if (rpeExpl.isNotBlank()) "${currentExercise.targetIntensity} ($rpeExpl)" else currentExercise.targetIntensity
+                                                Text(
+                                                    text = " • $displayIntensity",
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.height(16.dp))
+
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        ExerciseVideoLinkButton(
+                                            videoUrl = currentExercise.videoUrl,
+                                            onSaveDemoUrl = { newUrl ->
+                                                viewModel.saveExercise(currentExercise.copy(videoUrl = newUrl))
+                                            },
+                                            modifier = Modifier.height(44.dp)
+                                        )
+
+                                        Spacer(modifier = Modifier.width(8.dp))
+
+                                        Surface(
+                                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                            modifier = Modifier
+                                                .height(44.dp)
+                                                .weight(1f, fill = false)
+                                                .semantics { testTag = "next_up_exercise_card" }
+                                        ) {
+                                            Column(
+                                                modifier = Modifier.padding(start = 16.dp, end = 12.dp),
+                                                verticalArrangement = Arrangement.Center,
+                                                horizontalAlignment = Alignment.End
+                                            ) {
+                                                Text(
+                                                    text = getString("next_up"),
+                                                    style = MaterialTheme.typography.labelSmall.copy(
+                                                        fontWeight = FontWeight.ExtraBold,
+                                                        letterSpacing = 0.5.sp
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                                Spacer(modifier = Modifier.height(2.dp))
+                                                if (nextExercise != null) {
+                                                    Text(
+                                                        text = com.grafizum.repio.ui.components.translateExerciseName(nextExercise.name),
+                                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.onSurface,
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                } else {
+                                                    Text(
+                                                        text = getString("next_up_none"),
+                                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.onSurface
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+
+                            // STEPPERS AND WEIGHT CUSTOMIZATION
+                            Card(
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Column(
+                                    modifier = Modifier.padding(20.dp),
+                                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                                ) {
+                                    Text(
+                                        text = getString("log_current_set_parameters"),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                                    )
+
+                                    // WEIGHT SECTION
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = getString("weight"),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = if (isBodyweight) getString("bodyweight_label") else getString("weight_kg_intl", workoutState.currentWeightKg),
+                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                                                    color = if (isBodyweight) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                                                )
+
+                                                if (!isBodyweight) {
+                                                    Box(
+                                                        contentAlignment = Alignment.Center,
+                                                        modifier = Modifier
+                                                            .size(20.dp)
+                                                            .clip(CircleShape)
+                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                            .clickable {
+                                                                customWeightInput = workoutState.currentWeightKg.toString()
+                                                                showCustomWeightDialog = true
+                                                            }
+                                                            .semantics { testTag = "modify_weight_button" }
+                                                    ) {
+                                                        Icon(
+                                                            imageVector = Icons.Default.Edit,
+                                                            contentDescription = "Modify Weight",
+                                                            modifier = Modifier.size(11.dp),
+                                                            tint = MaterialTheme.colorScheme.primary
+                                                        )
+                                                    }
+                                                }
+                                            }
+                                        }
+
+                                        if (!isBodyweight) {
+                                            Row(
+                                                verticalAlignment = Alignment.CenterVertically,
+                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                            ) {
+                                                val canDecrementWeight = workoutState.currentWeightKg > 0
+                                                IconButton(
+                                                    onClick = { viewModel.decrementWeight() },
+                                                    enabled = canDecrementWeight,
+                                                    modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                }
+
+                                                IconButton(
+                                                    onClick = { viewModel.incrementWeight() },
+                                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
+                                                }
+                                            }
+                                        } else {
+                                            // Inform user it's bodyweight
+                                            Surface(
+                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
+                                                shape = RoundedCornerShape(8.dp)
+                                            ) {
+                                                Text(
+                                                    text = getString("no_weight_needed"),
+                                                    style = MaterialTheme.typography.labelSmall,
+                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
+                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                )
+                                            }
+                                        }
+                                    }
+
+                                    // REPS or TIME (Constrained to plan range)
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.fillMaxWidth()
+                                    ) {
+                                        Column {
+                                            Text(
+                                                text = if (isTimeBased) getString("time_label") else getString("reps_completed"),
+                                                style = MaterialTheme.typography.labelMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                            Text(
+                                                text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else getString("reps_count", workoutState.currentReps),
+                                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
+
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            if (isTimeBased) {
+                                                val canDecreaseTime = workoutState.currentExerciseSeconds > workoutState.minExerciseSeconds
+                                                IconButton(
+                                                    onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 5) },
+                                                    enabled = canDecreaseTime,
+                                                    modifier = Modifier.clip(CircleShape).background(if (canDecreaseTime) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseTime) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                }
+
+                                                val canIncreaseTime = workoutState.currentExerciseSeconds < workoutState.maxExerciseSeconds
+                                                IconButton(
+                                                    onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 5) },
+                                                    enabled = canIncreaseTime,
+                                                    modifier = Modifier.clip(CircleShape).background(if (canIncreaseTime) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseTime) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                }
+                                            } else {
+                                                val canDecreaseReps = workoutState.currentReps > workoutState.minReps
+                                                IconButton(
+                                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
+                                                    enabled = canDecreaseReps,
+                                                    modifier = Modifier.clip(CircleShape).background(if (canDecreaseReps) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseReps) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                }
+
+                                                val canIncreaseReps = workoutState.currentReps < workoutState.maxReps
+                                                IconButton(
+                                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
+                                                    enabled = canIncreaseReps,
+                                                    modifier = Modifier.clip(CircleShape).background(if (canIncreaseReps) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
+                                                ) {
+                                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseReps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                }
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                            Spacer(modifier = Modifier.height(8.dp))
+                        }
+
+                        // PRIMARY ACTION (PINNED AT BOTTOM)
+                        val isSelectedDayToday = targetDay == today
+                        val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
+                        val isExTimerRunning = isTimerActive && workoutState.isExerciseTimerActive
+                        
+                        if (isSelectedDayToday) {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            if (isExTimerRunning) {
+                                // COUNTER / SKIP BUTTON (Full Width)
+                                Button(
+                                    onClick = { viewModel.advanceAfterTimer(dayExercises) },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                    modifier = Modifier.fillMaxWidth().height(64.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(24.dp))
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = "${workoutState.restTimerSeconds}s",
+                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = "(${getString("skip")})",
+                                            style = MaterialTheme.typography.labelSmall
+                                        )
+                                    }
+                                }
+                            } else {
+                                Button(
+                                    onClick = { 
+                                        if (isTimeBased) {
+                                            viewModel.startExerciseTimerWithLog(dayExercises, workoutState.currentExerciseSeconds)
+                                        } else {
+                                            viewModel.logCurrentSetAndAdvance(dayExercises) 
+                                        }
+                                    },
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                    modifier = Modifier.fillMaxWidth().height(64.dp)
+                                ) {
+                                    Row(verticalAlignment = Alignment.CenterVertically) {
+                                        val icon = if (isTimeBased) Icons.Default.Timer else Icons.Default.CheckCircle
+                                        val text = if (isTimeBased) {
+                                            getString("start_timer_x_and_log", workoutState.currentExerciseSeconds)
+                                        } else {
+                                            getString("log_set_x_next", workoutState.currentSetNumber)
+                                        }
+                                        
+                                        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(28.dp))
+                                        Spacer(modifier = Modifier.width(10.dp))
+                                        Text(
+                                            text = text,
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                        )
+                                    }
+                                }
                             }
                         }
                     }
                 }
             }
-
-            Spacer(modifier = Modifier.height(24.dp))
         }
+
+        Spacer(modifier = Modifier.height(24.dp))
     }
 
     // EXERCISE EDIT DIALOG

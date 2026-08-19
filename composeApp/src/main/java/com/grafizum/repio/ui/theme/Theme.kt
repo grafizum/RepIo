@@ -173,13 +173,17 @@ private val DeveloperColorScheme = darkColorScheme(
     onPrimaryContainer = Color.Black,
     secondary = Color.White,
     onSecondary = Color.Black,
+    secondaryContainer = Color.White,
+    onSecondaryContainer = Color.Black,
     background = DarkBackground,
     onBackground = Color.White,
     surface = DarkSurface,
     onSurface = Color.White,
     surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = Color.White,
-    outline = Color.White
+    outline = Color.White,
+    error = Color.White,
+    onError = Color.Black
 )
 
 @Composable

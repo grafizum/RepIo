@@ -2,6 +2,7 @@ package com.grafizum.repio.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
+import java.util.Calendar
 
 class WorkoutRepository(private val dao: WorkoutDao) {
 
@@ -140,5 +141,15 @@ class WorkoutRepository(private val dao: WorkoutDao) {
 
     suspend fun clearHistory() {
         dao.clearAllLoggedSets()
+    }
+
+    suspend fun deleteTodayLogs() {
+        val calendar = Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+        }
+        dao.deleteLoggedSetsSince(calendar.timeInMillis)
     }
 }

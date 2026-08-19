@@ -30,6 +30,7 @@ import androidx.compose.ui.res.painterResource
 import com.grafizum.repio.R
 
 
+import com.grafizum.repio.BuildConfig
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 
@@ -235,12 +236,22 @@ fun EasterEggScreen(
 
         // VERSION LABEL
         Text(
-            text = "v1.1.1",
+            text = "v${BuildConfig.VERSION_NAME}",
             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
             modifier = Modifier
                 .align(Alignment.BottomStart)
                 .padding(start = 12.dp, bottom = 12.dp)
+        )
+
+        // BY LABEL
+        Text(
+            text = "by Grafizum",
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Medium),
+            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+            modifier = Modifier
+                .align(Alignment.BottomEnd)
+                .padding(end = 12.dp, bottom = 12.dp)
         )
     }
 }

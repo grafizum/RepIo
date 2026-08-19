@@ -1,32 +1,34 @@
 package com.grafizum.repio.ui.screens
 
 import com.grafizum.repio.util.getString
+import androidx.compose.animation.*
+import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
-import androidx.compose.animation.animateContentSize
+import androidx.compose.foundation.lazy.itemsIndexed
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
-import androidx.compose.material.icons.filled.KeyboardArrowDown
-import androidx.compose.material.icons.filled.KeyboardArrowUp
-import androidx.compose.material.icons.filled.CheckCircle
-import androidx.compose.material.icons.filled.FitnessCenter
-import androidx.compose.material.icons.filled.Home
-import androidx.compose.material.icons.filled.PlayArrow
+import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.semantics.semantics
+import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.*
@@ -35,6 +37,7 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
 
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.border
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 
 @Composable
@@ -47,11 +50,15 @@ fun HomeScreen(
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
 
-    var expandedExerciseId by remember { mutableStateOf<Long?>(null) }
-    
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
     val todayExercises = allExercises.filter { it.dayOfWeek == todayStr }
+    
+    val todayLoggedSets = remember(loggedSets, todayStr) {
+        loggedSets.filter { it.dayOfWeek == todayStr }
+    }
+
+    val expandedExerciseIds = remember { mutableStateListOf<Long>() }
 
     val totalSetsThisWeek = loggedSets.size
     val totalVolumeThisWeek = loggedSets.sumOf { 
@@ -84,14 +91,14 @@ fun HomeScreen(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Home,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -109,11 +116,11 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
-            modifier = Modifier.fillMaxWidth(),
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            modifier = Modifier.fillMaxWidth()
         ) {
             // HERO BANNER - WORKOUT NOW PROMINENT TRIGGER
             item {
+                Spacer(modifier = Modifier.height(16.dp))
                 Card(
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
                     elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 6.dp),
@@ -146,8 +153,9 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Surface(
-                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    shape = RoundedCornerShape(20.dp)
+                                    color = if (isDeveloper) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
                                 ) {
                                     Text(
                                         text = getString("todays_workout"),
@@ -155,7 +163,7 @@ fun HomeScreen(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp
                                         ),
-                                        color = MaterialTheme.colorScheme.primary,
+                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
@@ -246,12 +254,6 @@ fun HomeScreen(
                                     .height(52.dp)
                                     .semantics { testTag = "workout_now_button" }
                             ) {
-                                Icon(
-                                    imageVector = Icons.Default.PlayArrow,
-                                    contentDescription = null,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
                                 Text(
                                     text = getString("workout_now"),
                                     style = MaterialTheme.typography.titleMedium.copy(
@@ -264,6 +266,8 @@ fun HomeScreen(
                     }
                 }
             }
+
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             // QUICK STATS ROW
             item {
@@ -291,13 +295,41 @@ fun HomeScreen(
                 }
             }
 
+            item { Spacer(modifier = Modifier.height(16.dp)) }
 
             // TODAY'S EXERCISES LIST PREVIEW
             item {
-                Text(
-                    text = getString("todays_schedule"),
-                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                )
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                ) {
+                    Text(
+                        text = getString("todays_schedule"),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                    )
+                    val isAllExpanded = todayExercises.isNotEmpty() && expandedExerciseIds.size == todayExercises.size
+                    Surface(
+                        onClick = {
+                            if (isAllExpanded) {
+                                expandedExerciseIds.clear()
+                            } else {
+                                expandedExerciseIds.clear()
+                                expandedExerciseIds.addAll(todayExercises.map { it.id })
+                            }
+                        },
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                        shape = RoundedCornerShape(8.dp),
+                        modifier = Modifier.padding(bottom = 2.dp, end = 4.dp)
+                    ) {
+                        Text(
+                            text = if (isAllExpanded) getString("collapse_all") else getString("expand_all"),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                        )
+                    }
+                }
             }
 
             if (todayExercises.isEmpty()) {
@@ -316,16 +348,174 @@ fun HomeScreen(
                     }
                 }
             } else {
-                items(todayExercises) { exercise ->
-                    ExpandableExerciseCard(
-                        exercise = exercise,
-                        showDescription = true,
-                        isExpanded = expandedExerciseId == exercise.id,
-                        onExpandedChange = { expanded ->
-                            expandedExerciseId = if (expanded) exercise.id else null
-                        },
-                        showActions = true
-                    )
+                val nextUpIndex = todayExercises.indexOfFirst { ex ->
+                    todayLoggedSets.filter { it.exerciseName == ex.name }.size < ex.targetSets
+                }
+
+                itemsIndexed(todayExercises, key = { _, ex -> ex.id }) { index, exercise ->
+                    val isLast = index == todayExercises.size - 1
+                    val setsForThisExercise = todayLoggedSets.filter { it.exerciseName == exercise.name }
+                    val isCompleted = setsForThisExercise.size >= exercise.targetSets
+                    val isExpanded = expandedExerciseIds.contains(exercise.id)
+                    val isActive = index == nextUpIndex
+
+                    val lineColor = if (isCompleted) MaterialTheme.colorScheme.primary 
+                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+
+                    Row(
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .padding(horizontal = 4.dp)
+                            .drawBehind {
+                                if (!isLast) {
+                                    val centerX = 16.dp.toPx()
+                                    val startY = 12.dp.toPx() // Middle of 24.dp bullet Box
+                                    drawLine(
+                                        color = lineColor,
+                                        start = androidx.compose.ui.geometry.Offset(centerX, startY),
+                                        end = androidx.compose.ui.geometry.Offset(centerX, size.height),
+                                        strokeWidth = 3.dp.toPx()
+                                    )
+                                }
+                            }
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                if (isExpanded) {
+                                    expandedExerciseIds.remove(exercise.id)
+                                } else {
+                                    if (expandedExerciseIds.size <= 1) {
+                                        expandedExerciseIds.clear()
+                                    }
+                                    expandedExerciseIds.add(exercise.id)
+                                }
+                            }
+                    ) {
+                        // Timeline Column (Just the dot/icon)
+                        Box(
+                            modifier = Modifier.width(32.dp).height(24.dp),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (isCompleted) {
+                                Icon(
+                                    imageVector = Icons.Default.CheckCircle,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            } else {
+                                Box(
+                                    modifier = Modifier
+                                        .size(if (isActive) 14.dp else 10.dp)
+                                        .clip(CircleShape)
+                                        .background(
+                                            if (isActive) MaterialTheme.colorScheme.primary 
+                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                        )
+                                )
+                            }
+                        }
+
+                        Spacer(modifier = Modifier.width(12.dp))
+
+                        // Exercise Info Column
+                        Column(
+                            modifier = Modifier
+                                .weight(1f)
+                                .padding(bottom = 16.dp)
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                horizontalArrangement = Arrangement.SpaceBetween,
+                                modifier = Modifier.fillMaxWidth()
+                            ) {
+                                Text(
+                                    text = translateExerciseName(exercise.name),
+                                    style = MaterialTheme.typography.bodyLarge.copy(
+                                        fontWeight = if (isActive || isExpanded) FontWeight.Black else FontWeight.Bold
+                                    ),
+                                    color = when {
+                                        isExpanded -> MaterialTheme.colorScheme.primary
+                                        isActive -> MaterialTheme.colorScheme.primary
+                                        isCompleted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                        else -> MaterialTheme.colorScheme.onSurface
+                                    },
+                                    modifier = Modifier.weight(1f),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+
+                                if (isExpanded) {
+                                    Icon(
+                                        imageVector = Icons.Default.ExpandLess,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
+                            }
+                            
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Box(
+                                    modifier = Modifier
+                                        .size(6.dp)
+                                        .clip(CircleShape)
+                                        .background(getMuscleGroupColor(exercise.muscleGroup))
+                                )
+                                Spacer(modifier = Modifier.width(4.dp))
+                                Text(
+                                    text = translateMuscleGroup(exercise.muscleGroup),
+                                    style = MaterialTheme.typography.labelSmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+
+                            AnimatedVisibility(
+                                visible = isExpanded,
+                                enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
+                                        expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), expandFrom = Alignment.Top),
+                                exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
+                                       shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), shrinkTowards = Alignment.Top)
+                            ) {
+                                Column {
+                                    val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
+                                    
+                                    Spacer(modifier = Modifier.height(8.dp))
+                                    if (description.isNotBlank()) {
+                                        Text(
+                                            text = description,
+                                            style = MaterialTheme.typography.bodySmall,
+                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                        )
+                                    }
+                                    if (equipment.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.FitnessCenter,
+                                                contentDescription = null,
+                                                modifier = Modifier.size(12.dp),
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                            )
+                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Text(
+                                                text = equipment,
+                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                            )
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
                 }
             }
 

@@ -12,12 +12,23 @@ import androidx.activity.compose.BackHandler
 import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
+import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
+import androidx.compose.foundation.layout.BoxWithConstraints
+import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.height
+import androidx.compose.foundation.layout.fillMaxWidth
+import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.Box
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.material3.Surface
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,6 +64,7 @@ import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.appcompat.app.AppCompatDelegate
 import androidx.core.os.LocaleListCompat
@@ -65,6 +77,7 @@ import com.grafizum.repio.ui.screens.*
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
+import com.grafizum.repio.util.getString
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.grafizum.repio.data.AppDatabase
@@ -163,6 +176,24 @@ open class MainActivity : AppCompatActivity() {
             }
 
             val context = LocalContext.current
+            val lifecycleOwner = LocalLifecycleOwner.current
+
+            // Update foreground state
+            DisposableEffect(lifecycleOwner) {
+                val observer = LifecycleEventObserver { _, event ->
+                    when (event) {
+                        Lifecycle.Event.ON_START -> com.grafizum.repio.util.AppEventBus.setAppForeground(true)
+                        Lifecycle.Event.ON_STOP -> com.grafizum.repio.util.AppEventBus.setAppForeground(false)
+                        else -> {}
+                    }
+                }
+                lifecycleOwner.lifecycle.addObserver(observer)
+                onDispose {
+                    lifecycleOwner.lifecycle.removeObserver(observer)
+                    com.grafizum.repio.util.AppEventBus.setAppForeground(false)
+                }
+            }
+
             DisposableEffect(keepScreenOn) {
                 val activity = context as? Activity
                 if (keepScreenOn) {
@@ -206,6 +237,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
     var showExitConfirmation by remember { mutableStateOf(false) }
+    var showInAppRestNotification by remember { mutableStateOf(false) }
 
     var easterEggUnlocked by remember { mutableStateOf(false) }
     var navSequence by remember { mutableStateOf(emptyList<Int>()) }
@@ -289,10 +321,27 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     BackHandler(enabled = !isFirstTimeUser) {
         if (pagerState.currentPage != 0) {
             coroutineScope.launch {
-                pagerState.animateScrollToPage(0)
+                pagerState.animateScrollToPage(0, animationSpec = tween(500))
             }
         } else {
             showExitConfirmation = true
+        }
+    }
+
+    // Update current route for AppEventBus
+    LaunchedEffect(pagerState.currentPage, navigationItems) {
+        val currentRoute = navigationItems.getOrNull(pagerState.currentPage)?.route
+        com.grafizum.repio.util.AppEventBus.setCurrentRoute(currentRoute)
+    }
+
+    // Listen for rest timer events
+    LaunchedEffect(Unit) {
+        com.grafizum.repio.util.AppEventBus.restTimerEnded.collect {
+            // Show custom notification ONLY if not in Workout tab
+            val currentRoute = com.grafizum.repio.util.AppEventBus.currentRoute.value
+            if (currentRoute != Screen.Workout.route) {
+                showInAppRestNotification = true
+            }
         }
     }
 
@@ -331,7 +380,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         navTarget?.let { route ->
             val pageIndex = navigationItems.indexOfFirst { it.route == route }
             if (pageIndex != -1) {
-                pagerState.animateScrollToPage(pageIndex)
+                pagerState.animateScrollToPage(pageIndex, animationSpec = tween(500))
             } else {
                 navController.navigate(route) {
                     popUpTo(navController.graph.findStartDestination().id) {
@@ -387,138 +436,251 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         } else {
             Scaffold(
                 bottomBar = {
-                    NavigationBar(
-                        containerColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surface,
-                        tonalElevation = if (isDeveloper) 0.dp else 3.dp
+                    Surface(
+                        tonalElevation = if (isDeveloper) 0.dp else 3.dp,
+                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surface,
+                        modifier = Modifier.fillMaxWidth()
                     ) {
-                        navigationItems.forEachIndexed { index, screen ->
-                            val isSelected = pagerState.currentPage == index
-                            NavigationBarItem(
-                                selected = isSelected,
-                                onClick = {
-                                    val currentTime = System.currentTimeMillis()
+                        BoxWithConstraints(
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            val tabWidth = this.maxWidth / navigationItems.size
+                            val density = LocalDensity.current
 
-                                    if (screen == Screen.Settings) {
-                                        // Easter egg trigger: Settings (3) -> Analytics (2) -> Settings (3) -> Analytics (2) -> Settings (3)
-                                        // and then press Settings button
-                                        val isCorrectSequence = navSequence == listOf(3, 2, 3, 2, 3) || 
-                                                               (navSequence.size == 4 && navSequence == listOf(3, 2, 3, 2) && pagerState.currentPage == 3)
-                                        
-                                        if (currentTime - lastInteractionTime <= 5000 && isCorrectSequence) {
-                                            easterEggUnlocked = true
-                                        }
-                                    }
-
-                                    if (screen == Screen.Workout) {
-                                        viewModel.setRequestedWorkoutSubTab(0) // Default to "Workout Now" on tab click
-                                        viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
-                                    }
-                                    if (pagerState.currentPage != index) {
-                                        coroutineScope.launch {
-                                            pagerState.animateScrollToPage(index)
-                                        }
-                                    }
-                                },
-                                icon = {
-                                    if (screen.icon != null) {
-                                        Icon(
-                                            imageVector = screen.icon!!,
-                                            contentDescription = screen.title
-                                        )
-                                    } else if (screen.drawableRes != null) {
-                                        Icon(
-                                            painter = painterResource(screen.drawableRes!!),
-                                            contentDescription = screen.title,
-                                            modifier = Modifier.size(24.dp)
-                                        )
-                                    }
-                                },
-                                label = {
-                                    Text(
-                                        text = screen.title,
-                                        fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
-                                    )
-                                },
-                                colors = if (isDeveloper) {
-                                    NavigationBarItemDefaults.colors(
-                                        indicatorColor = Color.White,
-                                        selectedIconColor = Color.Black,
-                                        selectedTextColor = Color.White,
-                                        unselectedIconColor = Color.White.copy(alpha = 0.6f),
-                                        unselectedTextColor = Color.White.copy(alpha = 0.6f)
-                                    )
-                                } else {
-                                    NavigationBarItemDefaults.colors()
-                                },
+                            // Sliding Indicator Background
+                            Surface(
                                 modifier = Modifier
-                                    .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp))
-                                    .background(
-                                        if (isSelected) {
-                                            if (isDeveloper) Color.White.copy(alpha = 0.2f)
-                                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
-                                        } else Color.Transparent
+                                    .width(tabWidth)
+                                    .height(80.dp) // Standard NavigationBar height
+                                    .padding(horizontal = 4.dp, vertical = 8.dp)
+                                    .graphicsLayer {
+                                        val pageOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction
+                                        translationX = with(density) { (pageOffset * tabWidth.toPx()) }
+                                    },
+                                color = if (isDeveloper) Color.White.copy(alpha = 0.2f)
+                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp)
+                            ) {}
+
+                            NavigationBar(
+                                containerColor = Color.Transparent,
+                                tonalElevation = 0.dp // Elevation is handled by the parent Surface
+                            ) {
+                                navigationItems.forEachIndexed { index, screen ->
+                                    val isSelected = pagerState.currentPage == index
+                                    NavigationBarItem(
+                                        selected = isSelected,
+                                        onClick = {
+                                            val currentTime = System.currentTimeMillis()
+
+                                            if (screen == Screen.Settings) {
+                                                // Easter egg trigger: Settings (3) -> Analytics (2) -> Settings (3) -> Analytics (2) -> Settings (3)
+                                                // and then press Settings button
+                                                val isCorrectSequence = navSequence == listOf(3, 2, 3, 2, 3) || 
+                                                                       (navSequence.size == 4 && navSequence == listOf(3, 2, 3, 2) && pagerState.currentPage == 3)
+                                                
+                                                if (currentTime - lastInteractionTime <= 5000 && isCorrectSequence) {
+                                                    easterEggUnlocked = true
+                                                }
+                                            }
+
+                                            if (screen == Screen.Workout) {
+                                                viewModel.setRequestedWorkoutSubTab(0) // Default to "Workout Now" on tab click
+                                                viewModel.selectDayForWorkoutNow(getTodayDayOfWeek())
+                                            }
+                                            if (pagerState.currentPage != index) {
+                                                coroutineScope.launch {
+                                                    pagerState.animateScrollToPage(index, animationSpec = tween(500))
+                                                }
+                                            }
+                                        },
+                                        icon = {
+                                            if (screen.icon != null) {
+                                                Icon(
+                                                    imageVector = screen.icon!!,
+                                                    contentDescription = screen.title
+                                                )
+                                            } else if (screen.drawableRes != null) {
+                                                Icon(
+                                                    painter = painterResource(screen.drawableRes!!),
+                                                    contentDescription = screen.title,
+                                                    modifier = Modifier.size(24.dp)
+                                                )
+                                            }
+                                        },
+                                        label = {
+                                            val labelKey = when(screen.route) {
+                                                "home" -> "smart_workout_assistant"
+                                                "workout" -> "program_name"
+                                                "analytics" -> "analytics_reports"
+                                                "settings" -> "settings"
+                                                else -> null
+                                            }
+                                            Text(
+                                                text = if (labelKey != null) getString(labelKey) else screen.title,
+                                                fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        },
+                                        colors = NavigationBarItemDefaults.colors(
+                                            indicatorColor = Color.Transparent,
+                                            selectedIconColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                            unselectedIconColor = if (isDeveloper) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = if (isDeveloper) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
+                                        ),
+                                        modifier = Modifier
+                                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp))
+                                            .padding(vertical = if (isDeveloper) 4.dp else 0.dp)
+                                            .semantics { testTag = "nav_tab_${screen.route}" }
                                     )
-                                    .padding(vertical = if (isDeveloper) 4.dp else 0.dp)
-                                    .semantics { testTag = "nav_tab_${screen.route}" }
-                            )
+                                }
+                            }
                         }
                     }
                 },
             modifier = Modifier.fillMaxSize()
         ) { innerPadding ->
-            HorizontalPager(
-                state = pagerState,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .padding(innerPadding),
-                beyondViewportPageCount = 3
-            ) { pageIndex ->
-                when (navigationItems[pageIndex]) {
-                    is Screen.Home -> {
-                        val navigateToTab: (String) -> Unit = { route ->
-                            val targetIndex = navigationItems.indexOfFirst { it.route == route }
-                            if (targetIndex != -1) {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(targetIndex)
+            Box(modifier = Modifier.fillMaxSize()) {
+                HorizontalPager(
+                    state = pagerState,
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(innerPadding),
+                    beyondViewportPageCount = 3
+                ) { pageIndex ->
+                    when (navigationItems[pageIndex]) {
+                        is Screen.Home -> {
+                            val navigateToTab: (String) -> Unit = { route ->
+                                val targetIndex = navigationItems.indexOfFirst { it.route == route }
+                                if (targetIndex != -1) {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(targetIndex, animationSpec = tween(500))
+                                    }
                                 }
                             }
+
+                            HomeScreen(
+                                viewModel = viewModel,
+                                onNavigateToWorkoutNow = { 
+                                    viewModel.setRequestedWorkoutSubTab(0)
+                                    navigateToTab(Screen.Workout.route) 
+                                }
+                            )
                         }
 
-                        HomeScreen(
-                            viewModel = viewModel,
-                            onNavigateToWorkoutNow = { 
-                                viewModel.setRequestedWorkoutSubTab(0)
-                                navigateToTab(Screen.Workout.route) 
-                            }
-                        )
-                    }
+                        is Screen.Workout -> {
+                            WorkoutTabScreen(
+                                viewModel = viewModel,
+                                isActive = pagerState.settledPage == pageIndex,
+                                onBack = {
+                                    coroutineScope.launch {
+                                        pagerState.animateScrollToPage(0, animationSpec = tween(500))
+                                    }
+                                }
+                            )
+                        }
 
-                    is Screen.Workout -> {
-                        WorkoutTabScreen(
-                            viewModel = viewModel,
-                            onBack = {
-                                coroutineScope.launch {
-                                    pagerState.animateScrollToPage(0)
+                        is Screen.Analytics -> {
+                            AnalyticsScreen(
+                                viewModel = viewModel
+                            )
+                        }
+
+                        is Screen.Settings -> {
+                            SettingsScreen(viewModel = viewModel)
+                        }
+
+                        is Screen.EasterEgg -> {
+                            EasterEggScreen(viewModel = viewModel)
+                        }
+
+                        else -> {}
+                    }
+                }
+
+                // Custom In-App Rest Timer Notification
+                AnimatedVisibility(
+                    visible = showInAppRestNotification,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it },
+                        animationSpec = tween(durationMillis = 500)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 500)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { -it },
+                        animationSpec = tween(durationMillis = 500)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 500)),
+                    modifier = Modifier
+                        .padding(top = 80.dp, start = 16.dp, end = 16.dp)
+                        .align(androidx.compose.ui.Alignment.TopCenter)
+                ) {
+                    Surface(
+                        onClick = {
+                            showInAppRestNotification = false
+                            coroutineScope.launch {
+                                val workoutIndex = navigationItems.indexOfFirst { it.route == Screen.Workout.route }
+                                if (workoutIndex != -1) {
+                                    pagerState.animateScrollToPage(workoutIndex, animationSpec = tween(500))
                                 }
                             }
-                        )
+                        },
+                        shape = RoundedCornerShape(16.dp),
+                        color = MaterialTheme.colorScheme.primaryContainer,
+                        tonalElevation = 6.dp,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .border(
+                                width = 1.dp,
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.5f),
+                                shape = RoundedCornerShape(16.dp)
+                            )
+                    ) {
+                        androidx.compose.foundation.layout.Row(
+                            modifier = Modifier.padding(16.dp),
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(40.dp)
+                                    .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(10.dp)),
+                                contentAlignment = androidx.compose.ui.Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Timer,
+                                    contentDescription = null,
+                                    tint = MaterialTheme.colorScheme.onPrimary,
+                                    modifier = Modifier.size(24.dp)
+                                )
+                            }
+                            
+                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(16.dp))
+                            
+                            androidx.compose.foundation.layout.Column(
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = stringResource(R.string.notification_title),
+                                    style = MaterialTheme.typography.titleMedium,
+                                    fontWeight = FontWeight.Bold,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer
+                                )
+                                Text(
+                                    text = stringResource(R.string.in_app_rest_ended_message),
+                                    style = MaterialTheme.typography.bodyMedium,
+                                    color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
+                                )
+                            }
+                        }
                     }
 
-                    is Screen.Analytics -> {
-                        AnalyticsScreen(
-                            viewModel = viewModel
-                        )
+                    // Auto-hide after 2.5 seconds
+                    LaunchedEffect(showInAppRestNotification) {
+                        if (showInAppRestNotification) {
+                            delay(2500)
+                            showInAppRestNotification = false
+                        }
                     }
-
-                    is Screen.Settings -> {
-                        SettingsScreen(viewModel = viewModel)
-                    }
-
-                    is Screen.EasterEgg -> {
-                        EasterEggScreen(viewModel = viewModel)
-                    }
-
-                    else -> {}
                 }
             }
         }

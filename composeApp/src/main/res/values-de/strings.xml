@@ -9,7 +9,7 @@
     <string name="workout_now">JETZT TRAINIEREN</string>
     <string name="total_volume">Gesamtvolumen</string>
     <string name="all_time_volume">Gesamtvolumen bisher</string>
-    <string name="sets_logged">Sätze protokolliert</string>
+    <string name="sets_logged">Sätze gespeichert</string>
     <string name="completed_sets">Abgeschlossene Sätze</string>
     <string name="quick_actions">Schnellzugriff</string>
     <string name="weekly_routine">Wöchentliche Routine</string>
@@ -19,6 +19,9 @@
     <string name="weekly_summary_report">Wochenbericht</string>
     <string name="detailed_weekly_insights">Detaillierte wöchentliche Einblicke</string>
     <string name="todays_schedule">Heutiger Plan</string>
+    <string name="expand_all">Alle ausklappen</string>
+    <string name="collapse_all">Alle einklappen</string>
+    <string name="tap_for_details">Tippen für Details</string>
     <string name="no_exercises_today">Keine Übungen für heute geplant. Genieße deinen Ruhetag!</string>
     <string name="sets_x_reps">%1$d Sätze × %2$s Wdh.</string>
     <string name="sets_x_time">%1$d Sätze × %2$s</string>
@@ -28,9 +31,9 @@
     <string name="keep_screen_on">Bildschirm anlassen</string>
     <string name="force_screen_stay_active">Bildschirm bleibt aktiv, solange die App offen ist</string>
     <string name="resting_timer_duration">Sätze</string>
-    <string name="auto_countdown_interval">Zeit zwischen Sätzen der gleichen Übung</string>
-    <string name="exercise_transition_timer">Workout</string>
-    <string name="exercise_transition_timer_desc">Zeit beim Wechsel zu einer neuen Übung</string>
+    <string name="auto_countdown_interval">Sätze</string>
+    <string name="exercise_transition_timer">Übungen</string>
+    <string name="exercise_transition_timer_desc">Übungen</string>
     <string name="color_theme">Farbschema</string>
     <string name="app_icon_selection">App-Symbol Auswahl</string>
     <string name="light_icon_beige">Helles Symbol (Beige)</string>
@@ -76,8 +79,8 @@
     <string name="select_exercise">Übung wählen</string>
     <string name="max_weight">Max. Gewicht</string>
     <string name="recent_history">Letzte Einträge</string>
-    <string name="no_sets_logged">Noch keine Sätze protokolliert.</string>
-    <string name="no_sets_logged_full">Noch keine Sätze protokolliert. Trainiere, um deinen Muskelfokus zu sehen!</string>
+    <string name="no_sets_logged">Noch keine Sätze gespeichert.</string>
+    <string name="no_sets_logged_full">Noch keine Sätze gespeichert. Trainiere, um deinen Muskelfokus zu sehen!</string>
     <string name="volume_progress_kg">Volumen-Fortschritt (kg)</string>
     <string name="tap_bar_to_inspect">Tippe auf einen Balken, um Details zu sehen</string>
     <string name="muscle_group_focus">Muskelgruppen-Fokus</string>
@@ -99,14 +102,15 @@
     <string name="tip">Tipp</string>
     <string name="missing_parts_desc">Dein Training enthält keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Muskelgruppen sorgt für eine ausgewogene Krafteinwicklung.</string>
     <string name="notification_channel_name">Pause-Timer Benachrichtigungen</string>
-    <string name="notification_channel_desc">Benachrichtigt, wenn die Pause zwischen den Sätzen endet</string>
+    <string name="notification_channel_desc">Benachrichtigt, wenn die Pause für Sätze endet</string>
     <string name="notification_title">Pause beendet! 💪</string>
     <string name="notification_text">Zeit für den nächsten Satz!</string>
+    <string name="in_app_rest_ended_message">Die Pause ist beendet. Fahre mit dem nächsten Training fort!</string>
     <string name="replace">Ersetzen</string>
     <string name="alternative_exercises">Alternative Übungen</string>
     <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
     <string name="clear_history_title">Gesamten Verlauf löschen?</string>
-    <string name="clear_history_text">Dies wird alle deine protokollierten Sätze dauerhaft entfernen.</string>
+    <string name="clear_history_text">Dies wird alle deine gespeicherten Sätze dauerhaft entfernen.</string>
     <string name="delete_all">Alle löschen</string>
     <string name="cancel">Abbrechen</string>
 
@@ -136,7 +140,7 @@
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein geplantes Training für %1$s. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training abgeschlossen! 🎉</string>
-    <string name="workout_completed_text">Du hast %1$d Sätze für %2$s protokolliert!</string>
+    <string name="workout_completed_text">Du hast %1$d Sätze für %2$s gespeichert!</string>
     <string name="start_workout_again">TRAINING ERNEUT STARTEN</string>
     <string name="exercise_x_of_y">Übung %1$d von %2$d • Satz %3$d/%4$d</string>
     <string name="rest_timer">SATZ-PAUSE</string>
@@ -148,12 +152,12 @@
     <string name="next_up">NÄCHSTE ÜBUNG</string>
     <string name="next_up_none">Keine (Fertig 🎉)</string>
     <string name="next_up_exercise">%1$s (%2$d Sätze)</string>
-    <string name="log_current_set_parameters">Satz-Parameter protokollieren</string>
+    <string name="log_current_set_parameters">Satz-Parameter speichern</string>
     <string name="weight">Gewicht</string>
     <string name="reps_completed">Wiederholungen abgeschlossen</string>
     <string name="reps_count">%1$d Wdh.</string>
     <string name="log_set_x_next">SATZ %1$d SPEICHERN &amp; WEITER ➔</string>
-    <string name="start_timer_x_and_log">TIMER %1$ds STARTEN &amp; LOG</string>
+    <string name="start_timer_x_and_log">TIMER %1$ds STARTEN &amp; SPEICHERN</string>
     <string name="start_timer_x">STARTE %1$ds TIMER</string>
     <string name="program_name">Mein Workout</string>
     <string name="description">Beschreibung</string>
@@ -229,11 +233,11 @@
     <string name="select">Wählen</string>
     <string name="select_time">Zeit wählen</string>
     <string name="timer_durations">Timer-Dauer</string>
-    <string name="timer_settings_desc">\'Sätze\' für Pause zwischen Sätzen; \'Workout\' für Wechsel zwischen Übungen.</string>
+    <string name="timer_settings_desc">\'Sätze\' für Sätze; \'Workout\' für Übungen.</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Trainingsprogramm?</string>
     <string name="faq_change_program_a">Gehe zum Tab „Mein Training“ und tippe oben auf „Benutzerdefiniertes Training“, um eine neue Vorlage zu wählen oder einen eigenen Split zu erstellen.</string>
-    <string name="faq_past_logs_q">Where are my past workout logs?</string>
+    <string name="faq_past_logs_q">Wo finde ich meine gespeicherten Workouts?</string>
     <string name="faq_past_logs_a">Du kannst deinen Fortschritt und wöchentliche Zusammenfassungen im Tab „Analyse“ einsehen.</string>
     <string name="faq_keep_screen_on_q">How to keep screen on while training?</string>
     <string name="faq_keep_screen_on_a">Tappe auf das Einstellungen-Symbol (Zahnrad) auf dem Home-Bildschirm und aktiviere „Bildschirm anlassen“.</string>
@@ -356,6 +360,14 @@
     <string name="friday">Freitag</string>
     <string name="saturday">Samstag</string>
     <string name="sunday">Sonntag</string>
+    <string name="monday_shortest">Mo</string>
+    <string name="tuesday_shortest">Di</string>
+    <string name="wednesday_shortest">Mi</string>
+    <string name="thursday_shortest">Do</string>
+    <string name="friday_shortest">Fr</string>
+    <string name="saturday_shortest">Sa</string>
+    <string name="sunday_shortest">So</string>
+    <string name="today_short_label">HEUTE</string>
     <string name="monday_short">Mo</string>
     <string name="tuesday_short">Di</string>
     <string name="wednesday_short">Mi</string>
@@ -435,6 +447,7 @@
     <string name="rep_format_error">Format muss eine Zahl (10) oder ein Bereich (8-12) sein</string>
     <string name="invalid_char_error">Nur Zahlen und Bindestriche sind erlaubt</string>
     <string name="only_numbers_error">Nur Zahlen sind erlaubt</string>
+    <string name="min_greater_than_max">Min. darf nicht größer als Max. sein</string>
 
     <!-- Workout Goals -->
     <string name="workout_goal">Trainingsziel</string>
