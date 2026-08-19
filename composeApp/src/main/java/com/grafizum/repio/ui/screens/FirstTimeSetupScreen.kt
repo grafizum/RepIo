@@ -47,6 +47,7 @@ import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.RepsTimeToggle
+import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.getExerciseDetails
@@ -68,6 +69,7 @@ fun FirstTimeSetupScreen(
     modifier: Modifier = Modifier,
 ) {
     val focusManager = LocalFocusManager.current
+    val isDeveloper = LocalDeveloperSkin.current
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade, 1 = Assisted, 2 = Custom
     var selectedWorkoutGoal by remember { mutableStateOf("goal_bodybuilding") }
 
@@ -230,14 +232,15 @@ fun FirstTimeSetupScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(48.dp)
+                                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(48.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
                                 ) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.FitnessCenter,
                                             contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.onPrimary,
+                                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
@@ -269,11 +272,11 @@ fun FirstTimeSetupScreen(
 
                                 // GOAL SELECTION
                                 Card(
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.surface.copy(alpha = 0.5f)
                                     ),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                                    border = BorderStroke(1.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Column(modifier = Modifier.padding(10.dp)) {
@@ -281,14 +284,14 @@ fun FirstTimeSetupScreen(
                                             Icon(
                                                 imageVector = Icons.Default.Adjust,
                                                 contentDescription = null,
-                                                tint = MaterialTheme.colorScheme.primary,
+                                                tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                                                 modifier = Modifier.size(14.dp)
                                             )
                                             Spacer(modifier = Modifier.width(4.dp))
                                             Text(
                                                 text = getString("workout_goal"),
                                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.primary
+                                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary
                                             )
                                         }
 
@@ -318,14 +321,14 @@ fun FirstTimeSetupScreen(
                                                 readOnly = true,
                                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                                                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                                                    focusedBorderColor = MaterialTheme.colorScheme.primary,
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.outline
+                                                    focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                                    unfocusedBorderColor = if (isDeveloper) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
                                                 ),
                                                 modifier = Modifier
                                                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                                                     .fillMaxWidth(),
-                                                shape = RoundedCornerShape(12.dp),
-                                                textStyle = MaterialTheme.typography.bodyMedium
+                                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                                textStyle = MaterialTheme.typography.bodyMedium.copy(color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface)
                                             )
 
                                             ExposedDropdownMenu(
@@ -378,7 +381,7 @@ fun FirstTimeSetupScreen(
                                                 Text(
                                                     text = text,
                                                     style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                                    color = MaterialTheme.colorScheme.primary,
+                                                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)
                                                 )
                                             }
@@ -439,8 +442,9 @@ fun FirstTimeSetupScreen(
                                         translationX = with(density) { indicatorPosition.toPx() }
                                     },
                                 color = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(12.dp),
-                                shadowElevation = 1.dp
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                shadowElevation = if (isDeveloper) 0.dp else 1.dp,
+                                border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null
                             ) {}
 
                             Row(
@@ -542,12 +546,14 @@ fun FirstTimeSetupScreen(
                                     WorkoutTemplates.allTemplates.forEach { template ->
                                         val isSelected = selectedTemplate.id == template.id
                                         Card(
-                                            shape = RoundedCornerShape(18.dp),
+                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(18.dp),
                                             colors = CardDefaults.cardColors(
                                                 containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
                                                 contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
                                             ),
-                                            border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else null,
+                                            border = if (isDeveloper) BorderStroke(if (isSelected) 3.dp else 1.dp, if (isSelected) Color.Black else Color.White)
+                                                     else if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) 
+                                                     else null,
                                             modifier = Modifier
                                                 .fillMaxWidth()
                                                 .clickable { 
@@ -564,7 +570,11 @@ fun FirstTimeSetupScreen(
                                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                                         RadioButton(
                                                             selected = isSelected,
-                                                            onClick = { selectedTemplate = template }
+                                                            onClick = { selectedTemplate = template },
+                                                            colors = RadioButtonDefaults.colors(
+                                                                selectedColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                                                unselectedColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outline
+                                                            )
                                                         )
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Column {
@@ -575,19 +585,20 @@ fun FirstTimeSetupScreen(
                                                             Text(
                                                                 text = getString(template.daysCountKey, template.daysCountArgs.first),
                                                                 style = MaterialTheme.typography.labelSmall,
-                                                                color = MaterialTheme.colorScheme.primary
+                                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
                                                             )
                                                         }
                                                     }
 
                                                     Surface(
-                                                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                        shape = RoundedCornerShape(8.dp)
+                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
+                                                        border = if (isDeveloper) BorderStroke(1.dp, if (isSelected) Color.Black else Color.White) else null
                                                     ) {
                                                         Text(
                                                             text = getString(template.badgeKey),
                                                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                            color = MaterialTheme.colorScheme.primary,
+                                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
                                                             modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
                                                         )
                                                     }
@@ -596,7 +607,7 @@ fun FirstTimeSetupScreen(
                                                 Text(
                                                     text = getString(template.descriptionKey),
                                                     style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
                                                     modifier = Modifier.padding(top = 4.dp)
                                                 )
 
@@ -607,14 +618,17 @@ fun FirstTimeSetupScreen(
                                                 ) {
                                                     TextButton(
                                                         onClick = { previewTemplateModal = template },
-                                                        contentPadding = PaddingValues(0.dp)
+                                                        contentPadding = PaddingValues(0.dp),
+                                                        colors = ButtonDefaults.textButtonColors(
+                                                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
+                                                        )
                                                     ) {
                                                         Icon(Icons.Default.Info, null, modifier = Modifier.size(14.dp))
                                                         Spacer(modifier = Modifier.width(4.dp))
                                                         Text(getString("preview_breakdown"), style = MaterialTheme.typography.labelSmall)
                                                     }
                                                     if (isSelected) {
-                                                        Icon(Icons.Default.CheckCircle, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                                        Icon(Icons.Default.CheckCircle, null, tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
                                                     }
                                                 }
                                             }
@@ -622,8 +636,9 @@ fun FirstTimeSetupScreen(
                                     }
 
                                     Card(
-                                        shape = RoundedCornerShape(20.dp),
+                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
                                         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Column(modifier = Modifier.padding(12.dp)) {
@@ -670,8 +685,8 @@ fun FirstTimeSetupScreen(
                                     AnimatedContent(
                                         targetState = getMissingMuscleGroups(selectedTemplate.exercises),
                                         transitionSpec = {
-                                            (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.95f, animationSpec = tween(220, delayMillis = 90)))
-                                                .togetherWith(fadeOut(animationSpec = tween(90)))
+                                            (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
+                                                .togetherWith(fadeOut(animationSpec = tween(200)))
                                         },
                                         label = "PremadeWarning"
                                     ) { missing ->
@@ -746,8 +761,8 @@ fun FirstTimeSetupScreen(
                                         AnimatedContent(
                                             targetState = missing to limited,
                                             transitionSpec = {
-                                                (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.95f, animationSpec = tween(220, delayMillis = 90)))
-                                                    .togetherWith(fadeOut(animationSpec = tween(90)))
+                                                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
+                                                    .togetherWith(fadeOut(animationSpec = tween(200)))
                                             },
                                             label = "AssistedWarning"
                                         ) { (m, l) ->
@@ -923,8 +938,8 @@ fun FirstTimeSetupScreen(
                                         AnimatedContent(
                                             targetState = getMissingMuscleGroups(customExercises.toList()),
                                             transitionSpec = {
-                                                (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.95f, animationSpec = tween(220, delayMillis = 90)))
-                                                    .togetherWith(fadeOut(animationSpec = tween(90)))
+                                                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
+                                                    .togetherWith(fadeOut(animationSpec = tween(200)))
                                             },
                                             label = "CustomWarning"
                                         ) { missing ->
@@ -1180,6 +1195,7 @@ private fun PreferenceSection(
     containerColor: Color
 ) {
     var input by remember { mutableStateOf("") }
+    val isDeveloper = LocalDeveloperSkin.current
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         Text(title, style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1195,7 +1211,7 @@ private fun PreferenceSection(
             }
             Button(
                 onClick = { if (input.isNotBlank()) { list.add(input.trim()); input = "" } },
-                shape = RoundedCornerShape(10.dp),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                 modifier = Modifier.height(48.dp)
             ) { Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall) }
         }
@@ -1203,7 +1219,8 @@ private fun PreferenceSection(
             list.forEach { ex ->
                 Surface(
                     color = containerColor,
-                    shape = RoundedCornerShape(8.dp),
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
                     modifier = Modifier.clickable { list.remove(ex) }
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -1220,11 +1237,14 @@ private fun PreferenceSection(
 @Composable
 private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
     val isFullGym = equipment.contains("Gym")
+    val isDeveloper = LocalDeveloperSkin.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
         Surface(
             color = if (isFullGym) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surface,
-            shape = RoundedCornerShape(16.dp),
-            border = BorderStroke(1.dp, if (isFullGym) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outlineVariant),
+            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+            border = if (isFullGym) {
+                         BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
+                     } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth().clickable {
                 if (!isFullGym) { equipment.clear(); equipment.add("Gym") }
                 else { equipment.remove("Gym"); equipment.add("Bodyweight") }
@@ -1232,13 +1252,32 @@ private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
         ) {
             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
                 Column(modifier = Modifier.weight(1f)) {
-                    Text(getString("full_gym"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
-                    Text(getString("full_gym_desc"), style = MaterialTheme.typography.labelSmall, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                    Text(
+                        text = getString("full_gym"),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (isFullGym && isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = getString("full_gym_desc"),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = if (isFullGym && isDeveloper) Color.Black.copy(alpha = 0.7f) else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
                 }
-                Switch(checked = isFullGym, onCheckedChange = { checked ->
-                    if (checked) { equipment.clear(); equipment.add("Gym") }
-                    else { equipment.remove("Gym"); if (equipment.isEmpty()) equipment.add("Bodyweight") }
-                })
+                Switch(
+                    checked = isFullGym,
+                    onCheckedChange = { checked ->
+                        if (checked) { equipment.clear(); equipment.add("Gym") }
+                        else { equipment.remove("Gym"); if (equipment.isEmpty()) equipment.add("Bodyweight") }
+                    },
+                    colors = if (isDeveloper) SwitchDefaults.colors(
+                        checkedThumbColor = Color.Black,
+                        checkedTrackColor = Color.White,
+                        checkedBorderColor = Color.Black,
+                        uncheckedThumbColor = Color.White,
+                        uncheckedTrackColor = Color.Black,
+                        uncheckedBorderColor = Color.White
+                    ) else SwitchDefaults.colors()
+                )
             }
         }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1247,8 +1286,10 @@ private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
                 Surface(
                     color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                     contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                    shape = RoundedCornerShape(12.dp),
-                    border = if (!selected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                    border = if (selected) {
+                                 BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
+                             } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
                     modifier = Modifier.weight(1f).height(40.dp).clickable {
                         if (selected) { if (equipment.size > 1) equipment.remove(eq) else { equipment.remove(eq); equipment.add("Gym") } }
                         else { equipment.remove("Gym"); equipment.add(eq) }
@@ -1265,6 +1306,7 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
     val coroutineScope = rememberCoroutineScope()
     var expandedCategory by remember { mutableStateOf<String?>(null) }
     val bringIntoViewRequester = remember { BringIntoViewRequester() }
+    val isDeveloper = LocalDeveloperSkin.current
 
     val categories = listOf(
         getString("arms") to listOf("Biceps", "Triceps", "Forearms"),
@@ -1309,9 +1351,10 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                         selected.clear()
                         selected.addAll(balancedPreset)
                     },
-                    shape = RoundedCornerShape(8.dp),
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
                     color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer
+                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
                 ) {
                     Row(
                         modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
@@ -1349,15 +1392,6 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                             if (expanded) {
                                 expandedCategory = null
                             } else {
-                                // Smart toggle: If not all parts in this category are selected, select all.
-                                // If all are selected, clear them.
-                                val allSelected = parts.all { selected.contains(it) }
-                                if (allSelected) {
-                                    parts.forEach { selected.remove(it) }
-                                } else {
-                                    parts.forEach { if (!selected.contains(it)) selected.add(it) }
-                                }
-                                
                                 expandedCategory = cat
                                 coroutineScope.launch {
                                     delay(200)
@@ -1365,10 +1399,12 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                 }
                             }
                         },
-                        shape = RoundedCornerShape(12.dp),
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
                         color = backgroundColor,
                         contentColor = contentColor,
-                        border = if (!expanded) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                        border = if (isDeveloper && expanded) BorderStroke(2.dp, Color.Black)
+                                 else if (!expanded) BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant) 
+                                 else null,
                         modifier = Modifier
                             .weight(1f)
                             .height(44.dp)
@@ -1411,8 +1447,8 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                 AnimatedContent(
                     targetState = expandedCategory,
                     transitionSpec = {
-                        (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
-                            .togetherWith(fadeOut(animationSpec = tween(90)))
+                        (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+                            .togetherWith(fadeOut(animationSpec = tween(200)))
                     },
                     label = "BodyPartsContent"
                 ) { targetCat ->
@@ -1437,11 +1473,12 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                         else selected.add(part) 
                                     },
                                     label = { Text(translateMuscleGroup(part), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)) },
-                                    shape = RoundedCornerShape(10.dp),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
-                                    )
+                                        selectedContainerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    border = if (isDeveloper && isSel) FilterChipDefaults.filterChipBorder(enabled = true, selected = true, selectedBorderColor = Color.Black, selectedBorderWidth = 2.dp) else FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel)
                                 )
                             }
                         }
@@ -1559,8 +1596,8 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
         AnimatedContent(
             targetState = description,
             transitionSpec = {
-                (fadeIn(animationSpec = tween(220, delayMillis = 90)) + scaleIn(initialScale = 0.92f, animationSpec = tween(220, delayMillis = 90)))
-                    .togetherWith(fadeOut(animationSpec = tween(90)))
+                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
             },
             label = "intensityDesc"
         ) { desc ->
@@ -1717,14 +1754,15 @@ fun DaySelectionRow(
     onDayToggle: (String) -> Unit
 ) {
     val allDays = listOf(
-        "MONDAY" to "M",
-        "TUESDAY" to "T",
-        "WEDNESDAY" to "W",
-        "THURSDAY" to "T",
-        "FRIDAY" to "F",
-        "SATURDAY" to "S",
-        "SUNDAY" to "S"
+        "MONDAY" to getString("monday_shortest"),
+        "TUESDAY" to getString("tuesday_shortest"),
+        "WEDNESDAY" to getString("wednesday_shortest"),
+        "THURSDAY" to getString("thursday_shortest"),
+        "FRIDAY" to getString("friday_shortest"),
+        "SATURDAY" to getString("saturday_shortest"),
+        "SUNDAY" to getString("sunday_shortest")
     )
+    val isDeveloper = LocalDeveloperSkin.current
 
     Row(
         modifier = Modifier.fillMaxWidth(),
@@ -1736,14 +1774,16 @@ fun DaySelectionRow(
                 onClick = { onDayToggle(day) },
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                 contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                shape = CircleShape,
-                border = if (!isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) else null,
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
+                border = if (isSelected) {
+                             BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
+                         } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
                     )
                 }
             }
@@ -1852,6 +1892,18 @@ fun AddExerciseDialog(
         }
     }
 
+    val repsHasRangeError = remember(targetRepsValue, isTimeBased) {
+        if (isTimeBased || targetRepsValue.isBlank()) false
+        else {
+            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            if (parts.size == 2) {
+                val v1 = parts[0].toIntOrNull()
+                val v2 = parts[1].toIntOrNull()
+                v1 != null && v2 != null && v1 > v2
+            } else false
+        }
+    }
+
     var expandedDay by remember { mutableStateOf(false) }
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
@@ -1934,36 +1986,21 @@ fun AddExerciseDialog(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
                     OutlinedTextField(
                         value = targetSets,
                         onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
                         label = { Text(getString("sets")) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f),
+                        supportingText = if (repsHasRangeError) { { Text("") } } else null
                     )
-                    OutlinedTextField(
-                        value = targetIntensityStr,
-                        onValueChange = { targetIntensityStr = it },
-                        label = { Text(getString("intensity_label")) },
-                        placeholder = { Text("RPE 8") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1.5f)
-                    )
-                }
 
-                OutlinedTextField(
-                    value = restSecondsStr,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
-                    label = { Text(getString("rest_timer_label")) },
-                    suffix = { Text("s") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
-
-                Row(horizontalArrangement = Arrangement.spacedBy(10.dp)) {
                     if (isTimeBased) {
                         var expandedTime by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(
@@ -1978,6 +2015,7 @@ fun AddExerciseDialog(
                                 readOnly = true,
                                 label = { Text(getString("time_label")) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
                             ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
@@ -1987,15 +2025,42 @@ fun AddExerciseDialog(
                             }
                         }
                     } else {
-                        OutlinedTextField(
+                        RepsRangeField(
                             value = targetRepsValue,
-                            onValueChange = { if (it.all { c -> c.isDigit() || c == '-' || c == '–' }) targetRepsValue = it else showInvalidCharToast = true },
-                            label = { Text(getString("reps")) },
-                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
+                            onValueChange = { targetRepsValue = it },
+                            label = getString("reps"),
+                            isError = repsHasRangeError || (targetRepsValue.isNotEmpty() && !isRepsValid),
+                            modifier = Modifier.weight(1f),
+                            supportingText = if (repsHasRangeError) {
+                                { Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error) }
+                            } else null
                         )
                     }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(10.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    OutlinedTextField(
+                        value = restSecondsStr,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
+                        label = { Text(getString("rest_timer_label")) },
+                        suffix = { Text("s") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = targetIntensityStr,
+                        onValueChange = { targetIntensityStr = it },
+                        label = { Text(getString("intensity_label")) },
+                        placeholder = { Text("RPE 8") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 OutlinedTextField(
@@ -2098,6 +2163,7 @@ fun OnboardingStepHeader(
     isExpanded: Boolean = false,
     onToggle: (() -> Unit)? = null
 ) {
+    val isDeveloper = LocalDeveloperSkin.current
     Row(
         verticalAlignment = Alignment.CenterVertically,
         horizontalArrangement = Arrangement.SpaceBetween,
@@ -2109,26 +2175,36 @@ fun OnboardingStepHeader(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             if (stepNumber != null) {
                 Surface(
-                    color = MaterialTheme.colorScheme.primary,
-                    shape = CircleShape,
+                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
                     modifier = Modifier.size(28.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = stepNumber.toString(),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.onPrimary
+                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
             }
-            Surface(color = MaterialTheme.colorScheme.primary.copy(alpha = 0.04f), shape = RoundedCornerShape(12.dp), border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))) {
-                Text(text = title, style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp))
+            Surface(
+                color = if (isDeveloper) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+            ) {
+                Text(
+                    text = title,
+                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
+                )
             }
         }
         if (isCollapsible) {
-            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
+            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

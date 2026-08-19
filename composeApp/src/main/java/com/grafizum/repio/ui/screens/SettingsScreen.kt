@@ -2,6 +2,7 @@ package com.grafizum.repio.ui.screens
 
 import androidx.compose.animation.AnimatedVisibility
 import androidx.compose.foundation.BorderStroke
+import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
@@ -9,6 +10,7 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxSize
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -18,6 +20,8 @@ import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.relocation.BringIntoViewRequester
+import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.verticalScroll
@@ -47,6 +51,8 @@ import androidx.compose.material3.MenuAnchorType
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
+import androidx.compose.material3.ModalBottomSheet
+import androidx.compose.material3.rememberModalBottomSheetState
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Surface
 import androidx.compose.material3.Switch
@@ -73,6 +79,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.components.TimersMergedCard
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import kotlinx.coroutines.delay
 
 data class ThemeColorItem(
     val key: String,
@@ -95,7 +102,7 @@ val darkThemes = listOf(
     ThemeColorItem("ROSE", "rose_pink", Color(0xFFF06292), Color(0xFF28111A))
 )
 
-@OptIn(ExperimentalMaterial3Api::class)
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalFoundationApi::class)
 @Composable
 fun SettingsScreen(
     viewModel: WorkoutViewModel,
@@ -117,6 +124,28 @@ fun SettingsScreen(
     var showTransitionTimerConfirmation by remember { mutableStateOf(false) }
     var pendingRestTimer by remember { mutableStateOf(defaultRestTimerSeconds) }
     var pendingTransitionTimer by remember { mutableStateOf(defaultExerciseTimerSeconds) }
+
+    val scrollState = rememberScrollState()
+
+    LaunchedEffect(showFAQ) {
+        if (showFAQ) {
+            // Smoothly follow the expansion animation in real-time
+            repeat(60) {
+                scrollState.scrollTo(scrollState.maxValue)
+                delay(20) 
+            }
+        }
+    }
+
+    LaunchedEffect(showSupportCard) {
+        if (showSupportCard) {
+            // Smoothly follow the expansion animation in real-time
+            repeat(60) {
+                scrollState.scrollTo(scrollState.maxValue)
+                delay(20) 
+            }
+        }
+    }
 
     if (showRestTimerConfirmation) {
         AlertDialog(
@@ -210,7 +239,7 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
-            .verticalScroll(rememberScrollState())
+            .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -229,14 +258,14 @@ fun SettingsScreen(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Settings,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -270,7 +299,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.Language,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -377,7 +406,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.PhoneAndroid,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary,
+                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -424,7 +453,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.ColorLens,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -440,7 +469,7 @@ fun SettingsScreen(
                         Text(
                             text = getString("developer_theme"),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.primary,
+                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                         )
                         ThemeOptionRow(
@@ -457,7 +486,7 @@ fun SettingsScreen(
                     Text(
                         text = getString("light_mode_theme"),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -476,7 +505,7 @@ fun SettingsScreen(
                     Text(
                         text = getString("dark_mode_theme"),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.primary,
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -503,7 +532,10 @@ fun SettingsScreen(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showFAQ = !showFAQ }
+                    .clickable { 
+                        showFAQ = !showFAQ 
+                        if (showFAQ) showSupportCard = false
+                    }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -524,7 +556,10 @@ fun SettingsScreen(
                             )
                         }
 
-                        IconButton(onClick = { showFAQ = !showFAQ }) {
+                        IconButton(onClick = { 
+                            showFAQ = !showFAQ 
+                            if (showFAQ) showSupportCard = false
+                        }) {
                             Icon(
                                 imageVector = if (showFAQ) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                 contentDescription = null,
@@ -547,13 +582,14 @@ fun SettingsScreen(
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 border = BorderStroke(
                     width = if (isDeveloper) 2.dp else 1.dp,
-                    color = if (showSupportCard) MaterialTheme.colorScheme.primary 
-                            else if (isDeveloper) Color.White 
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { showSupportCard = !showSupportCard }
+                    .clickable { 
+                        showSupportCard = true 
+                        showFAQ = false
+                    }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -574,27 +610,57 @@ fun SettingsScreen(
                             )
                         }
 
-                        IconButton(
-                            onClick = { showSupportCard = !showSupportCard },
-                            modifier = Modifier.semantics { testTag = "settings_support_button" }
+                        Button(
+                            onClick = { 
+                                showSupportCard = true 
+                                showFAQ = false
+                            },
+                            shape = RoundedCornerShape(10.dp),
+                            contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+                            modifier = Modifier
+                                .height(36.dp)
+                                .semantics { testTag = "settings_support_button" }
                         ) {
                             Icon(
-                                imageVector = if (showSupportCard) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                                imageVector = Icons.AutoMirrored.Filled.Chat,
                                 contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
+                                modifier = Modifier.size(16.dp)
                             )
-                        }
-                    }
-
-                    AnimatedVisibility(visible = showSupportCard) {
-                        Column(modifier = Modifier.padding(top = 16.dp)) {
-                            SupportTicketForm(viewModel)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = getString("open"),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
+                            )
                         }
                     }
                 }
             }
 
-            Spacer(modifier = Modifier.height(32.dp))
+            Spacer(
+                modifier = Modifier
+                    .height(if (showFAQ) 16.dp else 0.dp)
+            )
+        }
+    }
+
+    if (showSupportCard) {
+        ModalBottomSheet(
+            onDismissRequest = { showSupportCard = false },
+            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
+        ) {
+            Column(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .padding(20.dp)
+            ) {
+                Text(
+                    text = getString("support_requests"),
+                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                Spacer(modifier = Modifier.height(16.dp))
+                SupportTicketForm(viewModel)
+                Spacer(modifier = Modifier.height(32.dp))
+            }
         }
     }
 }

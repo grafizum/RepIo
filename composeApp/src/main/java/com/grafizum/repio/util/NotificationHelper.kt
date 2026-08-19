@@ -13,6 +13,7 @@ import android.os.Vibrator
 import android.os.VibratorManager
 import android.graphics.Color
 import androidx.core.app.NotificationCompat
+import androidx.core.app.NotificationManagerCompat
 
 import com.grafizum.repio.R
 
@@ -44,6 +45,21 @@ object NotificationHelper {
     }
 
     fun showRestTimerEndedNotification(context: Context) {
+        val isInForeground = AppEventBus.isAppInForeground.value
+        
+        // Always trigger in-app event so it's ready when user returns or is inside
+        AppEventBus.onRestTimerEnded()
+        
+        if (isInForeground) {
+            vibrate(context)
+            return
+        }
+
+        // Only show system notification if NOT in app AND notifications are enabled
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return
+        }
+
         createNotificationChannel(context)
 
         val soundUri = RingtoneManager.getDefaultUri(RingtoneManager.TYPE_NOTIFICATION)
@@ -86,21 +102,26 @@ object NotificationHelper {
         } catch (e: Exception) {
             // Fallback gracefully
         }
+    }
 
-        // Direct vibration trigger
+    private fun vibrate(context: Context) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return
+        }
         try {
+            val pattern = longArrayOf(0, 500) // Single 500ms pulse
             if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.S) {
                 val vibratorManager = context.getSystemService(Context.VIBRATOR_MANAGER_SERVICE) as VibratorManager
                 val vibrator = vibratorManager.defaultVibrator
-                vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 200, 300), -1))
+                vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
             } else {
                 @Suppress("DEPRECATION")
                 val vibrator = context.getSystemService(Context.VIBRATOR_SERVICE) as Vibrator
                 if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
-                    vibrator.vibrate(VibrationEffect.createWaveform(longArrayOf(0, 300, 200, 300), -1))
+                    vibrator.vibrate(VibrationEffect.createWaveform(pattern, -1))
                 } else {
                     @Suppress("DEPRECATION")
-                    vibrator.vibrate(longArrayOf(0, 300, 200, 300), -1)
+                    vibrator.vibrate(pattern, -1)
                 }
             }
         } catch (e: Exception) {
