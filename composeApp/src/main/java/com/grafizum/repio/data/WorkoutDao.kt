@@ -49,6 +49,9 @@ interface WorkoutDao {
     @Query("SELECT * FROM logged_sets ORDER BY timestamp DESC")
     fun getAllLoggedSets(): Flow<List<LoggedSetEntity>>
 
+    @Query("DELETE FROM logged_sets WHERE timestamp >= :startTime")
+    suspend fun deleteLoggedSetsSince(startTime: Long)
+
     @Query("SELECT * FROM logged_sets WHERE timestamp >= :startTime ORDER BY timestamp ASC")
     fun getLoggedSetsSince(startTime: Long): Flow<List<LoggedSetEntity>>
 

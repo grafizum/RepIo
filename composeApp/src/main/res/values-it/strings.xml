@@ -9,7 +9,7 @@
     <string name="workout_now">ALLENATI ORA</string>
     <string name="total_volume">Volume Totale</string>
     <string name="all_time_volume">Volume totale storico</string>
-    <string name="sets_logged">Serie registrate</string>
+    <string name="sets_logged">Serie salvate</string>
     <string name="completed_sets">Serie completate</string>
     <string name="quick_actions">Azioni rapide</string>
     <string name="weekly_routine">Routine settimanale</string>
@@ -19,6 +19,9 @@
     <string name="weekly_summary_report">Rapporto settimanale</string>
     <string name="detailed_weekly_insights">Approfondimenti settimanali dettagliati</string>
     <string name="todays_schedule">Programma di oggi</string>
+    <string name="expand_all">Espandi tutto</string>
+    <string name="collapse_all">Comprimi tutto</string>
+    <string name="tap_for_details">Tocca per i dettagli</string>
     <string name="no_exercises_today">Nessun esercizio pianificato per oggi. Goditi il riposo!</string>
     <string name="sets_x_reps">%1$d serie × %2$s rip</string>
     <string name="sets_x_time">%1$d serie × %2$s</string>
@@ -28,9 +31,9 @@
     <string name="keep_screen_on">Mantieni schermo attivo</string>
     <string name="force_screen_stay_active">Forza lo schermo a restare attivo con l\'app aperta</string>
     <string name="resting_timer_duration">Serie</string>
-    <string name="auto_countdown_interval">Tempo tra le serie dello stesso esercizio</string>
-    <string name="exercise_transition_timer">Workout</string>
-    <string name="exercise_transition_timer_desc">Tempo quando si passa a un nuovo esercizio</string>
+    <string name="auto_countdown_interval">Serie</string>
+    <string name="exercise_transition_timer">Esercizi</string>
+    <string name="exercise_transition_timer_desc">Esercizi</string>
     <string name="color_theme">Tema colori</string>
     <string name="app_icon_selection">Selezione Icona App</string>
     <string name="light_icon_beige">Icona Chiara (Beige)</string>
@@ -76,8 +79,8 @@
     <string name="select_exercise">Seleziona esercizio</string>
     <string name="max_weight">Peso massimo</string>
     <string name="recent_history">Cronologia recente</string>
-    <string name="no_sets_logged">Nessuna serie registrata.</string>
-    <string name="no_sets_logged_full">Nessuna serie registrata. Completa gli allenamenti per vedere il focus muscolare!</string>
+    <string name="no_sets_logged">Nessuna serie salvata.</string>
+    <string name="no_sets_logged_full">Nessuna serie salvata. Completa gli allenamenti per vedere il focus muscolare!</string>
     <string name="volume_progress_kg">Progresso volume (kg)</string>
     <string name="tap_bar_to_inspect">Tocca una barra per i dettagli giornalieri</string>
     <string name="muscle_group_focus">Focus gruppi muscolari</string>
@@ -99,14 +102,15 @@
     <string name="tip">Suggerimento</string>
     <string name="missing_parts_desc">Il tuo allenamento non ha esercizi per: %1$s. L\'aggiunta di esercizi per questi gruppi muscolari garantirà uno sviluppo equilibrato della forza.</string>
     <string name="notification_channel_name">Notifiche Timer Riposo</string>
-    <string name="notification_channel_desc">Notifica quando finisce la pausa tra le serie</string>
+    <string name="notification_channel_desc">Notifica quando finisce la pausa per Serie</string>
     <string name="notification_title">Pausa terminata! 💪</string>
     <string name="notification_text">È ora della prossima serie!</string>
+    <string name="in_app_rest_ended_message">Il tempo di riposo è terminato. Continua il prossimo allenamento!</string>
     <string name="replace">Sostituisci</string>
     <string name="alternative_exercises">Esercizi Alternativi</string>
     <string name="select_alternative_desc">Scegli un esercizio diverso per %1$s:</string>
     <string name="clear_history_title">Cancellare tutta la cronologia?</string>
-    <string name="clear_history_text">Questo rimuoverà permanentemente tutte le serie registrate.</string>
+    <string name="clear_history_text">Questo rimuoverà permanentemente tutte le serie salvate.</string>
     <string name="delete_all">Elimina tutto</string>
     <string name="cancel">Annulla</string>
 
@@ -136,7 +140,7 @@
     <string name="rest_recovery_day">Giorno di riposo e recupero</string>
     <string name="rest_recovery_recommendation">Nessun allenamento pianificato per %1$s. Consigliata una camminata attiva o mobilità leggera!</string>
     <string name="workout_completed_title">Allenamento completato! 🎉</string>
-    <string name="workout_completed_text">Hai registrato %1$d serie totali per %2$s!</string>
+    <string name="workout_completed_text">Hai salvato %1$d serie totali per %2$s!</string>
     <string name="start_workout_again">INIZIA DI NUOVO L\'ALLENAMENTO</string>
     <string name="exercise_x_of_y">Esercizio %1$d di %2$d • Serie %3$d/%4$d</string>
     <string name="rest_timer">RIPOSO SERIE</string>
@@ -148,12 +152,12 @@
     <string name="next_up">PROSSIMO</string>
     <string name="next_up_none">Nessuno (Finito 🎉)</string>
     <string name="next_up_exercise">%1$s (%2$d serie)</string>
-    <string name="log_current_set_parameters">Registra parametri serie</string>
+    <string name="log_current_set_parameters">Salva parametri serie</string>
     <string name="weight">Peso</string>
     <string name="reps_completed">Ripetizioni completate</string>
     <string name="reps_count">%1$d rip</string>
-    <string name="log_set_x_next">REGISTRA SERIE %1$d &amp; PROSSIMO ➔</string>
-    <string name="start_timer_x_and_log">AVVIA TIMER %1$ds &amp; LOG</string>
+    <string name="log_set_x_next">SALVA SERIE %1$d &amp; PROSSIMO ➔</string>
+    <string name="start_timer_x_and_log">AVVIA TIMER %1$ds &amp; SALVA</string>
     <string name="start_timer_x">AVVIA TIMER %1$ds</string>
     <string name="program_name">Mio Allenamento</string>
     <string name="description">Descrizione</string>
@@ -229,11 +233,11 @@
     <string name="select">Seleziona</string>
     <string name="select_time">Scegli tempo</string>
     <string name="timer_durations">Durata Timer</string>
-    <string name="timer_settings_desc">\'Serie\' per il riposo tra le serie; \'Workout\' per le transizioni tra gli esercizi.</string>
+    <string name="timer_settings_desc">\'Serie\' per Serie; \'Workout\' per Esercizi.</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma di allenamento?</string>
     <string name="faq_change_program_a">Vai nella scheda \"Il mio allenamento\" e tocca \"Allenamento personalizzato\" in alto per selezionare un nuovo modello o crearne uno tuo.</string>
-    <string name="faq_past_logs_q">Dove trovo i log dei miei allenamenti passati?</string>
+    <string name="faq_past_logs_q">Dove trovo i salvataggi dei miei allenamenti passati?</string>
     <string name="faq_past_logs_a">Puoi visualizzare i tuoi progressi e i riepiloghi settimanali nella scheda \"Analisi\".</string>
     <string name="faq_keep_screen_on_q">Come mantengo lo schermo acceso durante l\'allenamento?</string>
     <string name="faq_keep_screen_on_a">Tocca l\'icona delle impostazioni (ingranaggio) nella schermata Home e attiva \"Mantieni schermo attivo\".</string>
@@ -355,6 +359,14 @@
     <string name="friday">Venerdì</string>
     <string name="saturday">Sabato</string>
     <string name="sunday">Domenica</string>
+    <string name="monday_shortest">Lu</string>
+    <string name="tuesday_shortest">Ma</string>
+    <string name="wednesday_shortest">Me</string>
+    <string name="thursday_shortest">Gi</string>
+    <string name="friday_shortest">Ve</string>
+    <string name="saturday_shortest">Sa</string>
+    <string name="sunday_shortest">Do</string>
+    <string name="today_short_label">OGGI</string>
     <string name="monday_short">Lun</string>
     <string name="tuesday_short">Mar</string>
     <string name="wednesday_short">Mer</string>
@@ -434,6 +446,7 @@
     <string name="rep_format_error">Il formato deve essere un numero (10) o un intervallo (8-12)</string>
     <string name="invalid_char_error">Sono ammessi solo numeri e trattini</string>
     <string name="only_numbers_error">Sono ammessi solo numeri</string>
+    <string name="min_greater_than_max">Il valore minimo non può essere maggiore del massimo</string>
 
     <!-- Workout Goals -->
     <string name="workout_goal">Obiettivo Allenamento</string>

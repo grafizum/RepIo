@@ -5,6 +5,8 @@ import com.grafizum.repio.util.getTimerManager
 import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.getTodayDayOfWeek
+import androidx.compose.foundation.ScrollState
+import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grafizum.repio.data.LoggedSetEntity
@@ -106,6 +108,13 @@ class WorkoutViewModel(
 
     private val _supportUiState = MutableStateFlow(SupportUiState())
     val supportUiState: StateFlow<SupportUiState> = _supportUiState.asStateFlow()
+
+    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 0)
+    val refreshTrigger = _refreshTrigger.asSharedFlow()
+
+    // Hoisted UI states to prevent "rescrolling" on recomposition
+    val workoutNowScrollState = ScrollState(0)
+    val dayChipsListState = LazyListState()
 
     init {
         val savedState = loadSavedWorkoutNowState()
@@ -456,7 +465,10 @@ class WorkoutViewModel(
     fun selectDayForWorkoutNow(dayOfWeek: String) {
         val currentState = _workoutNowState.value
         // If it's already the selected day, don't reset progress (preserves state on tab switch/app resume)
-        if (currentState.selectedDayOfWeek == dayOfWeek) return
+        if (currentState.selectedDayOfWeek == dayOfWeek) {
+            viewModelScope.launch { _refreshTrigger.emit(Unit) }
+            return
+        }
 
         val newState = currentState.copy(
             selectedDayOfWeek = dayOfWeek,
@@ -467,6 +479,7 @@ class WorkoutViewModel(
         )
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
+        viewModelScope.launch { _refreshTrigger.emit(Unit) }
     }
 
     fun updateWeightAndReps(weight: Double, reps: Int) {
@@ -563,6 +576,9 @@ class WorkoutViewModel(
 
     fun resetWorkoutSession() {
         stopTimer()
+        viewModelScope.launch {
+            repository.deleteTodayLogs()
+        }
         _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0) }
         saveWorkoutNowState(_workoutNowState.value)
     }

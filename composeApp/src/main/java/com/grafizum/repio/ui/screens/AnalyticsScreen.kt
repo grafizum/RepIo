@@ -15,6 +15,7 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
+import androidx.compose.foundation.layout.widthIn
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -53,6 +54,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import com.grafizum.repio.ui.components.InteractiveVolumeBarChart
 import com.grafizum.repio.ui.components.MuscleGroupDonutChart
@@ -208,14 +210,14 @@ fun AnalyticsScreen(
                 Box(
                     modifier = Modifier
                         .size(42.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
                     contentAlignment = Alignment.Center
                 ) {
                     Icon(
                         imageVector = Icons.Default.Assessment,
                         contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
+                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(24.dp)
                     )
                 }
@@ -488,16 +490,20 @@ fun AnalyticsScreen(
 @Composable
 private fun StatMiniItem(label: String, value: String, color: Color) {
     val isDeveloper = LocalDeveloperSkin.current
-    Column {
+    Column(modifier = Modifier.widthIn(max = 100.dp)) {
         Text(
             text = label,
             style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
         Text(
             text = value,
             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (isDeveloper) Color.White else color
+            color = if (isDeveloper) Color.White else color,
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
         )
     }
 }

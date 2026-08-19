@@ -35,11 +35,15 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
+import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
+import androidx.compose.ui.input.nestedscroll.NestedScrollSource
+import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
@@ -49,7 +53,16 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.focus.FocusRequester
+import androidx.compose.ui.focus.focusRequester
+import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.text.KeyboardOptions
+import androidx.compose.foundation.text.BasicTextField
+import androidx.compose.ui.graphics.RectangleShape
+import androidx.compose.foundation.lazy.LazyListState
+import androidx.compose.foundation.lazy.LazyRow
+import com.grafizum.repio.data.DayOfWeekEnum
+import androidx.compose.ui.graphics.SolidColor
 import androidx.compose.ui.text.input.KeyboardType
 import com.grafizum.repio.util.getString
 import kotlinx.coroutines.delay
@@ -647,7 +660,7 @@ fun ExpandableExerciseCard(
                                     Text(
                                         text = " • $displayIntensity",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = if (isDeveloper) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
@@ -660,7 +673,7 @@ fun ExpandableExerciseCard(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
-                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
+                        tint = if (isDeveloper) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                     )
                 }
             }
@@ -820,13 +833,13 @@ fun MuscleGroupSelector(
                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isCatExpanded || hasSelectedInCat) {
-                        if (isDeveloper) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                        if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
                     } else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ),
                 border = BorderStroke(
                     width = 1.dp,
                     color = if (hasSelectedInCat) {
-                        if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary
                     } else if (isCatExpanded) {
                         if (isDeveloper) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
                     } else Color.Transparent
@@ -846,14 +859,14 @@ fun MuscleGroupSelector(
                             Text(
                                 text = catName,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (hasSelectedInCat) FontWeight.Bold else FontWeight.Medium),
-                                color = if (hasSelectedInCat) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface
+                                color = if (hasSelectedInCat) (if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary) else MaterialTheme.colorScheme.onSurface
                             )
                             if (hasSelectedInCat && !isCatExpanded) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
+                                    tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -861,7 +874,7 @@ fun MuscleGroupSelector(
                         Icon(
                             imageVector = if (isCatExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
+                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -936,7 +949,7 @@ fun TimersMergedCard(
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
+                    tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1047,15 +1060,20 @@ private fun TimerSelectionButton(
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
                     Text(
                         text = label,
-                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 7.sp, fontWeight = FontWeight.Bold),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontSize = if (isSelected) 7.sp else 11.sp,
+                            fontWeight = FontWeight.Bold
+                        ),
                         maxLines = 1,
                         overflow = TextOverflow.Ellipsis
                     )
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        maxLines = 1
-                    )
+                    if (isSelected) {
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            maxLines = 1
+                        )
+                    }
                 }
             }
         }
@@ -1652,12 +1670,14 @@ fun MissingBodyPartsWarningCard(
     equipmentLimitedParts: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
+    val isDeveloper = LocalDeveloperSkin.current
     if (missingParts.isEmpty() && equipmentLimitedParts.isEmpty()) {
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = Color(0xFF10B981) // Solid Emerald for balanced status
+                containerColor = if (isDeveloper) Color.White else Color(0xFF10B981)
             ),
+            border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null,
             modifier = modifier.fillMaxWidth()
         ) {
             Row(
@@ -1667,7 +1687,7 @@ fun MissingBodyPartsWarningCard(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = Color.White,
+                    tint = if (isDeveloper) Color.Black else Color.White,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1675,12 +1695,12 @@ fun MissingBodyPartsWarningCard(
                     Text(
                         text = getString("balanced_workout_routine"),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = Color.White
+                        color = if (isDeveloper) Color.Black else Color.White
                     )
                     Text(
                         text = getString("balanced_workout_desc"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = Color.White
+                        color = if (isDeveloper) Color.Black else Color.White
                     )
                 }
             }
@@ -1688,11 +1708,13 @@ fun MissingBodyPartsWarningCard(
     } else {
         val isEquipmentIssue = equipmentLimitedParts.isNotEmpty()
         Card(
-            shape = RoundedCornerShape(16.dp),
+            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isEquipmentIssue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f) 
+                containerColor = if (isDeveloper) Color.White
+                                else if (isEquipmentIssue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
                                 else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
             ),
+            border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null,
             modifier = modifier.fillMaxWidth()
         ) {
             Row(
@@ -1702,76 +1724,199 @@ fun MissingBodyPartsWarningCard(
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = "Warning",
-                    tint = MaterialTheme.colorScheme.error,
+                    tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .padding(top = 2.dp)
-                        .size(22.dp)
+                        .size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
+                    Text(
+                        text = if (isEquipmentIssue) getString("equipment_limited_routine") else getString("incomplete_workout_routine"),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
+                    )
+                    
+                    val translatedParts = mutableListOf<String>()
                     if (isEquipmentIssue) {
-                        Text(
-                            text = getString("equipment_limitation_title"),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        )
-                        val translatedLimited = mutableListOf<String>()
                         for (part in equipmentLimitedParts) {
-                            translatedLimited.add(translateMuscleGroup(part))
+                            translatedParts.add(translateMuscleGroup(part))
                         }
-
-                        Text(
-                            text = getString("equipment_limitation_title"),
-                            style = MaterialTheme.typography.titleSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                color = MaterialTheme.colorScheme.onErrorContainer
-                            )
-                        )
-                        Text(
-                            text = getString("equipment_limitation_desc", translatedLimited.joinToString(", ")),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
-                        )
                     } else {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Text(
-                                text = getString("missing_body_parts_warning"),
-                                style = MaterialTheme.typography.titleSmall.copy(
-                                    fontWeight = FontWeight.Bold,
-                                    color = MaterialTheme.colorScheme.onErrorContainer
-                                )
-                            )
-                            Spacer(modifier = Modifier.width(6.dp))
-                            Surface(
-                                color = MaterialTheme.colorScheme.error.copy(alpha = 0.2f),
-                                shape = RoundedCornerShape(4.dp)
-                            ) {
-                                Text(
-                                    text = getString("tip"),
-                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.error,
-                                    modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                                )
-                            }
-                        }
-                        Spacer(modifier = Modifier.height(4.dp))
-                        
-                        val translatedMissing = mutableListOf<String>()
                         for (part in missingParts) {
-                            translatedMissing.add(translateMuscleGroup(part))
+                            translatedParts.add(translateMuscleGroup(part))
                         }
-                        
-                        Text(
-                            text = getString("missing_parts_desc", translatedMissing.joinToString(", ")),
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onErrorContainer.copy(alpha = 0.9f)
-                        )
                     }
+
+                    val warningText = if (isEquipmentIssue) {
+                        getString("equipment_limited_desc", translatedParts.joinToString(", "))
+                    } else {
+                        getString("incomplete_workout_desc", translatedParts.joinToString(", "))
+                    }
+
+                    Text(
+                        text = warningText,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
+                    )
                 }
             }
         }
+    }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun RepsRangeField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    supportingText: @Composable (() -> Unit)? = null
+) {
+    val parts = value.split("-", "–")
+    val minVal = parts.getOrNull(0) ?: ""
+    val maxVal = parts.getOrNull(1) ?: ""
+
+    var minReps by remember(minVal) { mutableStateOf(minVal) }
+    var maxReps by remember(maxVal) { mutableStateOf(maxVal) }
+
+    val minFocusRequester = remember { FocusRequester() }
+    val maxFocusRequester = remember { FocusRequester() }
+    var isMinFocused by remember { mutableStateOf(false) }
+    var isMaxFocused by remember { mutableStateOf(false) }
+
+    val isAnyFocused = isMinFocused || isMaxFocused
+    val hasContent = minReps.isNotEmpty() || maxReps.isNotEmpty()
+
+    fun notifyChange(min: String, max: String) {
+        val result = when {
+            min.isNotBlank() && max.isNotBlank() -> "$min-$max"
+            min.isNotBlank() -> min
+            max.isNotBlank() -> max
+            else -> ""
+        }
+        onValueChange(result)
+    }
+
+    val interactionSource = remember { MutableInteractionSource() }
+
+    // Use a Box to container everything and handle the click to focus the first field
+    Box(
+        modifier = modifier
+            .heightIn(min = 56.dp)
+            .clickable(
+                interactionSource = interactionSource,
+                indication = null
+            ) {
+                minFocusRequester.requestFocus()
+            }
+    ) {
+        OutlinedTextFieldDefaults.DecorationBox(
+            value = if (isAnyFocused || hasContent) " " else "",
+            innerTextField = {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(4.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // MIN FIELD
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (minReps.isEmpty() && (isAnyFocused || hasContent)) {
+                            Text(
+                                text = "min",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        BasicTextField(
+                            value = minReps,
+                            onValueChange = {
+                                if (it.all { c -> c.isDigit() }) {
+                                    minReps = it
+                                    notifyChange(it, maxReps)
+                                    if (it.length >= 2) {
+                                        maxFocusRequester.requestFocus()
+                                    }
+                                }
+                            },
+                            textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                color = MaterialTheme.colorScheme.onSurface,
+                                textAlign = TextAlign.Center
+                            ),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .focusRequester(minFocusRequester)
+                                .onFocusChanged { isMinFocused = it.isFocused }
+                        )
+                    }
+
+                    // SEPARATOR
+                    if (isAnyFocused || hasContent) {
+                        Text(
+                            text = "-",
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                    }
+
+                    // MAX FIELD
+                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
+                        if (maxReps.isEmpty() && (isAnyFocused || hasContent)) {
+                            Text(
+                                text = "max",
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        if (isAnyFocused || hasContent) {
+                            BasicTextField(
+                                value = maxReps,
+                                onValueChange = {
+                                    if (it.all { c -> c.isDigit() }) {
+                                        maxReps = it
+                                        notifyChange(minReps, it)
+                                    }
+                                },
+                                textStyle = MaterialTheme.typography.bodyMedium.copy(
+                                    color = MaterialTheme.colorScheme.onSurface,
+                                    textAlign = TextAlign.Center
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(maxFocusRequester)
+                                    .onFocusChanged { isMaxFocused = it.isFocused }
+                            )
+                        }
+                    }
+                }
+            },
+            label = { Text(label) },
+            enabled = true,
+            isError = isError,
+            singleLine = true,
+            supportingText = supportingText,
+            interactionSource = interactionSource,
+            visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+            container = {
+                OutlinedTextFieldDefaults.ContainerBox(
+                    enabled = true,
+                    isError = isError,
+                    interactionSource = interactionSource,
+                    colors = OutlinedTextFieldDefaults.colors(),
+                    shape = RoundedCornerShape(12.dp),
+                    focusedBorderThickness = 2.dp,
+                    unfocusedBorderThickness = 1.dp
+                )
+            }
+        )
     }
 }
 
@@ -1813,6 +1958,18 @@ fun ExerciseEditDialog(
                 if (v1 != null && v2 != null) v1 <= v2 else false
             } else if (parts.size == 1) {
                 parts[0].toIntOrNull() != null
+            } else false
+        }
+    }
+
+    val repsHasRangeError = remember(targetRepsValue, isTimeBased) {
+        if (isTimeBased || targetRepsValue.isBlank()) false
+        else {
+            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            if (parts.size == 2) {
+                val v1 = parts[0].toIntOrNull()
+                val v2 = parts[1].toIntOrNull()
+                v1 != null && v2 != null && v1 > v2
             } else false
         }
     }
@@ -1883,35 +2040,21 @@ fun ExerciseEditDialog(
                     }
                 }
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
                     OutlinedTextField(
                         value = targetSetsStr,
                         onValueChange = { if (it.all { char -> char.isDigit() }) targetSetsStr = it },
                         label = { Text(getString("sets")) },
                         singleLine = true,
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        modifier = Modifier.weight(1f)
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f),
+                        supportingText = if (repsHasRangeError) { { Text("") } } else null
                     )
-                    OutlinedTextField(
-                        value = targetIntensityStr,
-                        onValueChange = { targetIntensityStr = it },
-                        label = { Text(getString("intensity_label")) },
-                        placeholder = { Text("RPE 8") },
-                        singleLine = true,
-                        modifier = Modifier.weight(1.5f)
-                    )
-                }
-                OutlinedTextField(
-                    value = restSecondsStr,
-                    onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
-                    label = { Text(getString("rest_timer_label")) },
-                    suffix = { Text("s") },
-                    singleLine = true,
-                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                    modifier = Modifier.fillMaxWidth()
-                )
 
-                Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                     if (isTimeBased) {
                         var expandedTime by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(
@@ -1926,6 +2069,7 @@ fun ExerciseEditDialog(
                                 readOnly = true,
                                 label = { Text(getString("time_label")) },
                                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                shape = RoundedCornerShape(12.dp),
                                 modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
                             )
                             ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
@@ -1935,15 +2079,42 @@ fun ExerciseEditDialog(
                             }
                         }
                     } else {
-                        OutlinedTextField(
+                        RepsRangeField(
                             value = targetRepsValue,
-                            onValueChange = { if (it.all { c -> c.isDigit() || c == '-' || c == '–' }) targetRepsValue = it },
-                            label = { Text(getString("reps")) },
-                            isError = targetRepsValue.isNotEmpty() && !isRepsValid,
-                            singleLine = true,
-                            modifier = Modifier.weight(1f)
+                            onValueChange = { targetRepsValue = it },
+                            label = getString("reps"),
+                            isError = repsHasRangeError || (targetRepsValue.isNotEmpty() && !isRepsValid),
+                            modifier = Modifier.weight(1f),
+                            supportingText = if (repsHasRangeError) {
+                                { Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error) }
+                            } else null
                         )
                     }
+                }
+
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalAlignment = Alignment.Top
+                ) {
+                    OutlinedTextField(
+                        value = restSecondsStr,
+                        onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
+                        label = { Text(getString("rest_timer_label")) },
+                        suffix = { Text("s") },
+                        singleLine = true,
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
+                    OutlinedTextField(
+                        value = targetIntensityStr,
+                        onValueChange = { targetIntensityStr = it },
+                        label = { Text(getString("intensity_label")) },
+                        placeholder = { Text("RPE 8") },
+                        singleLine = true,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.weight(1f)
+                    )
                 }
 
                 ThemedToast(activeToastMessage ?: "", themeKey, activeToastMessage != null) { activeToastMessage = null }
@@ -1966,4 +2137,134 @@ fun ExerciseEditDialog(
         },
         dismissButton = { TextButton(onClick = onDismiss) { Text(getString("cancel")) } }
     )
+}
+
+@Composable
+fun WorkoutDayWheel(
+    selectedDay: String,
+    onDaySelected: (String) -> Unit,
+    today: String,
+    modifier: Modifier = Modifier
+) {
+    val allDays = DayOfWeekEnum.entries
+    val isDeveloper = LocalDeveloperSkin.current
+    var totalDrag by remember { mutableStateOf(0f) }
+
+    // Strict gesture lock to prevent main app tab switching while swiping on the wheel
+    val lockConnection = remember {
+        object : NestedScrollConnection {
+            override fun onPreScroll(
+                available: Offset,
+                source: NestedScrollSource
+            ): Offset {
+                return if (available.x != 0f) Offset(x = available.x, y = 0f) else Offset.Zero
+            }
+        }
+    }
+
+    Box(
+        modifier = modifier
+            .fillMaxWidth()
+            .nestedScroll(lockConnection)
+            .pointerInput(selectedDay) {
+                detectHorizontalDragGestures(
+                    onHorizontalDrag = { _, dragAmount ->
+                        totalDrag += dragAmount
+                    },
+                    onDragEnd = {
+                        val currentIndex = allDays.indexOfFirst { it.name == selectedDay }
+                        if (totalDrag > 80f) { // Swipe Right -> Next Day
+                            val nextIndex = (currentIndex + 1) % 7
+                            onDaySelected(allDays[nextIndex].name)
+                        } else if (totalDrag < -80f) { // Swipe Left -> Previous Day
+                            val prevIndex = (currentIndex - 1 + 7) % 7
+                            onDaySelected(allDays[prevIndex].name)
+                        }
+                        totalDrag = 0f
+                    },
+                    onDragCancel = { totalDrag = 0f }
+                )
+            }
+    ) {
+        Row(
+            horizontalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            allDays.forEach { dayEnum ->
+                val isToday = dayEnum.name == today
+                val isSelected = dayEnum.name == selectedDay
+                
+                val backgroundColor = when {
+                    isSelected -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                    else -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceVariant
+                }
+                
+                val contentColor = when {
+                    isSelected -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                    else -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                }
+
+                val borderStroke = when {
+                    isToday -> BorderStroke(2.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
+                    isDeveloper && isSelected -> BorderStroke(2.dp, Color.White)
+                    else -> null
+                }
+
+                Surface(
+                    onClick = { onDaySelected(dayEnum.name) },
+                    color = backgroundColor,
+                    contentColor = contentColor,
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                    border = borderStroke,
+                    modifier = Modifier
+                        .weight(1f)
+                        .height(48.dp)
+                ) {
+                    Box(
+                        contentAlignment = Alignment.Center,
+                        modifier = Modifier.fillMaxSize()
+                    ) {
+                        Column(
+                            horizontalAlignment = Alignment.CenterHorizontally,
+                            verticalArrangement = Arrangement.Center
+                        ) {
+                            if (isToday) {
+                                Text(
+                                    text = getString("today").uppercase(),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.Black,
+                                        fontSize = 6.sp,
+                                        letterSpacing = 0.2.sp
+                                    ),
+                                    maxLines = 1
+                                )
+                                Spacer(modifier = Modifier.height(1.dp))
+                            }
+
+                            val dayLabel = when (dayEnum) {
+                                DayOfWeekEnum.MONDAY -> getString("monday_shortest")
+                                DayOfWeekEnum.TUESDAY -> getString("tuesday_shortest")
+                                DayOfWeekEnum.WEDNESDAY -> getString("wednesday_shortest")
+                                DayOfWeekEnum.THURSDAY -> getString("thursday_shortest")
+                                DayOfWeekEnum.FRIDAY -> getString("friday_shortest")
+                                DayOfWeekEnum.SATURDAY -> getString("saturday_shortest")
+                                DayOfWeekEnum.SUNDAY -> getString("sunday_shortest")
+                            }
+
+                            Text(
+                                text = dayLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected || isToday) FontWeight.Black else FontWeight.Bold,
+                                    fontSize = 12.sp
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Clip,
+                                softWrap = false
+                            )
+                        }
+                    }
+                }
+            }
+        }
+    }
 }

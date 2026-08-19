@@ -14,11 +14,9 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.ui.geometry.Offset
-import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
-import androidx.compose.ui.input.nestedscroll.NestedScrollSource
-import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
+import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.Add
 import androidx.compose.material.icons.filled.AddCircle
 import androidx.compose.material.icons.filled.KeyboardArrowDown
@@ -52,9 +50,9 @@ import androidx.compose.material3.Surface
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.material3.TopAppBar
-
 import androidx.compose.material3.TopAppBarDefaults
 import androidx.compose.animation.*
+import androidx.compose.animation.core.tween
 import androidx.compose.runtime.*
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
@@ -68,6 +66,7 @@ import androidx.compose.material.icons.filled.Checklist
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -77,6 +76,13 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.layout.layout
+import androidx.compose.ui.layout.ContentScale
+import androidx.compose.ui.layout.Measurable
+import androidx.compose.ui.layout.MeasureResult
+import androidx.compose.ui.layout.Placeable
+import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -89,6 +95,7 @@ import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
+import com.grafizum.repio.ui.components.WorkoutDayWheel
 import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
@@ -125,8 +132,6 @@ fun WorkoutScreen(
     val selectedExerciseIds = remember { mutableStateListOf<Long>() }
     var exerciseToDelete by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var showDeleteMultipleConfirmation by remember { mutableStateOf(false) }
-
-    val exercisesForDay = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
 
@@ -215,320 +220,233 @@ fun WorkoutScreen(
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
-        // COMPACT HEADER (Matches HomeScreen)
+        // COMPACT HEADER
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.SpaceBetween,
+            modifier = Modifier
+                .fillMaxWidth()
+                .heightIn(min = 72.dp)
+                .padding(vertical = 4.dp)
+        ) {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .heightIn(min = 72.dp)
-                    .padding(vertical = 4.dp)
+                modifier = Modifier.padding(4.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(4.dp)
+                Box(
+                    modifier = Modifier
+                        .size(42.dp)
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
+                    contentAlignment = Alignment.Center
                 ) {
-                    Box(
-                        modifier = Modifier
-                            .size(42.dp)
-                            .clip(CircleShape)
-                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.FitnessCenter,
-                            contentDescription = null,
-                            tint = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.size(24.dp)
-                        )
-                    }
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Column {
-                        Text(
-                            text = getString("edit"),
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
                 }
-
-                Row(verticalAlignment = Alignment.CenterVertically) {
-                    if (onCustomClick != null) {
-                        OutlinedButton(
-                            onClick = onCustomClick,
-                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                            colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
-                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                            modifier = Modifier.height(32.dp)
-                        ) {
-                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
-                            Spacer(modifier = Modifier.width(4.dp))
-                            Text(getString("action_back"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-                    Button(
-                        onClick = { viewModel.resetFirstTimeSetup() },
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                        colors = ButtonDefaults.buttonColors(
-                            containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                            contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
-                    ) {
-                        Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(getString("new_action"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                    }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column {
+                    Text(
+                        text = getString("edit"),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                 }
             }
 
-            Spacer(modifier = Modifier.height(16.dp))
-
-            LazyColumn(
-                modifier = Modifier.fillMaxSize(),
-                verticalArrangement = Arrangement.spacedBy(16.dp)
-            ) {
-                // DAY SELECTION CHIPS
-                item {
-                    val allDays = DayOfWeekEnum.entries
-                    val todayIndex = allDays.indexOfFirst { it.name == today }.coerceAtLeast(0)
-                    val orderedDays = allDays.drop(todayIndex) + allDays.take(todayIndex)
-
-                    val nestedScrollConnection = remember {
-                        object : NestedScrollConnection {
-                            override fun onPostScroll(
-                                consumed: Offset,
-                                available: Offset,
-                                source: NestedScrollSource
-                            ): Offset {
-                                return Offset(x = available.x, y = 0f)
-                            }
-                        }
-                    }
-
-                    Box(modifier = Modifier.nestedScroll(nestedScrollConnection)) {
-                        LazyRow(
-                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            items(orderedDays) { dayEnum ->
-                                val isSelected = dayEnum.name == workoutState.selectedDayOfWeek
-                                val isToday = dayEnum.name == today
-                                FilterChip(
-                                    selected = isSelected,
-                                    onClick = { viewModel.selectDayForWorkoutNow(dayEnum.name) },
-                                    label = {
-                                        val displayName = when (dayEnum) {
-                                            DayOfWeekEnum.MONDAY -> getString("monday")
-                                            DayOfWeekEnum.TUESDAY -> getString("tuesday")
-                                            DayOfWeekEnum.WEDNESDAY -> getString("wednesday")
-                                            DayOfWeekEnum.THURSDAY -> getString("thursday")
-                                            DayOfWeekEnum.FRIDAY -> getString("friday")
-                                            DayOfWeekEnum.SATURDAY -> getString("saturday")
-                                            DayOfWeekEnum.SUNDAY -> getString("sunday")
-                                        }
-                                        Text(
-                                            text = displayName,
-                                            fontWeight = if (isSelected || isToday) FontWeight.ExtraBold else FontWeight.Normal
-                                        )
-                                    },
-                                    border = FilterChipDefaults.filterChipBorder(
-                                        enabled = true,
-                                        selected = isSelected,
-                                        borderColor = if (isToday && !isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline.copy(alpha = 0.3f),
-                                        borderWidth = if (isToday && !isSelected) 2.dp else 1.dp,
-                                        selectedBorderColor = MaterialTheme.colorScheme.primary,
-                                        selectedBorderWidth = if (isToday) 2.dp else 1.dp
-                                    ),
-                                    colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary,
-                                        selectedLeadingIconColor = MaterialTheme.colorScheme.onPrimary,
-                                        selectedTrailingIconColor = MaterialTheme.colorScheme.onPrimary
-                                    )
-                                )
-                            }
-                        }
-                    }
-                }
-
-                // HEADER FOR SELECTED DAY
-                item {
-                    Card(
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                        modifier = Modifier.fillMaxWidth()
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                if (onCustomClick != null) {
+                    OutlinedButton(
+                        onClick = onCustomClick,
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
+                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                        modifier = Modifier.height(32.dp)
                     ) {
-                        Column(modifier = Modifier.padding(20.dp)) {
-                            val dayName = when (workoutState.selectedDayOfWeek.uppercase()) {
-                                "MONDAY" -> getString("monday")
-                                "TUESDAY" -> getString("tuesday")
-                                "WEDNESDAY" -> getString("wednesday")
-                                "THURSDAY" -> getString("thursday")
-                                "FRIDAY" -> getString("friday")
-                                "SATURDAY" -> getString("saturday")
-                                "SUNDAY" -> getString("sunday")
-                                else -> workoutState.selectedDayOfWeek
-                            }
-
-                            val focus = if (exercisesForDay.isNotEmpty()) {
-                                exercisesForDay.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
-                                    .map { com.grafizum.repio.ui.components.translateMuscleGroup(it) }
-                                    .distinct()
-                                    .joinToString(", ")
-                            } else {
-                                getString("rest_recovery_day")
-                            }
-
-                            Column(modifier = Modifier.fillMaxWidth()) {
-                                Text(
-                                    text = dayName,
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = focus,
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
+                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Spacer(modifier = Modifier.width(4.dp))
+                        Text(getString("action_back"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
 
-                // EXERCISES LIST
-                item {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        if (isSelectionMode) {
-                            Surface(
-                                onClick = {
-                                    if (selectedExerciseIds.size == exercisesForDay.size) {
-                                        selectedExerciseIds.clear()
-                                    } else {
-                                        selectedExerciseIds.clear()
-                                        selectedExerciseIds.addAll(exercisesForDay.map { it.id })
-                                    }
-                                },
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                contentColor = MaterialTheme.colorScheme.primary,
-                                shape = RoundedCornerShape(10.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
-                            ) {
-                                val label = if (selectedExerciseIds.size == exercisesForDay.size) getString("deselect_all") else getString("select_all")
-                                Text(
-                                    text = "$label (${selectedExerciseIds.size})",
-                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
-                                )
-                            }
-                        } else {
-                            Text(
-                                text = getString("exercises_count", exercisesForDay.count()),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurface
-                            )
-                        }
-
-                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                            if (isSelectionMode) {
-                                IconButton(
-                                    onClick = { if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true },
-                                    enabled = selectedExerciseIds.isNotEmpty()
-                                ) {
-                                    Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (selectedExerciseIds.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                }
-
-                                IconButton(onClick = { 
-                                    isSelectionMode = false
-                                    selectedExerciseIds.clear()
-                                }) {
-                                    Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
-                                }
-                            } else {
-                                IconButton(onClick = { isSelectionMode = true }) {
-                                    Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = MaterialTheme.colorScheme.primary)
-                                }
-
-                                IconButton(
-                                    onClick = { showAddDialog = true },
-                                    modifier = Modifier.size(24.dp)
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Add,
-                                        contentDescription = getString("add_exercise"),
-                                        tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(24.dp)
-                                    )
-                                }
-                            }
-                        }
-                    }
+                Spacer(modifier = Modifier.width(8.dp))
+                Button(
+                    onClick = { viewModel.resetFirstTimeSetup() },
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                    colors = ButtonDefaults.buttonColors(
+                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                    ),
+                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                    modifier = Modifier.height(32.dp)
+                ) {
+                    Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
+                    Spacer(modifier = Modifier.width(4.dp))
+                    Text(getString("new_action"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                 }
+            }
+        }
 
-                if (exercisesForDay.isEmpty()) {
+        Spacer(modifier = Modifier.height(16.dp))
+
+        WorkoutDayWheel(
+            selectedDay = workoutState.selectedDayOfWeek,
+            onDaySelected = { viewModel.selectDayForWorkoutNow(it) },
+            today = today
+        )
+
+        Spacer(modifier = Modifier.height(16.dp))
+
+        Box(
+            modifier = Modifier
+                .fillMaxSize()
+                .weight(1f)
+        ) {
+            AnimatedContent(
+                targetState = workoutState.selectedDayOfWeek,
+                transitionSpec = {
+                    val allDaysEnum = DayOfWeekEnum.entries
+                    val initialIndex = allDaysEnum.indexOfFirst { it.name == initialState }
+                    val targetIndex = allDaysEnum.indexOfFirst { it.name == targetState }
+                    
+                    if (targetIndex > initialIndex) {
+                        (slideInHorizontally { width -> width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> -width } + fadeOut(tween(300)))
+                    } else {
+                        (slideInHorizontally { width -> -width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> width } + fadeOut(tween(300)))
+                    }.using(SizeTransform(clip = false))
+                },
+                label = "DayTransition"
+            ) { targetDay ->
+                val dayExercises = allExercises.filter { it.dayOfWeek == targetDay }
+                
+                LazyColumn(
+                    modifier = Modifier.fillMaxSize(),
+                    verticalArrangement = Arrangement.spacedBy(16.dp)
+                ) {
+                    // HEADER FOR SELECTED DAY
                     item {
                         Card(
-                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
-                            border = if (isDeveloper) BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .clickable { showAddDialog = true }
+                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                            modifier = Modifier.fillMaxWidth()
                         ) {
-                            Row(
-                                modifier = Modifier
-                                    .padding(20.dp)
-                                    .fillMaxWidth(),
-                                horizontalArrangement = Arrangement.Center,
-                                verticalAlignment = Alignment.CenterVertically
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Add,
-                                    contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary
-                                )
-                                Spacer(modifier = Modifier.width(8.dp))
-                                Text(
-                                    text = getString("add_workout"),
-                                    style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
+                            Column(modifier = Modifier.padding(20.dp)) {
+                                val dayName = when (targetDay.uppercase()) {
+                                    "MONDAY" -> getString("monday")
+                                    "TUESDAY" -> getString("tuesday")
+                                    "WEDNESDAY" -> getString("wednesday")
+                                    "THURSDAY" -> getString("thursday")
+                                    "FRIDAY" -> getString("friday")
+                                    "SATURDAY" -> getString("saturday")
+                                    "SUNDAY" -> getString("sunday")
+                                    else -> targetDay
+                                }
+
+                                val focus = if (dayExercises.isNotEmpty()) {
+                                    dayExercises.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
+                                        .map { com.grafizum.repio.ui.components.translateMuscleGroup(it) }
+                                        .distinct()
+                                        .joinToString(", ")
+                                } else {
+                                    getString("rest_recovery_day")
+                                }
+
+                                Column(modifier = Modifier.fillMaxWidth()) {
+                                    Text(
+                                        text = dayName,
+                                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                                    )
+                                    Text(
+                                        text = focus,
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                             }
                         }
                     }
-                } else {
-                    items(exercisesForDay) { exercise ->
-                        val isSelected = selectedExerciseIds.contains(exercise.id)
-                        ExpandableExerciseCard(
-                            exercise = exercise,
-                            isSelectionMode = isSelectionMode,
-                            isSelected = isSelected,
-                            isExpanded = expandedExerciseId == exercise.id,
-                            onExpandedChange = { expanded ->
-                                expandedExerciseId = if (expanded) exercise.id else null
-                            },
-                            onSelectedChange = { checked ->
-                                if (checked) selectedExerciseIds.add(exercise.id)
-                                else selectedExerciseIds.remove(exercise.id)
-                            },
-                            onEdit = { editingExercise = exercise },
-                            onDelete = { exerciseToDelete = exercise },
-                            onReplace = { replacingExercise = exercise },
-                            onSaveVideoUrl = { newUrl ->
-                                viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
+
+                    // EXERCISES LIST
+                    item {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            if (isSelectionMode) {
+                                Surface(
+                                    onClick = {
+                                        if (selectedExerciseIds.size == dayExercises.size) {
+                                            selectedExerciseIds.clear()
+                                        } else {
+                                            selectedExerciseIds.clear()
+                                            selectedExerciseIds.addAll(dayExercises.map { it.id })
+                                        }
+                                    },
+                                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                ) {
+                                    val label = if (selectedExerciseIds.size == dayExercises.size) getString("deselect_all") else getString("select_all")
+                                    Text(
+                                        text = "$label (${selectedExerciseIds.size})",
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                                    )
+                                }
+                            } else {
+                                Text(
+                                    text = getString("exercises_count", dayExercises.count()),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurface
+                                )
                             }
-                        )
+
+                            Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                if (isSelectionMode) {
+                                    IconButton(
+                                        onClick = { if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true },
+                                        enabled = selectedExerciseIds.isNotEmpty()
+                                    ) {
+                                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (selectedExerciseIds.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                    }
+
+                                    IconButton(onClick = { 
+                                        isSelectionMode = false
+                                        selectedExerciseIds.clear()
+                                    }) {
+                                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
+                                    }
+                                } else {
+                                    IconButton(onClick = { isSelectionMode = true }) {
+                                        Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
+                                    }
+
+                                    IconButton(
+                                        onClick = { showAddDialog = true },
+                                        modifier = Modifier.size(24.dp)
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = getString("add_exercise"),
+                                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            }
+                        }
                     }
 
-                    if (!isSelectionMode) {
+                    if (dayExercises.isEmpty()) {
                         item {
                             Card(
                                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
@@ -540,7 +458,7 @@ fun WorkoutScreen(
                             ) {
                                 Row(
                                     modifier = Modifier
-                                        .padding(16.dp)
+                                        .padding(20.dp)
                                         .fillMaxWidth(),
                                     horizontalArrangement = Arrangement.Center,
                                     verticalAlignment = Alignment.CenterVertically
@@ -548,25 +466,82 @@ fun WorkoutScreen(
                                     Icon(
                                         imageVector = Icons.Default.Add,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary
+                                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
                                     )
                                     Spacer(modifier = Modifier.width(8.dp))
                                     Text(
-                                        text = getString("add_exercise"),
+                                        text = getString("add_workout"),
                                         style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary
+                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
                                     )
                                 }
                             }
                         }
-                    }
-                }
+                    } else {
+                        items(dayExercises, key = { it.id }) { exercise ->
+                            val isSelected = selectedExerciseIds.contains(exercise.id)
+                            ExpandableExerciseCard(
+                                exercise = exercise,
+                                isSelectionMode = isSelectionMode,
+                                isSelected = isSelected,
+                                isExpanded = expandedExerciseId == exercise.id,
+                                onExpandedChange = { expanded ->
+                                    expandedExerciseId = if (expanded) exercise.id else null
+                                },
+                                onSelectedChange = { checked ->
+                                    if (checked) selectedExerciseIds.add(exercise.id)
+                                    else selectedExerciseIds.remove(exercise.id)
+                                },
+                                onEdit = { editingExercise = exercise },
+                                onDelete = { exerciseToDelete = exercise },
+                                onReplace = { replacingExercise = exercise },
+                                onSaveVideoUrl = { newUrl ->
+                                    viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
+                                }
+                            )
+                        }
 
-                item { Spacer(modifier = Modifier.height(64.dp)) }
+                        if (!isSelectionMode) {
+                            item {
+                                Card(
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null,
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .clickable { showAddDialog = true }
+                                ) {
+                                    Row(
+                                        modifier = Modifier
+                                            .padding(16.dp)
+                                            .fillMaxWidth(),
+                                        horizontalArrangement = Arrangement.Center,
+                                        verticalAlignment = Alignment.CenterVertically
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Add,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary
+                                        )
+                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Text(
+                                            text = getString("add_exercise"),
+                                            style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary
+                                        )
+                                    }
+                                }
+                            }
+                        }
+                    }
+
+                    item { Spacer(modifier = Modifier.height(64.dp)) }
+                }
             }
         }
+    }
 
-    // ADD / EDIT EXERCISE DIALOG
+    // DIALOGS
     val themeOption by viewModel.themeOption.collectAsState()
 
     if (showAddDialog || editingExercise != null) {
@@ -587,7 +562,6 @@ fun WorkoutScreen(
         )
     }
 
-    // DELETE SINGLE CONFIRMATION
     exerciseToDelete?.let { exercise ->
         AlertDialog(
             onDismissRequest = { exerciseToDelete = null },
@@ -612,7 +586,6 @@ fun WorkoutScreen(
         )
     }
 
-    // DELETE MULTIPLE CONFIRMATION
     if (showDeleteMultipleConfirmation) {
         AlertDialog(
             onDismissRequest = { showDeleteMultipleConfirmation = false },
@@ -639,7 +612,6 @@ fun WorkoutScreen(
         )
     }
 
-    // REPLACE EXERCISE DIALOG
     replacingExercise?.let { exercise ->
         val alternatives = remember(exercise.name, exercise.muscleGroup) {
             WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
@@ -734,7 +706,6 @@ fun WorkoutScreen(
         )
     }
 
-    // RESET TO DEFAULT ROUTINE CONFIRMATION DIALOG
     if (showResetDialog) {
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
@@ -762,7 +733,6 @@ fun WorkoutScreen(
         )
     }
 
-    // CONFIRM NEW TEMPLATE DIALOG
     pendingTemplate?.let { template ->
         AlertDialog(
             onDismissRequest = { pendingTemplate = null },
@@ -795,4 +765,3 @@ fun WorkoutScreen(
         )
     }
 }
-
