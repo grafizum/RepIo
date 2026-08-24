@@ -17,6 +17,14 @@ import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
+import androidx.compose.foundation.Indication
+import androidx.compose.foundation.IndicationNodeFactory
+import androidx.compose.foundation.LocalIndication
+import androidx.compose.foundation.interaction.InteractionSource
+import androidx.compose.foundation.interaction.collectIsPressedAsState
+import androidx.compose.ui.Modifier
+import androidx.compose.runtime.remember
+import androidx.compose.runtime.State
 import com.grafizum.repio.R
 
 
@@ -253,8 +261,27 @@ fun WorkoutTrackerTheme(
     CompositionLocalProvider(LocalDeveloperSkin provides isDeveloper) {
         MaterialTheme(
             colorScheme = colorScheme,
-            typography = typography,
-            content = content
-        )
+            typography = typography
+        ) {
+            // Global override to remove the "grey box" ripple effect and replace with nothing (or custom if needed)
+            CompositionLocalProvider(
+                LocalIndication provides NoRippleIndication
+            ) {
+                content()
+            }
+        }
     }
+}
+
+/**
+ * A custom Indication that removes the default Material ripple (the "grey box").
+ * It draws only the content without any overlay feedback.
+ */
+private object NoRippleIndication : IndicationNodeFactory {
+    override fun create(interactionSource: InteractionSource): Modifier.Node {
+        return object : Modifier.Node() {}
+    }
+
+    override fun equals(other: Any?): Boolean = other === this
+    override fun hashCode(): Int = System.identityHashCode(this)
 }
