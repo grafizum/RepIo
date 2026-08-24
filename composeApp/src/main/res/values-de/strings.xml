@@ -162,7 +162,7 @@
     <string name="program_name">Mein Workout</string>
     <string name="description">Beschreibung</string>
     <string name="equipment">Ausrüstung</string>
-    <string name="ex_description_generic">Eine effektive Übung für die %1$s-Muskulatur. Achte auf kontrollierte Bewegungen.</string>
+    <string name="ex_description_generic">Konzentriere dich auf die Muskel-Geist-Verbindung. Führe die Bewegung in einem kontrollierten Tempo und mit vollem Bewegungsumfang aus, während du gezielt den %1$s anspannst.</string>
     <string name="ex_equipment_gym">Fitnessstudio / Geräte</string>
     <string name="ex_equipment_barbell">Langhantel</string>
     <string name="ex_equipment_dumbbell">Kurzhanteln</string>
@@ -179,7 +179,45 @@
     <string name="ex_plank_desc">Auf Unterarmen und Zehen abstützen. Den Körper in einer geraden Linie halten; die Hüfte nicht durchhängen lassen.</string>
     <string name="ex_tricep_extension_desc">Das Gewicht durch Beugen der Ellbogen hinter den Kopf führen und dann die Arme wieder strecken.</string>
     <string name="ex_lunges_desc">Einen Schritt nach vorne machen und die Hüfte absenken, bis beide Knie einen 90-Grad-Winkel bilden.</string>
+    <string name="ex_crunches_desc">Die Schultern vom Boden abheben und den unteren Rücken fest auf die Matte drücken.</string>
+    <string name="ex_leg_raises_desc">Die gestreckten Beine in Richtung Decke führen und kontrolliert wieder absenken.</string>
     <string name="ex_abs_desc">Für Crunches die Schultern vom Boden abheben. Für Beinheben die gestreckten Beine in Richtung Decke führen.</string>
+    <string name="ex_flyes_desc">Lege dich auf eine Bank mit leicht gebeugten Ellenbogen. Senke die Gewichte in einem Bogen zur Seite ab und führe sie über der Brust wieder zusammen.</string>
+    <string name="ex_shrugs_desc">Halte die Gewichte seitlich mit gestreckten Armen. Ziehe die Schultern zu den Ohren, halte kurz oben und senke langsam ab.</string>
+    <string name="ex_face_pulls_desc">Ziehe ein Seil oder Kabel auf Gesichtshöhe mit hohen Ellenbogen zu dir. Konzentriere dich auf hintere Schultern und oberen Rücken.</string>
+    <string name="ex_back_extensions_desc">Beuge den Oberkörper in der Hüfte nach vorne und richte dich mit dem unteren Rücken und Gesäß wieder auf.</string>
+    <string name="ex_woodchoppers_desc">Ziehe ein Kabel oder Gewicht diagonal über den Körper und rotiere dabei den Rumpf.</string>
+    <string name="ex_push_ups_desc">Halte den Körper von Kopf bis Fersen in einer Linie. Senke die Brust zum Boden und drücke dich wieder hoch.</string>
+    <string name="ex_dips_desc">Senke den Körper durch Beugen der Ellenbogen ab, bis die Schultern auf Höhe der Ellenbogen sind, und drücke dich wieder hoch.</string>
+    <string name="ex_leg_curls_desc">Beuge die Knie und ziehe die Fersen zum Gesäß, dann senke das Gewicht kontrolliert ab.</string>
+    <string name="ex_leg_press_desc">Drücke die Plattform durch Strecken von Knien und Hüfte weg und senke sie kontrolliert ab, ohne die Knie durchzudrücken.</string>
+    <string name="ex_calf_raises_desc">Drücke dich so weit wie möglich auf die Felsenbeine hoch, halte kurz und senke die Fersen langsam ab.</string>
+
+    <string name="ex_incline_press_desc">Lege dich auf eine Schrägbank. Drücke die Gewichte von der oberen Brust nach oben, bis die Arme gestreckt sind, und senke sie dann kontrolliert ab.</string>
+    <string name="ex_decline_press_desc">Lege dich auf eine Negativbank. Drücke die Gewichte von der unteren Brust nach oben, bis die Arme gestreckt sind, und senke sie dann kontrolliert ab.</string>
+    <string name="ex_lat_pulldown_desc">Ziehe die Stange zur oberen Brust, indem du die Ellenbogen nach unten und hinten führst. Spanne die Lats am tiefsten Punkt aktiv an.</string>
+    <string name="ex_seated_row_desc">Ziehe den Griff in Richtung deines unteren Bauches und halte den Rücken dabei gerade. Ziehe die Schulterblätter aktiv zusammen.</string>
+    <string name="ex_shoulder_press_desc">Drücke die Gewichte von Schulterhöhe nach oben, bis die Arme gestreckt sind. Halte den Rumpf stabil und den Rücken gerade.</string>
+    <string name="ex_front_raise_desc">Hebe die Gewichte direkt vor dir an, bis die Arme auf Schulterhöhe sind. Vermeide es, mit dem Körper Schwung zu holen.</string>
+    <string name="ex_side_raise_desc">Hebe die Gewichte seitlich an, bis die Arme auf Schulterhöhe sind. Halte die Ellenbogen dabei leicht gebeugt.</string>
+    <string name="ex_bicep_curl_desc">Beuge die Arme und führe die Gewichte zu den Schultern, während die Ellenbogen eng am Körper bleiben. Senke sie langsam ab.</string>
+    <string name="ex_hammer_curl_desc">Führe Curls mit einem neutralen Griff aus (Handflächen zeigen zueinander). Behalte die Kontrolle über die gesamte Bewegung.</string>
+    <string name="ex_tricep_pushdown_desc">Drücke die Stange oder das Seil nach unten, bis die Arme voll gestreckt sind. Halte die Ellenbogen fest an den Seiten fixiert.</string>
+    <string name="ex_leg_extension_desc">Strecke die Beine kontrolliert durch und konzentriere dich auf die Anspannung im Quadrizeps. Senke das Gewicht langsam wieder ab.</string>
+    <string name="ex_leg_curl_desc">Beuge die Beine und führe die Fersen zum Gesäß. Spanne die Beinbeuger am Scheitelpunkt an und senke das Gewicht langsam.</string>
+    <string name="ex_goblet_squat_desc">Halte ein Gewicht vor der Brust. Gehe tief in die Hocke, während du den Oberkörper aufrecht und den Rücken gerade hältst.</string>
+    <string name="ex_romanian_deadlift_desc">Beuge dich aus der Hüfte nach vorne, während die Beine fast gestreckt bleiben. Senke das Gewicht entlang der Beine ab, bis du eine Dehnung spürst.</string>
+    <string name="ex_russian_twist_desc">Rotiere deinen Oberkörper im Sitzen mit angewinkelten Beinen von Seite zu Seite. Berühre optional den Boden mit einem Gewicht.</string>
+    <string name="ex_cable_crunch_desc">Knie dich hin und ziehe das Seil nach unten, indem du die Bauchmuskeln anspannst. Halte die Hüfte dabei stabil in ihrer Position.</string>
+
+    <string name="ex_bird_dog_desc">Starte im Vierfüßlerstand. Strecke gleichzeitig den gegenüberliegenden Arm und das Bein aus, während du den Rücken flach und den Rumpf stabil hältst.</string>
+    <string name="ex_pullover_desc">Lege dich auf den Rücken. Halte das Gewicht mit beiden Händen und führe es in einem Bogen hinter den Kopf, dann ziehe es kontrolliert zurück über die Brust.</string>
+    <string name="ex_superman_desc">Lege dich flach auf den Bauch. Hebe gleichzeitig Arme, Brust und Beine kontrolliert vom Boden ab und senke sie langsam wieder.</string>
+    <string name="ex_good_morning_desc">Beuge dich mit einem Gewicht auf dem oberen Rücken oder vor der Brust aus der Hüfte nach vorne, während der Rücken gerade und die Knie leicht gebeugt bleiben.</string>
+    <string name="ex_mountain_climbers_desc">Bringe in der Liegestützposition abwechselnd die Knie in einer schnellen, fließenden Bewegung in Richtung deiner Brust.</string>
+    <string name="ex_hollow_hold_desc">Lege dich auf den Rücken und hebe Beine und Schultern vom Boden ab. Drücke den unteren Rücken dabei fest in den Boden.</string>
+    <string name="ex_clamshell_desc">Lege dich auf die Seite und beuge die Knie. Hebe das obere Knie an, während die Füße zusammenbleiben, um die seitliche Gesäßmuskulatur zu trainieren.</string>
+    <string name="ex_side_lying_leg_raise_desc">Auf der Seite liegen, die Beine sind gestreckt. Das obere Bein gestreckt in Richtung Decke heben und langsam wieder absenken.</string>
 
     <string name="save">Speichern</string>
     <string name="edit">Bearbeiten</string>
@@ -523,4 +561,19 @@
     <string name="ex_tricep_pushdowns">Trizeps-Pushdowns</string>
     <string name="ex_face_pulls">Face Pulls</string>
     <string name="ex_side_raises">Seitheben</string>
+    <string name="ex_hip_thrust_desc">Drücke die Hüfte durch Anspannen des Gesäßes nach oben, bis der Körper von den Knien bis zu den Schultern eine gerade Linie bildet.</string>
+    <string name="ex_kickbacks_desc">Strenke Arm oder Bein kontrolliert nach hinten und spanne den Zielmuskel in der Endposition maximal an.</string>
+    <string name="ex_pulldown_desc">Ziehe die Stange zur oberen Brust, indem du die Ellenbogen nach unten und hinten führst, und spanne den Latissimus unten an.</string>
+    <string name="ex_carry_desc">Halte das Gewicht bei aufrechter Haltung und angespanntem Rumpf und gehe mit gleichmäßigen, kontrollierten Schritten.</string>
+    <string name="ex_rollout_desc">Rolle nach vorne, während der Rumpf fest und der untere Rücken flach bleibt, und ziehe dich mit den Bauchmuskeln zurück.</string>
+    <string name="ex_explosive_desc">Drücke dich explosiv aus Hüfte und Beinen nach oben, um das Gewicht in einer durchgehenden Bewegung nach oben zu führen.</string>
+
+    <string name="ex_desc_fallback_chest">Drücke das Gewicht durch Anspannen der Brust nach vorne/oben, halte die Schultern stabil und kontrolliere die Dehnung.</string>
+    <string name="ex_desc_fallback_back">Führe die Ellenbogen nach hinten und ziehe die Schulterblätter zusammen, um das Gewicht zum Oberkörper zu ziehen.</string>
+    <string name="ex_desc_fallback_shoulders">Hebe oder drücke das Gewicht mit der Schultermuskulatur bei festem Rumpf ohne Schwung zu holen.</string>
+    <string name="ex_desc_fallback_legs">Drücke dich über die Füße hoch, um Knie und Hüfte zu strecken. Halte die Brust aufgerichtet.</string>
+    <string name="ex_desc_fallback_biceps">Halte die Ellenbogen nah am Körper und beuge die Arme, um das Gewicht kontrolliert nach oben zu curlst.</string>
+    <string name="ex_desc_fallback_triceps">Strenke die Arme im Ellenbogengelenk durch und spanne den Trizeps in der Streckung maximal an.</string>
+    <string name="ex_desc_fallback_abs">Spanne den Rumpf an und beuge oder rotiere den Oberkörper kontrolliert für maximale Bauchmuskelkontraktion.</string>
+    <string name="ex_desc_fallback_generic">Führe die Bewegung mit Präzision aus. Kontrolliere das Gewicht über den gesamten Weg und konzentriere dich auf die maximale Kontraktion deines %1$s.</string>
 </resources>

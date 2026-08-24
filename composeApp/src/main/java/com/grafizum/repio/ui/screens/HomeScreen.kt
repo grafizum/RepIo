@@ -6,10 +6,12 @@ import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.gestures.animateScrollBy
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.lazy.itemsIndexed
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
@@ -23,6 +25,7 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.semantics.testTag
@@ -35,6 +38,8 @@ import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
+import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
@@ -49,20 +54,56 @@ fun HomeScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
+    val density = LocalDensity.current
 
     val todayStr = getTodayDayOfWeek()
-    val todayRoutineDay = routineDays.find { it.dayOfWeek == todayStr }
-    val todayExercises = allExercises.filter { it.dayOfWeek == todayStr }
+    val todayRoutineDay = remember(routineDays, todayStr) { routineDays.find { it.dayOfWeek == todayStr } }
+    val todayExercises = remember(allExercises, todayStr) { allExercises.filter { it.dayOfWeek == todayStr } }
     
     val todayLoggedSets = remember(loggedSets, todayStr) {
         loggedSets.filter { it.dayOfWeek == todayStr }
     }
 
     val expandedExerciseIds = remember { mutableStateListOf<Long>() }
+    val listState = rememberLazyListState()
 
-    val totalSetsThisWeek = loggedSets.size
-    val totalVolumeThisWeek = loggedSets.sumOf { 
-        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    var pendingScrollIndex by remember { mutableStateOf<Int?>(null) }
+    LaunchedEffect(pendingScrollIndex) {
+        pendingScrollIndex?.let { index ->
+            val headerCount = 5
+            val scrollOffset = with(density) { 32.dp.roundToPx() }
+            listState.animateScrollToItem(headerCount + index, -scrollOffset)
+            pendingScrollIndex = null
+        }
+    }
+
+    val nextUpIndex = remember(todayExercises, todayLoggedSets) {
+        todayExercises.indexOfFirst { ex ->
+            todayLoggedSets.filter { it.exerciseName == ex.name }.size < ex.targetSets
+        }
+    }
+
+    var hasAutoScrolled by remember { mutableStateOf(false) }
+    LaunchedEffect(todayExercises) {
+        if (todayExercises.isNotEmpty() && !hasAutoScrolled) {
+            val indexToScroll = if (nextUpIndex == -1) todayExercises.size - 1 else nextUpIndex
+            
+            if (expandedExerciseIds.isEmpty() && nextUpIndex != -1) {
+                expandedExerciseIds.add(todayExercises[nextUpIndex].id)
+            }
+            
+            val headerCount = 5
+            val scrollOffset = with(density) { 16.dp.roundToPx() }
+            listState.animateScrollToItem(headerCount + indexToScroll, -scrollOffset)
+            hasAutoScrolled = true
+        }
+    }
+
+    val totalSetsThisWeek = remember(loggedSets) { loggedSets.size }
+    val totalVolumeThisWeek = remember(loggedSets) {
+        loggedSets.sumOf { 
+            if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+        }
     }
     val isDeveloper = LocalDeveloperSkin.current
 
@@ -116,6 +157,7 @@ fun HomeScreen(
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
+            state = listState,
             modifier = Modifier.fillMaxWidth()
         ) {
             // HERO BANNER - WORKOUT NOW PROMINENT TRIGGER
@@ -300,15 +342,19 @@ fun HomeScreen(
             // TODAY'S EXERCISES LIST PREVIEW
             item {
                 Row(
-                    verticalAlignment = Alignment.Bottom,
+                    verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 8.dp)
+                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                 ) {
                     Text(
                         text = getString("todays_schedule"),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                     )
-                    val isAllExpanded = todayExercises.isNotEmpty() && expandedExerciseIds.size == todayExercises.size
+                    val isAllExpanded by remember(todayExercises, expandedExerciseIds) {
+                        derivedStateOf { 
+                            todayExercises.isNotEmpty() && expandedExerciseIds.size == todayExercises.size 
+                        }
+                    }
                     Surface(
                         onClick = {
                             if (isAllExpanded) {
@@ -318,15 +364,15 @@ fun HomeScreen(
                                 expandedExerciseIds.addAll(todayExercises.map { it.id })
                             }
                         },
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                        shape = RoundedCornerShape(8.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        shape = RoundedCornerShape(10.dp),
                         modifier = Modifier.padding(bottom = 2.dp, end = 4.dp)
                     ) {
                         Text(
                             text = if (isAllExpanded) getString("collapse_all") else getString("expand_all"),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
                         )
                     }
                 }
@@ -348,82 +394,114 @@ fun HomeScreen(
                     }
                 }
             } else {
-                val nextUpIndex = todayExercises.indexOfFirst { ex ->
-                    todayLoggedSets.filter { it.exerciseName == ex.name }.size < ex.targetSets
-                }
-
                 itemsIndexed(todayExercises, key = { _, ex -> ex.id }) { index, exercise ->
                     val isLast = index == todayExercises.size - 1
-                    val setsForThisExercise = todayLoggedSets.filter { it.exerciseName == exercise.name }
+                    val setsForThisExercise = remember(todayLoggedSets, exercise.name) {
+                        todayLoggedSets.filter { it.exerciseName == exercise.name }
+                    }
                     val isCompleted = setsForThisExercise.size >= exercise.targetSets
                     val isExpanded = expandedExerciseIds.contains(exercise.id)
                     val isActive = index == nextUpIndex
 
-                    val lineColor = if (isCompleted) MaterialTheme.colorScheme.primary 
-                                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    val primaryColor = MaterialTheme.colorScheme.primary
+                    val primaryDisabledColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                    val outlineColor = MaterialTheme.colorScheme.outline
+                    
+                    val lineColor = if (isCompleted) primaryColor else primaryDisabledColor
+
+                    // Calculate previous item's line color state
+                    val prevCompleted = if (index > 0) {
+                        val prevExercise = todayExercises[index - 1]
+                        val prevSets = todayLoggedSets.filter { it.exerciseName == prevExercise.name }
+                        prevSets.size >= prevExercise.targetSets
+                    } else false
+
+                    val prevLineColor = if (prevCompleted) primaryColor else primaryDisabledColor
 
                     Row(
                         modifier = Modifier
                             .fillMaxWidth()
                             .padding(horizontal = 4.dp)
                             .drawBehind {
+                                val centerX = 18.dp.toPx()
+                                val dotCenterY = 12.dp.toPx() // Align with Title text center (Box height 24 / 2)
+                                
+                                // Calculate gap based on symbol size
+                                val symbolRadius = if (isCompleted) 14.dp.toPx() // Check icon (24dp + small buffer)
+                                                  else if (isActive) 10.dp.toPx() // Active dot (16dp + buffer)
+                                                  else 8.dp.toPx() // Inactive dot (12dp + buffer)
+                                
+                                val gap = 2.dp.toPx() // Additional clean space
+                                val totalGap = symbolRadius + gap
+
+                                // Line ABOVE the dot (except for the first item)
+                                if (index > 0) {
+                                    val lineEndY = dotCenterY - totalGap
+                                    if (lineEndY > 0) {
+                                        drawLine(
+                                            color = prevLineColor,
+                                            start = androidx.compose.ui.geometry.Offset(centerX, 0f),
+                                            end = androidx.compose.ui.geometry.Offset(centerX, lineEndY),
+                                            strokeWidth = 3.dp.toPx()
+                                        )
+                                    }
+                                }
+
+                                // Line BELOW the dot (except for the last item)
                                 if (!isLast) {
-                                    val centerX = 16.dp.toPx()
-                                    val startY = 12.dp.toPx() // Middle of 24.dp bullet Box
-                                    drawLine(
-                                        color = lineColor,
-                                        start = androidx.compose.ui.geometry.Offset(centerX, startY),
-                                        end = androidx.compose.ui.geometry.Offset(centerX, size.height),
-                                        strokeWidth = 3.dp.toPx()
-                                    )
+                                    val lineStartY = dotCenterY + totalGap
+                                    if (lineStartY < size.height) {
+                                        drawLine(
+                                            color = lineColor,
+                                            start = androidx.compose.ui.geometry.Offset(centerX, lineStartY),
+                                            end = androidx.compose.ui.geometry.Offset(centerX, size.height),
+                                            strokeWidth = 3.dp.toPx()
+                                        )
+                                    }
                                 }
                             }
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
+                            .clickable {
                                 if (isExpanded) {
                                     expandedExerciseIds.remove(exercise.id)
                                 } else {
-                                    if (expandedExerciseIds.size <= 1) {
-                                        expandedExerciseIds.clear()
-                                    }
+                                    expandedExerciseIds.clear()
                                     expandedExerciseIds.add(exercise.id)
+                                    pendingScrollIndex = index
                                 }
                             }
                     ) {
                         // Timeline Column (Just the dot/icon)
                         Box(
-                            modifier = Modifier.width(32.dp).height(24.dp),
+                            modifier = Modifier.width(36.dp).height(24.dp), // Height 24 to match title line height
                             contentAlignment = Alignment.Center
                         ) {
                             if (isCompleted) {
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    modifier = Modifier.size(20.dp)
+                                    tint = primaryColor,
+                                    modifier = Modifier.size(24.dp)
                                 )
                             } else {
                                 Box(
                                     modifier = Modifier
-                                        .size(if (isActive) 14.dp else 10.dp)
+                                        .size(if (isActive) 16.dp else 12.dp)
                                         .clip(CircleShape)
                                         .background(
-                                            if (isActive) MaterialTheme.colorScheme.primary 
-                                            else MaterialTheme.colorScheme.outline.copy(alpha = 0.4f)
+                                            if (isActive) primaryColor 
+                                            else outlineColor.copy(alpha = 0.4f)
                                         )
                                 )
                             }
                         }
 
-                        Spacer(modifier = Modifier.width(12.dp))
+                        Spacer(modifier = Modifier.width(14.dp))
 
                         // Exercise Info Column
                         Column(
                             modifier = Modifier
                                 .weight(1f)
-                                .padding(bottom = 16.dp)
+                                .padding(bottom = 20.dp)
                         ) {
                             Row(
                                 verticalAlignment = Alignment.CenterVertically,
@@ -432,8 +510,9 @@ fun HomeScreen(
                             ) {
                                 Text(
                                     text = translateExerciseName(exercise.name),
-                                    style = MaterialTheme.typography.bodyLarge.copy(
-                                        fontWeight = if (isActive || isExpanded) FontWeight.Black else FontWeight.Bold
+                                    style = MaterialTheme.typography.titleMedium.copy(
+                                        fontWeight = if (isActive || isExpanded) FontWeight.Black else FontWeight.Bold,
+                                        lineHeight = 24.sp
                                     ),
                                     color = when {
                                         isExpanded -> MaterialTheme.colorScheme.primary
@@ -451,29 +530,31 @@ fun HomeScreen(
                                         imageVector = Icons.Default.ExpandLess,
                                         contentDescription = null,
                                         tint = MaterialTheme.colorScheme.primary,
-                                        modifier = Modifier.size(20.dp)
+                                        modifier = Modifier.size(24.dp)
                                     )
                                 }
                             }
                             
+                            Spacer(modifier = Modifier.height(2.dp))
+
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
                                     text = getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
-                                    style = MaterialTheme.typography.bodySmall,
+                                    style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
-                                Spacer(modifier = Modifier.width(8.dp))
+                                Spacer(modifier = Modifier.width(10.dp))
                                 Box(
                                     modifier = Modifier
-                                        .size(6.dp)
+                                        .size(8.dp)
                                         .clip(CircleShape)
                                         .background(getMuscleGroupColor(exercise.muscleGroup))
                                 )
-                                Spacer(modifier = Modifier.width(4.dp))
+                                Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = translateMuscleGroup(exercise.muscleGroup),
-                                    style = MaterialTheme.typography.labelSmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
                                 )
                             }
 
@@ -487,28 +568,28 @@ fun HomeScreen(
                                 Column {
                                     val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
                                     
-                                    Spacer(modifier = Modifier.height(8.dp))
+                                    Spacer(modifier = Modifier.height(10.dp))
                                     if (description.isNotBlank()) {
                                         Text(
                                             text = description,
-                                            style = MaterialTheme.typography.bodySmall,
+                                            style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
                                     }
                                     if (equipment.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(4.dp))
+                                        Spacer(modifier = Modifier.height(6.dp))
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Icon(
                                                 imageVector = Icons.Default.FitnessCenter,
                                                 contentDescription = null,
-                                                modifier = Modifier.size(12.dp),
-                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f)
+                                                modifier = Modifier.size(16.dp),
+                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
                                             )
-                                            Spacer(modifier = Modifier.width(4.dp))
+                                            Spacer(modifier = Modifier.width(6.dp))
                                             Text(
                                                 text = equipment,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
                                             )
                                         }
                                     }

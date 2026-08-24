@@ -162,7 +162,7 @@
     <string name="program_name">My Workout</string>
     <string name="description">Description</string>
     <string name="equipment">Equipment</string>
-    <string name="ex_description_generic">A effective exercise targeting the %1$s muscle group. Focus on controlled movements and full range of motion.</string>
+    <string name="ex_description_generic">Focus on the mind-muscle connection. Execute the movement with a controlled tempo and a full range of motion while strictly engaging the %1$s.</string>
     <string name="ex_equipment_gym">Full Gym / Machines</string>
     <string name="ex_equipment_barbell">Barbell</string>
     <string name="ex_equipment_dumbbell">Dumbbells</string>
@@ -180,6 +180,41 @@
     <string name="ex_tricep_extension_desc">Lower the weight behind your head by bending elbows, then straighten arms to press the weight back up.</string>
     <string name="ex_lunges_desc">Step forward and lower your hips until both knees are bent at 90 degrees. Push back up to the start.</string>
     <string name="ex_abs_desc">For crunches, lift shoulders off the floor. For leg raises, lift straight legs from the floor toward the ceiling.</string>
+    <string name="ex_flyes_desc">Lie on a bench with a slight bend in your elbows. Lower the weights out to your sides in an arc, then squeeze your chest to bring them back together.</string>
+    <string name="ex_shrugs_desc">Hold weights at your sides with arms straight. Elevate your shoulders toward your ears, pause at the top, then lower slowly.</string>
+    <string name="ex_face_pulls_desc">Using a rope or cable, pull toward your face keeping elbows high. Focus on squeezing your rear delts and upper back.</string>
+    <string name="ex_back_extensions_desc">Hinge at the hips to lower your upper body, then use your lower back and glutes to raise yourself back to neutral.</string>
+    <string name="ex_woodchoppers_desc">Using a cable or weight, pull diagonally across your body while rotating your core. Move from high to low or low to high.</string>
+    <string name="ex_push_ups_desc">Maintain a straight line from head to heels. Lower your chest toward the floor, then push back up by extending your arms.</string>
+    <string name="ex_dips_desc">Lower your body by bending your elbows until your shoulders are at 90 degrees, then push back up to the starting position.</string>
+    <string name="ex_leg_curls_desc">Curl your heels toward your glutes by bending your knees, then lower the weight slowly with control.</string>
+    <string name="ex_leg_press_desc">Push the platform away by extending your knees and hips, then lower it back down with control without locking your knees.</string>
+    <string name="ex_calf_raises_desc">Rise up onto the balls of your feet as high as possible, pause at the top, then lower your heels below the starting position.</string>
+
+    <string name="ex_incline_press_desc">Lie on an incline bench. Press the weights upward from your upper chest until arms are extended, then lower with control.</string>
+    <string name="ex_decline_press_desc">Lie on a decline bench. Press the weights upward from your lower chest until arms are extended, then lower with control.</string>
+    <string name="ex_lat_pulldown_desc">Pull the bar down toward your upper chest by driving your elbows down and back. Squeeze your lats at the bottom.</string>
+    <string name="ex_seated_row_desc">Pull the handle toward your lower stomach while keeping your back straight. Squeeze your shoulder blades together.</string>
+    <string name="ex_shoulder_press_desc">Press the weights from shoulder level upward until arms are locked out. Keep your core tight and back straight.</string>
+    <string name="ex_front_raise_desc">Raise the weights directly in front of you until arms are level with shoulders. Avoid swinging your body.</string>
+    <string name="ex_side_raise_desc">Raise the weights out to your sides until arms are level with shoulders. Keep a slight bend in your elbows.</string>
+    <string name="ex_bicep_curl_desc">Curl the weights toward your shoulders while keeping your elbows pinned to your sides. Lower slowly.</string>
+    <string name="ex_hammer_curl_desc">Curl the weights with a neutral grip (palms facing each other). Maintain control throughout the movement.</string>
+    <string name="ex_tricep_pushdown_desc">Push the bar or rope down until your arms are fully extended. Keep your elbows stationary at your sides.</string>
+    <string name="ex_leg_extension_desc">Extend your legs until they are straight, focusing on the contraction in your quadriceps. Lower with control.</string>
+    <string name="ex_leg_curl_desc">Curl your heels toward your glutes. Squeeze your hamstrings at the peak and lower slowly.</string>
+    <string name="ex_goblet_squat_desc">Hold a weight at chest height. Squat down deep while keeping your chest up and back flat.</string>
+    <string name="ex_romanian_deadlift_desc">Hinge at the hips with a slight knee bend. Lower the weight along your legs until you feel a stretch in your hamstrings.</string>
+    <string name="ex_russian_twist_desc">Rotate your torso from side to side while sitting with knees bent. Touch the floor or hold a weight for intensity.</string>
+    <string name="ex_cable_crunch_desc">Kneel and pull the rope down by crunching your abs toward your knees. Keep your hips stationary.</string>
+
+    <string name="ex_bird_dog_desc">Start on all fours. Extend the opposite arm and leg simultaneously while keeping your back flat and core engaged.</string>
+    <string name="ex_pullover_desc">Lie on your back. Hold the weight with both hands and lower it behind your head in an arc, then pull it back over your chest.</string>
+    <string name="ex_superman_desc">Lie face down on the floor. Simultaneously lift your arms, chest, and legs off the ground, then lower them slowly.</string>
+    <string name="ex_good_morning_desc">With a weight on your upper back or at chest height, hinge forward at the hips while keeping your back straight and knees slightly bent.</string>
+    <string name="ex_mountain_climbers_desc">In a plank position, drive your knees toward your chest one at a time in a quick, alternating motion.</string>
+    <string name="ex_hollow_hold_desc">Lie on your back and lift your legs and shoulders off the floor, pressing your lower back firmly into the ground.</string>
+    <string name="ex_clamshell_desc">Lie on your side with knees bent. Lift your top knee while keeping your feet together, focusing on your side glutes.</string>
 
     <string name="save">Save</string>
     <string name="edit">Edit</string>
@@ -522,4 +557,19 @@
     <string name="ex_tricep_pushdowns">Tricep Pushdowns</string>
     <string name="ex_face_pulls">Face Pulls</string>
     <string name="ex_side_raises">Side Raises</string>
+    <string name="ex_hip_thrust_desc">Drive your hips upward toward the ceiling by squeezing your glutes until your body forms a straight line from knees to shoulders.</string>
+    <string name="ex_kickbacks_desc">Extend your arm or leg backward under control, keeping your core stable and squeezing the target muscle at full extension.</string>
+    <string name="ex_pulldown_desc">Pull the bar down toward your upper chest by driving your elbows down and back, squeezing your lats at the bottom.</string>
+    <string name="ex_carry_desc">Hold the weight with a tall posture and braced core, taking steady, controlled steps while maintaining shoulder stability.</string>
+    <string name="ex_rollout_desc">Roll forward while keeping your core tight and lower back flat, then contract your abs to pull yourself back to the start.</string>
+    <string name="ex_explosive_desc">Explode upward through your hips and legs to drive the weight overhead or to shoulder height in one continuous motion.</string>
+
+    <string name="ex_desc_fallback_chest">Contract your chest to press or move the weight forward, maintaining stable shoulders and controlling the stretch.</string>
+    <string name="ex_desc_fallback_back">Drive your elbows backward and squeeze your shoulder blades together to pull the weight toward your torso.</string>
+    <string name="ex_desc_fallback_shoulders">Press or raise the weight using your shoulder muscles, keeping your core braced and avoiding excessive momentum.</string>
+    <string name="ex_desc_fallback_legs">Drive through your feet to extend your knees and hips, keeping your chest up and knees aligned with your toes.</string>
+    <string name="ex_desc_fallback_biceps">Keep your elbows close to your torso and bend at the elbow joint to curl the weight upward with control.</string>
+    <string name="ex_desc_fallback_triceps">Extend at the elbow joint to push the weight straight, focusing on squeezing your triceps at full lockout.</string>
+    <string name="ex_desc_fallback_abs">Brace your midsection and flex or rotate your torso under control, focusing on contracting your abdominals.</string>
+    <string name="ex_desc_fallback_generic">Perform the movement with precision. Control the weight throughout the entire path and focus on the maximum contraction of your %1$s.</string>
 </resources>
