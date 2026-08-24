@@ -100,6 +100,10 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         }
     }
 
+    suspend fun reorderExercises(exercises: List<RoutineExerciseEntity>) {
+        dao.updateExercises(exercises)
+    }
+
     suspend fun deleteExercise(id: Long) {
         dao.deleteExerciseById(id)
     }

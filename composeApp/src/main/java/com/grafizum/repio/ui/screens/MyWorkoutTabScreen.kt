@@ -30,7 +30,7 @@ fun WorkoutTabScreen(
 
     // Sync internal tab state with external requests (e.g., from Home or Onboarding)
     LaunchedEffect(requestedTab) {
-        selectedSubTab = requestedTab
+        selectedSubTab = requestedTab.tab
     }
 
     // Exit edit routine screen when leaving the Workout tab
@@ -49,8 +49,8 @@ fun WorkoutTabScreen(
     AnimatedContent(
         targetState = selectedSubTab,
         transitionSpec = {
-            (fadeIn(animationSpec = tween(500, delayMillis = 100)) + 
-             scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+            (fadeIn(animationSpec = tween(400)) + 
+             scaleIn(initialScale = 0.95f, animationSpec = tween(400)))
                 .togetherWith(fadeOut(animationSpec = tween(200)))
         },
         label = "WorkoutTabTransition",

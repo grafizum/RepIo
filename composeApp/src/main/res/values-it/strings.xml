@@ -162,7 +162,7 @@
     <string name="program_name">Mio Allenamento</string>
     <string name="description">Descrizione</string>
     <string name="equipment">Attrezzatura</string>
-    <string name="ex_description_generic">Un esercizio efficace per il gruppo muscolare %1$s. Concentrati su movimenti controllati.</string>
+    <string name="ex_description_generic">Concentrati sulla connessione mente-muscolo. Esegui il movimento con un tempo controllato e un range di movimento completo attivando correttamente il gruppo %1$s.</string>
     <string name="ex_equipment_gym">Palestra / Macchinari</string>
     <string name="ex_equipment_barbell">Bilanciere</string>
     <string name="ex_equipment_dumbbell">Manubri</string>
@@ -179,7 +179,45 @@
     <string name="ex_plank_desc">Appoggia il peso sugli avambracci e sulle punte dei piedi. Mantieni il corpo dritto senza inarcare la schiena.</string>
     <string name="ex_tricep_extension_desc">Abbassa il peso dietro la testa flettendo i gomiti, quindi distendi le braccia per spingerlo verso l\'alto.</string>
     <string name="ex_lunges_desc">Fai un passo avanti e abbassa i fianchi fino a formare un angolo di 90 gradi con entrambe le ginocchia.</string>
+    <string name="ex_crunches_desc">Solleva le spalle dal pavimento, mantenendo la parte bassa della schiena aderente al suolo.</string>
+    <string name="ex_leg_raises_desc">Solleva le gambe tese verso il soffitto e abbassale lentamente con controllo.</string>
     <string name="ex_abs_desc">Per i crunch, solleva le spalle dal pavimento. Per il sollevamento gambe, solleva le gambe tese verso il soffitto.</string>
+    <string name="ex_flyes_desc">Sdraiati su una panca con i gomiti leggermente piegati. Abbassa i pesi lateralmente tracciando un arco, quindi contrai il petto per riavvicinarli.</string>
+    <string name="ex_shrugs_desc">Tieni i pesi lungo i fianchi con le braccia distese. Solleva le spalle verso le orecchie, fai una pausa in cima e abbassa lentamente.</string>
+    <string name="ex_face_pulls_desc">Utilizzando una corda o un cavo, tira verso il viso mantenendo i gomiti alti. Concentrati sulla contrazione dei deltoidi posteriori.</string>
+    <string name="ex_back_extensions_desc">Fletti il busto in avanti partendo dalle anche, quindi usa la parte inferiore della schiena e i glutei per tornare in posizione neutra.</string>
+    <string name="ex_woodchoppers_desc">Utilizzando un cavo o un peso, tira in diagonale attraverso il corpo ruotando il core.</string>
+    <string name="ex_push_ups_desc">Mantieni una linea retta dalla testa ai talloni. Abbassa il petto verso il pavimento, quindi spingi per tornare su estendendo le braccia.</string>
+    <string name="ex_dips_desc">Abbassa il corpo piegando i gomiti finché le spalle non sono a 90 gradi, quindi spingi per tornare alla posizione iniziale.</string>
+    <string name="ex_leg_curls_desc">Piega le ginocchia portando i talloni verso i glutei, quindi abbassa il peso lentamente con controllo.</string>
+    <string name="ex_leg_press_desc">Spingi la pedana allontanandola con ginocchia e anche, quindi riaccompagnale controllando il movimento senza bloccare le ginocchia.</string>
+    <string name="ex_calf_raises_desc">Sollevati sulle punte dei piedi il più in alto possibile, fai una pausa e abbassa lentamente i talloni.</string>
+    <string name="ex_side_lying_leg_raise_desc">Sdraiati su un fianco con le gambe tese. Solleva la gamba superiore verso il soffitto mantenendola tesa, quindi abbassala lentamente.</string>
+
+    <string name="ex_incline_press_desc">Sdraiati su una panca inclinata. Spingi i pesi verso l\'alto partendo dalla parte alta del petto fino a distendere le braccia, quindi scendi con controllo.</string>
+    <string name="ex_decline_press_desc">Sdraiati su una panca declinata. Spingi i pesi verso l\'alto partendo dalla parte bassa del petto fino a distendere le braccia, quindi scendi con controllo.</string>
+    <string name="ex_lat_pulldown_desc">Tira la sbarra verso la parte alta del petto portando i gomiti in basso e indietro. Contrai i dorsali nel punto più basso.</string>
+    <string name="ex_seated_row_desc">Tira l\'impugnatura verso la parte bassa dello stomaco mantenendo la schiena dritta. Unisci le scapole durante la trazione.</string>
+    <string name="ex_shoulder_press_desc">Spingi i pesi dalle spalle verso l\'alto fino a distendere le braccia. Mantieni il core saldo e la schiena dritta.</string>
+    <string name="ex_front_raise_desc">Solleva i pesi direttamente davanti a te fino all\'altezza delle spalle. Evita di dondolare con il corpo.</string>
+    <string name="ex_side_raise_desc">Solleva i pesi lateralmente fino all\'altezza delle spalle. Mantieni i gomiti leggermente flessi.</string>
+    <string name="ex_bicep_curl_desc">Fletti le braccia portando i pesi verso le spalle, mantenendo i gomiti vicini ai fianchi. Scendi lentamente.</string>
+    <string name="ex_hammer_curl_desc">Esegui il curl con una presa neutra (palmi rivolti tra loro). Mantieni il controllo durante tutto il movimento.</string>
+    <string name="ex_tricep_pushdown_desc">Spingi la sbarra o la corda verso il basso fino a distendere completamente le braccia. Tieni i gomiti fermi lungo i fianchi.</string>
+    <string name="ex_leg_extension_desc">Distendi le gambe fino a renderle dritte, concentrandoti sulla contrazione dei quadricipiti. Ritorna in posizione con controllo.</string>
+    <string name="ex_leg_curl_desc">Fletti le gambe portando i talloni verso i glutei. Contrai i femorali nel punto di massima tensione e scendi lentamente.</string>
+    <string name="ex_goblet_squat_desc">Tieni un peso all\'altezza del petto. Esegui uno squat profondo mantenendo il busto eretto e la schiena dritta.</string>
+    <string name="ex_romanian_deadlift_desc">Fletti il busto in avanti partendo dalle anche con le gambe quasi tese. Scendi con il peso lungo le gambe finché non senti allungare i femorali.</string>
+    <string name="ex_russian_twist_desc">Ruota il busto da un lato all\'altro stando seduto con le ginocchia flesse. Tocca il pavimento o usa un peso per aumentare l\'intensità.</string>
+    <string name="ex_cable_crunch_desc">Inginocchiati e tira la corda verso il basso flettendo gli addominali verso le ginocchia. Mantieni i fianchi fermi.</string>
+
+    <string name="ex_bird_dog_desc">Inizia a quattro zampe. Estendi contemporaneamente braccio e gamba opposti mantenendo la schiena piatta e il core contratto.</string>
+    <string name="ex_pullover_desc">Sdraiati sulla schiena. Impugna il peso con entrambe le mani e abbassalo dietro la testa tracciando un arco, quindi riportalo sopra il petto.</string>
+    <string name="ex_superman_desc">Sdraiati a pancia in giù. Solleva contemporaneamente braccia, petto e gambe dal pavimento, quindi scendi lentamente.</string>
+    <string name="ex_good_morning_desc">Con un peso sulla parte superiore della schiena o al petto, fletti il busto in avanti partendo dalle anche mantenendo la schiena dritta e le ginocchia leggermente flesse.</string>
+    <string name="ex_mountain_climbers_desc">In posizione di plank, porta le ginocchia verso il petto una alla volta in un movimento rapido e alternato.</string>
+    <string name="ex_hollow_hold_desc">Sdraiati sulla schiena e solleva gambe e spalle dal pavimento, premendo con forza la parte bassa della schiena contro il suolo.</string>
+    <string name="ex_clamshell_desc">Sdraiati su un fianco con le ginocchia flesse. Solleva il ginocchio superiore mantenendo i piedi uniti, concentrandoti sulla parte laterale dei glutei.</string>
 
     <string name="save">Salva</string>
     <string name="edit">Modifica</string>
@@ -522,4 +560,19 @@
     <string name="ex_tricep_pushdowns">Pushdown tricipiti</string>
     <string name="ex_face_pulls">Face Pull</string>
     <string name="ex_side_raises">Alzate laterali</string>
+    <string name="ex_hip_thrust_desc">Spingi il bacino verso l\'alto contraendo i glutei fino a formare una linea retta dalle ginocchia alle spalle.</string>
+    <string name="ex_kickbacks_desc">Estendi il braccio o la gamba all\'indietro in modo controllato, contraendo il muscolo target nella massima estensione.</string>
+    <string name="ex_pulldown_desc">Tira la sbarra verso la parte alta del petto portando i gomiti in basso e indietro, contraendo i dorsali in basso.</string>
+    <string name="ex_carry_desc">Mantieni il peso con una postura eretta e il core contratto, camminando con passi stabili e controllati.</string>
+    <string name="ex_rollout_desc">Rotola in avanti mantenendo il core saldo e la schiena dritta, quindi contrai gli addominali per tornare indietro.</string>
+    <string name="ex_explosive_desc">Spingi in modo esplosivo con anche e gambe per portare il peso in alto in un unico movimento continuo.</string>
+
+    <string name="ex_desc_fallback_chest">Contrai il petto per spingere il peso in avanti, mantenendo le spalle stabili e controllando l\'allungamento.</string>
+    <string name="ex_desc_fallback_back">Porta i gomiti all\'indietro e unisci le scapole per tirare il peso verso il busto.</string>
+    <string name="ex_desc_fallback_shoulders">Spingi o solleva il peso usando i muscoli delle spalle, mantenendo il core saldo senza usare lo slancio.</string>
+    <string name="ex_desc_fallback_legs">Spingi attraverso i piedi per estendere ginocchia e anche, mantenendo il petto alto.</string>
+    <string name="ex_desc_fallback_biceps">Tieni i gomiti vicini al busto e piega le braccia per sollevare il peso in modo controllato.</string>
+    <string name="ex_desc_fallback_triceps">Estendi l\'articolazione del gomito per distendere le braccia, contraendo i tricipiti alla massima estensione.</string>
+    <string name="ex_desc_fallback_abs">Contrai il core e fletti o ruota il busto in modo controllato per la massima contrazione addominale.</string>
+    <string name="ex_desc_fallback_generic">Esegui il movimento con precisione. Controlla il peso lungo tutto il percorso e concentrati sulla massima contrazione del tuo gruppo %1$s.</string>
 </resources>

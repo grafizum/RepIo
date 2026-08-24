@@ -467,7 +467,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                 tonalElevation = 0.dp // Elevation is handled by the parent Surface
                             ) {
                                 navigationItems.forEachIndexed { index, screen ->
-                                    val isSelected = pagerState.currentPage == index
+                                    val isSelected = pagerState.targetPage == index
                                     NavigationBarItem(
                                         selected = isSelected,
                                         onClick = {
@@ -548,7 +548,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                     modifier = Modifier
                         .fillMaxSize()
                         .padding(innerPadding),
-                    beyondViewportPageCount = 3
+                    beyondViewportPageCount = 1
                 ) { pageIndex ->
                     when (navigationItems[pageIndex]) {
                         is Screen.Home -> {
