@@ -31,6 +31,9 @@ interface WorkoutDao {
     @Update
     suspend fun updateExercise(exercise: RoutineExerciseEntity)
 
+    @Update
+    suspend fun updateExercises(exercises: List<RoutineExerciseEntity>)
+
     @Query("UPDATE routine_exercises SET videoUrl = :videoUrl WHERE name = :name")
     suspend fun updateVideoUrlForExercise(name: String, videoUrl: String)
 

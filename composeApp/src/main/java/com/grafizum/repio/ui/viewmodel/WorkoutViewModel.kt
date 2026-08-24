@@ -52,6 +52,11 @@ data class SupportUiState(
     val success: Boolean = false
 )
 
+data class WorkoutSubTabRequest(
+    val tab: Int,
+    val timestamp: Long = System.currentTimeMillis()
+)
+
 class WorkoutViewModel(
     private val repository: WorkoutRepository
 ) : ViewModel() {
@@ -85,6 +90,9 @@ class WorkoutViewModel(
     private val _workoutGoal = MutableStateFlow(prefs.getString("workout_goal", "goal_bodybuilding") ?: "goal_bodybuilding")
     val workoutGoal: StateFlow<String> = _workoutGoal.asStateFlow()
 
+    private val _equipment = MutableStateFlow(prefs.getString("setup_equipment", "Gym")?.split(",")?.filter { it.isNotBlank() } ?: listOf("Gym"))
+    val equipment: StateFlow<List<String>> = _equipment.asStateFlow()
+
     private val _developerThemeEnabled = MutableStateFlow(prefs.getBoolean("developer_theme_enabled", false))
     val developerThemeEnabled: StateFlow<Boolean> = _developerThemeEnabled.asStateFlow()
 
@@ -100,8 +108,8 @@ class WorkoutViewModel(
     private val _workoutNowState = MutableStateFlow(WorkoutNowState())
     val workoutNowState: StateFlow<WorkoutNowState> = _workoutNowState.asStateFlow()
 
-    private val _requestedWorkoutSubTab = MutableStateFlow(0)
-    val requestedWorkoutSubTab: StateFlow<Int> = _requestedWorkoutSubTab.asStateFlow()
+    private val _requestedWorkoutSubTab = MutableStateFlow(WorkoutSubTabRequest(0))
+    val requestedWorkoutSubTab: StateFlow<WorkoutSubTabRequest> = _requestedWorkoutSubTab.asStateFlow()
 
     private val _showRestartDialog = MutableStateFlow(false)
     val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
@@ -335,6 +343,11 @@ class WorkoutViewModel(
         prefs.putString("workout_goal", goal)
     }
 
+    fun updateEquipment(equipment: List<String>) {
+        _equipment.value = equipment
+        prefs.putString("setup_equipment", equipment.joinToString(","))
+    }
+
     fun setMinSets(value: Int) {
         _minSets.value = value
         prefs.putInt("setup_min_sets", value)
@@ -346,7 +359,7 @@ class WorkoutViewModel(
     }
 
     fun setRequestedWorkoutSubTab(tab: Int) {
-        _requestedWorkoutSubTab.value = tab
+        _requestedWorkoutSubTab.value = WorkoutSubTabRequest(tab)
     }
 
 
@@ -371,6 +384,7 @@ class WorkoutViewModel(
             // Persist setup parameters for later goal changes
             prefs.putString("setup_type", setupType)
             prefs.putString("setup_equipment", equipment.joinToString(","))
+            _equipment.value = equipment
             prefs.putString("setup_body_parts", bodyParts.joinToString(","))
             prefs.putString("setup_days", selectedDays.joinToString(","))
             prefs.putString("setup_intensity", intensity)
@@ -593,8 +607,22 @@ class WorkoutViewModel(
                 _workoutNowState.update { it.copy(restTimerSeconds = remainingSecs, isTimerActive = true) }
             } else {
                 val wasActive = _workoutNowState.value.isTimerActive
+                val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
                 val isSilent = prefs.getBoolean("is_silent_timer", false)
-                stopTimer()
+                
+                if (wasActive && wasExerciseTimer) {
+                    val dayExercises = allRoutineExercises.value
+                        .filter { it.dayOfWeek == _workoutNowState.value.selectedDayOfWeek }
+                        .sortedBy { it.orderIndex }
+                    if (dayExercises.isNotEmpty()) {
+                        advanceAfterTimer(dayExercises)
+                    } else {
+                        stopTimer()
+                    }
+                } else {
+                    stopTimer()
+                }
+                
                 if (wasActive && !isSilent) timerManager.showTimerNotification()
             }
         } else if (_workoutNowState.value.isTimerActive) {
@@ -641,7 +669,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, seconds)
             _workoutNowState.update { it.copy(totalSetsLoggedToday = it.totalSetsLoggedToday + 1) }
-            startRestTimer(seconds, isExerciseTimer = true, silent = true)
+            startRestTimer(seconds, isExerciseTimer = true, silent = false)
             saveWorkoutNowState(_workoutNowState.value)
         }
     }
@@ -653,12 +681,28 @@ class WorkoutViewModel(
         val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
         val currentExercise = exercises[exerciseIndex]
         val nextSetNumber = currentState.currentSetNumber + 1
+        
+        var isTransition = false
         _workoutNowState.update { state ->
-            if (nextSetNumber <= currentExercise.targetSets) state.copy(currentSetNumber = nextSetNumber)
-            else {
+            if (nextSetNumber <= currentExercise.targetSets) {
+                state.copy(currentSetNumber = nextSetNumber)
+            } else {
                 val nextExerciseIndex = exerciseIndex + 1
-                if (nextExerciseIndex < exercises.size) state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1)
-                else state.copy(isWorkoutCompleted = true)
+                if (nextExerciseIndex < exercises.size) {
+                    isTransition = true
+                    state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1)
+                } else {
+                    state.copy(isWorkoutCompleted = true)
+                }
+            }
+        }
+        
+        val updatedState = _workoutNowState.value
+        if (!updatedState.isWorkoutCompleted) {
+            if (isTransition) {
+                startRestTimer(currentExercise.transitionRestSeconds)
+            } else {
+                startRestTimer(currentExercise.restSeconds)
             }
         }
         saveWorkoutNowState(_workoutNowState.value)
@@ -666,6 +710,7 @@ class WorkoutViewModel(
 
     fun deleteLoggedSet(id: Long) { viewModelScope.launch { repository.deleteLoggedSet(id) } }
     fun saveExercise(exercise: RoutineExerciseEntity) { viewModelScope.launch { repository.saveExercise(exercise) } }
+    fun reorderExercises(exercises: List<RoutineExerciseEntity>) { viewModelScope.launch { repository.reorderExercises(exercises) } }
     fun deleteExercise(id: Long) { viewModelScope.launch { repository.deleteExercise(id) } }
 
     fun clearHistory() { viewModelScope.launch { repository.clearHistory() } }
