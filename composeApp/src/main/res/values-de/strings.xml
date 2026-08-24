@@ -192,6 +192,7 @@
     <string name="ex_leg_curls_desc">Beuge die Knie und ziehe die Fersen zum Gesäß, dann senke das Gewicht kontrolliert ab.</string>
     <string name="ex_leg_press_desc">Drücke die Plattform durch Strecken von Knien und Hüfte weg und senke sie kontrolliert ab, ohne die Knie durchzudrücken.</string>
     <string name="ex_calf_raises_desc">Drücke dich so weit wie möglich auf die Felsenbeine hoch, halte kurz und senke die Fersen langsam ab.</string>
+    <string name="ex_side_lying_leg_raise_desc">Auf der Seite liegen, die Beine sind gestreckt. Das obere Bein gestreckt in Richtung Decke heben und langsam wieder absenken.</string>
 
     <string name="ex_incline_press_desc">Lege dich auf eine Schrägbank. Drücke die Gewichte von der oberen Brust nach oben, bis die Arme gestreckt sind, und senke sie dann kontrolliert ab.</string>
     <string name="ex_decline_press_desc">Lege dich auf eine Negativbank. Drücke die Gewichte von der unteren Brust nach oben, bis die Arme gestreckt sind, und senke sie dann kontrolliert ab.</string>
@@ -217,7 +218,6 @@
     <string name="ex_mountain_climbers_desc">Bringe in der Liegestützposition abwechselnd die Knie in einer schnellen, fließenden Bewegung in Richtung deiner Brust.</string>
     <string name="ex_hollow_hold_desc">Lege dich auf den Rücken und hebe Beine und Schultern vom Boden ab. Drücke den unteren Rücken dabei fest in den Boden.</string>
     <string name="ex_clamshell_desc">Lege dich auf die Seite und beuge die Knie. Hebe das obere Knie an, während die Füße zusammenbleiben, um die seitliche Gesäßmuskulatur zu trainieren.</string>
-    <string name="ex_side_lying_leg_raise_desc">Auf der Seite liegen, die Beine sind gestreckt. Das obere Bein gestreckt in Richtung Decke heben und langsam wieder absenken.</string>
 
     <string name="save">Speichern</string>
     <string name="edit">Bearbeiten</string>
@@ -315,35 +315,34 @@
     <string name="rest_days_only">%1$d Ruhetage</string>
 
     <!-- Exercise Names -->
-    <string name="ex_barbell_bent_over_row">Langhantelrudern vorgebeugt</string>
-    <string name="ex_one_arm_dumbbell_row">Einarmiges Kurzhantelrudern</string>
+    <string name="ex_dumbbell_row">Kurzhantelrudern</string>
+    <string name="ex_barbell_row">Langhantelrudern</string>
     <string name="ex_dumbbell_pullover">Kurzhantel-Überzüge</string>
-    <string name="ex_dumbbell_curls">Kurzhantel-Curls</string>
-    <string name="ex_hammer_curls">Hammer-Curls</string>
+    <string name="ex_dumbbell_curl">Kurzhantel-Curl</string>
+    <string name="ex_hammer_curl">Hammer-Curl</string>
     <string name="ex_dumbbell_shoulder_press">Kurzhantel-Schulterdrücken</string>
-    <string name="ex_dumbbell_lateral_raises">Kurzhantel-Seitheben</string>
-    <string name="ex_crunches">Crunches (Sit-ups)</string>
+    <string name="ex_dumbbell_lateral_raise">Kurzhantel-Seitheben</string>
+    <string name="ex_crunches">Crunches</string>
     <string name="ex_barbell_floor_press">Langhantel-Bodendrücken</string>
     <string name="ex_dumbbell_floor_press">Kurzhantel-Bodendrücken</string>
-    <string name="ex_leg_raises">Beinheben</string>
-    <string name="ex_barbell_squats">Langhantel-Kniebeugen</string>
-    <string name="ex_romanian_deadlifts">Rumänisches Kreuzheben</string>
-    <string name="ex_dumbbell_lunges">Kurzhantel-Ausfallschritte</string>
+    <string name="ex_leg_raise">Beinheben</string>
+    <string name="ex_barbell_squat">Langhantel-Kniebeuge</string>
+    <string name="ex_romanian_deadlift">Rumänisches Kreuzheben</string>
+    <string name="ex_dumbbell_lunge">Kurzhantel-Ausfallschritt</string>
     <string name="ex_plank">Plank</string>
-    <string name="ex_barbell_row">Langhantelrudern</string>
     <string name="ex_tricep_dips_extensions">Trizeps-Dips / Extensions</string>
     <string name="ex_overhead_tricep_extension">Trizepsdrücken über Kopf</string>
-    <string name="ex_overhead_dumbbell_extension">Kurzhantel-Trizepsdrücken über Kopf</string>
+    <string name="ex_dumbbell_overhead_extension">Kurzhantel-Trizepsdrücken über Kopf</string>
     <string name="ex_bench_press_floor_press">Bankdrücken / Bodendrücken</string>
     <string name="ex_barbell_rows_generic">Langhantelrudern</string>
     <string name="ex_bicep_curls_generic">Bizeps-Curls</string>
-    <string name="ex_rear_delt_dumbbell_fly">Kurzhantel-Reverse-Fly</string>
+    <string name="ex_dumbbell_rear_delt_fly">Kurzhantel-Reverse-Fly</string>
     <string name="ex_rear_delt_fly">Reverse-Fly</string>
-    <string name="ex_deadlifts">Kreuzheben</string>
+    <string name="ex_deadlift">Kreuzheben</string>
     <string name="ex_calves">Wadenheben</string>
     <string name="ex_abs">Bauchmuskeln</string>
-    <string name="ex_pull_ups">Klimmzüge</string>
-    <string name="ex_squats">Kniebeugen</string>
+    <string name="ex_pull_up">Klimmzug</string>
+    <string name="ex_squat">Kniebeuge</string>
     <string name="ex_press">Drücken</string>
     <string name="ex_row">Rudern</string>
     <string name="ex_lunge">Ausfallschritt</string>
@@ -356,6 +355,23 @@
     <string name="ex_back_generic">Rücken</string>
     <string name="ex_legs_generic">Beine</string>
     <string name="ex_flyes">Flys</string>
+    <string name="ex_push_up">Liegestütz</string>
+    <string name="ex_chin_up">Klimmzug (Untergriff)</string>
+    <string name="ex_bench_press">Bankdrücken</string>
+    <string name="ex_military_press">Military Press</string>
+    <string name="ex_lat_pulldown">Latzug</string>
+    <string name="ex_seated_row">Sitzendes Rudern</string>
+    <string name="ex_leg_press">Beinpresse</string>
+    <string name="ex_leg_curl">Beinbeuger</string>
+    <string name="ex_leg_extension">Beinstrecker</string>
+    <string name="ex_calf_raise">Wadenheben</string>
+    <string name="ex_hip_thrust">Hip Thrust</string>
+    <string name="ex_glute_bridge">Glute Bridge</string>
+    <string name="ex_tricep_pushdown">Trizeps-Pushdown</string>
+    <string name="ex_face_pull">Face Pull</string>
+    <string name="ex_side_raise">Seitheben</string>
+    <string name="ex_dips">Dips</string>
+    <string name="ex_back_extension">Rückenstrecken</string>
 
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Drücken (Brust, Schultern, Trizeps)</string>
@@ -551,7 +567,7 @@
     <string name="ex_bench_press">Bankdrücken</string>
     <string name="ex_military_press">Military Press</string>
     <string name="ex_lat_pulldown">Latzug</string>
-    <string name="ex_seated_row">Rudern am Kabelzug</string>
+    <string name="ex_seated_row">Sitzendes Rudern</string>
     <string name="ex_leg_press">Beinpresse</string>
     <string name="ex_leg_curls">Beinbeuger</string>
     <string name="ex_leg_extensions">Beinstrecker</string>
@@ -576,4 +592,12 @@
     <string name="ex_desc_fallback_triceps">Strenke die Arme im Ellenbogengelenk durch und spanne den Trizeps in der Streckung maximal an.</string>
     <string name="ex_desc_fallback_abs">Spanne den Rumpf an und beuge oder rotiere den Oberkörper kontrolliert für maximale Bauchmuskelkontraktion.</string>
     <string name="ex_desc_fallback_generic">Führe die Bewegung mit Präzision aus. Kontrolliere das Gewicht über den gesamten Weg und konzentriere dich auf die maximale Kontraktion deines %1$s.</string>
+
+    <string name="ex_bird_dog_desc">Starte im Vierfüßlerstand. Strecke gleichzeitig den gegenüberliegenden Arm und das Bein aus, während du den Rücken flach und den Rumpf stabil hältst.</string>
+    <string name="ex_pullover_desc">Lege dich auf den Rücken. Halte das Gewicht mit beiden Händen und führe es in einem Bogen hinter den Kopf, dann ziehe es kontrolliert zurück über die Brust.</string>
+    <string name="ex_superman_desc">Lege dich flach auf den Bauch. Hebe gleichzeitig Arme, Brust und Beine kontrolliert vom Boden ab und senke sie langsam wieder.</string>
+    <string name="ex_good_morning_desc">Beuge dich mit einem Gewicht auf dem oberen Rücken oder vor der Brust aus der Hüfte nach vorne, während der Rücken gerade und die Knie leicht gebeugt bleiben.</string>
+    <string name="ex_mountain_climbers_desc">Bringe in der Liegestützposition abwechselnd die Knie in einer schnellen, fließenden Bewegung in Richtung deiner Brust.</string>
+    <string name="ex_hollow_hold_desc">Lege dich auf den Rücken und hebe Beine und Schultern vom Boden ab. Drücke den unteren Rücken dabei fest in den Boden.</string>
+    <string name="ex_clamshell_desc">Lege dich auf die Seite und beuge die Knie. Hebe das obere Knie an, während die Füße zusammenbleiben, um die seitliche Gesäßmuskulatur zu trainieren.</string>
 </resources>
