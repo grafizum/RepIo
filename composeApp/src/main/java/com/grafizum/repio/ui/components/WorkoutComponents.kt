@@ -505,18 +505,67 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
     val cleanName = name.trim().lowercase()
     var description = when {
         cleanName.contains("bench press") || cleanName.contains("floor press") -> getString("ex_bench_press_desc")
-        cleanName.contains("squat") -> getString("ex_squats_desc")
-        cleanName.contains("deadlift") -> getString("ex_deadlifts_desc")
+        cleanName.contains("incline") && cleanName.contains("press") -> getString("ex_incline_press_desc")
+        cleanName.contains("decline") && cleanName.contains("press") -> getString("ex_decline_press_desc")
+        cleanName.contains("squat") && !cleanName.contains("goblet") && !cleanName.contains("split") -> getString("ex_squats_desc")
+        cleanName.contains("goblet squat") -> getString("ex_goblet_squat_desc")
+        cleanName.contains("deadlift") && !cleanName.contains("romanian") && !cleanName.contains("rdl") -> getString("ex_deadlifts_desc")
+        cleanName.contains("romanian") || cleanName.contains("rdl") -> getString("ex_romanian_deadlift_desc")
         cleanName.contains("pull-up") || cleanName.contains("pullup") || cleanName.contains("chin-up") -> getString("ex_pull_ups_desc")
-        cleanName.contains("shoulder press") || cleanName.contains("military press") || cleanName.contains("overhead press") -> getString("ex_overhead_press_desc")
-        cleanName.contains("curl") -> getString("ex_curls_desc")
-        cleanName.contains("row") || cleanName.contains("pulldown") -> getString("ex_rows_desc")
-        cleanName.contains("lateral raise") || cleanName.contains("side raise") -> getString("ex_lateral_raise_desc")
+        cleanName.contains("pulldown") -> getString("ex_pulldown_desc")
+        cleanName.contains("pullover") -> getString("ex_pullover_desc")
+        cleanName.contains("seated row") || cleanName.contains("cable row") -> getString("ex_seated_row_desc")
+        cleanName.contains("shoulder press") || cleanName.contains("military press") || cleanName.contains("overhead press") || cleanName.contains("arnold") -> getString("ex_shoulder_press_desc")
+        cleanName.contains("front raise") -> getString("ex_front_raise_desc")
+        cleanName.contains("lateral raise") || cleanName.contains("side raise") -> getString("ex_side_raise_desc")
+        cleanName.contains("hammer curl") -> getString("ex_hammer_curl_desc")
+        cleanName.contains("curl") -> getString("ex_bicep_curl_desc")
+        cleanName.contains("row") -> getString("ex_rows_desc")
+        cleanName.contains("bird-dog") -> getString("ex_bird_dog_desc")
+        cleanName.contains("superman") -> getString("ex_superman_desc")
         cleanName.contains("plank") -> getString("ex_plank_desc")
-        cleanName.contains("extension") || cleanName.contains("pushdown") || cleanName.contains("skullcrusher") || cleanName.contains("dip") -> getString("ex_tricep_extension_desc")
-        cleanName.contains("lunge") || cleanName.contains("step-up") -> getString("ex_lunges_desc")
-        cleanName.contains("crunch") || cleanName.contains("leg raise") || cleanName.contains("abs") -> getString("ex_abs_desc")
-        else -> getString("ex_description_generic", translateMuscleGroup(muscleGroup))
+        cleanName.contains("mountain climber") -> getString("ex_mountain_climbers_desc")
+        cleanName.contains("hollow") && cleanName.contains("hold") -> getString("ex_hollow_hold_desc")
+        cleanName.contains("pushdown") -> getString("ex_tricep_pushdown_desc")
+        cleanName.contains("extension") && (cleanName.contains("tricep") || cleanName.contains("overhead") || cleanName.contains("skullcrusher")) -> getString("ex_tricep_extension_desc")
+        cleanName.contains("lunge") || cleanName.contains("step-up") || cleanName.contains("split squat") -> getString("ex_lunges_desc")
+        cleanName.contains("side lying leg raise") -> getString("ex_side_lying_leg_raise_desc")
+        cleanName.contains("clamshell") -> getString("ex_clamshell_desc")
+        cleanName.contains("crunch") && !cleanName.contains("cable") -> getString("ex_crunches_desc")
+        cleanName.contains("cable crunch") -> getString("ex_cable_crunch_desc")
+        cleanName.contains("leg raise") -> getString("ex_leg_raises_desc")
+        cleanName.contains("russian twist") -> getString("ex_russian_twist_desc")
+        cleanName.contains("abs") -> getString("ex_abs_desc")
+        cleanName.contains("fly") -> getString("ex_flyes_desc")
+        cleanName.contains("shrug") -> getString("ex_shrugs_desc")
+        cleanName.contains("face pull") -> getString("ex_face_pulls_desc")
+        cleanName.contains("good morning") -> getString("ex_good_morning_desc")
+        cleanName.contains("extension") && (cleanName.contains("back") || cleanName.contains("hyper")) -> getString("ex_back_extensions_desc")
+        cleanName.contains("woodchopper") || cleanName.contains("twist") -> getString("ex_woodchoppers_desc")
+        cleanName.contains("push-up") || cleanName.contains("pushup") -> getString("ex_push_ups_desc")
+        cleanName.contains("dip") && !cleanName.contains("pushdown") -> getString("ex_dips_desc")
+        cleanName.contains("leg extension") -> getString("ex_leg_extension_desc")
+        cleanName.contains("leg curl") -> getString("ex_leg_curl_desc")
+        cleanName.contains("leg press") -> getString("ex_leg_press_desc")
+        cleanName.contains("calf raise") -> getString("ex_calf_raises_desc")
+        cleanName.contains("thrust") || cleanName.contains("bridge") -> getString("ex_hip_thrust_desc")
+        cleanName.contains("kickback") -> getString("ex_kickbacks_desc")
+        cleanName.contains("carry") || cleanName.contains("walk") -> getString("ex_carry_desc")
+        cleanName.contains("rollout") -> getString("ex_rollout_desc")
+        cleanName.contains("clean") || cleanName.contains("snatch") || cleanName.contains("thruster") -> getString("ex_explosive_desc")
+        else -> {
+            val mg = muscleGroup.lowercase().trim()
+            when {
+                mg.contains("chest") -> getString("ex_desc_fallback_chest")
+                mg.contains("back") || mg.contains("lat") || mg.contains("trap") || mg.contains("erector") -> getString("ex_desc_fallback_back")
+                mg.contains("shoulder") || mg.contains("delt") -> getString("ex_desc_fallback_shoulders")
+                mg.contains("leg") || mg.contains("quad") || mg.contains("hamstring") || mg.contains("glute") || mg.contains("calf") || mg.contains("adductor") || mg.contains("abductor") -> getString("ex_desc_fallback_legs")
+                mg.contains("bicep") -> getString("ex_desc_fallback_biceps")
+                mg.contains("tricep") -> getString("ex_desc_fallback_triceps")
+                mg.contains("abs") || mg.contains("core") || mg.contains("oblique") -> getString("ex_desc_fallback_abs")
+                else -> getString("ex_desc_fallback_generic", translateMuscleGroup(muscleGroup))
+            }
+        }
     }
 
     if (intensity.contains("RPE", ignoreCase = true)) {
@@ -524,42 +573,39 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
     }
 
     val equipment = when {
-        cleanName.contains("barbell") || 
-        cleanName.contains("military press") || 
-        cleanName.contains("deadlift") || 
-        cleanName.contains("clean & press") || 
-        cleanName.contains("pendlay row") || 
-        cleanName.contains("upright row") || 
-        cleanName.contains("front squat") || 
-        cleanName.contains("good morning") || 
+        cleanName.contains("barbell") ||
+        cleanName.contains("military press") ||
+        cleanName.contains("deadlift") ||
+        cleanName.contains("clean & press") ||
+        cleanName.contains("pendlay row") ||
+        cleanName.contains("upright row") ||
+        cleanName.contains("front squat") ||
+        cleanName.contains("good morning") ||
         cleanName.contains("rollout") -> getString("ex_equipment_barbell")
-        
-        cleanName.contains("dumbbell") || 
-        cleanName.contains("db") || 
-        cleanName.contains("lateral raise") || 
-        cleanName.contains("front raise") || 
-        cleanName.contains("hammer curl") || 
-        cleanName.contains("kickback") || 
-        cleanName.contains("goblet squat") || 
-        cleanName.contains("thruster") || 
-        cleanName.contains("incline curl") || 
+
+        cleanName.contains("dumbbell") ||
+        cleanName.contains("db") ||
+        cleanName.contains("lateral raise") ||
+        cleanName.contains("front raise") ||
+        cleanName.contains("hammer curl") ||
+        cleanName.contains("kickback") ||
+        cleanName.contains("goblet squat") ||
+        cleanName.contains("thruster") ||
+        cleanName.contains("incline curl") ||
         cleanName.contains("overhead extension") -> getString("ex_equipment_dumbbell")
-        
+
         cleanName.contains("cable") -> getString("ex_equipment_cables")
-        
-        cleanName.contains("push-up") || 
-        cleanName.contains("pull-up") || 
-        cleanName.contains("pullup") || 
-        cleanName.contains("chin-up") || 
-        cleanName.contains("crunch") || 
-        cleanName.contains("leg raise") || 
-        cleanName.contains("russian twist") || 
-        cleanName.contains("clamshell") || 
-        cleanName.contains("bridge") || 
-        (cleanName.contains("squat") && !cleanName.contains("barbell") && !cleanName.contains("dumbbell")) || 
-        cleanName.contains("plank") || 
-        cleanName.contains("dip") -> getString("ex_equipment_bodyweight")
-        
+
+        cleanName.contains("push-up") ||
+        (cleanName.contains("crunch") && !cleanName.contains("cable") && !cleanName.contains("machine")) ||
+        (cleanName.contains("leg raise") && !cleanName.contains("hanging") && !cleanName.contains("captain's chair") && !cleanName.contains("machine")) ||
+        cleanName.contains("russian twist") ||
+        cleanName.contains("clamshell") ||
+        cleanName.contains("bridge") ||
+        (cleanName.contains("squat") && !cleanName.contains("barbell") && !cleanName.contains("dumbbell") && !cleanName.contains("machine") && !cleanName.contains("hack") && !cleanName.contains("v-squat")) ||
+        (cleanName.contains("dip") && (cleanName.contains("chair") || cleanName.contains("bench"))) ||
+        cleanName.contains("plank") -> getString("ex_equipment_bodyweight")
+
         else -> getString("ex_equipment_gym")
     }
 
@@ -578,6 +624,7 @@ fun ExpandableExerciseCard(
     onSaveVideoUrl: ((String) -> Unit)? = null,
     showDescription: Boolean = false,
     modifier: Modifier = Modifier,
+    dragHandleModifier: Modifier = Modifier,
     isExpanded: Boolean? = null,
     onExpandedChange: ((Boolean) -> Unit)? = null,
     showActions: Boolean = true
@@ -627,6 +674,14 @@ fun ExpandableExerciseCard(
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
                     if (isSelectionMode) {
+                        Icon(
+                            imageVector = Icons.Default.Menu,
+                            contentDescription = "Reorder",
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                            modifier = Modifier
+                                .padding(end = 8.dp)
+                                .then(dragHandleModifier)
+                        )
                         Checkbox(
                             checked = isSelected,
                             onCheckedChange = onSelectedChange,
@@ -1585,21 +1640,6 @@ fun SearchableExerciseField(
 }
 
 
-@Composable
-fun getExerciseStaticDescription(name: String): String {
-    return when (name.trim()) {
-        "Bench Press", "Barbell Bench Press" -> getString("ex_bench_press_desc")
-        "Squats", "Barbell Squats" -> getString("ex_squats_desc")
-        "Deadlifts" -> getString("ex_deadlifts_desc")
-        "Pull-ups" -> getString("ex_pull_ups_desc")
-        "Military Press", "Shoulder Press" -> getString("ex_overhead_press_desc")
-        else -> ""
-    }
-}
-
-/**
- * Analyzes routine exercises to check if any major body part / muscle group is omitted.
- */
 fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String> {
     val presentGroups = exercises.map { it.muscleGroup.lowercase().trim() }.toSet()
 
@@ -2173,10 +2213,10 @@ fun WorkoutDayWheel(
                     },
                     onDragEnd = {
                         val currentIndex = allDays.indexOfFirst { it.name == selectedDay }
-                        if (totalDrag > 80f) { // Swipe Right -> Next Day
+                        if (totalDrag > 120f) { // Swipe Right -> Next Day
                             val nextIndex = (currentIndex + 1) % 7
                             onDaySelected(allDays[nextIndex].name)
-                        } else if (totalDrag < -80f) { // Swipe Left -> Previous Day
+                        } else if (totalDrag < -120f) { // Swipe Left -> Previous Day
                             val prevIndex = (currentIndex - 1 + 7) % 7
                             onDaySelected(allDays[prevIndex].name)
                         }
