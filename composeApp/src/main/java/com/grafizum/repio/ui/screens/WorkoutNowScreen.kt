@@ -84,8 +84,33 @@ fun WorkoutNowScreen(
     var showCustomWeightDialog by remember { mutableStateOf(false) }
     var customWeightInput by remember { mutableStateOf("") }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
-    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
+    val equipment by viewModel.equipment.collectAsState()
+    val allAvailableExercises = remember(equipment) { WorkoutTemplates.getAllExerciseNames(equipment) }
     val themeKey by viewModel.themeOption.collectAsState()
+
+    val context = LocalContext.current
+    var notificationsEnabled by remember {
+        mutableStateOf(NotificationManagerCompat.from(context).areNotificationsEnabled())
+    }
+
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { isGranted ->
+        notificationsEnabled = isGranted
+    }
+
+    val lifecycleOwner = LocalLifecycleOwner.current
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                notificationsEnabled = NotificationManagerCompat.from(context).areNotificationsEnabled()
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
 
     // Reset edit state when tab becomes inactive
     LaunchedEffect(isActive) {
@@ -96,7 +121,9 @@ fun WorkoutNowScreen(
         }
     }
 
-    val currentDayExercises = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
+    val currentDayExercises = remember(allExercises, workoutState.selectedDayOfWeek) {
+        allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
+    }
 
     if (showRestartDialog) {
         AlertDialog(
@@ -526,6 +553,37 @@ fun WorkoutNowScreen(
                                         }
 
                                         Row(verticalAlignment = Alignment.CenterVertically) {
+                                            if (!notificationsEnabled) {
+                                                IconButton(
+                                                    onClick = {
+                                                        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                                                            permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+                                                        } else if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                                            try {
+                                                                val intent = Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                                                    putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                                                }
+                                                                context.startActivity(intent)
+                                                            } catch (_: Exception) {
+                                                                val intent = Intent(Settings.ACTION_SETTINGS)
+                                                                context.startActivity(intent)
+                                                            }
+                                                        } else {
+                                                            val intent = Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                                                data = Uri.fromParts("package", context.packageName, null)
+                                                            }
+                                                            context.startActivity(intent)
+                                                        }
+                                                    }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.NotificationsOff,
+                                                        contentDescription = getString("allow_notifications"),
+                                                        tint = MaterialTheme.colorScheme.error
+                                                    )
+                                                }
+                                            }
+
                                             IconButton(onClick = { viewModel.stopTimer() }) {
                                                 Icon(
                                                     imageVector = Icons.Default.SkipNext,
@@ -769,68 +827,54 @@ fun WorkoutNowScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Text(
-                                                    text = if (isBodyweight) getString("bodyweight_label") else getString("weight_kg_intl", workoutState.currentWeightKg),
+                                                    text = if (isBodyweight) {
+                                                        if (workoutState.currentWeightKg == 0.0) getString("bodyweight_label")
+                                                        else "+" + getString("weight_kg_intl", workoutState.currentWeightKg)
+                                                    } else getString("weight_kg_intl", workoutState.currentWeightKg),
                                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                                    color = if (isBodyweight) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                                                    color = if (isBodyweight && workoutState.currentWeightKg == 0.0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                                                 )
 
-                                                if (!isBodyweight) {
-                                                    Box(
-                                                        contentAlignment = Alignment.Center,
-                                                        modifier = Modifier
-                                                            .size(20.dp)
-                                                            .clip(CircleShape)
-                                                            .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                                            .clickable {
-                                                                customWeightInput = workoutState.currentWeightKg.toString()
-                                                                showCustomWeightDialog = true
-                                                            }
-                                                            .semantics { testTag = "modify_weight_button" }
-                                                    ) {
-                                                        Icon(
-                                                            imageVector = Icons.Default.Edit,
-                                                            contentDescription = "Modify Weight",
-                                                            modifier = Modifier.size(11.dp),
-                                                            tint = MaterialTheme.colorScheme.primary
-                                                        )
-                                                    }
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(20.dp)
+                                                        .clip(CircleShape)
+                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
+                                                        .clickable {
+                                                            customWeightInput = workoutState.currentWeightKg.toString()
+                                                            showCustomWeightDialog = true
+                                                        }
+                                                        .semantics { testTag = "modify_weight_button" }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = Icons.Default.Edit,
+                                                        contentDescription = "Modify Weight",
+                                                        modifier = Modifier.size(11.dp),
+                                                        tint = MaterialTheme.colorScheme.primary
+                                                    )
                                                 }
                                             }
                                         }
 
-                                        if (!isBodyweight) {
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
+                                        ) {
+                                            val canDecrementWeight = workoutState.currentWeightKg > 0
+                                            IconButton(
+                                                onClick = { viewModel.decrementWeight() },
+                                                enabled = canDecrementWeight,
+                                                modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                             ) {
-                                                val canDecrementWeight = workoutState.currentWeightKg > 0
-                                                IconButton(
-                                                    onClick = { viewModel.decrementWeight() },
-                                                    enabled = canDecrementWeight,
-                                                    modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                }
-
-                                                IconButton(
-                                                    onClick = { viewModel.incrementWeight() },
-                                                    modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
-                                                }
+                                                Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                                             }
-                                        } else {
-                                            // Inform user it's bodyweight
-                                            Surface(
-                                                color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f),
-                                                shape = RoundedCornerShape(8.dp)
+
+                                            IconButton(
+                                                onClick = { viewModel.incrementWeight() },
+                                                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                             ) {
-                                                Text(
-                                                    text = getString("no_weight_needed"),
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                                )
+                                                Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
                                             }
                                         }
                                     }

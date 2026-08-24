@@ -1,5 +1,11 @@
 package com.grafizum.repio.ui.screens
 
+import android.Manifest
+import android.content.Intent
+import android.net.Uri
+import android.os.Build
+import androidx.activity.compose.rememberLauncherForActivityResult
+import androidx.activity.result.contract.ActivityResultContracts
 import androidx.compose.foundation.*
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
@@ -57,6 +63,8 @@ import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import androidx.compose.ui.platform.LocalContext
+import androidx.core.app.NotificationManagerCompat
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -68,13 +76,68 @@ fun FirstTimeSetupScreen(
     onCancel: () -> Unit,
     modifier: Modifier = Modifier,
 ) {
+    val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val isDeveloper = LocalDeveloperSkin.current
+
+    // Notification Permission Launcher
+    val permissionLauncher = rememberLauncherForActivityResult(
+        contract = ActivityResultContracts.RequestPermission()
+    ) { _ -> }
+
+    var showNotificationSettingsDialog by remember { mutableStateOf(false) }
+
+    LaunchedEffect(Unit) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.TIRAMISU) {
+                permissionLauncher.launch(Manifest.permission.POST_NOTIFICATIONS)
+            } else {
+                showNotificationSettingsDialog = true
+            }
+        }
+    }
+
+    if (showNotificationSettingsDialog) {
+        AlertDialog(
+            onDismissRequest = { showNotificationSettingsDialog = false },
+            title = { Text(getString("allow_notifications")) },
+            text = { Text(getString("notification_channel_desc")) },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        showNotificationSettingsDialog = false
+                        try {
+                            val intent = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+                                Intent(android.provider.Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                                    putExtra(android.provider.Settings.EXTRA_APP_PACKAGE, context.packageName)
+                                }
+                            } else {
+                                Intent(android.provider.Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                                    data = Uri.fromParts("package", context.packageName, null)
+                                }
+                            }
+                            context.startActivity(intent)
+                        } catch (_: Exception) {
+                            val intent = Intent(android.provider.Settings.ACTION_SETTINGS)
+                            context.startActivity(intent)
+                        }
+                    }
+                ) {
+                    Text(getString("settings"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { showNotificationSettingsDialog = false }) {
+                    Text(getString("cancel"))
+                }
+            }
+        )
+    }
     var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade, 1 = Assisted, 2 = Custom
     var selectedWorkoutGoal by remember { mutableStateOf("goal_bodybuilding") }
+    val equipment by viewModel.equipment.collectAsState()
 
     // Assisted Build State
-    val assistedEquipment = remember { mutableStateListOf("Gym") }
     val assistedBodyParts = remember { mutableStateListOf(
         "Chest", "Front Deltoids", "Lateral Deltoids", "Rear Deltoids",
         "Lats", "Upper Back", "Upper Traps", "Spinal Erectors",
@@ -90,7 +153,9 @@ fun FirstTimeSetupScreen(
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
 
-    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
+    val allAvailableExercises = remember(equipment) { 
+        WorkoutTemplates.getAllExerciseNames(equipment) 
+    }
 
     var selectedTemplate by remember { mutableStateOf(WorkoutTemplates.template5DaySplit) }
     val templateSelectedDays = remember { mutableStateListOf<String>() }
@@ -392,6 +457,7 @@ fun FirstTimeSetupScreen(
                         }
                     }
                 }
+
                 item {
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
@@ -698,7 +764,10 @@ fun FirstTimeSetupScreen(
                                     Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
                                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                             OnboardingStepHeader(stepNumber = 1, title = getString("choose_equipment"))
-                                            EquipmentSelectionBlock(assistedEquipment)
+                                            EquipmentSelectionBlock(
+                                                equipment = equipment,
+                                                onUpdate = { viewModel.updateEquipment(it) }
+                                            )
                                         }
 
                                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
@@ -746,7 +815,7 @@ fun FirstTimeSetupScreen(
                                         }
 
                                         val program = WorkoutTemplates.generateAssistedProgram(
-                                            equipment = assistedEquipment,
+                                            equipment = equipment,
                                             bodyParts = assistedBodyParts.toList(),
                                             selectedDays = assistedSelectedDays.toList(),
                                             intensity = assistedIntensity,
@@ -793,43 +862,15 @@ fun FirstTimeSetupScreen(
                                                 else -> selectedDayInCustom
                                             }
 
-                                            Row(
-                                                modifier = Modifier.fillMaxWidth(),
-                                                horizontalArrangement = Arrangement.SpaceBetween,
-                                                verticalAlignment = Alignment.CenterVertically
-                                            ) {
-                                                Text(
-                                                    text = fullDayName,
-                                                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.padding(start = 4.dp)
-                                                )
-
-                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                                    if (isCustomSelectionMode) {
-                                                        IconButton(
-                                                            onClick = { if (customSelectedExercises.isNotEmpty()) showDeleteMultipleConfirmationCustom = true },
-                                                            enabled = customSelectedExercises.isNotEmpty()
-                                                        ) {
-                                                            Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (customSelectedExercises.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                        }
-
-                                                        IconButton(onClick = { 
-                                                            isCustomSelectionMode = false
-                                                            customSelectedExercises.clear()
-                                                        }) {
-                                                            Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
-                                                        }
-                                                    } else {
-                                                        IconButton(onClick = { isCustomSelectionMode = true }) {
-                                                            Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = MaterialTheme.colorScheme.primary)
-                                                        }
-                                                        IconButton(onClick = { focusManager.clearFocus(); showAddCustomExerciseDialog = true }, modifier = Modifier.size(40.dp)) {
-                                                            Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            Text(
+                                                text = fullDayName,
+                                                style = MaterialTheme.typography.headlineLarge.copy(
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    textAlign = TextAlign.Center
+                                                ),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                modifier = Modifier.fillMaxWidth()
+                                            )
                                         }
 
                                         val exercisesForSelectedDay = customExercises.filter { it.dayOfWeek == selectedDayInCustom }
@@ -862,12 +903,37 @@ fun FirstTimeSetupScreen(
                                                         modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
                                                     )
                                                 }
+
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    IconButton(
+                                                        onClick = { if (customSelectedExercises.isNotEmpty()) showDeleteMultipleConfirmationCustom = true },
+                                                        enabled = customSelectedExercises.isNotEmpty()
+                                                    ) {
+                                                        Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (customSelectedExercises.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
+                                                    }
+
+                                                    IconButton(onClick = { 
+                                                        isCustomSelectionMode = false
+                                                        customSelectedExercises.clear()
+                                                    }) {
+                                                        Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
+                                                    }
+                                                }
                                             } else {
                                                 Text(
                                                     text = getString("exercises_count", exercisesForSelectedDay.count()),
                                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                                     color = MaterialTheme.colorScheme.onSurface
                                                 )
+
+                                                Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                                    IconButton(onClick = { isCustomSelectionMode = true }) {
+                                                        Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = MaterialTheme.colorScheme.primary)
+                                                    }
+                                                    IconButton(onClick = { focusManager.clearFocus(); showAddCustomExerciseDialog = true }, modifier = Modifier.size(40.dp)) {
+                                                        Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
+                                                    }
+                                                }
                                             }
                                         }
 
@@ -992,6 +1058,7 @@ fun FirstTimeSetupScreen(
                                         days = mapped.first,
                                         exercises = mappedExercises,
                                         setupType = "PREMADE",
+                                        equipment = equipment,
                                         selectedDays = templateSelectedDays.toList(),
                                         templateId = selectedTemplate.id,
                                         minSets = assistedMinSets,
@@ -1000,7 +1067,7 @@ fun FirstTimeSetupScreen(
                                 }
                                 1 -> {
                                     val program = WorkoutTemplates.generateAssistedProgram(
-                                        equipment = assistedEquipment,
+                                        equipment = equipment,
                                         bodyParts = assistedBodyParts.toList(),
                                         selectedDays = assistedSelectedDays.toList(),
                                         intensity = assistedIntensity,
@@ -1014,7 +1081,7 @@ fun FirstTimeSetupScreen(
                                         days = program.days,
                                         exercises = program.exercises,
                                         setupType = "ASSISTED",
-                                        equipment = assistedEquipment.toList(),
+                                        equipment = equipment,
                                         bodyParts = assistedBodyParts.toList(),
                                         selectedDays = assistedSelectedDays.toList(),
                                         intensity = assistedIntensity,
@@ -1025,7 +1092,8 @@ fun FirstTimeSetupScreen(
                                 else -> viewModel.completeFirstTimeSetup(
                                     days = customDays.toList(),
                                     exercises = customExercises.toList(),
-                                    setupType = "CUSTOM"
+                                    setupType = "CUSTOM",
+                                    equipment = equipment
                                 )
                             }
                             onComplete()
@@ -1069,6 +1137,7 @@ fun FirstTimeSetupScreen(
                         days = mapped.first,
                         exercises = mappedExercises,
                         setupType = "PREMADE",
+                        equipment = equipment,
                         selectedDays = templateSelectedDays.toList(),
                         templateId = selectedTemplate.id,
                         minSets = assistedMinSets,
@@ -1077,7 +1146,7 @@ fun FirstTimeSetupScreen(
                 }
                 1 -> {
                     val program = WorkoutTemplates.generateAssistedProgram(
-                        equipment = assistedEquipment,
+                        equipment = equipment,
                         bodyParts = assistedBodyParts.toList(),
                         selectedDays = assistedSelectedDays.toList(),
                         intensity = assistedIntensity,
@@ -1091,7 +1160,7 @@ fun FirstTimeSetupScreen(
                         days = program.days,
                         exercises = program.exercises,
                         setupType = "ASSISTED",
-                        equipment = assistedEquipment.toList(),
+                        equipment = equipment,
                         bodyParts = assistedBodyParts.toList(),
                         selectedDays = assistedSelectedDays.toList(),
                         intensity = assistedIntensity,
@@ -1102,7 +1171,8 @@ fun FirstTimeSetupScreen(
                 else -> viewModel.completeFirstTimeSetup(
                     days = customDays.toList(),
                     exercises = customExercises.toList(),
-                    setupType = "CUSTOM"
+                    setupType = "CUSTOM",
+                    equipment = equipment
                 )
             }
             onComplete()
@@ -1163,6 +1233,7 @@ fun FirstTimeSetupScreen(
     replacingExercise?.let { exercise ->
         AlternativeExercisesDialog(
             exercise = exercise,
+            equipment = equipment,
             onDismiss = { replacingExercise = null },
             onSelect = { altName ->
                 val index = customExercises.indexOf(exercise)
@@ -1235,7 +1306,10 @@ private fun PreferenceSection(
 }
 
 @Composable
-private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
+private fun EquipmentSelectionBlock(
+    equipment: List<String>,
+    onUpdate: (List<String>) -> Unit
+) {
     val isFullGym = equipment.contains("Gym")
     val isDeveloper = LocalDeveloperSkin.current
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
@@ -1246,8 +1320,11 @@ private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
                          BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
                      } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
             modifier = Modifier.fillMaxWidth().clickable {
-                if (!isFullGym) { equipment.clear(); equipment.add("Gym") }
-                else { equipment.remove("Gym"); equipment.add("Bodyweight") }
+                val newList = if (!isFullGym) { listOf("Gym") }
+                else { 
+                    listOf("Bodyweight") // Default when turning off
+                }
+                onUpdate(newList)
             }
         ) {
             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
@@ -1266,8 +1343,9 @@ private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
                 Switch(
                     checked = isFullGym,
                     onCheckedChange = { checked ->
-                        if (checked) { equipment.clear(); equipment.add("Gym") }
-                        else { equipment.remove("Gym"); if (equipment.isEmpty()) equipment.add("Bodyweight") }
+                        val newList = if (checked) { listOf("Gym") }
+                        else { listOf("Bodyweight") }
+                        onUpdate(newList)
                     },
                     colors = if (isDeveloper) SwitchDefaults.colors(
                         checkedThumbColor = Color.Black,
@@ -1280,21 +1358,41 @@ private fun EquipmentSelectionBlock(equipment: MutableList<String>) {
                 )
             }
         }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-            listOf("Bodyweight", "Barbell", "Dumbbell").forEach { eq ->
-                val selected = equipment.contains(eq)
-                Surface(
-                    color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
-                    contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                    border = if (selected) {
-                                 BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
-                             } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
-                    modifier = Modifier.weight(1f).height(40.dp).clickable {
-                        if (selected) { if (equipment.size > 1) equipment.remove(eq) else { equipment.remove(eq); equipment.add("Gym") } }
-                        else { equipment.remove("Gym"); equipment.add(eq) }
-                    }
-                ) { Box(contentAlignment = Alignment.Center) { Text(eq, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)) } }
+        AnimatedVisibility(
+            visible = !isFullGym,
+            enter = expandVertically() + fadeIn(),
+            exit = shrinkVertically() + fadeOut()
+        ) {
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.padding(top = 4.dp)) {
+                listOf("Bodyweight", "Barbell", "Dumbbell").forEach { eq ->
+                    val selected = equipment.contains(eq)
+                    Surface(
+                        color = if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
+                        contentColor = if (selected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        border = if (selected) {
+                                     BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
+                                 } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
+                        modifier = Modifier.weight(1f).height(40.dp).clickable {
+                            val current = equipment.toMutableList()
+                            if (selected) { 
+                                if (current.size > 1) {
+                                    current.remove(eq) 
+                                } else { 
+                                    // Don't allow empty selection, but here it would mean "Gym" should be back?
+                                    // User said "when turning it off it dropsdown the list".
+                                    // If they deselect all in the dropdown, maybe we should re-enable Gym or just stay at Bodyweight.
+                                    // For now, let's just allow toggling within the dropdown.
+                                    current.remove(eq)
+                                    if (current.isEmpty()) current.add("Bodyweight")
+                                } 
+                            } else { 
+                                current.add(eq) 
+                            }
+                            onUpdate(current)
+                        }
+                    ) { Box(contentAlignment = Alignment.Center) { Text(eq, style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)) } }
+                }
             }
         }
     }
@@ -1718,10 +1816,13 @@ private fun TemplatePreviewDialog(
 @Composable
 private fun AlternativeExercisesDialog(
     exercise: RoutineExerciseEntity,
+    equipment: List<String>,
     onDismiss: () -> Unit,
     onSelect: (String) -> Unit
 ) {
-    val alternatives = remember { WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup) }
+    val alternatives = remember(exercise.name, exercise.muscleGroup, equipment) { 
+        WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup, equipment) 
+    }
     AlertDialog(
         onDismissRequest = onDismiss,
         title = { Text(getString("alternative_exercises")) },

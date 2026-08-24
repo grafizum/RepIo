@@ -4,7 +4,10 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.gestures.detectDragGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.zIndex
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.lazy.LazyRow
@@ -83,6 +86,8 @@ import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.rememberModalBottomSheetState
@@ -118,7 +123,27 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutNowState.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val today = remember { getTodayDayOfWeek() }
-    val allAvailableExercises = remember { WorkoutTemplates.getAllExerciseNames() }
+    val equipment by viewModel.equipment.collectAsState()
+    val allAvailableExercises = remember(equipment) { WorkoutTemplates.getAllExerciseNames(equipment) }
+
+    val dayExercises = remember(allExercises, workoutState.selectedDayOfWeek) {
+        allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
+            .sortedBy { it.orderIndex }
+    }
+
+    // Local state for reordering
+    var reorderedList by remember { mutableStateOf(dayExercises) }
+    
+    // Track dragging state
+    var draggingItemId by remember { mutableStateOf<Long?>(null) }
+    var dragOffsetY by remember { mutableStateOf(0f) }
+
+    // Sync local list when database exercises change, but NOT while dragging
+    LaunchedEffect(dayExercises) {
+        if (draggingItemId == null) {
+            reorderedList = dayExercises
+        }
+    }
 
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
@@ -321,9 +346,12 @@ fun WorkoutScreen(
                 },
                 label = "DayTransition"
             ) { targetDay ->
-                val dayExercises = allExercises.filter { it.dayOfWeek == targetDay }
+                val dayExercisesList = reorderedList
+                val listState = rememberLazyListState()
+                val density = LocalDensity.current
                 
                 LazyColumn(
+                    state = listState,
                     modifier = Modifier.fillMaxSize(),
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
@@ -347,8 +375,8 @@ fun WorkoutScreen(
                                     else -> targetDay
                                 }
 
-                                val focus = if (dayExercises.isNotEmpty()) {
-                                    dayExercises.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
+                                val focus = if (dayExercisesList.isNotEmpty()) {
+                                    dayExercisesList.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
                                         .map { com.grafizum.repio.ui.components.translateMuscleGroup(it) }
                                         .distinct()
                                         .joinToString(", ")
@@ -383,11 +411,11 @@ fun WorkoutScreen(
                             if (isSelectionMode) {
                                 Surface(
                                     onClick = {
-                                        if (selectedExerciseIds.size == dayExercises.size) {
+                                        if (selectedExerciseIds.size == dayExercisesList.size) {
                                             selectedExerciseIds.clear()
                                         } else {
                                             selectedExerciseIds.clear()
-                                            selectedExerciseIds.addAll(dayExercises.map { it.id })
+                                            selectedExerciseIds.addAll(dayExercisesList.map { it.id })
                                         }
                                     },
                                     color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
@@ -395,7 +423,7 @@ fun WorkoutScreen(
                                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                                     border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                 ) {
-                                    val label = if (selectedExerciseIds.size == dayExercises.size) getString("deselect_all") else getString("select_all")
+                                    val label = if (selectedExerciseIds.size == dayExercisesList.size) getString("deselect_all") else getString("select_all")
                                     Text(
                                         text = "$label (${selectedExerciseIds.size})",
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -404,7 +432,7 @@ fun WorkoutScreen(
                                 }
                             } else {
                                 Text(
-                                    text = getString("exercises_count", dayExercises.count()),
+                                    text = getString("exercises_count", dayExercisesList.count()),
                                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.onSurface
                                 )
@@ -446,7 +474,7 @@ fun WorkoutScreen(
                         }
                     }
 
-                    if (dayExercises.isEmpty()) {
+                    if (dayExercisesList.isEmpty()) {
                         item {
                             Card(
                                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
@@ -478,12 +506,74 @@ fun WorkoutScreen(
                             }
                         }
                     } else {
-                        items(dayExercises, key = { it.id }) { exercise ->
+                        items(dayExercisesList, key = { it.id }) { exercise ->
                             val isSelected = selectedExerciseIds.contains(exercise.id)
+                            val isDragging = draggingItemId == exercise.id
+                            
+                            val dragHandleModifier = if (isSelectionMode) {
+                                Modifier.pointerInput(exercise.id) {
+                                    detectDragGestures(
+                                        onDragStart = { draggingItemId = exercise.id },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            dragOffsetY += dragAmount.y
+                                            
+                                            val currentIndex = reorderedList.indexOfFirst { it.id == exercise.id }
+                                            if (currentIndex != -1) {
+                                                val spacing = with(density) { 16.dp.toPx() }
+                                                
+                                                // Move DOWN
+                                                if (dragOffsetY > 0 && currentIndex < reorderedList.size - 1) {
+                                                    val nextItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex + 1].id }
+                                                    if (nextItemInfo != null) {
+                                                        val threshold = (nextItemInfo.size + spacing) / 2
+                                                        if (dragOffsetY > threshold) {
+                                                            val newList = reorderedList.toMutableList()
+                                                            val item = newList.removeAt(currentIndex)
+                                                            newList.add(currentIndex + 1, item)
+                                                            reorderedList = newList
+                                                            dragOffsetY -= (nextItemInfo.size + spacing)
+                                                        }
+                                                    }
+                                                }
+                                                // Move UP
+                                                else if (dragOffsetY < 0 && currentIndex > 0) {
+                                                    val prevItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex - 1].id }
+                                                    if (prevItemInfo != null) {
+                                                        val threshold = -(prevItemInfo.size + spacing) / 2
+                                                        if (dragOffsetY < threshold) {
+                                                            val newList = reorderedList.toMutableList()
+                                                            val item = newList.removeAt(currentIndex)
+                                                            newList.add(currentIndex - 1, item)
+                                                            reorderedList = newList
+                                                            dragOffsetY += (prevItemInfo.size + spacing)
+                                                        }
+                                                    }
+                                                }
+                                            }
+                                        },
+                                        onDragEnd = {
+                                            draggingItemId = null
+                                            dragOffsetY = 0f
+                                            // Persist orderIndex
+                                            val finalOrderedList = reorderedList.mapIndexed { index, ex ->
+                                                ex.copy(orderIndex = index)
+                                            }
+                                            viewModel.reorderExercises(finalOrderedList)
+                                        },
+                                        onDragCancel = {
+                                            draggingItemId = null
+                                            dragOffsetY = 0f
+                                        }
+                                    )
+                                }
+                            } else Modifier
+
                             ExpandableExerciseCard(
                                 exercise = exercise,
                                 isSelectionMode = isSelectionMode,
                                 isSelected = isSelected,
+                                dragHandleModifier = dragHandleModifier,
                                 isExpanded = expandedExerciseId == exercise.id,
                                 onExpandedChange = { expanded ->
                                     expandedExerciseId = if (expanded) exercise.id else null
@@ -497,6 +587,16 @@ fun WorkoutScreen(
                                 onReplace = { replacingExercise = exercise },
                                 onSaveVideoUrl = { newUrl ->
                                     viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
+                                },
+                                modifier = if (isDragging) {
+                                    Modifier.graphicsLayer {
+                                        translationY = dragOffsetY
+                                        scaleX = 1.05f
+                                        scaleY = 1.05f
+                                        alpha = 0.8f
+                                    }.zIndex(1f)
+                                } else {
+                                    Modifier.animateItem()
                                 }
                             )
                         }
@@ -613,8 +713,8 @@ fun WorkoutScreen(
     }
 
     replacingExercise?.let { exercise ->
-        val alternatives = remember(exercise.name, exercise.muscleGroup) {
-            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
+        val alternatives = remember(exercise.name, exercise.muscleGroup, equipment) {
+            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup, equipment)
         }
 
         AlertDialog(
