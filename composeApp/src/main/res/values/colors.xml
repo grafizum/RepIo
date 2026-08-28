@@ -21,6 +21,9 @@
     <color name="theme_ocean_primary">#00B8D4</color>
     <color name="theme_rose_primary">#F06292</color>
     <color name="theme_retro_primary">#FFFFFF</color>
+    <color name="theme_orange_primary">#FF6D00</color>
+    <color name="theme_cyan_primary">#00E5FF</color>
+    <color name="theme_red_primary">#FF1744</color>
 
     <!-- Legacy / Compatibility / Icons -->
     <color name="black">#FF000000</color>

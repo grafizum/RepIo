@@ -1,6 +1,7 @@
 package com.grafizum.repio.ui.screens
 
 import androidx.compose.foundation.background
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.BorderStroke
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import androidx.compose.foundation.layout.Arrangement
@@ -22,6 +23,7 @@ import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
+import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FitnessCenter
@@ -41,6 +43,7 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -53,12 +56,17 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import com.grafizum.repio.ui.components.InteractiveVolumeBarChart
+import androidx.compose.ui.res.painterResource
+import com.grafizum.repio.R
 import com.grafizum.repio.ui.components.MuscleGroupDonutChart
 import com.grafizum.repio.ui.components.StatCard
+import com.grafizum.repio.ui.components.WorkoutCalendar
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
 import java.text.SimpleDateFormat
@@ -75,6 +83,7 @@ fun AnalyticsScreen(
     val loggedSets by viewModel.allLoggedSets.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
     var showClearConfirmDialog by remember { mutableStateOf(false) }
 
     // Logic for Charts
@@ -87,33 +96,6 @@ fun AnalyticsScreen(
     val friShort = getString("friday_short")
     val satShort = getString("saturday_short")
     val sunShort = getString("sunday_short")
-
-    val dailyVolumeMap = remember(loggedSets, monShort, tueShort, wedShort, thuShort, friShort, satShort, sunShort) {
-        val map = mutableMapOf(
-            monShort to 0.0,
-            tueShort to 0.0,
-            wedShort to 0.0,
-            thuShort to 0.0,
-            friShort to 0.0,
-            satShort to 0.0,
-            sunShort to 0.0
-        )
-        loggedSets.forEach { set ->
-            val shortDay = when (set.dayOfWeek.uppercase()) {
-                "MONDAY" -> monShort
-                "TUESDAY" -> tueShort
-                "WEDNESDAY" -> wedShort
-                "THURSDAY" -> thuShort
-                "FRIDAY" -> friShort
-                "SATURDAY" -> satShort
-                "SUNDAY" -> sunShort
-                else -> monShort
-            }
-            val vol = if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(set.exerciseName)) 0.0 else set.weightKg * set.reps
-            map[shortDay] = (map[shortDay] ?: 0.0) + vol
-        }
-        map
-    }
 
     val muscleGroupDistribution = remember(loggedSets) {
         val map = mutableMapOf<String, Int>()
@@ -139,28 +121,50 @@ fun AnalyticsScreen(
     }
 
     val maxWeightForExercise = exerciseLogs.maxOfOrNull { it.weightKg } ?: 0.0
-    val totalVolumeForExercise = exerciseLogs.sumOf { 
-        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    val totalPointsForExercise = exerciseLogs.sumOf { 
+        com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
     }
 
     // Logic for Weekly Report
-    val totalSets = loggedSets.size
-    val totalVolume = loggedSets.sumOf { 
-        if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+    val totalPoints = loggedSets.sumOf { 
+        com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
     }
-    val topMuscleGroup = muscleGroupDistribution.maxByOrNull { it.value }?.key ?: "None"
-    val activeDaysCount = remember(loggedSets) {
-        loggedSets.map { it.dayOfWeek }.distinct().size
+    val totalWorkoutDays = remember(loggedSets) {
+        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
+        loggedSets.map { sdf.format(Date(it.timestamp)) }.distinct().size
     }
 
     if (showClearConfirmDialog) {
         AlertDialog(
             onDismissRequest = { showClearConfirmDialog = false },
-            title = { Text(getString("clear_history_title")) },
-            text = { Text(getString("clear_history_text")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("clear_history_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("clear_history_text"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.clearHistory()
                         showClearConfirmDialog = false
                     },
@@ -173,7 +177,10 @@ fun AnalyticsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showClearConfirmDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showClearConfirmDialog = false
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -184,6 +191,11 @@ fun AnalyticsScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -233,105 +245,53 @@ fun AnalyticsScreen(
             }
 
             if (loggedSets.isNotEmpty()) {
-                IconButton(onClick = { showClearConfirmDialog = true }, modifier = Modifier.size(36.dp)) {
-                    Icon(
-                        imageVector = Icons.Default.DeleteSweep,
-                        contentDescription = "Clear History",
-                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-                    )
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(onClick = { showClearConfirmDialog = true }, modifier = Modifier.size(36.dp)) {
+                        Icon(
+                            imageVector = Icons.Default.DeleteSweep,
+                            contentDescription = "Clear History",
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        )
+                    }
                 }
             }
         }
 
+        // Removed showCalendarDialog block
+
         Spacer(modifier = Modifier.height(16.dp))
 
         LazyColumn(
-            modifier = Modifier.fillMaxSize(),
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                },
             verticalArrangement = Arrangement.spacedBy(16.dp)
         ) {
-            // 1. PERFORMANCE SUMMARY CARD
-            item {
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(20.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
-                            Box(
-                                modifier = Modifier
-                                    .size(44.dp)
-                                    .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                                    .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Assessment,
-                                    contentDescription = null,
-                                    tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary
-                                )
-                            }
-                            Spacer(modifier = Modifier.width(12.dp))
-                            Column {
-                                Text(
-                                    text = getString("weekly_activity"),
-                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                )
-                                Text(
-                                    text = getString("training_consistency_overview"),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(20.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            StatMiniItem(getString("active_days"), "$activeDaysCount / 5", MaterialTheme.colorScheme.primary)
-                            StatMiniItem(getString("top_focus"), topMuscleGroup, MaterialTheme.colorScheme.primary)
-                            StatMiniItem(getString("total_sets"), "$totalSets", MaterialTheme.colorScheme.primary)
-                        }
-                    }
-                }
-            }
-
             // 2. QUICK STAT CARDS
             item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    StatCard(
-                        title = getString("total_volume"),
-                        value = getString("weight_kg_intl", totalVolume.toInt()),
-                        subtitle = getString("weight_moved"),
-                        icon = Icons.Default.FitnessCenter,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    StatCard(
-                        title = getString("sets_logged"),
-                        value = "$totalSets",
-                        subtitle = getString("completed_sets"),
-                        icon = Icons.Default.CheckCircle,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                StatCard(
+                    title = getString("total_volume"),
+                    value = com.grafizum.repio.ui.components.formatRepioPoints(totalPoints),
+                    subtitle = "",
+                    icon = null,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    customPainter = painterResource(id = R.drawable.ic_repio_points),
+                    numericValue = totalPoints,
+                    workoutDaysCount = totalWorkoutDays
+                )
             }
 
-            // 3. VOLUME BAR CHART
+            // 2. TRAINING OUTPUT (REPLACES BAR CHART)
             item {
-                InteractiveVolumeBarChart(
-                    dailyData = dailyVolumeMap,
-                    selectedKey = selectedChartDay,
-                    onKeySelected = { selectedChartDay = it }
+                WorkoutCalendar(
+                    loggedSets = loggedSets,
+                    selectedDayKey = selectedChartDay,
+                    onDaySelected = { selectedChartDay = it }
                 )
             }
 
@@ -370,7 +330,10 @@ fun AnalyticsScreen(
                         if (exerciseNames.isNotEmpty()) {
                             ExposedDropdownMenuBox(
                                 expanded = expandedDropdown,
-                                onExpandedChange = { expandedDropdown = !expandedDropdown }
+                                onExpandedChange = { 
+                                    focusManager.clearFocus()
+                                    expandedDropdown = !expandedDropdown 
+                                }
                             ) {
                                 OutlinedTextField(
                                     value = com.grafizum.repio.ui.components.translateExerciseName(selectedExerciseName),
@@ -391,6 +354,7 @@ fun AnalyticsScreen(
                                         DropdownMenuItem(
                                             text = { Text(com.grafizum.repio.ui.components.translateExerciseName(name)) },
                                             onClick = {
+                                                focusManager.clearFocus()
                                                 selectedExerciseName = name
                                                 expandedDropdown = false
                                             }
@@ -426,7 +390,7 @@ fun AnalyticsScreen(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = getString("weight_kg_intl", totalVolumeForExercise.toInt()),
+                                    text = com.grafizum.repio.ui.components.formatRepioPoints(totalPointsForExercise),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.primary
                                 )
@@ -484,26 +448,5 @@ fun AnalyticsScreen(
 
             item { Spacer(modifier = Modifier.height(32.dp)) }
         }
-    }
-}
-
-@Composable
-private fun StatMiniItem(label: String, value: String, color: Color) {
-    val isDeveloper = LocalDeveloperSkin.current
-    Column(modifier = Modifier.widthIn(max = 100.dp)) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
-        Text(
-            text = value,
-            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-            color = if (isDeveloper) Color.White else color,
-            maxLines = 1,
-            overflow = TextOverflow.Ellipsis
-        )
     }
 }

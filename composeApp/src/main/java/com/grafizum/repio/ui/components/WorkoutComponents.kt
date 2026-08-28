@@ -10,11 +10,13 @@ import androidx.compose.foundation.Canvas
 import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.Image
 import androidx.compose.foundation.background
+import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectHorizontalDragGestures
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.horizontalScroll
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.foundation.rememberScrollState
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyColumn
@@ -40,11 +42,13 @@ import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.graphics.vector.ImageVector
+import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
 import androidx.compose.ui.input.nestedscroll.nestedScroll
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -58,7 +62,6 @@ import androidx.compose.ui.focus.focusRequester
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.foundation.text.BasicTextField
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.compose.foundation.lazy.LazyRow
 import com.grafizum.repio.data.DayOfWeekEnum
@@ -67,7 +70,12 @@ import androidx.compose.ui.text.input.KeyboardType
 import com.grafizum.repio.util.getString
 import kotlinx.coroutines.delay
 import com.grafizum.repio.data.RoutineExerciseEntity
+import com.grafizum.repio.data.LoggedSetEntity
 import com.grafizum.repio.data.WorkoutTemplates
+import java.util.Calendar
+import java.util.Date
+import java.util.Locale
+import java.text.SimpleDateFormat
 import com.grafizum.repio.ui.theme.BrightLime
 import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
@@ -147,39 +155,32 @@ fun translateMuscleGroup(muscleGroup: String): String {
 
 @Composable
 fun translateExerciseName(name: String): String {
-    val clean = name.trim()
-    val lower = clean.lowercase()
-    
+    val lower = name.trim().lowercase()
     return when {
-        lower == "dumbbell row" -> getString("ex_dumbbell_row")
-        lower == "barbell row" -> getString("ex_barbell_row")
-        lower == "dumbbell pullover" -> getString("ex_dumbbell_pullover")
-        lower == "dumbbell curl" -> getString("ex_dumbbell_curl")
-        lower == "hammer curl" -> getString("ex_hammer_curl")
-        lower == "dumbbell shoulder press" -> getString("ex_dumbbell_shoulder_press")
-        lower == "dumbbell lateral raise" -> getString("ex_dumbbell_lateral_raise")
+        lower == "row" || lower == "rows" -> getString("ex_row")
+        lower == "pullover" || lower == "pullovers" -> getString("ex_dumbbell_pullover")
+        lower == "curl" || lower == "curls" -> getString("ex_curls")
+        lower == "hammer curl" || lower == "hammer curls" -> getString("ex_hammer_curl")
+        lower == "shoulder press" || lower == "shoulder presses" -> getString("ex_shoulder_press")
+        lower == "lateral raise" || lower == "lateral raises" -> getString("ex_lateral_raise")
         lower == "crunch" || lower == "crunches" -> getString("ex_crunches")
-        lower == "barbell floor press" -> getString("ex_barbell_floor_press")
-        lower == "dumbbell floor press" -> getString("ex_dumbbell_floor_press")
+        lower == "bench press" || lower == "bench presses" || lower == "floor press" || lower == "floor presses" || lower == "chest press" || lower == "chest presses" -> getString("ex_bench_press")
         lower == "leg raise" || lower == "leg raises" -> getString("ex_leg_raise")
-        lower == "barbell squat" || lower == "barbell squats" -> getString("ex_barbell_squat")
+        lower == "squat" || lower == "squats" -> getString("ex_squat")
         lower == "romanian deadlift" || lower == "romanian deadlifts" -> getString("ex_romanian_deadlift")
-        lower == "dumbbell lunge" || lower == "dumbbell lunges" -> getString("ex_dumbbell_lunge")
-        lower == "plank" -> getString("ex_plank")
-        lower == "tricep pushdown" -> getString("ex_tricep_pushdown")
+        lower == "deadlift" || lower == "deadlifts" -> getString("ex_deadlift")
+        lower == "lunge" || lower == "lunges" -> getString("ex_lunge")
+        lower == "plank" || lower == "planks" -> getString("ex_plank")
+        lower == "tricep pushdown" || lower == "tricep pushdowns" || lower == "pushdown" || lower == "pushdowns" -> getString("ex_tricep_pushdown")
         lower == "face pull" || lower == "face pulls" -> getString("ex_face_pull")
         lower == "side raise" || lower == "side raises" -> getString("ex_side_raise")
         lower == "push-up" || lower == "push-ups" -> getString("ex_push_up")
         lower == "pull-up" || lower == "pull-ups" -> getString("ex_pull_up")
         lower == "chin-up" || lower == "chin-ups" -> getString("ex_chin_up")
-        lower == "bench press" -> getString("ex_bench_press")
-        lower == "barbell bench press" -> getString("ex_bench_press")
-        lower == "squat" || lower == "squats" -> getString("ex_squat")
-        lower == "deadlift" || lower == "deadlifts" -> getString("ex_deadlift")
-        lower == "military press" -> getString("ex_military_press")
-        lower == "lat pulldown" -> getString("ex_lat_pulldown")
-        lower == "seated row" -> getString("ex_seated_row")
-        lower == "leg press" -> getString("ex_leg_press")
+        lower == "military press" || lower == "military presses" -> getString("ex_military_press")
+        lower == "lat pulldown" || lower == "lat pulldowns" -> getString("ex_lat_pulldown")
+        lower == "seated row" || lower == "seated rows" -> getString("ex_seated_row")
+        lower == "leg press" || lower == "leg presses" -> getString("ex_leg_press")
         lower == "leg curl" || lower == "leg curls" -> getString("ex_leg_curl")
         lower == "leg extension" || lower == "leg extensions" -> getString("ex_leg_extension")
         lower == "calf raise" || lower == "calf raises" -> getString("ex_calf_raise")
@@ -187,44 +188,20 @@ fun translateExerciseName(name: String): String {
         lower == "glute bridge" || lower == "glute bridges" -> getString("ex_glute_bridge")
         lower == "back extension" || lower == "back extensions" -> getString("ex_back_extension")
         lower == "tricep dip" || lower == "tricep dips" || lower == "tricep dips / extensions" -> getString("ex_tricep_dips_extensions")
-        lower == "overhead tricep extension" -> getString("ex_overhead_tricep_extension")
-        lower == "dumbbell overhead extension" -> getString("ex_dumbbell_overhead_extension")
-        lower == "bench press / floor press" -> getString("ex_bench_press_floor_press")
-        lower == "barbell row" || lower == "barbell rows" -> getString("ex_barbell_rows_generic")
-        lower == "bicep curl" || lower == "bicep curls" -> getString("ex_bicep_curls_generic")
-        lower == "bent-over rear delt fly" || lower == "dumbbell rear delt fly" || lower == "rear delt fly" || lower == "rear-delt fly" -> getString("ex_rear_delt_fly")
-        lower == "calves" -> getString("ex_calves")
-        lower == "abs" -> getString("ex_abs")
-        lower == "press" -> getString("ex_press")
-        lower == "row" -> getString("ex_row")
-        lower == "lunge" -> getString("ex_lunge")
-        lower == "biceps" -> getString("ex_biceps_generic")
-        lower == "chest press" -> getString("ex_chest_press")
-        lower == "arms" -> getString("ex_arms")
-        lower == "core" -> getString("ex_core")
-        lower == "triceps" -> getString("ex_triceps_generic")
-        lower == "shoulders" -> getString("ex_shoulders_generic")
-        lower == "back" -> getString("ex_back_generic")
-        lower == "legs" -> getString("ex_legs_generic")
-        lower == "fly" || lower == "flyes" -> getString("ex_flyes")
-        lower == "dip" || lower == "dips" -> getString("ex_dips")
+        lower == "overhead tricep extension" || lower == "overhead tricep extensions" -> getString("ex_overhead_tricep_extension")
+        lower == "dumbbell overhead extension" || lower == "dumbbell overhead extensions" -> getString("ex_dumbbell_overhead_extension")
+        lower == "rear delt fly" || lower == "rear delt flies" || lower == "rear delt flyes" || lower == "rear-delt fly" -> getString("ex_rear_delt_fly")
+        lower == "shrug" || lower == "shrugs" -> getString("ex_shrugs")
         
-        // Legacy/Alias support
-        clean == "Barbell bent-over row" -> getString("ex_barbell_row")
-        clean == "One-arm dumbbell row" || clean == "Dumbbell row" -> getString("ex_dumbbell_row")
-        clean == "Dumbbell pullover" -> getString("ex_dumbbell_pullover")
-        clean == "Dumbbell curls" -> getString("ex_dumbbell_curl")
-        clean == "Hammer curls" -> getString("ex_hammer_curl")
-        clean == "Dumbbell shoulder press" -> getString("ex_dumbbell_shoulder_press")
-        clean == "Dumbbell lateral raises" -> getString("ex_dumbbell_lateral_raise")
-        clean == "Crunches (sit-ups)" -> getString("ex_crunches")
-        clean == "Barbell floor press" -> getString("ex_barbell_floor_press")
-        clean == "Dumbbell floor press" -> getString("ex_dumbbell_floor_press")
-        clean == "Leg raises" -> getString("ex_leg_raise")
-        clean == "Barbell squats" -> getString("ex_barbell_squat")
-        clean == "Romanian deadlifts" -> getString("ex_romanian_deadlift")
-        clean == "Dumbbell lunges" -> getString("ex_dumbbell_lunge")
-        
+        // Specific ones
+        lower == "dumbbell curl" || lower == "dumbbell curls" -> getString("ex_dumbbell_curl")
+        lower == "dumbbell row" || lower == "dumbbell rows" -> getString("ex_dumbbell_row")
+        lower == "barbell row" || lower == "barbell rows" -> getString("ex_barbell_row")
+        lower == "barbell squat" || lower == "barbell squats" -> getString("ex_barbell_squat")
+        lower == "dumbbell lunge" || lower == "dumbbell lunges" -> getString("ex_dumbbell_lunge")
+        lower == "barbell floor press" || lower == "barbell floor presses" -> getString("ex_barbell_floor_press")
+        lower == "dumbbell floor press" || lower == "dumbbell floor presses" -> getString("ex_dumbbell_floor_press")
+
         else -> name
     }
 }
@@ -297,59 +274,154 @@ fun StatCard(
     title: String,
     value: String,
     subtitle: String,
-    icon: ImageVector,
+    icon: ImageVector?,
     iconColor: Color,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    customPainter: androidx.compose.ui.graphics.painter.Painter? = null,
+    numericValue: Double? = null,
+    workoutDaysCount: Int? = null
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+    val goldColor = Color(0xFFD4AF37) // Soft Metallic Gold
+    
+    val pointsColor = if (numericValue != null) {
+        when {
+            numericValue < 1000 -> Color(0xFF2C2C2E) // Darkish black
+            numericValue < 10000 -> Color(0xFF007AFF) // 1k+ (4 digits)
+            numericValue < 100000 -> Color(0xFF34C759) // 10k+ (5 digits)
+            numericValue < 1000000 -> Color(0xFF8B5CF6) // 100k+ (6 digits)
+            else -> Color(0xFFFF9500) // 1M+ (7 digits)
+        }
+    } else {
+        MaterialTheme.colorScheme.primary
+    }
+
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 2.dp),
+        elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 4.dp),
         border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
         modifier = modifier
     ) {
         Column(
-            modifier = Modifier.padding(16.dp)
+            modifier = Modifier.padding(if (subtitle.isBlank()) 24.dp else 16.dp)
         ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = title,
-                    style = MaterialTheme.typography.labelLarge,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
-                )
-                Box(
-                    modifier = Modifier
-                        .size(36.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else iconColor.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
+            if (subtitle.isBlank()) {
+                // HERO MODE: Repio Points
+                Row(
+                    modifier = Modifier.fillMaxWidth(),
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    verticalAlignment = Alignment.Top
                 ) {
-                    Icon(
-                        imageVector = icon,
-                        contentDescription = title,
-                        tint = if (isDeveloper) Color.Black else iconColor,
-                        modifier = Modifier.size(20.dp)
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+                        color = MaterialTheme.colorScheme.onSurface
                     )
+                    
+                    if (workoutDaysCount != null) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                            shape = RoundedCornerShape(8.dp)
+                        ) {
+                            Text(
+                                text = "Consecutive training days: $workoutDaysCount",
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                    }
                 }
+                
+                Spacer(modifier = Modifier.height(12.dp))
+                
+                Row(
+                    verticalAlignment = Alignment.Bottom,
+                    horizontalArrangement = Arrangement.Start
+                ) {
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = 44.sp,
+                            lineHeight = 44.sp
+                        ),
+                        color = pointsColor
+                    )
+                    
+                    Spacer(modifier = Modifier.width(6.dp))
+                    
+                    Text(
+                        text = getString("pts_abbr"),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        color = pointsColor.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 6.dp)
+                    )
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    if (customPainter != null) {
+                        Image(
+                            painter = customPainter,
+                            contentDescription = null,
+                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(goldColor),
+                            modifier = Modifier.size(52.dp).align(Alignment.CenterVertically)
+                        )
+                    } else if (icon != null) {
+                        Icon(
+                            imageVector = icon,
+                            contentDescription = null,
+                            tint = goldColor,
+                            modifier = Modifier.size(44.dp).align(Alignment.CenterVertically)
+                        )
+                    }
+                }
+            } else {
+                // STANDARD MODE: Split layout
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.SpaceBetween,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column {
+                        Text(
+                            text = title,
+                            style = MaterialTheme.typography.labelLarge,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                        )
+                        Text(
+                            text = subtitle,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(36.dp)
+                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
+                            .background(if (isDeveloper) Color.White else iconColor.copy(alpha = 0.15f)),
+                        contentAlignment = Alignment.Center
+                    ) {
+                        if (icon != null) {
+                            Icon(
+                                imageVector = icon,
+                                contentDescription = title,
+                                tint = if (isDeveloper) Color.Black else iconColor,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
+                Spacer(modifier = Modifier.height(8.dp))
+                Text(
+                    text = value,
+                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurface
+                )
             }
-            Spacer(modifier = Modifier.height(8.dp))
-            Text(
-                text = value,
-                style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-            Text(
-                text = subtitle,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-            )
         }
     }
 }
@@ -365,9 +437,11 @@ fun ExerciseVideoLinkButton(
     var showInputDialog by remember { mutableStateOf(false) }
     var inputUrlText by remember { mutableStateOf(videoUrl) }
 
+    val focusManager = LocalFocusManager.current
     if (isEditMode && onSaveDemoUrl != null) {
         Button(
             onClick = {
+                focusManager.clearFocus()
                 inputUrlText = videoUrl
                 showInputDialog = true
             },
@@ -398,6 +472,7 @@ fun ExerciseVideoLinkButton(
     } else if (videoUrl.isNotBlank()) {
         Button(
             onClick = {
+                focusManager.clearFocus()
                 openUrl(videoUrl)
             },
             colors = ButtonDefaults.buttonColors(
@@ -425,6 +500,7 @@ fun ExerciseVideoLinkButton(
     } else if (onSaveDemoUrl != null) {
         Button(
             onClick = {
+                focusManager.clearFocus()
                 inputUrlText = ""
                 showInputDialog = true
             },
@@ -453,11 +529,31 @@ fun ExerciseVideoLinkButton(
     }
 
     if (showInputDialog && onSaveDemoUrl != null) {
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { showInputDialog = false },
-            title = { Text(getString("demo_video_link")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("demo_video_link"))
+                }
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
                     Text(
                         text = getString("enter_video_url_desc"),
                         style = MaterialTheme.typography.bodySmall
@@ -475,6 +571,7 @@ fun ExerciseVideoLinkButton(
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         onSaveDemoUrl(inputUrlText.trim())
                         showInputDialog = false
                     }
@@ -483,7 +580,10 @@ fun ExerciseVideoLinkButton(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showInputDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showInputDialog = false
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -588,44 +688,7 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
         description += "\n\n" + getString("intensity_label") + ": " + intensity
     }
 
-    val equipment = when {
-        cleanName.contains("barbell") ||
-        cleanName.contains("military press") ||
-        cleanName.contains("deadlift") ||
-        cleanName.contains("clean & press") ||
-        cleanName.contains("pendlay row") ||
-        cleanName.contains("upright row") ||
-        cleanName.contains("front squat") ||
-        cleanName.contains("good morning") ||
-        cleanName.contains("rollout") -> getString("ex_equipment_barbell")
-
-        cleanName.contains("dumbbell") ||
-        cleanName.contains("db") ||
-        cleanName.contains("lateral raise") ||
-        cleanName.contains("front raise") ||
-        cleanName.contains("hammer curl") ||
-        cleanName.contains("kickback") ||
-        cleanName.contains("goblet squat") ||
-        cleanName.contains("thruster") ||
-        cleanName.contains("incline curl") ||
-        cleanName.contains("overhead extension") -> getString("ex_equipment_dumbbell")
-
-        cleanName.contains("cable") -> getString("ex_equipment_cables")
-
-        cleanName.contains("push-up") ||
-        (cleanName.contains("crunch") && !cleanName.contains("cable") && !cleanName.contains("machine")) ||
-        (cleanName.contains("leg raise") && !cleanName.contains("hanging") && !cleanName.contains("captain's chair") && !cleanName.contains("machine")) ||
-        cleanName.contains("russian twist") ||
-        cleanName.contains("clamshell") ||
-        cleanName.contains("bridge") ||
-        (cleanName.contains("squat") && !cleanName.contains("barbell") && !cleanName.contains("dumbbell") && !cleanName.contains("machine") && !cleanName.contains("hack") && !cleanName.contains("v-squat")) ||
-        (cleanName.contains("dip") && (cleanName.contains("chair") || cleanName.contains("bench"))) ||
-        cleanName.contains("plank") -> getString("ex_equipment_bodyweight")
-
-        else -> getString("ex_equipment_gym")
-    }
-
-    return description to equipment
+    return description to ""
 }
 
 @Composable
@@ -656,8 +719,9 @@ fun ExpandableExerciseCard(
         }
     }
 
-    val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
+    val (description, _) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
 
     Card(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
@@ -709,7 +773,7 @@ fun ExpandableExerciseCard(
                             Text(
                                 text = translateExerciseName(exercise.name),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                maxLines = if (isDeveloper) 2 else 1,
+                                maxLines = if (expanded) 2 else 1,
                                 overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
                             )
                             Spacer(modifier = Modifier.width(8.dp))
@@ -755,7 +819,7 @@ fun ExpandableExerciseCard(
                 Spacer(modifier = Modifier.height(12.dp))
 
                 Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                    // Description & Equipment & Detailed Muscles
+                    // Description & Detailed Muscles
                     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
                         if (showDescription) {
                             Row {
@@ -778,15 +842,6 @@ fun ExpandableExerciseCard(
                                 Text(translateMuscleGroup(detailedMuscle), style = MaterialTheme.typography.bodySmall)
                             }
                         }
-
-                        Row {
-                            Icon(imageVector = Icons.Default.FitnessCenter, contentDescription = null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Column {
-                                Text(getString("equipment"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold), color = MaterialTheme.colorScheme.primary)
-                                Text(equipment, style = MaterialTheme.typography.bodySmall)
-                            }
-                        }
                     }
 
                     // ACTION BUTTONS GRID (2x2 for symmetry)
@@ -798,7 +853,10 @@ fun ExpandableExerciseCard(
                             ) {
                                 if (onReplace != null) {
                                     OutlinedButton(
-                                        onClick = onReplace,
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onReplace()
+                                        },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
                                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
@@ -812,7 +870,10 @@ fun ExpandableExerciseCard(
 
                                 if (onEdit != null) {
                                     OutlinedButton(
-                                        onClick = onEdit,
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onEdit()
+                                        },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
                                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
@@ -848,7 +909,10 @@ fun ExpandableExerciseCard(
 
                                 if (onDelete != null) {
                                     OutlinedButton(
-                                        onClick = onDelete,
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            onDelete()
+                                        },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
                                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
@@ -877,6 +941,7 @@ fun MuscleGroupSelector(
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
     val categories = listOf(
         getString("arms") to listOf("Biceps", "Triceps", "Forearms"),
         getString("legs") to listOf("Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"),
@@ -923,7 +988,10 @@ fun MuscleGroupSelector(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clickable { expandedCategory = if (isCatExpanded) null else catName }
+                            .clickable {
+                                focusManager.clearFocus()
+                                expandedCategory = if (isCatExpanded) null else catName 
+                            }
                             .padding(12.dp)
                     ) {
                         Row(verticalAlignment = Alignment.CenterVertically) {
@@ -972,6 +1040,7 @@ fun MuscleGroupSelector(
                                         if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
                                     } else MaterialTheme.colorScheme.outlineVariant),
                                     modifier = Modifier.clickable { 
+                                        focusManager.clearFocus()
                                         onMuscleSelected(part)
                                         expandedCategory = null 
                                     }
@@ -1001,6 +1070,7 @@ fun TimersMergedCard(
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
     var expandedType by remember { mutableStateOf<String?>(null) } // "REST", "TRANSITION", or null
 
     val restOptions = listOf(30, 45, 60, 90, 120, 180)
@@ -1049,14 +1119,20 @@ fun TimersMergedCard(
                     label = getString("resting_timer_duration"),
                     value = formatTimerValue(restValue),
                     isSelected = expandedType == "REST",
-                    onClick = { expandedType = if (expandedType == "REST") null else "REST" },
+                    onClick = { 
+                        focusManager.clearFocus()
+                        expandedType = if (expandedType == "REST") null else "REST" 
+                    },
                     modifier = Modifier.weight(1f)
                 )
                 TimerSelectionButton(
                     label = getString("exercise_transition_timer"),
                     value = formatTimerValue(transitionValue),
                     isSelected = expandedType == "TRANSITION",
-                    onClick = { expandedType = if (expandedType == "TRANSITION") null else "TRANSITION" },
+                    onClick = { 
+                        focusManager.clearFocus()
+                        expandedType = if (expandedType == "TRANSITION") null else "TRANSITION" 
+                    },
                     modifier = Modifier.weight(1f)
                 )
             }
@@ -1084,6 +1160,7 @@ fun TimersMergedCard(
                             val isSel = opt == current
                             Surface(
                                 onClick = { 
+                                    focusManager.clearFocus()
                                     onSelect(opt)
                                     expandedType = null
                                 },
@@ -1162,6 +1239,17 @@ fun formatTimerValue(seconds: Int): String {
     }
 }
 
+fun formatRepioPoints(points: Double): String {
+    return if (points > 999999) {
+        val k = points / 1000.0
+        val whole = k.toInt()
+        val decimal = ((k - whole) * 10).toInt()
+        if (decimal > 0) "${whole}.${decimal}k" else "${whole}k"
+    } else {
+        points.toInt().toString()
+    }
+}
+
 /**
  * Interactive Weekly Volume / Sets Bar Chart
  */
@@ -1170,6 +1258,7 @@ fun InteractiveVolumeBarChart(
     dailyData: Map<String, Double>, // "Mon" -> volume
     selectedKey: String?,
     onKeySelected: (String) -> Unit,
+    onCalendarClick: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
     val keys = listOf(
@@ -1202,12 +1291,12 @@ fun InteractiveVolumeBarChart(
             ) {
                 Column {
                     Text(
-                        text = getString("volume_progress_kg"),
+                        text = getString("weekly_progress"),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                     )
                     Text(
                         text = if (selectedKey != null && dailyData.containsKey(selectedKey)) {
-                            getString("volume_label") + " $selectedKey: ${dailyData[selectedKey]?.toInt()} kg"
+                            getString("volume_label") + " $selectedKey: ${formatRepioPoints(dailyData[selectedKey] ?: 0.0)} " + getString("total_volume")
                         } else {
                             getString("tap_bar_to_inspect")
                         },
@@ -1215,12 +1304,30 @@ fun InteractiveVolumeBarChart(
                         color = if (selectedKey != null) highlightColor else labelColor
                     )
                 }
-                Icon(
-                    imageVector = Icons.Default.FitnessCenter,
-                    contentDescription = null,
-                    tint = primaryColor,
-                    modifier = Modifier.size(24.dp)
-                )
+                
+                if (onCalendarClick != null) {
+                    IconButton(
+                        onClick = onCalendarClick,
+                        modifier = Modifier
+                            .size(40.dp)
+                            .clip(CircleShape)
+                            .background(primaryColor.copy(alpha = 0.1f))
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.CalendarMonth,
+                            contentDescription = "Show Full History",
+                            tint = primaryColor,
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                } else {
+                    Icon(
+                        imageVector = Icons.Default.FitnessCenter,
+                        contentDescription = null,
+                        tint = primaryColor,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
             }
 
             Spacer(modifier = Modifier.height(16.dp))
@@ -1230,87 +1337,110 @@ fun InteractiveVolumeBarChart(
                     .fillMaxWidth()
                     .height(180.dp)
             ) {
-                Canvas(
-                    modifier = Modifier
-                        .fillMaxSize()
-                        .pointerInput(Unit) {
-                            detectTapGestures { offset ->
-                                val barWidth = size.width / keys.size
-                                val index = (offset.x / barWidth).toInt().coerceIn(0, keys.size - 1)
-                                onKeySelected(keys[index])
+                Row(modifier = Modifier.fillMaxSize()) {
+                    // Y-Axis Labels
+                    Column(
+                        modifier = Modifier
+                            .fillMaxHeight()
+                            .padding(bottom = 30.dp), // Match Canvas height reserve
+                        verticalArrangement = Arrangement.SpaceBetween,
+                        horizontalAlignment = Alignment.End
+                    ) {
+                        for (i in 4 downTo 0) {
+                            Text(
+                                text = formatRepioPoints(maxVal * (i / 4f)),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                                color = labelColor.copy(alpha = 0.5f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.width(8.dp))
+
+                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
+                        Canvas(
+                            modifier = Modifier
+                                .fillMaxSize()
+                                .pointerInput(Unit) {
+                                    detectTapGestures { offset ->
+                                        val barWidth = size.width / keys.size
+                                        val index = (offset.x / barWidth).toInt().coerceIn(0, keys.size - 1)
+                                        onKeySelected(keys[index])
+                                    }
+                                }
+                        ) {
+                            val width = size.width
+                            val height = size.height - 30.dp.toPx() // Reserve space for labels
+                            val barWidth = (width / keys.size) * 0.5f
+
+                            // Draw subtle grid lines
+                            for (i in 0..4) {
+                                val y = height * (1f - i / 4f)
+                                drawLine(
+                                    color = labelColor.copy(alpha = 0.1f),
+                                    start = Offset(0f, y),
+                                    end = Offset(width, y),
+                                    strokeWidth = 1.dp.toPx()
+                                )
+                            }
+
+                            keys.forEachIndexed { index, key ->
+                                val value = dailyData[key] ?: 0.0
+                                val barHeight = ((value / maxVal) * height).toFloat()
+                                val xCenter = (width / keys.size) * (index + 0.5f)
+                                val xLeft = xCenter - (barWidth / 2f)
+                                val yTop = height - barHeight
+
+                                val isSelected = key == selectedKey
+                                val gradient = if (isSelected) {
+                                    Brush.verticalGradient(
+                                        colors = listOf(highlightColor, highlightColor.copy(alpha = 0.7f))
+                                    )
+                                } else {
+                                    Brush.verticalGradient(
+                                        colors = listOf(primaryColor, primaryColor.copy(alpha = 0.5f))
+                                    )
+                                }
+
+                                // Draw Bar
+                                if (barHeight > 0) {
+                                    drawRoundRect(
+                                        brush = gradient,
+                                        topLeft = Offset(xLeft, yTop),
+                                        size = Size(barWidth, barHeight),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
+                                    )
+                                } else {
+                                    // Empty bar indicator
+                                    drawRoundRect(
+                                        color = labelColor.copy(alpha = 0.15f),
+                                        topLeft = Offset(xLeft, height - 8.dp.toPx()),
+                                        size = Size(barWidth, 8.dp.toPx()),
+                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
+                                    )
+                                }
                             }
                         }
-                ) {
-                    val width = size.width
-                    val height = size.height - 30.dp.toPx() // Reserve space for labels
-                    val barWidth = (width / keys.size) * 0.5f
 
-                    // Draw subtle grid lines
-                    for (i in 1..3) {
-                        val y = height * (i / 4f)
-                        drawLine(
-                            color = labelColor.copy(alpha = 0.15f),
-                            start = Offset(0f, y),
-                            end = Offset(width, y),
-                            strokeWidth = 1.dp.toPx()
-                        )
-                    }
-
-                    keys.forEachIndexed { index, key ->
-                        val value = dailyData[key] ?: 0.0
-                        val barHeight = ((value / maxVal) * height).toFloat()
-                        val xCenter = (width / keys.size) * (index + 0.5f)
-                        val xLeft = xCenter - (barWidth / 2f)
-                        val yTop = height - barHeight
-
-                        val isSelected = key == selectedKey
-                        val gradient = if (isSelected) {
-                            Brush.verticalGradient(
-                                colors = listOf(highlightColor, highlightColor.copy(alpha = 0.7f))
-                            )
-                        } else {
-                            Brush.verticalGradient(
-                                colors = listOf(primaryColor, primaryColor.copy(alpha = 0.5f))
-                            )
+                        // X-Axis labels
+                        Row(
+                            horizontalArrangement = Arrangement.SpaceAround,
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .align(Alignment.BottomCenter)
+                                .padding(top = 4.dp)
+                        ) {
+                            keys.forEach { key ->
+                                Text(
+                                    text = key,
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = if (key == selectedKey) FontWeight.Bold else FontWeight.Normal
+                                    ),
+                                    color = if (key == selectedKey) highlightColor else labelColor,
+                                    textAlign = TextAlign.Center
+                                )
+                            }
                         }
-
-                        // Draw Bar
-                        if (barHeight > 0) {
-                            drawRoundRect(
-                                brush = gradient,
-                                topLeft = Offset(xLeft, yTop),
-                                size = Size(barWidth, barHeight),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
-                            )
-                        } else {
-                            // Empty bar indicator
-                            drawRoundRect(
-                                color = labelColor.copy(alpha = 0.15f),
-                                topLeft = Offset(xLeft, height - 8.dp.toPx()),
-                                size = Size(barWidth, 8.dp.toPx()),
-                                cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
-                            )
-                        }
-                    }
-                }
-
-                // X-Axis labels
-                Row(
-                    horizontalArrangement = Arrangement.SpaceAround,
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .align(Alignment.BottomCenter)
-                        .padding(top = 4.dp)
-                ) {
-                    keys.forEach { key ->
-                        Text(
-                            text = key,
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = if (key == selectedKey) FontWeight.Bold else FontWeight.Normal
-                            ),
-                            color = if (key == selectedKey) highlightColor else labelColor,
-                            textAlign = TextAlign.Center
-                        )
                     }
                 }
             }
@@ -1480,6 +1610,7 @@ fun RepsTimeToggle(
     val density = LocalDensity.current
     val swipeThreshold = with(density) { 40.dp.toPx() }
 
+    val focusManager = LocalFocusManager.current
     BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
@@ -1487,6 +1618,11 @@ fun RepsTimeToggle(
             .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
             .pointerInput(isTimeBased) {
                 var totalDrag = 0f
                 detectHorizontalDragGestures(
@@ -1541,7 +1677,10 @@ fun RepsTimeToggle(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
-                    ) { onToggle(false) },
+                    ) {
+                        focusManager.clearFocus()
+                        onToggle(false)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -1563,7 +1702,10 @@ fun RepsTimeToggle(
                     .clickable(
                         interactionSource = remember { MutableInteractionSource() },
                         indication = null
-                    ) { onToggle(true) },
+                    ) {
+                        focusManager.clearFocus()
+                        onToggle(true)
+                    },
                 contentAlignment = Alignment.Center
             ) {
                 Text(
@@ -1575,6 +1717,7 @@ fun RepsTimeToggle(
         }
     }
 }
+
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -1588,15 +1731,16 @@ fun SearchableExerciseField(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
-    val filteredExercises = remember(value) {
+    val filteredExercises = remember(value, allExercises) {
         if (value.isBlank()) emptyList()
         else {
-            allExercises.filter { it.contains(value, ignoreCase = true) }
-                .sortedWith(compareByDescending<String> { it.equals(value, ignoreCase = true) }
-                    .thenByDescending { it.startsWith(value, ignoreCase = true) }
-                    .thenBy { it.lowercase() }
+            val query = value.lowercase().trim()
+            allExercises.filter { it.lowercase().contains(query) }
+                .sortedWith(
+                    compareByDescending<String> { it.equals(value, ignoreCase = true) }
+                        .thenByDescending { it.startsWith(value, ignoreCase = true) }
+                        .thenBy { it.lowercase() }
                 )
-                .take(5)
         }
     }
 
@@ -1606,7 +1750,7 @@ fun SearchableExerciseField(
     ) {
         OutlinedTextField(
             value = value,
-            onValueChange = { 
+            onValueChange = {
                 onValueChange(it)
                 expanded = true
             },
@@ -1614,7 +1758,9 @@ fun SearchableExerciseField(
             placeholder = { Text(placeholder, fontSize = 12.sp) },
             singleLine = true,
             modifier = Modifier.fillMaxWidth().menuAnchor(MenuAnchorType.PrimaryEditable),
-            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(),
+            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                unfocusedBorderColor = MaterialTheme.colorScheme.outline
+            ),
             textStyle = MaterialTheme.typography.bodySmall,
             shape = RoundedCornerShape(10.dp)
         )
@@ -1623,21 +1769,25 @@ fun SearchableExerciseField(
             ExposedDropdownMenu(
                 expanded = expanded,
                 onDismissRequest = { expanded = false },
-                modifier = Modifier.padding(horizontal = 8.dp)
+                modifier = Modifier
+                    .padding(horizontal = 8.dp)
+                    .heightIn(max = 280.dp)
             ) {
                 filteredExercises.forEach { selection ->
                     DropdownMenuItem(
-                        text = { 
+                        text = {
                             Column {
                                 Text(selection, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
-                                val (desc, _) = getExerciseDetails(selection, WorkoutTemplates.getMuscleGroupForExercise(selection), "")
+                                // Avoid calling heavy functions inside Composable if possible, but this is a small list
+                                val muscleGroup = remember(selection) { WorkoutTemplates.getMuscleGroupForExercise(selection) }
+                                val (desc, _) = getExerciseDetails(selection, muscleGroup, "")
                                 if (desc.isNotBlank()) {
                                     Text(
                                         text = desc,
                                         style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                                         color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
                                         maxLines = 1,
-                                        overflow = androidx.compose.ui.text.style.TextOverflow.Ellipsis
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -1723,11 +1873,10 @@ fun ThemedToast(
 @Composable
 fun MissingBodyPartsWarningCard(
     missingParts: List<String>,
-    equipmentLimitedParts: List<String> = emptyList(),
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    if (missingParts.isEmpty() && equipmentLimitedParts.isEmpty()) {
+    if (missingParts.isEmpty()) {
         Card(
             shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
@@ -1762,12 +1911,10 @@ fun MissingBodyPartsWarningCard(
             }
         }
     } else {
-        val isEquipmentIssue = equipmentLimitedParts.isNotEmpty()
         Card(
             shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
                 containerColor = if (isDeveloper) Color.White
-                                else if (isEquipmentIssue) MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.9f)
                                 else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
             ),
             border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null,
@@ -1788,27 +1935,17 @@ fun MissingBodyPartsWarningCard(
                 Spacer(modifier = Modifier.width(10.dp))
                 Column {
                     Text(
-                        text = if (isEquipmentIssue) getString("equipment_limited_routine") else getString("incomplete_workout_routine"),
+                        text = getString("incomplete_workout_routine"),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
                     )
                     
                     val translatedParts = mutableListOf<String>()
-                    if (isEquipmentIssue) {
-                        for (part in equipmentLimitedParts) {
-                            translatedParts.add(translateMuscleGroup(part))
-                        }
-                    } else {
-                        for (part in missingParts) {
-                            translatedParts.add(translateMuscleGroup(part))
-                        }
+                    for (part in missingParts) {
+                        translatedParts.add(translateMuscleGroup(part))
                     }
 
-                    val warningText = if (isEquipmentIssue) {
-                        getString("equipment_limited_desc", translatedParts.joinToString(", "))
-                    } else {
-                        getString("incomplete_workout_desc", translatedParts.joinToString(", "))
-                    }
+                    val warningText = getString("incomplete_workout_desc", translatedParts.joinToString(", "))
 
                     Text(
                         text = warningText,
@@ -1819,6 +1956,67 @@ fun MissingBodyPartsWarningCard(
             }
         }
     }
+}
+
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun CompactNumericField(
+    value: String,
+    onValueChange: (String) -> Unit,
+    label: String,
+    modifier: Modifier = Modifier,
+    isError: Boolean = false,
+    keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+    placeholder: String? = null,
+    suffix: @Composable (() -> Unit)? = null,
+    supportingText: @Composable (() -> Unit)? = null
+) {
+    val interactionSource = remember { MutableInteractionSource() }
+    BasicTextField(
+        value = value,
+        onValueChange = onValueChange,
+        modifier = modifier.defaultMinSize(minHeight = 56.dp),
+        interactionSource = interactionSource,
+        enabled = true,
+        singleLine = true,
+        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+        keyboardOptions = keyboardOptions,
+        decorationBox = { innerTextField ->
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = value,
+                innerTextField = innerTextField,
+                enabled = true,
+                singleLine = true,
+                visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                interactionSource = interactionSource,
+                isError = isError,
+                label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                placeholder = if (placeholder != null) { { Text(placeholder, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) } } else null,
+                suffix = suffix,
+                supportingText = {
+                    if (supportingText != null) supportingText()
+                    else Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                },
+                contentPadding = OutlinedTextFieldDefaults.contentPadding(
+                    start = 16.dp,
+                    end = 12.dp
+                ),
+                container = {
+                    OutlinedTextFieldDefaults.ContainerBox(
+                        enabled = true,
+                        isError = isError,
+                        interactionSource = interactionSource,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        focusedBorderThickness = 2.dp,
+                        unfocusedBorderThickness = 1.dp
+                    )
+                }
+            )
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1845,6 +2043,7 @@ fun RepsRangeField(
 
     val isAnyFocused = isMinFocused || isMaxFocused
     val hasContent = minReps.isNotEmpty() || maxReps.isNotEmpty()
+    val isExpanded = isAnyFocused || hasContent || isError
 
     fun notifyChange(min: String, max: String) {
         val result = when {
@@ -1858,122 +2057,174 @@ fun RepsRangeField(
 
     val interactionSource = remember { MutableInteractionSource() }
 
-    // Use a Box to container everything and handle the click to focus the first field
-    Box(
+    BasicTextField(
+        value = if (isExpanded) " " else "",
+        onValueChange = {},
         modifier = modifier
-            .heightIn(min = 56.dp)
-            .clickable(
-                interactionSource = interactionSource,
-                indication = null
-            ) {
-                minFocusRequester.requestFocus()
-            }
-    ) {
-        OutlinedTextFieldDefaults.DecorationBox(
-            value = if (isAnyFocused || hasContent) " " else "",
-            innerTextField = {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(4.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    // MIN FIELD
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        if (minReps.isEmpty() && (isAnyFocused || hasContent)) {
-                            Text(
-                                text = "min",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        BasicTextField(
-                            value = minReps,
-                            onValueChange = {
-                                if (it.all { c -> c.isDigit() }) {
-                                    minReps = it
-                                    notifyChange(it, maxReps)
-                                    if (it.length >= 2) {
-                                        maxFocusRequester.requestFocus()
-                                    }
-                                }
-                            },
-                            textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                color = MaterialTheme.colorScheme.onSurface,
-                                textAlign = TextAlign.Center
-                            ),
-                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                            cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .focusRequester(minFocusRequester)
-                                .onFocusChanged { isMinFocused = it.isFocused }
-                        )
-                    }
-
-                    // SEPARATOR
-                    if (isAnyFocused || hasContent) {
-                        Text(
-                            text = "-",
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    }
-
-                    // MAX FIELD
-                    Box(modifier = Modifier.weight(1f), contentAlignment = Alignment.Center) {
-                        if (maxReps.isEmpty() && (isAnyFocused || hasContent)) {
-                            Text(
-                                text = "max",
-                                style = MaterialTheme.typography.bodyMedium,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                                textAlign = TextAlign.Center
-                            )
-                        }
-                        if (isAnyFocused || hasContent) {
-                            BasicTextField(
-                                value = maxReps,
-                                onValueChange = {
-                                    if (it.all { c -> c.isDigit() }) {
-                                        maxReps = it
-                                        notifyChange(minReps, it)
-                                    }
-                                },
-                                textStyle = MaterialTheme.typography.bodyMedium.copy(
-                                    color = MaterialTheme.colorScheme.onSurface,
-                                    textAlign = TextAlign.Center
-                                ),
-                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
-                                modifier = Modifier
-                                    .fillMaxWidth()
-                                    .focusRequester(maxFocusRequester)
-                                    .onFocusChanged { isMaxFocused = it.isFocused }
-                            )
-                        }
+            .defaultMinSize(minHeight = 56.dp)
+            .pointerInput(Unit) {
+                detectTapGestures { offset ->
+                    if (isExpanded) {
+                        if (offset.x < size.width / 2) minFocusRequester.requestFocus()
+                        else maxFocusRequester.requestFocus()
+                    } else {
+                        minFocusRequester.requestFocus()
                     }
                 }
             },
-            label = { Text(label) },
-            enabled = true,
-            isError = isError,
-            singleLine = true,
-            supportingText = supportingText,
-            interactionSource = interactionSource,
-            visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-            container = {
-                OutlinedTextFieldDefaults.ContainerBox(
-                    enabled = true,
-                    isError = isError,
-                    interactionSource = interactionSource,
-                    colors = OutlinedTextFieldDefaults.colors(),
-                    shape = RoundedCornerShape(12.dp),
-                    focusedBorderThickness = 2.dp,
-                    unfocusedBorderThickness = 1.dp
-                )
-            }
-        )
-    }
+        readOnly = true,
+        singleLine = true,
+        textStyle = LocalTextStyle.current.copy(
+            textAlign = TextAlign.Start,
+            fontSize = 16.sp
+        ),
+        decorationBox = { innerTextField ->
+            OutlinedTextFieldDefaults.DecorationBox(
+                value = if (isExpanded) " " else "",
+                innerTextField = {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.spacedBy(4.dp),
+                        modifier = Modifier.fillMaxWidth().fillMaxHeight().clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) {
+                            if (!isExpanded) minFocusRequester.requestFocus()
+                        }
+                    ) {
+                        // MIN FIELD
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { minFocusRequester.requestFocus() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (minReps.isEmpty() && isExpanded) {
+                                Text(
+                                    text = "min",
+                                    style = LocalTextStyle.current.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 16.sp
+                                    )
+                                )
+                            }
+                            BasicTextField(
+                                value = minReps,
+                                onValueChange = {
+                                    if (it.all { c -> c.isDigit() }) {
+                                        minReps = it
+                                        notifyChange(it, maxReps)
+                                    }
+                                },
+                                textStyle = LocalTextStyle.current.copy(
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 16.sp
+                                ),
+                                keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                singleLine = true,
+                                cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .focusRequester(minFocusRequester)
+                                    .onFocusChanged { isMinFocused = it.isFocused }
+                            )
+                        }
+
+                        // SEPARATOR
+                        if (isExpanded) {
+                            Text(
+                                text = "-",
+                                style = LocalTextStyle.current.copy(textAlign = TextAlign.Center, fontSize = 16.sp),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) {
+                                    // Tap on separator focuses the min field if empty, or max if min has content
+                                    if (minReps.isEmpty()) minFocusRequester.requestFocus()
+                                    else maxFocusRequester.requestFocus()
+                                }
+                            )
+                        }
+
+                        // MAX FIELD
+                        Box(
+                            modifier = Modifier
+                                .weight(1f)
+                                .fillMaxHeight()
+                                .clickable(
+                                    indication = null,
+                                    interactionSource = remember { MutableInteractionSource() }
+                                ) { if (isExpanded) maxFocusRequester.requestFocus() else minFocusRequester.requestFocus() },
+                            contentAlignment = Alignment.Center
+                        ) {
+                            if (maxReps.isEmpty() && isExpanded) {
+                                Text(
+                                    text = "max",
+                                    style = LocalTextStyle.current.copy(
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 16.sp
+                                    )
+                                )
+                            }
+                            if (isExpanded) {
+                                BasicTextField(
+                                    value = maxReps,
+                                    onValueChange = {
+                                        if (it.all { c -> c.isDigit() }) {
+                                            maxReps = it
+                                            notifyChange(minReps, it)
+                                        }
+                                    },
+                                    textStyle = LocalTextStyle.current.copy(
+                                        textAlign = TextAlign.Center,
+                                        fontSize = 16.sp
+                                    ),
+                                    keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
+                                    singleLine = true,
+                                    cursorBrush = SolidColor(MaterialTheme.colorScheme.primary),
+                                    modifier = Modifier
+                                        .fillMaxWidth()
+                                        .focusRequester(maxFocusRequester)
+                                        .onFocusChanged { isMaxFocused = it.isFocused }
+                                )
+                            }
+                        }
+                    }
+                },
+                label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                enabled = true,
+                isError = isError,
+                singleLine = true,
+                supportingText = {
+                    if (supportingText != null) supportingText()
+                    else Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1)
+                },
+                interactionSource = interactionSource,
+                contentPadding = OutlinedTextFieldDefaults.contentPadding(),
+                visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                container = {
+                    OutlinedTextFieldDefaults.ContainerBox(
+                        enabled = true,
+                        isError = isError,
+                        interactionSource = interactionSource,
+                        colors = OutlinedTextFieldDefaults.colors(
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                        ),
+                        shape = RoundedCornerShape(12.dp),
+                        focusedBorderThickness = 2.dp,
+                        unfocusedBorderThickness = 1.dp
+                    )
+                }
+            )
+        }
+    )
 }
 
 @OptIn(ExperimentalMaterial3Api::class)
@@ -1994,8 +2245,10 @@ fun ExerciseEditDialog(
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     var isExpanded by remember { mutableStateOf(exercise != null) }
     
-    var targetRepsValue by remember { mutableStateOf(exercise?.targetReps?.replace(" sec", "") ?: "") }
+    var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
+    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
+    var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
 
     var activeToastMessage by remember { mutableStateOf<String?>(null) }
 
@@ -2003,11 +2256,12 @@ fun ExerciseEditDialog(
         if (isTimeBased) true
         else if (targetRepsValue.isBlank()) true
         else {
-            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' }
+            val validChars = targetRepsValue.all { it.isDigit() || it == '-' || it == '–' || it == ' ' }
             if (!validChars) return@remember false
-            if (targetRepsValue.startsWith('-') || targetRepsValue.endsWith('-') || 
-                targetRepsValue.startsWith('–') || targetRepsValue.endsWith('–')) return@remember false
-            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            val clean = targetRepsValue.replace(" ", "")
+            if (clean.startsWith('-') || clean.endsWith('-') || 
+                clean.startsWith('–') || clean.endsWith('–')) return@remember false
+            val parts = clean.split('-', '–').filter { it.isNotBlank() }
             if (parts.size == 2) {
                 val v1 = parts[0].toIntOrNull()
                 val v2 = parts[1].toIntOrNull()
@@ -2021,7 +2275,8 @@ fun ExerciseEditDialog(
     val repsHasRangeError = remember(targetRepsValue, isTimeBased) {
         if (isTimeBased || targetRepsValue.isBlank()) false
         else {
-            val parts = targetRepsValue.split('-', '–').filter { it.isNotBlank() }
+            val clean = targetRepsValue.replace(" ", "")
+            val parts = clean.split('-', '–').filter { it.isNotBlank() }
             if (parts.size == 2) {
                 val v1 = parts[0].toIntOrNull()
                 val v2 = parts[1].toIntOrNull()
@@ -2030,18 +2285,36 @@ fun ExerciseEditDialog(
         }
     }
 
+    val focusManager = LocalFocusManager.current
+
     AlertDialog(
         onDismissRequest = onDismiss,
-        title = { Text(if (exercise == null) getString("add_exercise") else getString("edit_exercise")) },
+        title = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { focusManager.clearFocus() }
+            ) {
+                Text(if (exercise == null) getString("add_exercise") else getString("edit_exercise"))
+            }
+        },
         text = {
-            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(16.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { focusManager.clearFocus() }
+            ) {
                 RepsTimeToggle(
                     isTimeBased = isTimeBased,
                     onToggle = { newValue ->
                         isTimeBased = newValue
-                        if (newValue && (targetRepsValue.isEmpty() || !targetRepsValue.all { it.isDigit() })) {
-                            targetRepsValue = "30"
-                        }
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
@@ -2057,28 +2330,37 @@ fun ExerciseEditDialog(
                             targetRepsValue = ""
                             muscleGroup = ""
                         }
+                        
                         val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
                         if (detected != "Other") muscleGroup = detected
                     },
                     onItemSelected = { selectedName ->
+                        name = selectedName
                         isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
                         isExpanded = true
-                        // Reset videoUrl if name changed via selection to allow repository inheritance
-                        if (name != selectedName) videoUrl = ""
+                        videoUrl = ""
                         if (targetSetsStr.isBlank()) targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        if (targetRepsValue.isBlank()) targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                        if (isTimeBased) {
+                            if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
+                        } else {
+                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                        }
                     },
                     label = getString("exercise_name"),
                     placeholder = getString("exercise_name_placeholder")
                 )
 
                 if (isExpanded) {
-                    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
                             Text(getString("trained_muscles") + ":", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
-                            Spacer(modifier = Modifier.width(8.dp))
                             MuscleGroupBadge(muscleGroup = muscleGroup)
                         }
+                        
                         val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup, targetIntensityStr)
                         if (exerciseDesc.isNotBlank()) {
                             Surface(
@@ -2096,19 +2378,19 @@ fun ExerciseEditDialog(
                     }
                 }
 
+                val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
+                val showSupportingSpacer = repsError
+
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
-                    OutlinedTextField(
+                    CompactNumericField(
                         value = targetSetsStr,
                         onValueChange = { if (it.all { char -> char.isDigit() }) targetSetsStr = it },
-                        label = { Text(getString("sets")) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f),
-                        supportingText = if (repsHasRangeError) { { Text("") } } else null
+                        label = getString("sets"),
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
 
                     if (isTimeBased) {
@@ -2116,21 +2398,51 @@ fun ExerciseEditDialog(
                         ExposedDropdownMenuBox(
                             expanded = expandedTime,
                             onExpandedChange = { expandedTime = !expandedTime },
-                            modifier = Modifier.weight(1f)
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         ) {
-                            val digitsOnly = targetRepsValue.filter { it.isDigit() }
-                            OutlinedTextField(
+                            val digitsOnly = targetTimeValue.filter { it.isDigit() }
+                            val interactionSource = remember { MutableInteractionSource() }
+                            BasicTextField(
                                 value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text(getString("time_label")) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
+                                interactionSource = interactionSource,
+                                enabled = true,
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+                                decorationBox = { innerTextField ->
+                                    OutlinedTextFieldDefaults.DecorationBox(
+                                        value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
+                                        innerTextField = innerTextField,
+                                        enabled = true,
+                                        singleLine = true,
+                                        visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                                        interactionSource = interactionSource,
+                                        isError = false,
+                                        label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                        supportingText = { Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1) },
+                                        contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
+                                        container = {
+                                            OutlinedTextFieldDefaults.ContainerBox(
+                                                enabled = true,
+                                                isError = false,
+                                                interactionSource = interactionSource,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                ),
+                                                shape = RoundedCornerShape(12.dp),
+                                                focusedBorderThickness = 2.dp,
+                                                unfocusedBorderThickness = 1.dp
+                                            )
+                                        }
+                                    )
+                                }
                             )
                             ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
                                 listOf("30", "45", "60", "90", "120").forEach { t ->
-                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetRepsValue = t; expandedTime = false })
+                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
                                 }
                             }
                         }
@@ -2139,59 +2451,74 @@ fun ExerciseEditDialog(
                             value = targetRepsValue,
                             onValueChange = { targetRepsValue = it },
                             label = getString("reps"),
-                            isError = repsHasRangeError || (targetRepsValue.isNotEmpty() && !isRepsValid),
-                            modifier = Modifier.weight(1f),
-                            supportingText = if (repsHasRangeError) {
-                                { Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error) }
-                            } else null
+                            isError = repsError,
+                            modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalAlignment = Alignment.Top
+                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
-                    OutlinedTextField(
-                        value = restSecondsStr,
-                        onValueChange = { if (it.all { char -> char.isDigit() }) restSecondsStr = it },
-                        label = { Text(getString("rest_timer_label")) },
-                        suffix = { Text("s") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                    CompactNumericField(
+                        value = targetWeightValue,
+                        onValueChange = { targetWeightValue = it },
+                        label = getString("weight"),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                        placeholder = "0.0",
+                        suffix = { Text("kg", fontSize = 12.sp) }
                     )
-                    OutlinedTextField(
+                    CompactNumericField(
                         value = targetIntensityStr,
                         onValueChange = { targetIntensityStr = it },
-                        label = { Text(getString("intensity_label")) },
-                        placeholder = { Text("RPE 8") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f)
+                        label = getString("intensity_label"),
+                        modifier = Modifier.weight(1f).fillMaxHeight(),
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
                 }
 
+
                 ThemedToast(activeToastMessage ?: "", themeKey, activeToastMessage != null) { activeToastMessage = null }
-                OutlinedTextField(value = videoUrl, onValueChange = { videoUrl = it }, label = { Text(getString("demo_link_optional")) }, singleLine = true, modifier = Modifier.fillMaxWidth())
+                OutlinedTextField(
+                    value = videoUrl, 
+                    onValueChange = { videoUrl = it }, 
+                    label = { Text(getString("demo_link_optional")) }, 
+                    singleLine = true, 
+                    modifier = Modifier.fillMaxWidth(),
+                    colors = OutlinedTextFieldDefaults.colors(
+                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                    )
+                )
             }
         },
         confirmButton = {
             Button(
                 onClick = {
-                    if (name.isNotBlank() && targetRepsValue.isNotBlank()) {
+                    focusManager.clearFocus()
+                    if (name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()) {
                         val finalReps = if (isTimeBased) {
-                            val digits = targetRepsValue.filter { it.isDigit() }
+                            val digits = targetTimeValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
                         } else targetRepsValue.trim()
-                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99))
+                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99))
                     }
                 },
-                enabled = name.isNotBlank() && targetRepsValue.isNotBlank() && isRepsValid
-            ) { Text(getString("save")) }
+                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
+            ) {
+                Text(getString("save"))
+            }
         },
-        dismissButton = { TextButton(onClick = onDismiss) { Text(getString("cancel")) } }
+        dismissButton = {
+            TextButton(onClick = {
+                focusManager.clearFocus()
+                onDismiss()
+            }) {
+                Text(getString("cancel"))
+            }
+        }
     )
 }
 
@@ -2320,6 +2647,422 @@ fun WorkoutDayWheel(
                         }
                     }
                 }
+            }
+        }
+    }
+}
+
+/**
+ * Workout History Calendar - Redesigned to "Training Output" unified card
+ */
+@Composable
+fun WorkoutCalendar(
+    loggedSets: List<LoggedSetEntity>,
+    selectedDayKey: String?,
+    onDaySelected: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    val colorScheme = MaterialTheme.colorScheme
+    
+    // State for the selected week
+    var weekStartCalendar by remember { 
+        mutableStateOf(Calendar.getInstance().apply {
+            set(Calendar.HOUR_OF_DAY, 0)
+            set(Calendar.MINUTE, 0)
+            set(Calendar.SECOND, 0)
+            set(Calendar.MILLISECOND, 0)
+            while (get(Calendar.DAY_OF_WEEK) != Calendar.SUNDAY) {
+                add(Calendar.DAY_OF_YEAR, -1)
+            }
+        }) 
+    }
+
+    val sdf = SimpleDateFormat("MMM dd", Locale.getDefault())
+    val weekEndCalendar = (weekStartCalendar.clone() as Calendar).apply { add(Calendar.DATE, 6) }
+    val weekRangeText = "${sdf.format(weekStartCalendar.time)} - ${sdf.format(weekEndCalendar.time)}"
+
+    // Filter data for the selected week
+    val weekSets = remember(loggedSets, weekStartCalendar) {
+        val startTs = weekStartCalendar.timeInMillis
+        val endTs = weekEndCalendar.timeInMillis + 86400000L
+        loggedSets.filter { it.timestamp in startTs until endTs }
+    }
+
+    // Process weekly metrics
+    val monShort = getString("monday_short")
+    val tueShort = getString("tuesday_short")
+    val wedShort = getString("wednesday_short")
+    val thuShort = getString("thursday_short")
+    val friShort = getString("friday_short")
+    val satShort = getString("saturday_short")
+    val sunShort = getString("sunday_short")
+    val dayKeys = listOf(monShort, tueShort, wedShort, thuShort, friShort, satShort, sunShort)
+
+    val dailyDataMap = remember(weekSets, dayKeys) {
+        val map = mutableMapOf<String, Double>()
+        weekSets.forEach { set ->
+            val shortDay = when (set.dayOfWeek.uppercase()) {
+                "MONDAY" -> monShort
+                "TUESDAY" -> tueShort
+                "WEDNESDAY" -> wedShort
+                "THURSDAY" -> thuShort
+                "FRIDAY" -> friShort
+                "SATURDAY" -> satShort
+                "SUNDAY" -> sunShort
+                else -> monShort
+            }
+            val points = WorkoutTemplates.calculateRepioPoints(set.exerciseName, set.weightKg, set.reps)
+            map[shortDay] = (map[shortDay] ?: 0.0) + points
+        }
+        map
+    }
+
+    val sessionsCount = dailyDataMap.size
+    val totalVolume = dailyDataMap.values.sum()
+    val avgLoad = if (sessionsCount > 0) totalVolume / sessionsCount else 0.0
+    
+    val totalDurationMin = remember(weekSets) {
+        weekSets.groupBy { 
+            val cal = Calendar.getInstance().apply { timeInMillis = it.timestamp }
+            cal.get(Calendar.DAY_OF_YEAR)
+        }.values.sumOf { daySets ->
+            if (daySets.isEmpty()) 0L
+            else {
+                val minTs = daySets.minOf { it.timestamp }
+                val maxTs = daySets.maxOf { it.timestamp }
+                val diff = (maxTs - minTs) / 60000L
+                maxOf(diff + 15, 30L)
+            }
+        }
+    }
+
+    Card(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
+        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            // 1. Header
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween,
+                verticalAlignment = Alignment.Top
+            ) {
+                Column {
+                    Text(
+                        text = getString("week_metrics"),
+                        style = MaterialTheme.typography.labelMedium.copy(
+                            fontWeight = FontWeight.Bold,
+                            letterSpacing = 1.sp
+                        ),
+                        color = colorScheme.primary.copy(alpha = 0.8f)
+                    )
+                    Text(
+                        text = getString("training_output"),
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = colorScheme.onSurface
+                    )
+                }
+                
+                // Week Navigator
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    IconButton(
+                        onClick = {
+                            val newCal = weekStartCalendar.clone() as Calendar
+                            newCal.add(Calendar.DATE, -7)
+                            weekStartCalendar = newCal
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronLeft, contentDescription = "Prev", modifier = Modifier.size(16.dp))
+                    }
+                    Text(
+                        text = weekRangeText,
+                        style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f)
+                    )
+                    IconButton(
+                        onClick = {
+                            val newCal = weekStartCalendar.clone() as Calendar
+                            newCal.add(Calendar.DATE, 7)
+                            weekStartCalendar = newCal
+                        },
+                        modifier = Modifier.size(32.dp)
+                    ) {
+                        Icon(Icons.Default.ChevronRight, contentDescription = "Next", modifier = Modifier.size(16.dp))
+                    }
+                }
+            }
+
+            Spacer(modifier = Modifier.height(20.dp))
+
+            // 2. Metrics Row
+            Row(
+                modifier = Modifier.fillMaxWidth(),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                MetricItem(
+                    value = "$sessionsCount/7",
+                    label = getString("sessions_label"),
+                    color = colorScheme.primary
+                )
+                MetricItem(
+                    value = totalDurationMin.toString(),
+                    label = getString("min_logged_label"),
+                    color = colorScheme.primary
+                )
+                MetricItem(
+                    value = avgLoad.toInt().toString(),
+                    label = getString("avg_load_label"),
+                    color = colorScheme.primary
+                )
+            }
+
+            Spacer(modifier = Modifier.height(24.dp))
+
+            // 3. Weekly Output Chart
+            WeeklyOutputChart(
+                dailyData = dailyDataMap,
+                dayKeys = dayKeys,
+                selectedKey = selectedDayKey,
+                onKeySelected = onDaySelected,
+                primaryColor = colorScheme.primary,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(160.dp)
+            )
+            
+            // 4. Embedded Day Details
+            if (selectedDayKey != null) {
+                val daySets = remember(weekSets, selectedDayKey) {
+                    weekSets.filter { set ->
+                        val shortDay = when (set.dayOfWeek.uppercase()) {
+                            "MONDAY" -> monShort
+                            "TUESDAY" -> tueShort
+                            "WEDNESDAY" -> wedShort
+                            "THURSDAY" -> thuShort
+                            "FRIDAY" -> friShort
+                            "SATURDAY" -> satShort
+                            "SUNDAY" -> sunShort
+                            else -> monShort
+                        }
+                        shortDay == selectedDayKey
+                    }
+                }
+
+                Spacer(modifier = Modifier.height(16.dp))
+                HorizontalDivider(color = colorScheme.outlineVariant.copy(alpha = 0.3f))
+                Spacer(modifier = Modifier.height(16.dp))
+
+                if (daySets.isNotEmpty()) {
+                    DayDetailContent(
+                        dayName = selectedDayKey,
+                        sets = daySets,
+                        isDeveloper = isDeveloper
+                    )
+                } else {
+                    Text(
+                        text = getString("no_workouts_for_day").replace("%1\$s", selectedDayKey),
+                        style = MaterialTheme.typography.bodyMedium.copy(fontStyle = androidx.compose.ui.text.font.FontStyle.Italic),
+                        color = colorScheme.onSurfaceVariant.copy(alpha = 0.6f),
+                        modifier = Modifier.padding(bottom = 8.dp)
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun DayDetailContent(
+    dayName: String,
+    sets: List<LoggedSetEntity>,
+    isDeveloper: Boolean
+) {
+    val totalPoints = sets.sumOf { 
+        WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
+    }
+    
+    Column {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.SpaceBetween,
+            verticalAlignment = Alignment.CenterVertically
+        ) {
+            Text(
+                text = getString("workout_on_day").replace("%1\$s", dayName),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Text(
+                text = formatRepioPoints(totalPoints) + " " + getString("pts_abbr"),
+                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+
+        Spacer(modifier = Modifier.height(8.dp))
+
+        sets.groupBy { it.exerciseName }.forEach { (exerciseName, exerciseSets) ->
+            val firstSet = exerciseSets.firstOrNull() ?: return@forEach
+            val isTime = WorkoutTemplates.isExerciseTimeBased(firstSet.exerciseName)
+            val isBW = WorkoutTemplates.isBodyweightExercise(firstSet.exerciseName)
+            
+            val repsDetail = if (isTime) {
+                if (isBW) "${firstSet.reps}s" else "${firstSet.weightKg}kg x ${firstSet.reps}s"
+            } else {
+                if (isBW) "${firstSet.reps}" else "${firstSet.weightKg}kg x ${firstSet.reps}"
+            }
+
+            Row(
+                modifier = Modifier.fillMaxWidth().padding(vertical = 2.dp),
+                horizontalArrangement = Arrangement.SpaceBetween
+            ) {
+                Text(
+                    text = translateExerciseName(exerciseName),
+                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.weight(1f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+                Text(
+                    text = "${exerciseSets.size} × $repsDetail",
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                )
+            }
+        }
+    }
+}
+
+@Composable
+private fun MetricItem(
+    value: String,
+    label: String,
+    color: Color
+) {
+    Column {
+        Text(
+            text = value,
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+            color = color
+        )
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+        )
+    }
+}
+
+@Composable
+private fun WeeklyOutputChart(
+    dailyData: Map<String, Double>,
+    dayKeys: List<String>,
+    selectedKey: String?,
+    onKeySelected: (String?) -> Unit,
+    primaryColor: Color,
+    modifier: Modifier = Modifier
+) {
+    val maxVolume = remember(dailyData) {
+        val max = dailyData.values.maxOrNull() ?: 1.0
+        max * 1.2
+    }
+
+    Box(modifier = modifier) {
+        Canvas(
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(dayKeys) {
+                    detectTapGestures { offset ->
+                        val barStep = size.width / dayKeys.size
+                        val index = (offset.x / barStep).toInt().coerceIn(0, dayKeys.size - 1)
+                        val tappedKey = dayKeys[index]
+                        onKeySelected(if (tappedKey == selectedKey) null else tappedKey)
+                    }
+                }
+        ) {
+            val width = size.width
+            val height = size.height - 24.dp.toPx()
+            val barWidth = width / 12
+            val spacing = (width - (barWidth * dayKeys.size)) / (dayKeys.size + 1)
+            
+            // Trend Line
+            val linePath = Path()
+            dayKeys.forEachIndexed { index, key ->
+                val x = spacing + (barWidth / 2) + index * (barWidth + spacing)
+                val volume = dailyData[key] ?: 0.0
+                val y = height * 0.4f - (volume / maxVolume).toFloat() * height * 0.2f
+                if (index == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
+            }
+            
+            drawPath(
+                path = linePath,
+                color = primaryColor.copy(alpha = 0.2f),
+                style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
+            )
+
+            // Bars
+            dayKeys.forEachIndexed { index, key ->
+                val x = spacing + index * (barWidth + spacing)
+                val volume = dailyData[key] ?: 0.0
+                val barHeight = (volume / maxVolume).toFloat() * height * 0.6f
+                val cornerRadius = 4.dp.toPx()
+                val isSelected = key == selectedKey
+                
+                if (volume > 0) {
+                    val barColor = if (isSelected) primaryColor else primaryColor.copy(alpha = 0.6f)
+                    
+                    // Glow
+                    if (isSelected) {
+                        drawRoundRect(
+                            brush = Brush.verticalGradient(
+                                colors = listOf(primaryColor.copy(alpha = 0.4f), Color.Transparent)
+                            ),
+                            topLeft = Offset(x - 4.dp.toPx(), height - barHeight - 20.dp.toPx()),
+                            size = Size(barWidth + 8.dp.toPx(), barHeight + 4.dp.toPx()),
+                            cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius * 2)
+                        )
+                    }
+
+                    drawRoundRect(
+                        brush = Brush.verticalGradient(
+                            colors = listOf(barColor, barColor.copy(alpha = 0.7f))
+                        ),
+                        topLeft = Offset(x, height - barHeight),
+                        size = Size(barWidth, barHeight),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
+                    )
+                } else {
+                    drawRoundRect(
+                        color = primaryColor.copy(alpha = 0.1f),
+                        topLeft = Offset(x, height - 8.dp.toPx()),
+                        size = Size(barWidth, 8.dp.toPx()),
+                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(cornerRadius)
+                    )
+                }
+            }
+        }
+
+        Row(
+            modifier = Modifier
+                .fillMaxWidth()
+                .align(Alignment.BottomCenter),
+            horizontalArrangement = Arrangement.SpaceAround
+        ) {
+            dayKeys.forEach { key ->
+                Text(
+                    text = key,
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = if (key == selectedKey) FontWeight.ExtraBold else FontWeight.Bold,
+                        fontSize = 9.sp
+                    ),
+                    color = if (key == selectedKey) primaryColor else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.4f),
+                    modifier = Modifier.width(32.dp),
+                    textAlign = TextAlign.Center
+                )
             }
         }
     }

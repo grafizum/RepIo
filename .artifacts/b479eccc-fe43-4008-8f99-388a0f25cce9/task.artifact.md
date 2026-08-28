@@ -1,0 +1,15 @@
+- [x] Define new VectorDrawable paths (Dumbbell + Pulse + Long Shadow)
+- [x] Update `ic_launcher_foreground.xml` (Base)
+- [x] Update themed foregrounds:
+    - [x] `ic_launcher_foreground_azure.xml`
+    - [x] `ic_launcher_foreground_beige.xml`
+    - [x] `ic_launcher_foreground_crimson.xml`
+    - [x] `ic_launcher_foreground_emerald.xml`
+    - [x] `ic_launcher_foreground_flame.xml`
+    - [x] `ic_launcher_foreground_ocean.xml`
+    - [x] `ic_launcher_foreground_orange.xml`
+    - [x] `ic_launcher_foreground_purple.xml`
+    - [x] `ic_launcher_foreground_retro.xml`
+    - [x] `ic_launcher_foreground_rose.xml`
+- [x] Update `ic_main_logo_foreground.xml` and variants
+- [x] Verify build and UI appearance

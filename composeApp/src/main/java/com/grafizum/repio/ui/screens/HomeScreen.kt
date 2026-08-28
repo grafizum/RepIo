@@ -25,6 +25,9 @@ import androidx.compose.ui.draw.drawBehind
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -34,6 +37,8 @@ import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
+import androidx.compose.ui.res.painterResource
+import com.grafizum.repio.R
 import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -55,6 +60,7 @@ fun HomeScreen(
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
     val density = LocalDensity.current
+    val focusManager = LocalFocusManager.current
 
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = remember(routineDays, todayStr) { routineDays.find { it.dayOfWeek == todayStr } }
@@ -99,11 +105,14 @@ fun HomeScreen(
         }
     }
 
-    val totalSetsThisWeek = remember(loggedSets) { loggedSets.size }
-    val totalVolumeThisWeek = remember(loggedSets) {
+    val totalPointsThisWeek = remember(loggedSets) {
         loggedSets.sumOf { 
-            if (com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(it.exerciseName)) 0.0 else it.weightKg * it.reps 
+            com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
         }
+    }
+    val totalWorkoutDays = remember(loggedSets) {
+        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
+        loggedSets.map { sdf.format(java.util.Date(it.timestamp)) }.distinct().size
     }
     val isDeveloper = LocalDeveloperSkin.current
 
@@ -111,6 +120,11 @@ fun HomeScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -313,28 +327,17 @@ fun HomeScreen(
 
             // QUICK STATS ROW
             item {
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    StatCard(
-                        title = getString("total_volume"),
-                        value = getString("weight_kg_intl", totalVolumeThisWeek.toInt()),
-                        subtitle = getString("all_time_volume"),
-                        icon = Icons.Default.FitnessCenter,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-
-                    StatCard(
-                        title = getString("sets_logged"),
-                        value = "$totalSetsThisWeek",
-                        subtitle = getString("completed_sets"),
-                        icon = Icons.Default.CheckCircle,
-                        iconColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.weight(1f)
-                    )
-                }
+                StatCard(
+                    title = getString("total_volume"),
+                    value = com.grafizum.repio.ui.components.formatRepioPoints(totalPointsThisWeek),
+                    subtitle = "",
+                    icon = null,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    customPainter = painterResource(id = R.drawable.ic_repio_points),
+                    numericValue = totalPointsThisWeek,
+                    workoutDaysCount = totalWorkoutDays
+                )
             }
 
             item { Spacer(modifier = Modifier.height(16.dp)) }
@@ -521,7 +524,7 @@ fun HomeScreen(
                                         else -> MaterialTheme.colorScheme.onSurface
                                     },
                                     modifier = Modifier.weight(1f),
-                                    maxLines = 1,
+                                    maxLines = if (isExpanded) 2 else 1,
                                     overflow = TextOverflow.Ellipsis
                                 )
 
@@ -566,7 +569,7 @@ fun HomeScreen(
                                        shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), shrinkTowards = Alignment.Top)
                             ) {
                                 Column {
-                                    val (description, equipment) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
+                                    val (description, _) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
                                     
                                     Spacer(modifier = Modifier.height(10.dp))
                                     if (description.isNotBlank()) {
@@ -575,23 +578,6 @@ fun HomeScreen(
                                             style = MaterialTheme.typography.bodyMedium,
                                             color = MaterialTheme.colorScheme.onSurfaceVariant
                                         )
-                                    }
-                                    if (equipment.isNotBlank()) {
-                                        Spacer(modifier = Modifier.height(6.dp))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Icon(
-                                                imageVector = Icons.Default.FitnessCenter,
-                                                contentDescription = null,
-                                                modifier = Modifier.size(16.dp),
-                                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                            )
-                                            Spacer(modifier = Modifier.width(6.dp))
-                                            Text(
-                                                text = equipment,
-                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.9f)
-                                            )
-                                        }
                                     }
                                 }
                             }

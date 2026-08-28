@@ -45,7 +45,6 @@ object WorkoutTemplates {
     )
 
     fun generateAssistedProgram(
-        equipment: List<String>, 
         bodyParts: List<String>, 
         selectedDays: List<String>,
         intensity: String,
@@ -139,15 +138,7 @@ object WorkoutTemplates {
                 }
                 
                 sortedParts.forEachIndexed { partIndex, part ->
-                    var available = getExercisesForStrict(equipment, part)
-                    
-                    // Filter out Pull-ups/Chin-ups from initial generation if no Gym is selected
-                    // as they require a bar not guaranteed in bodyweight-only home settings.
-                    if (!equipment.contains("Gym")) {
-                        available = available.filter { 
-                            !it.contains("Pull-up", true) && !it.contains("Chin-up", true) 
-                        }
-                    }
+                    var available = getExercisesForPart(part)
                     
                     // HARD FILTERING BASED ON GOAL & INTENSITY
                     available = when(workoutGoal) {
@@ -164,9 +155,9 @@ object WorkoutTemplates {
                                 it.contains("Devil Press", true) || it.contains("Sandbag", true)
                             }
                             if (cf.isNotEmpty()) {
-                                // If barbell is available, prioritize barbell CF movements
+                                // Prioritize barbell CF movements
                                 val bbCf = cf.filter { it.contains("Barbell", true) }
-                                if (bbCf.isNotEmpty() && equipment.contains("Barbell")) bbCf else cf
+                                if (bbCf.isNotEmpty()) bbCf else cf
                             } else available
                         }
                         "goal_strength", "goal_olympic" -> {
@@ -211,7 +202,7 @@ object WorkoutTemplates {
                                 it.contains("Dynamic", true) || it.contains("Plank", true) ||
                                 it.contains("Medicine Ball", true) || it.contains("Rotational", true) ||
                                 it.contains("Box Jump", true) || it.contains("Turkish Get-up", true) ||
-                                it.contains("Copehagen", true) || it.contains("Pistol", true)
+                                it.contains("Copenhagen", true) || it.contains("Pistol", true)
                             }
                             if (func.isNotEmpty()) func else available
                         }
@@ -249,6 +240,7 @@ object WorkoutTemplates {
                                 targetSets = setsPerExercise,
                                 targetReps = getGoalReps(exName, workoutGoal, setsPerExercise),
                                 targetIntensity = getGoalIntensity(workoutGoal, intensity, exName),
+                                targetWeightKg = 0.0,
                                 restSeconds = getGoalRestSeconds(workoutGoal, exName),
                                 transitionRestSeconds = 90, 
                                 videoUrl = "",
@@ -275,6 +267,7 @@ object WorkoutTemplates {
                                     targetSets = setsPerExercise,
                                     targetReps = getGoalReps(exName, workoutGoal, setsPerExercise),
                                     targetIntensity = getGoalIntensity(workoutGoal, intensity, exName),
+                                    targetWeightKg = 0.0,
                                     restSeconds = getGoalRestSeconds(workoutGoal, exName),
                                     transitionRestSeconds = 90,
                                     videoUrl = "",
@@ -407,22 +400,17 @@ object WorkoutTemplates {
         }
     }
 
-    fun getAllExerciseNames(equipment: List<String> = emptyList()): List<String> {
+    private var _cachedExerciseNames: List<String>? = null
+
+    fun getAllExerciseNames(): List<String> {
+        _cachedExerciseNames?.let { return it }
         val muscles = getAllMuscleGroups()
-        val all = mutableListOf<String>()
-        muscles.forEach {
-            if (equipment.contains("Gym")) {
-                all.addAll(getBodyweightExercises(it))
-                all.addAll(getDumbbellExercises(it))
-                all.addAll(getBarbellExercises(it))
-                all.addAll(getGymExercises(it))
-            } else {
-                if (equipment.contains("Bodyweight") || equipment.isEmpty()) all.addAll(getBodyweightExercises(it))
-                if (equipment.contains("Dumbbell")) all.addAll(getDumbbellExercises(it))
-                if (equipment.contains("Barbell")) all.addAll(getBarbellExercises(it))
-            }
+        val allRaw = muscles.flatMap { 
+            getBodyweightExercises(it) + getDumbbellExercises(it) + getBarbellExercises(it) + getGymExercises(it)
         }
-        return all.distinct().sorted()
+        val result = allRaw.distinct().sorted()
+        _cachedExerciseNames = result
+        return result
     }
 
     fun getAllMuscleGroups(): List<String> {
@@ -444,19 +432,8 @@ object WorkoutTemplates {
         }
     }
 
-    fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String, equipment: List<String> = emptyList()): List<String> {
-        val allForGroup = mutableListOf<String>()
-        
-        if (equipment.contains("Gym")) {
-            allForGroup.addAll(getGymExercises(muscleGroup))
-            allForGroup.addAll(getBarbellExercises(muscleGroup))
-            allForGroup.addAll(getDumbbellExercises(muscleGroup))
-            allForGroup.addAll(getBodyweightExercises(muscleGroup))
-        } else {
-            if (equipment.contains("Barbell")) allForGroup.addAll(getBarbellExercises(muscleGroup))
-            if (equipment.contains("Dumbbell")) allForGroup.addAll(getDumbbellExercises(muscleGroup))
-            if (equipment.contains("Bodyweight") || equipment.isEmpty()) allForGroup.addAll(getBodyweightExercises(muscleGroup))
-        }
+    fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String): List<String> {
+        val allForGroup = getBodyweightExercises(muscleGroup) + getDumbbellExercises(muscleGroup) + getBarbellExercises(muscleGroup) + getGymExercises(muscleGroup)
         
         return allForGroup.distinct()
             .filter { it.lowercase() != currentExerciseName.lowercase() }
@@ -485,132 +462,120 @@ object WorkoutTemplates {
         }
     }
 
-    private fun getExercisesForStrict(equipment: List<String>, bodyPart: String): List<String> {
-        val pool = mutableListOf<String>()
-        if (equipment.contains("Gym")) {
-            pool.addAll(getGymExercises(bodyPart))
-            // A gym also has barbells, dumbbells, and space for bodyweight
-            pool.addAll(getBarbellExercises(bodyPart))
-            pool.addAll(getDumbbellExercises(bodyPart))
-            pool.addAll(getBodyweightExercises(bodyPart))
-        } else {
-            if (equipment.contains("Barbell")) pool.addAll(getBarbellExercises(bodyPart))
-            if (equipment.contains("Dumbbell")) pool.addAll(getDumbbellExercises(bodyPart))
-            if (equipment.contains("Bodyweight")) pool.addAll(getBodyweightExercises(bodyPart))
-        }
-        return pool.distinct()
+    private fun getExercisesForPart(bodyPart: String): List<String> {
+        return (getBodyweightExercises(bodyPart) + getDumbbellExercises(bodyPart) + getBarbellExercises(bodyPart) + getGymExercises(bodyPart)).distinct()
     }
 
     private fun getBodyweightExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
-        "chest" -> listOf("Push-up", "Incline Push-up", "Decline Push-up", "Diamond Push-up", "Archer Push-up", "Dip (Chair)", "Bench Dip")
-        "front deltoids" -> listOf("Pike Push-up", "Shoulder Tap", "Handstand Push-up", "Dive Bomber Push-up", "Handstand Hold")
-        "lateral deltoids" -> listOf("Plank-to-Down-Dog", "Side Plank Rotation", "Lateral Plank Walk", "Side Plank Leg Raise", "Wall Slide")
-        "rear deltoids" -> listOf("Reverse Snow Angel", "Rear Delt Floor Fly (BW)")
-        "lats" -> listOf("Superman", "Reverse Snow Angel")
-        "upper back" -> listOf("Superman Extension", "Y-W-T Raise (Floor)", "Face Pull (BW/Towel)")
-        "upper traps" -> listOf("Scapular Push-up", "Wall Slide", "Handstand Shrug")
-        "spinal erectors" -> listOf("Superman", "Bridge", "Bird-Dog", "Back Extension", "Plank (Active)")
-        "biceps" -> listOf("Hammer Curl (BW/Towel)")
-        "triceps" -> listOf("Dip (Chair)", "Diamond Push-up", "Close-Grip Push-up", "Bench Dip", "Pseudo Planche Push-up")
-        "forearms" -> listOf("Fist Squeeze", "Finger Push-up")
-        "abs" -> listOf("Crunch", "Leg Raise", "Plank", "L-Sit", "V-Up", "Hollow Body Hold", "Mountain Climber", "Dragon Flag")
-        "obliques" -> listOf("Russian Twist", "Bicycle Crunch", "Side Plank", "Windshield Wiper (Floor)", "Side Plank Crunch")
-        "quadriceps" -> listOf("Squat", "Lunge", "Step-up", "Pistol Squat", "Bulgarian Split Squat (BW)", "Sissy Squat (BW)", "Wall Sit")
-        "hamstrings" -> listOf("Glute Bridge", "Nordic Hamstring Curl", "Sliding Leg Curl", "Good Morning (BW)")
-        "glutes" -> listOf("Glute Bridge", "Donkey Kick", "Fire Hydrant", "Frog Pump", "Bulgarian Split Squat (Glute Focus)")
-        "calves" -> listOf("Calf Raise", "Jumping Jack", "Box Jump (BW)", "Donkey Calf Raise (BW)")
-        "hip adductors" -> listOf("Side Lying Leg Raise", "Sumo Squat", "Copenhagen Plank")
-        "hip abductors" -> listOf("Clamshell", "Side Step", "Dirty Dog", "Side Plank Leg Raise")
-        "shoulders" -> listOf("Pike Push-up", "Shoulder Tap", "Handstand Hold", "Pike Hold")
-        "back" -> listOf("Superman", "Bird-Dog")
-        "legs" -> listOf("Squat", "Lunge", "Glute Bridge", "Pistol Squat")
-        "arms" -> listOf("Dip (Chair)", "Inverted Curl")
-        "core" -> listOf("Plank", "Leg Raise")
+        "chest" -> listOf("Push-ups", "Dips")
+        "front deltoids" -> listOf("Push-ups", "Shoulder Taps", "Handstand Holds")
+        "lateral deltoids" -> listOf("Plank-to-Down-Dogs", "Side Plank Rotations", "Lateral Plank Walks", "Side Plank Leg Raises", "Wall Slides")
+        "rear deltoids" -> listOf("Reverse Snow Angels", "Rear Delt Floor Flyes")
+        "lats" -> listOf("Supermans", "Reverse Snow Angels")
+        "upper back" -> listOf("Superman Extensions", "Y-W-T Raises", "Face Pulls")
+        "upper traps" -> listOf("Scapular Push-ups", "Wall Slides", "Handstand Shrugs")
+        "spinal erectors" -> listOf("Supermans", "Bridges", "Bird-Dogs", "Back Extensions", "Planks")
+        "biceps" -> listOf("Hammer Curls")
+        "triceps" -> listOf("Dips", "Push-ups")
+        "forearms" -> listOf("Fist Squeezes", "Finger Push-ups")
+        "abs" -> listOf("Crunches", "Leg Raises", "Planks", "L-Sits", "V-Ups", "Hollow Body Holds", "Mountain Climbers", "Dragon Flags")
+        "obliques" -> listOf("Russian Twists", "Bicycle Crunches", "Side Planks", "Windshield Wipers", "Side Plank Crunches")
+        "quadriceps" -> listOf("Squats", "Lunges", "Step-ups", "Wall Sits")
+        "hamstrings" -> listOf("Glute Bridges", "Nordic Curls", "Sliding Leg Curls", "Good Mornings")
+        "glutes" -> listOf("Glute Bridges", "Donkey Kicks", "Fire Hydrants", "Frog Pumps", "Split Squats")
+        "calves" -> listOf("Calf Raises", "Jumping Jacks", "Box Jumps")
+        "hip adductors" -> listOf("Side Lying Leg Raises", "Squats", "Copenhagen Planks")
+        "hip abductors" -> listOf("Clamshells", "Side Steps", "Dirty Dogs", "Side Plank Leg Raises")
+        "shoulders" -> listOf("Push-ups", "Shoulder Taps", "Handstand Holds", "Pike Holds")
+        "back" -> listOf("Supermans", "Bird-Dogs")
+        "legs" -> listOf("Squats", "Lunges", "Glute Bridges")
+        "arms" -> listOf("Dips", "Inverted Curls")
+        "core" -> listOf("Planks", "Leg Raises")
         else -> emptyList()
     }
 
     private fun getDumbbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
-        "chest" -> listOf("Dumbbell Floor Press", "Dumbbell Fly", "Incline Dumbbell Press", "Decline Dumbbell Press", "Dumbbell Pullover (Chest Focus)")
-        "front deltoids" -> listOf("Dumbbell Front Raise", "Dumbbell Shoulder Press", "Arnold Press", "Dumbbell Clean & Press", "Dumbbell Push Press")
-        "lateral deltoids" -> listOf("Dumbbell Lateral Raise", "Leaning Lateral Raise", "Upright Dumbbell Row", "Dumbbell Y-Raise", "Side Lying Lateral Raise")
-        "rear deltoids" -> listOf("Bent-over Rear Delt Fly", "Dumbbell Face Pull", "Chest Supported Rear Delt Fly", "Dumbbell Row")
-        "lats" -> listOf("Dumbbell Row", "Dumbbell Pullover", "Seal Row (Dumbbell)", "Renegade Row", "Batwing Row", "Incline Dumbbell Row")
-        "upper back" -> listOf("Dumbbell Row", "Dumbbell Face Pull", "Bent-over Shrug", "Chest Supported Dumbbell Row", "Dumbbell Kelso Row", "Double Dumbbell Row")
-        "upper traps" -> listOf("Dumbbell Shrug", "Dumbbell Overhead Shrug", "Dumbbell Farmer's Shrug")
-        "spinal erectors" -> listOf("Dumbbell Deadlift", "Dumbbell Back Extension", "Dumbbell Good Morning", "Dumbbell Romanian Deadlift", "Dumbbell Bird-Dog Row")
-        "biceps" -> listOf("Dumbbell Curl", "Hammer Curl", "Incline Curl", "Concentration Curl", "Zottman Curl", "Spider Curl (Dumbbell)", "Waiter Curl", "Preacher Curl (Dumbbell)")
-        "triceps" -> listOf("Dumbbell Overhead Extension", "Kickback", "Skullcrusher (Dumbbell)", "Close Grip Dumbbell Press", "Dumbbell Tate Press", "JM Press (Dumbbell)", "Dumbbell Floor Press (Close)")
-        "forearms" -> listOf("Dumbbell Wrist Curl", "Dumbbell Reverse Curl", "Farmer's Walk (Dumbbell)", "Dumbbell Suitcase Carry", "Dumbbell Pinch Grip")
-        "abs" -> listOf("Weighted Crunch", "Dumbbell Side Bend", "Weighted Leg Raise", "Dumbbell Russian Twist", "Dumbbell Woodchopper", "Dumbbell V-Up")
-        "obliques" -> listOf("Dumbbell Russian Twist", "Dumbbell Side Bend", "Dumbbell Windmill", "Dumbbell Saxon Side Bend")
-        "quadriceps" -> listOf("Dumbbell Squat", "Goblet Squat", "Dumbbell Lunge", "Bulgarian Split Squat (Dumbbell)", "Dumbbell Step-up", "Dumbbell Hack Squat", "Cyclist Squat (Dumbbell)")
-        "hamstrings" -> listOf("Dumbbell Romanian Deadlift", "Dumbbell Leg Curl", "Dumbbell Stiff Leg Deadlift", "Dumbbell Good Morning")
-        "glutes" -> listOf("Dumbbell Glute Bridge", "Dumbbell Sumo", "Dumbbell Hip Thrust", "Dumbbell Curtsy Lunge", "Dumbbell Frog Pump")
-        "calves" -> listOf("Dumbbell Calf Raise", "Seated Dumbbell Calf Raise", "Dumbbell Tip-toe Walk")
-        "hip adductors" -> listOf("Dumbbell Sumo Squat", "Copenhagen Plank (Weighted)", "Dumbbell Cossack Squat")
-        "hip abductors" -> listOf("Side Lying Leg Raise", "Dumbbell Side Lunge", "Dumbbell Clamshell")
-        "shoulders" -> listOf("Dumbbell Shoulder Press", "Dumbbell Lateral Raise", "Dumbbell Front Raise", "Thruster", "Arnold Press")
-        "back" -> listOf("Dumbbell Row", "Dumbbell Pullover")
-        "legs" -> listOf("Dumbbell Squat", "Goblet Squat", "Dumbbell Lunge", "Dumbbell Romanian Deadlift")
-        "arms" -> listOf("Dumbbell Curl", "Hammer Curl", "Dumbbell Overhead Extension", "Kickback")
-        "core" -> listOf("Weighted Crunch", "Dumbbell Side Bend", "Dumbbell Russian Twist")
-        else -> listOf("Thruster", "Devil Press", "Dumbbell Snatch")
+        "chest" -> listOf("Dumbbell Floor Presses", "Dumbbell Flyes", "Incline Dumbbell Presses", "Decline Dumbbell Presses", "Dumbbell Pullovers")
+        "front deltoids" -> listOf("Dumbbell Front Raises", "Dumbbell Shoulder Presses", "Arnold Presses", "Dumbbell Clean & Presses")
+        "lateral deltoids" -> listOf("Dumbbell Lateral Raises", "Dumbbell Rows", "Dumbbell Y-Raises")
+        "rear deltoids" -> listOf("Dumbbell Rear Delt Flyes", "Dumbbell Face Pulls", "Dumbbell Rows")
+        "lats" -> listOf("Dumbbell Rows", "Dumbbell Pullovers")
+        "upper back" -> listOf("Dumbbell Rows", "Dumbbell Face Pulls", "Dumbbell Shrugs")
+        "upper traps" -> listOf("Dumbbell Shrugs")
+        "spinal erectors" -> listOf("Dumbbell Deadlifts", "Dumbbell Back Extensions", "Dumbbell Good Mornings", "Dumbbell Romanian Deadlifts")
+        "biceps" -> listOf("Dumbbell Curls", "Dumbbell Hammer Curls", "Incline Dumbbell Curls", "Concentration Curls", "Zottman Curls", "Spider Curls", "Preacher Curls")
+        "triceps" -> listOf("Dumbbell Overhead Extensions", "Dumbbell Kickbacks", "Dumbbell Skullcrushers", "Dumbbell Floor Presses")
+        "forearms" -> listOf("Dumbbell Wrist Curls", "Dumbbell Reverse Curls", "Farmer's Walks", "Dumbbell Pinch Grips")
+        "abs" -> listOf("Dumbbell Crunches", "Dumbbell Side Bends", "Dumbbell Leg Raises", "Dumbbell Russian Twists", "Dumbbell Woodchoppers", "Dumbbell V-Ups")
+        "obliques" -> listOf("Dumbbell Russian Twists", "Dumbbell Side Bends", "Dumbbell Windmills")
+        "quadriceps" -> listOf("Dumbbell Squats", "Dumbbell Lunges", "Dumbbell Split Squats", "Dumbbell Step-ups")
+        "hamstrings" -> listOf("Dumbbell Romanian Deadlifts", "Dumbbell Leg Curls", "Stiff Leg Dumbbell Deadlifts", "Dumbbell Good Mornings")
+        "glutes" -> listOf("Dumbbell Glute Bridges", "Dumbbell Squats", "Dumbbell Hip Thrusts")
+        "calves" -> listOf("Dumbbell Calf Raises", "Tip-toe Walks")
+        "hip adductors" -> listOf("Dumbbell Squats", "Copenhagen Planks", "Cossack Squats")
+        "hip abductors" -> listOf("Side Lying Leg Raises", "Dumbbell Side Lunges", "Clamshells")
+        "shoulders" -> listOf("Dumbbell Shoulder Presses", "Dumbbell Lateral Raises", "Dumbbell Front Raises", "Dumbbell Thrusters", "Arnold Presses")
+        "back" -> listOf("Dumbbell Rows", "Dumbbell Pullovers")
+        "legs" -> listOf("Dumbbell Squats", "Dumbbell Lunges", "Dumbbell Romanian Deadlifts")
+        "arms" -> listOf("Dumbbell Curls", "Dumbbell Hammer Curls", "Dumbbell Overhead Extensions", "Dumbbell Kickbacks")
+        "core" -> listOf("Dumbbell Crunches", "Dumbbell Side Bends", "Dumbbell Russian Twists")
+        else -> listOf("Dumbbell Thrusters", "Devil Presses", "Dumbbell Snatches")
     }
 
     private fun getBarbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
-        "chest" -> listOf("Barbell Bench Press", "Barbell Floor Press", "Incline Barbell Press", "Decline Barbell Press", "Close Grip Bench Press", "Wide Grip Bench Press", "Guillotine Press (Barbell)", "Reverse Grip Bench Press", "Pin Press (Chest)")
-        "front deltoids" -> listOf("Military Press", "Barbell Front Raise", "Overhead Press", "Push Press", "Behind the Neck Press", "Z-Press (Barbell)", "Sots Press", "Landmine Press (Barbell)", "Kloker Press")
-        "lateral deltoids" -> listOf("Upright Row", "Wide Grip Military Press", "Behind the Neck Press", "Barbell Side Raise (Landmine)", "Snatch Grip High Pull", "Axle Side Raise")
-        "rear deltoids" -> listOf("Barbell Row", "Face Pull (Barbell)", "Barbell Rear Delt Row", "Snatch Grip Row", "Rear Delt Meadows Row")
-        "lats" -> listOf("Barbell Row", "Barbell Pullover", "Meadows Row", "Landmine Row", "Corner Row", "Yates Row", "Reverse Grip Barbell Row")
-        "upper back" -> listOf("Barbell Row", "Pendlay Row", "T-Bar Row", "Yates Row", "Snatch Grip High Pull", "Barbell Shrug (Behind Back)", "Kloker Row", "Rack Pull (Upper)")
-        "upper traps" -> listOf("Barbell Shrug", "Snatch Grip Shrug", "Behind the Back Shrug", "Power Shrug", "Zercher Shrug")
-        "spinal erectors" -> listOf("Deadlift", "Barbell Good Morning", "Rack Pull", "Zercher Good Morning", "Jefferson Deadlift", "Barbell Back Extension", "Stiff Leg Deadlift")
-        "biceps" -> listOf("Barbell Curl", "Reverse Barbell Curl", "Spider Curl", "Cheat Curl", "Drag Curl", "Zottman Curl (Barbell/Axle)", "Close Grip Barbell Curl", "Preacher Curl (Barbell)")
-        "triceps" -> listOf("Close Grip Press", "Skullcrusher (Barbell)", "Barbell JM Press", "Floor Press (Close Grip)", "California Press", "Barbell Overhead Extension", "Board Press", "Pin Press (Triceps)")
-        "forearms" -> listOf("Barbell Wrist Curl", "Reverse Barbell Wrist Curl", "Farmer's Walk (Barbell)", "Fat Bar Hold", "Plate Pinch", "Barbell Finger Curl")
-        "abs" -> listOf("Barbell Rollout", "Landmine Rainbow", "Barbell Sit-up", "Barbell Leg Raise", "Weighted Barbell Crunch")
-        "obliques" -> listOf("Barbell Side Bend", "Landmine Twist", "Zercher Side Bend", "Full Contact Twist (Landmine)", "Barbell Windmill")
-        "quadriceps" -> listOf("Barbell Squat", "Front Squat", "Barbell Lunge", "Hack Squat (Barbell)", "Zercher Squat", "Barbell Step-up", "Pause Squat", "Anderson Squat", "Cyclist Squat (Barbell)", "Pin Squat")
-        "hamstrings" -> listOf("Barbell Romanian Deadlift", "Barbell Stiff Leg Deadlift", "Zercher RDL", "Barbell Good Morning (Seated)", "Snatch Grip RDL", "Floating RDL")
-        "glutes" -> listOf("Barbell Hip Thrust", "Deadlift", "Sumo Deadlift", "Barbell Glute Bridge", "Deficit Deadlift", "Barbell Kas Glute Bridge", "B-Stance RDL (Barbell)")
-        "calves" -> listOf("Barbell Calf Raise", "Seated Barbell Calf Raise", "Barbell Donkey Calf Raise", "Barbell Tip-toe Walk")
-        "hip adductors" -> listOf("Sumo Deadlift", "Sumo Squat (Barbell)", "Cossack Squat (Barbell)", "Adductor Pull (Landmine)")
-        "hip abductors" -> listOf("Barbell Curtsey Lunge", "Barbell Side Lunge", "Landmine Lateral Lunge", "B-Stance Glute Bridge (BB)")
-        "shoulders" -> listOf("Military Press", "Barbell Front Raise", "Upright Row", "Clean & Press", "Strict Press", "Kloker Press")
-        "back" -> listOf("Barbell Row", "Deadlift", "Pendlay Row", "Barbell Pullover")
-        "legs" -> listOf("Barbell Squat", "Barbell Romanian Deadlift", "Barbell Lunge", "Deadlift", "Front Squat")
-        "arms" -> listOf("Barbell Curl", "Close Grip Press", "Skullcrusher (Barbell)", "Reverse Curl")
-        "core" -> listOf("Barbell Rollout", "Barbell Side Bend", "Landmine Twist")
-        else -> listOf("Clean & Press", "Snatch", "Clean & Jerk", "Hang Clean", "Power Snatch")
+        "chest" -> listOf("Barbell Bench Presses", "Barbell Floor Presses", "Incline Barbell Presses", "Decline Barbell Presses")
+        "front deltoids" -> listOf("Military Presses", "Barbell Front Raises", "Barbell Overhead Presses", "Barbell Push Presses", "Landmine Presses")
+        "lateral deltoids" -> listOf("Upright Barbell Rows", "Military Presses")
+        "rear deltoids" -> listOf("Barbell Rows", "Barbell Face Pulls")
+        "lats" -> listOf("Barbell Rows", "Barbell Pullovers")
+        "upper back" -> listOf("Barbell Rows", "Barbell Shrugs")
+        "upper traps" -> listOf("Barbell Shrugs")
+        "spinal erectors" -> listOf("Barbell Deadlifts", "Barbell Good Mornings", "Barbell Rack Pulls", "Barbell Back Extensions", "Stiff Leg Barbell Deadlifts")
+        "biceps" -> listOf("Barbell Curls", "Barbell Reverse Curls", "Barbell Spider Curls")
+        "triceps" -> listOf("Close Grip Barbell Presses", "Barbell Skullcrushers", "Barbell Overhead Extensions")
+        "forearms" -> listOf("Barbell Wrist Curls", "Barbell Reverse Wrist Curls", "Farmer's Walks")
+        "abs" -> listOf("Barbell Rollouts", "Landmine Rainbows", "Barbell Sit-ups", "Barbell Leg Raises", "Barbell Crunches")
+        "obliques" -> listOf("Barbell Side Bends", "Landmine Twists", "Barbell Windmills")
+        "quadriceps" -> listOf("Barbell Squats", "Barbell Front Squats", "Barbell Lunges", "Barbell Step-ups")
+        "hamstrings" -> listOf("Barbell Romanian Deadlifts", "Stiff Leg Barbell Deadlifts", "Barbell Good Mornings")
+        "glutes" -> listOf("Barbell Hip Thrusts", "Barbell Deadlifts", "Barbell Glute Bridges")
+        "calves" -> listOf("Barbell Calf Raises", "Tip-toe Walks")
+        "hip adductors" -> listOf("Barbell Deadlifts", "Barbell Squats")
+        "hip abductors" -> listOf("Barbell Side Lunges")
+        "shoulders" -> listOf("Military Presses", "Barbell Front Raises", "Upright Barbell Rows", "Barbell Clean & Presses", "Barbell Strict Presses")
+        "back" -> listOf("Barbell Rows", "Barbell Deadlifts", "Barbell Pullovers")
+        "legs" -> listOf("Barbell Squats", "Barbell Romanian Deadlifts", "Barbell Lunges", "Barbell Deadlifts", "Barbell Front Squats")
+        "arms" -> listOf("Barbell Curls", "Close Grip Barbell Presses", "Barbell Skullcrushers", "Barbell Reverse Curls")
+        "core" -> listOf("Barbell Rollouts", "Barbell Side Bends", "Landmine Twists")
+        else -> listOf("Barbell Clean & Presses", "Barbell Snatches", "Barbell Clean & Jerks", "Barbell Hang Clean", "Barbell Power Snatch")
     }
 
     private fun getGymExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
-        "chest" -> listOf("Barbell Bench Press", "Cable Fly", "Incline Barbell Press", "Chest Press Machine", "Pec Deck", "Low Cable Fly", "Dip (Chest Focus)", "Weighted Dip", "Chest Dip (Bars)", "Machine Fly", "Cable Crossover", "Hammer Strength Chest Press", "Svend Press (Cable)", "Floor Press (Machine)")
-        "front deltoids" -> listOf("Military Press", "Shoulder Press Machine", "Arnold Press", "Cable Front Raise", "Landmine Press", "Hammer Strength Shoulder Press", "Smith Machine Press")
-        "lateral deltoids" -> listOf("Side Raise", "Cable Lateral Raise", "Machine Lateral Raise", "Behind-the-back Cable Lateral Raise", "Cross Cable Lateral Raise", "Y-Raise (Cable)", "Egyptian Lateral Raise (Cable)")
-        "rear deltoids" -> listOf("Face Pull", "Rear Delt Deck", "Cable Rear Delt Fly", "Rope Face Pull", "Reverse Pec Deck", "Cable Row (Rear Delt Focus)")
-        "lats" -> listOf("Lat Pulldown", "Seated Row", "Pull-up", "Chin-up", "Wide Grip Pull-up", "L-sit Pull-up", "Archer Pull-up", "V-Bar Pulldown", "Straight Arm Pulldown", "Hammer Strength Row", "Close Grip Lat Pulldown", "Assisted Pull-up Machine", "Australian Pull-up (Lats)", "Muscle-up (BW)")
-        "upper back" -> listOf("Barbell Row", "T-Bar Row", "Face Pull", "Machine Row", "Inverted Row", "Scapular Pull-up", "Seated Wide Row", "Chest Supported Machine Row", "Cable Face Pull")
-        "upper traps" -> listOf("Dumbbell Shrug", "Smith Machine Shrug", "Cable Shrug", "Machine Shrug", "Hise Shrug (Machine)")
-        "spinal erectors" -> listOf("Deadlift", "Back Extension", "Reverse Hyper", "Good Morning (Machine)", "Smith Machine Deadlift")
-        "biceps" -> listOf("Barbell Curl", "Preacher Curl", "Cable Curl", "Concentration Curl", "Bayesian Curl (Cable)", "Chin-up", "Hammer Cable Curl", "High Cable Curl", "Machine Curl", "Drag Curl (Cable)", "Inverted Curl (Bodyweight)", "Underhand Inverted Row")
-        "triceps" -> listOf("Tricep Pushdown", "Skullcrusher", "Dip", "Rope Pushdown", "Machine Dip", "Weighted Dip", "Overhead Cable Extension", "V-Bar Pushdown", "Cable Kickback", "Smith Machine JM Press", "Dip (Bars)")
-        "forearms" -> listOf("Reverse Curl", "Hammer Curl", "Wrist Roller", "Dead Hang", "Towel Hang", "Farmer's Walk", "Wrist Curl Machine", "Cable Wrist Curl", "False Grip Hold")
-        "abs" -> listOf("Cable Crunch", "Hanging Leg Raise", "Machine Crunch", "Ab Wheel", "Captain's Chair Leg Raise", "Garhammer Raise", "Cable Knee Raise", "Rope Crunch", "Decline Sit-up (Weighted)")
-        "obliques" -> listOf("Cable Woodchopper", "Russian Twist", "Side Plank Crunch", "Cable Side Bend", "Landmine Twist", "Cable Pallof Press", "Rotary Torso Machine", "Hanging Side Raise")
-        "quadriceps" -> listOf("Barbell Squat", "Leg Press", "Leg Extension", "Hack Squat", "Sissy Squat", "Goblet Squat", "Smith Machine Squat", "V-Squat Machine", "Pendulum Squat")
-        "hamstrings" -> listOf("Leg Curl", "Romanian Deadlift", "Seated Leg Curl", "Glute Ham Raise", "Lying Leg Curl", "Nordic Curl", "Smith Machine RDL", "Cable Pull-through")
-        "glutes" -> listOf("Hip Thrust", "Glute Kickback", "Abductor Machine", "Cable Pull-through", "Glute Bridge Machine", "Reverse Hyper (Glute focus)", "Glute Press (Machine)")
-        "calves" -> listOf("Standing Calf Raise", "Seated Calf Raise", "Donkey Calf Raise", "Leg Press Calf Raise", "Calf Press on Leg Press", "Smith Machine Calf Raise", "Tibialis Raise")
-        "hip adductors" -> listOf("Adductor Machine", "Sumo Squat", "Cable Adduction", "Seated Adduction Machine", "Copenhagen Plank")
-        "hip abductors" -> listOf("Abductor Machine", "Lateral Cable Leg Raise", "Cable Abduction", "Seated Abduction Machine", "Side Lying Clamshell (Machine)")
-        "shoulders" -> listOf("Military Press", "Shoulder Press Machine", "Side Raise", "Face Pull", "Cable Lateral Raise")
-        "back" -> listOf("Lat Pulldown", "Seated Row", "Barbell Row", "Deadlift", "Pull-up", "Chin-up", "Inverted Row")
-        "legs" -> listOf("Barbell Squat", "Leg Press", "Leg Curl", "Romanian Deadlift", "Leg Extension")
-        "arms" -> listOf("Barbell Curl", "Tricep Pushdown", "Skullcrusher", "Cable Curl", "Dip", "Chin-up")
-        "core" -> listOf("Cable Crunch", "Hanging Leg Raise", "Cable Woodchopper", "Machine Crunch")
-        else -> listOf("Deadlift", "Squat", "Press", "Pullover")
+        "chest" -> listOf("Barbell Bench Presses", "Cable Flyes", "Incline Barbell Presses", "Chest Press Machines", "Pec Decks", "Low Cable Flyes", "Dips (Chest Focus)", "Weighted Dips", "Chest Dips (Bars)", "Machine Flyes", "Cable Crossovers", "Hammer Strength Chest Presses", "Svend Presses (Cable)", "Floor Presses (Machine)")
+        "front deltoids" -> listOf("Military Presses", "Shoulder Press Machines", "Arnold Presses", "Cable Front Raises", "Landmine Presses", "Hammer Strength Shoulder Presses", "Smith Machine Presses")
+        "lateral deltoids" -> listOf("Side Raises", "Cable Lateral Raises", "Machine Lateral Raises", "Behind-the-back Cable Lateral Raises", "Cross Cable Lateral Raises", "Y-Raises (Cable)", "Egyptian Lateral Raises (Cable)")
+        "rear deltoids" -> listOf("Face Pulls", "Rear Delt Decks", "Cable Rear Delt Flyes", "Rope Face Pulls", "Reverse Pec Decks", "Cable Rows (Rear Delt Focus)")
+        "lats" -> listOf("Lat Pulldowns", "Seated Rows", "Pull-ups", "Chin-ups", "Wide Grip Pull-ups", "L-sit Pull-ups", "Archer Pull-ups", "V-Bar Pulldowns", "Straight Arm Pulldowns", "Hammer Strength Rows", "Close Grip Lat Pulldowns", "Assisted Pull-up Machines", "Australian Pull-ups (Lats)", "Muscle-ups (BW)")
+        "upper back" -> listOf("Barbell Rows", "T-Bar Rows", "Face Pulls", "Machine Rows", "Inverted Rows", "Scapular Pull-ups", "Seated Wide Rows", "Chest Supported Machine Rows", "Cable Face Pulls")
+        "upper traps" -> listOf("Dumbbell Shrugs", "Smith Machine Shrugs", "Cable Shrugs", "Machine Shrugs", "Hise Shrugs (Machine)")
+        "spinal erectors" -> listOf("Deadlifts", "Back Extensions", "Reverse Hypers", "Good Mornings (Machine)", "Smith Machine Deadlifts")
+        "biceps" -> listOf("Barbell Curls", "Preacher Curls", "Cable Curls", "Concentration Curls", "Bayesian Curls (Cable)", "Chin-ups", "Hammer Cable Curls", "High Cable Curls", "Machine Curls", "Drag Curls (Cable)", "Inverted Curls (Bodyweight)", "Underhand Inverted Rows")
+        "triceps" -> listOf("Tricep Pushdowns", "Skullcrushers", "Dips", "Rope Pushdowns", "Machine Dips", "Weighted Dips", "Overhead Cable Extensions", "V-Bar Pushdowns", "Cable Kickbacks", "Smith Machine JM Presses", "Dips (Bars)")
+        "forearms" -> listOf("Reverse Curls", "Hammer Curls", "Wrist Rollers", "Dead Hangs", "Towel Hangs", "Farmer's Walks", "Wrist Curl Machines", "Cable Wrist Curls", "False Grip Holds")
+        "abs" -> listOf("Cable Crunches", "Hanging Leg Raises", "Machine Crunches", "Ab Wheels", "Captain's Chair Leg Raises", "Garhammer Raises", "Cable Knee Raises", "Rope Crunches", "Decline Sit-ups (Weighted)")
+        "obliques" -> listOf("Cable Woodchoppers", "Russian Twists", "Side Plank Crunches", "Cable Side Bends", "Landmine Twists", "Cable Pallof Presses", "Rotary Torso Machines", "Hanging Side Raises")
+        "quadriceps" -> listOf("Barbell Squats", "Leg Presses", "Leg Extensions", "Hack Squats", "Sissy Squats", "Goblet Squats", "Smith Machine Squats", "V-Squat Machines", "Pendulum Squats")
+        "hamstrings" -> listOf("Leg Curls", "Romanian Deadlifts", "Seated Leg Curls", "Glute Ham Raises", "Lying Leg Curls", "Nordic Curls", "Smith Machine RDLs", "Cable Pull-throughs")
+        "glutes" -> listOf("Hip Thrusts", "Glute Kickbacks", "Abductor Machines", "Cable Pull-throughs", "Glute Bridge Machines", "Reverse Hypers (Glute focus)", "Glute Presses (Machine)")
+        "calves" -> listOf("Standing Calf Raises", "Seated Calf Raises", "Donkey Calf Raises", "Leg Press Calf Raises", "Calf Press on Leg Press", "Smith Machine Calf Raises", "Tibialis Raises")
+        "hip adductors" -> listOf("Adductor Machines", "Sumo Squats", "Cable Adductions", "Seated Adduction Machines", "Copenhagen Planks")
+        "hip abductors" -> listOf("Abductor Machines", "Lateral Cable Leg Raises", "Cable Abductions", "Seated Abduction Machines", "Side Lying Clamshells (Machine)")
+        "shoulders" -> listOf("Military Presses", "Shoulder Press Machines", "Side Raises", "Face Pulls", "Cable Lateral Raises")
+        "back" -> listOf("Lat Pulldowns", "Seated Rows", "Barbell Rows", "Deadlifts", "Pull-ups", "Chin-ups", "Inverted Rows")
+        "legs" -> listOf("Barbell Squats", "Leg Presses", "Leg Curls", "Romanian Deadlifts", "Leg Extensions")
+        "arms" -> listOf("Barbell Curls", "Tricep Pushdowns", "Skullcrushers", "Cable Curls", "Dips", "Chin-ups")
+        "core" -> listOf("Cable Crunches", "Hanging Leg Raises", "Cable Woodchoppers", "Machine Crunches")
+        else -> listOf("Deadlifts", "Squats", "Presses", "Pullovers")
     }
 
     val template5DaySplit = WorkoutTemplate(
@@ -649,26 +614,26 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Press", "Chest", 4, "8–12", "", 90, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Press", "Shoulders", 3, "8–12", "", 90, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raise", "Shoulders", 3, "12–15", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Overhead Extension", "Triceps", 3, "10–15", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Row", "Back", 4, "8–12", "", 90, 90, "", 1),
-            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Row", "Back", 3, "10–12", "", 60, 90, "", 2),
-            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Curl", "Biceps", 3, "10–12", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "TUESDAY", "Hammer Curl", "Biceps", 3, "10–15", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Squat", "Legs", 4, "8–12", "", 120, 90, "", 1),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Romanian Deadlift", "Legs", 3, "8–12", "", 90, 90, "", 2),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunge", "Legs", 3, "10 each leg", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Crunch", "Abs", 3, "15–20", "", 45, 90, "", 4),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Press", "Chest", 4, "10–12", "", 90, 90, "", 1),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raise", "Shoulders", 4, "12–20", "", 60, 90, "", 2),
-            RoutineExerciseEntity(0, "THURSDAY", "Dip", "Triceps", 3, "10–15", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "FRIDAY", "Barbell Row", "Back", 4, "8–12", "", 90, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Pullover", "Back", 3, "10–15", "", 60, 90, "", 2),
-            RoutineExerciseEntity(0, "FRIDAY", "Barbell Curl", "Biceps", 3, "8–12", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "SATURDAY", "Barbell Squat", "Legs", 4, "8–12", "", 120, 90, "", 1),
-            RoutineExerciseEntity(0, "SATURDAY", "Leg Raise", "Abs", 3, "12–20", "", 45, 90, "", 2)
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "8–12", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Rows", "Back", 4, "8–12", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Curls", "Biceps", 3, "10–12", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Squats", "Legs", 4, "8–12", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–12", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Crunches", "Abs", 3, "15–20", "", 0.0, 45, 90, "", 4),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 4, "10–12", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 4, "12–20", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "THURSDAY", "Dips", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Rows", "Back", 4, "8–12", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Pullovers", "Back", 3, "10–15", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Curls", "Biceps", 3, "8–12", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "SATURDAY", "Barbell Squats", "Legs", 4, "8–12", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "SATURDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 2)
         )
     )
 
@@ -689,20 +654,20 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Press", "Chest", 4, "6–10", "", 120, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Row", "Back", 4, "6–10", "", 120, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Press", "Shoulders", 3, "8–12", "", 90, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Curl", "Biceps", 3, "8–12", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Squat", "Legs", 4, "6–10", "", 150, 90, "", 1),
-            RoutineExerciseEntity(0, "TUESDAY", "Romanian Deadlift", "Legs", 3, "8–10", "", 120, 90, "", 2),
-            RoutineExerciseEntity(0, "TUESDAY", "Plank", "Abs", 3, "45 sec", "", 45, 90, "", 3),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Press", "Chest", 3, "10–12", "", 90, 90, "", 1),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Row", "Back", 3, "10–12", "", 60, 90, "", 2),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raise", "Shoulders", 3, "12–15", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "THURSDAY", "Hammer Curl", "Biceps", 3, "10–15", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Overhead Extension", "Triceps", 3, "10–15", "", 60, 90, "", 5),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Lunge", "Legs", 3, "10 each leg", "", 60, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Leg Raise", "Abs", 3, "12–20", "", 45, 90, "", 2)
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "6–10", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 4, "6–10", "", 0.0, 120, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Curls", "Biceps", 3, "8–12", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Squats", "Legs", 4, "6–10", "", 0.0, 150, 90, "", 1),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–10", "", 0.0, 120, 90, "", 2),
+            RoutineExerciseEntity(0, "TUESDAY", "Planks", "Abs", 3, "45 sec", "", 0.0, 45, 90, "", 3),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 3, "10–12", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 5),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 2)
         )
     )
 
@@ -723,20 +688,20 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Squat", "Legs", 3, "8–12", "", 120, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Press", "Chest", 3, "8–12", "", 90, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Row", "Back", 3, "8–12", "", 90, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raise", "Shoulders", 3, "12–15", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "MONDAY", "Crunch", "Abs", 3, "15–20", "", 45, 90, "", 5),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunge", "Legs", 3, "10 each leg", "", 60, 90, "", 1),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Shoulder Press", "Shoulders", 3, "8–12", "", 90, 90, "", 2),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Row", "Back", 3, "10–12", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Curl", "Biceps", 3, "10–12", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "FRIDAY", "Romanian Deadlift", "Legs", 3, "8–12", "", 120, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Floor Press", "Chest", 3, "10–12", "", 90, 90, "", 2),
-            RoutineExerciseEntity(0, "FRIDAY", "Hammer Curl", "Biceps", 3, "10–15", "", 60, 90, "", 3),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Overhead Extension", "Triceps", 3, "10–15", "", 60, 90, "", 4),
-            RoutineExerciseEntity(0, "FRIDAY", "Leg Raise", "Abs", 3, "12–20", "", 45, 90, "", 5)
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Squats", "Legs", 3, "8–12", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 3, "8–12", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 3, "8–12", "", 0.0, 90, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "MONDAY", "Crunches", "Abs", 3, "15–20", "", 0.0, 45, 90, "", 5),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 1),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Curls", "Biceps", 3, "10–12", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–12", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Floor Presses", "Chest", 3, "10–12", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 5)
         )
     )
 
@@ -795,10 +760,17 @@ object WorkoutTemplates {
             lowerName.contains("bodyweight")
         ) return true
 
-        // 2. Check against the strict bodyweight lists defined in getBodyweightExercises
-        // We can do a quick check for common muscle groups first to avoid a full flatMap if possible,
-        // but for robustness we check all.
         val allBW = getAllMuscleGroups().flatMap { getBodyweightExercises(it) }
         return allBW.any { it.equals(name, ignoreCase = true) }
+    }
+
+    fun calculateRepioPoints(exerciseName: String, weightKg: Double, reps: Int): Double {
+        if (isExerciseTimeBased(exerciseName)) return 0.0
+        
+        return if (isBodyweightExercise(exerciseName) && weightKg == 0.0) {
+            1.0 * reps
+        } else {
+            weightKg * reps
+        }
     }
 }
