@@ -15,8 +15,10 @@ import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.screens.remapTemplateToDays
+import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
+import kotlinx.coroutines.withContext
 import kotlin.math.floor
 import kotlin.math.ceil
 import kotlin.math.min
@@ -38,9 +40,7 @@ data class WorkoutNowState(
     val currentExerciseSeconds: Int = 30,
     val minExerciseSeconds: Int = 10,
     val maxExerciseSeconds: Int = 600,
-    val totalSetsLoggedToday: Int = 0,
-    val currentExerciseId: Long = -1L,
-    val currentExerciseName: String = ""
+    val totalSetsLoggedToday: Int = 0
 )
 
 data class SupportUiState(
@@ -90,9 +90,6 @@ class WorkoutViewModel(
     private val _workoutGoal = MutableStateFlow(prefs.getString("workout_goal", "goal_bodybuilding") ?: "goal_bodybuilding")
     val workoutGoal: StateFlow<String> = _workoutGoal.asStateFlow()
 
-    private val _equipment = MutableStateFlow(prefs.getString("setup_equipment", "Gym")?.split(",")?.filter { it.isNotBlank() } ?: listOf("Gym"))
-    val equipment: StateFlow<List<String>> = _equipment.asStateFlow()
-
     private val _developerThemeEnabled = MutableStateFlow(prefs.getBoolean("developer_theme_enabled", false))
     val developerThemeEnabled: StateFlow<Boolean> = _developerThemeEnabled.asStateFlow()
 
@@ -110,6 +107,9 @@ class WorkoutViewModel(
 
     private val _requestedWorkoutSubTab = MutableStateFlow(WorkoutSubTabRequest(0))
     val requestedWorkoutSubTab: StateFlow<WorkoutSubTabRequest> = _requestedWorkoutSubTab.asStateFlow()
+
+    private val _allAvailableExercises = MutableStateFlow<List<String>>(emptyList())
+    val allAvailableExercises: StateFlow<List<String>> = _allAvailableExercises.asStateFlow()
 
     private val _showRestartDialog = MutableStateFlow(false)
     val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
@@ -152,6 +152,16 @@ class WorkoutViewModel(
             emptyList()
         )
 
+        viewModelScope.launch {
+            repository.ensureDataSeeded()
+        }
+
+        // Pre-load exercise database in background to prevent lag during search
+        viewModelScope.launch(Dispatchers.Default) {
+            val exercises = WorkoutTemplates.getAllExerciseNames()
+            _allAvailableExercises.value = exercises
+        }
+
         // Reactive parameter cache loader
         viewModelScope.launch {
             combine(_workoutNowState, allRoutineExercises) { state, exercises ->
@@ -166,43 +176,24 @@ class WorkoutViewModel(
                         val (minVal, maxVal) = parseRepsRange(it.targetReps)
 
                         _workoutNowState.update { state ->
-                            val isNewExercise = state.currentExerciseId != it.id || state.currentExerciseName != it.name
-                            
-                            // If it's the same exercise but the range changed, we keep current progress but respect new limits.
-                            // If it's a different exercise, we reset to the new exercise's defaults.
-                            val nextReps = if (isNewExercise) {
-                                if (!isTimeBased) maxVal else state.currentReps
-                            } else {
-                                state.currentReps.coerceIn(minVal, maxVal)
-                            }
-                            
-                            val nextSeconds = if (isNewExercise) {
-                                if (isTimeBased) maxVal else state.currentExerciseSeconds
-                            } else {
-                                state.currentExerciseSeconds.coerceIn(minVal, maxVal)
-                            }
+                            // Prioritize template weight, fallback to cache
+                            val templateWeight = it.targetWeightKg
+                            val initialWeight = if (templateWeight > 0.0) templateWeight else cachedWeight
 
-                            val nextWeight = if (isNewExercise) {
-                                if (isBodyweight) 0.0 else cachedWeight
-                            } else {
-                                state.currentWeightKg
-                            }
+                            val nextReps = if (!isTimeBased) maxVal else state.currentReps
+                            val nextSeconds = if (isTimeBased) maxVal else state.currentExerciseSeconds
 
                             state.copy(
-                                currentWeightKg = nextWeight,
-                                recommendedWeightKg = if (isBodyweight) 0.0 else cachedWeight,
+                                currentWeightKg = if (isBodyweight && templateWeight <= 0.0) 0.0 else initialWeight,
+                                recommendedWeightKg = if (isBodyweight && templateWeight <= 0.0) 0.0 else initialWeight,
                                 currentReps = nextReps,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
                                 currentExerciseSeconds = nextSeconds,
-                                minExerciseSeconds = if (isTimeBased) minVal else 10,
-                                maxExerciseSeconds = if (isTimeBased) maxVal else 600,
-                                currentExerciseId = it.id,
-                                currentExerciseName = it.name
+                                minExerciseSeconds = if (isTimeBased) 15 else 10,
+                                maxExerciseSeconds = if (isTimeBased) 3600 else 600
                             )
                         }
-                    } ?: run {
-                        _workoutNowState.update { it.copy(currentExerciseId = -1L, currentExerciseName = "") }
                     }
                 }
         }
@@ -224,8 +215,6 @@ class WorkoutViewModel(
         prefs.putInt("saved_exercise_seconds", state.currentExerciseSeconds)
         prefs.putBoolean("saved_is_completed", state.isWorkoutCompleted)
         prefs.putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
-        prefs.putLong("saved_exercise_id", state.currentExerciseId)
-        prefs.putString("saved_exercise_name", state.currentExerciseName)
     }
 
     private fun loadSavedWorkoutNowState(): WorkoutNowState {
@@ -237,8 +226,6 @@ class WorkoutViewModel(
         val savedExSeconds = prefs.getInt("saved_exercise_seconds", 30)
         val savedIsCompleted = prefs.getBoolean("saved_is_completed", false)
         val savedTotalSetsLogged = prefs.getInt("saved_total_sets_logged", 0)
-        val savedExId = prefs.getLong("saved_exercise_id", -1L)
-        val savedExName = prefs.getString("saved_exercise_name", "") ?: ""
 
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
         val isExTimer = prefs.getBoolean("is_exercise_timer", false)
@@ -256,9 +243,7 @@ class WorkoutViewModel(
             restTimerSeconds = remainingSecs,
             isTimerActive = remainingSecs > 0,
             isExerciseTimerActive = if (remainingSecs > 0) isExTimer else false,
-            totalSetsLoggedToday = savedTotalSetsLogged,
-            currentExerciseId = savedExId,
-            currentExerciseName = savedExName
+            totalSetsLoggedToday = savedTotalSetsLogged
         )
     }
 
@@ -343,11 +328,6 @@ class WorkoutViewModel(
         prefs.putString("workout_goal", goal)
     }
 
-    fun updateEquipment(equipment: List<String>) {
-        _equipment.value = equipment
-        prefs.putString("setup_equipment", equipment.joinToString(","))
-    }
-
     fun setMinSets(value: Int) {
         _minSets.value = value
         prefs.putInt("setup_min_sets", value)
@@ -367,7 +347,6 @@ class WorkoutViewModel(
         days: List<RoutineDayEntity>,
         exercises: List<RoutineExerciseEntity>,
         setupType: String = "CUSTOM",
-        equipment: List<String> = emptyList(),
         bodyParts: List<String> = emptyList(),
         selectedDays: List<String> = emptyList(),
         intensity: String = "",
@@ -377,14 +356,13 @@ class WorkoutViewModel(
     ) {
         viewModelScope.launch {
             repository.applyProgram(days, exercises)
+            val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
             prefs.putBoolean("is_first_time", false)
             
             // Persist setup parameters for later goal changes
             prefs.putString("setup_type", setupType)
-            prefs.putString("setup_equipment", equipment.joinToString(","))
-            _equipment.value = equipment
             prefs.putString("setup_body_parts", bodyParts.joinToString(","))
             prefs.putString("setup_days", selectedDays.joinToString(","))
             prefs.putString("setup_intensity", intensity)
@@ -392,7 +370,7 @@ class WorkoutViewModel(
             prefs.putInt("setup_min_sets", minSets)
             prefs.putInt("setup_max_sets", maxSets)
             
-            setRequestedWorkoutSubTab(0)
+            setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
     }
 
@@ -401,7 +379,6 @@ class WorkoutViewModel(
             setWorkoutGoal(newGoal)
             
             val setupType = prefs.getString("setup_type", "CUSTOM") ?: "CUSTOM"
-            val equipment = prefs.getString("setup_equipment", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             val bodyParts = prefs.getString("setup_body_parts", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             val selectedDays = prefs.getString("setup_days", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             val intensity = prefs.getString("setup_intensity", "") ?: ""
@@ -410,7 +387,6 @@ class WorkoutViewModel(
             when (setupType) {
                 "ASSISTED" -> {
                     val program = WorkoutTemplates.generateAssistedProgram(
-                        equipment = equipment,
                         bodyParts = bodyParts,
                         selectedDays = selectedDays,
                         intensity = intensity,
@@ -456,10 +432,11 @@ class WorkoutViewModel(
             repository.applyProgram(template.dayTemplates.map {
                 RoutineDayEntity(it.dayOfWeek, it.dayOfWeek, "", it.isRestDay)
             }, template.exercises)
+            val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
             prefs.putBoolean("is_first_time", false)
-            setRequestedWorkoutSubTab(0)
+            setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
     }
 
@@ -473,7 +450,6 @@ class WorkoutViewModel(
         _isFirstTimeUser.value = false
         _isManualReentry.value = false
         prefs.putBoolean("is_first_time", false)
-        setRequestedWorkoutSubTab(0)
     }
 
     fun selectDayForWorkoutNow(dayOfWeek: String) {
@@ -494,6 +470,13 @@ class WorkoutViewModel(
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
         viewModelScope.launch { _refreshTrigger.emit(Unit) }
+    }
+
+    fun navigateToExercise(index: Int, totalExercises: Int) {
+        if (index in 0 until totalExercises) {
+            _workoutNowState.update { it.copy(currentExerciseIndex = index, currentSetNumber = 1) }
+            saveWorkoutNowState(_workoutNowState.value)
+        }
     }
 
     fun updateWeightAndReps(weight: Double, reps: Int) {
@@ -555,11 +538,18 @@ class WorkoutViewModel(
             val currentExercise = exercises[exerciseIndex]
             
             // Save weight to cache for next time
-            if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name)) {
+            if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
                 prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
             }
             
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
+            
+            // Save current parameters back to template for next week
+            repository.saveExercise(currentExercise.copy(
+                targetWeightKg = currentState.currentWeightKg,
+                targetReps = if (currentExercise.targetReps.contains("sec", ignoreCase = true)) currentExercise.targetReps else currentState.currentReps.toString()
+            ))
+
             val nextSetNumber = currentState.currentSetNumber + 1
             
             var isTransition = false
@@ -662,12 +652,19 @@ class WorkoutViewModel(
         val currentExercise = exercises[exerciseIndex]
         
         // Save weight to cache for next time
-        if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name)) {
+        if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
             prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
         }
 
         viewModelScope.launch {
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, seconds)
+            
+            // Save current parameters back to template for next week
+            repository.saveExercise(currentExercise.copy(
+                targetWeightKg = currentState.currentWeightKg,
+                targetReps = "$seconds sec"
+            ))
+
             _workoutNowState.update { it.copy(totalSetsLoggedToday = it.totalSetsLoggedToday + 1) }
             startRestTimer(seconds, isExerciseTimer = true, silent = false)
             saveWorkoutNowState(_workoutNowState.value)

@@ -269,3 +269,109 @@ Observations captured during task-oriented work.
 **Suggested improvement:** Proactively use `IndicationNodeFactory` for custom visual feedback. Ensure `equals` and `hashCode` are implemented to satisfy interface requirements and allow for proper caching in `remember`.
 
 **Principle:** When overriding global UI behaviors (like ripples), prefer the latest architectural patterns (like `Modifier.Node`) to ensure future-proofing and better performance characteristics.
+
+---
+
+## 2026-08-26
+
+### Observation 18: Handling Missing Resources during Themed Updates
+**Status:** OPEN
+**Date:** 2026-08-26
+**Session context:** Updating launcher and logo icons.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** Resource Management / Consistency
+
+**Issue:** During a themed update of launcher/logo icons, the user requested a specific color resource (`@color/theme_orange_primary`) that did not exist in the project, although a similar one (`@color/theme_flame_primary`) was present. Additionally, legacy files (`cyan`, `red`) used hex values instead of resource links.
+
+**Suggested improvement:** When themed resources are missing but requested by name, proactively add them to `colors.xml` (using the requested name) to ensure the code remains functional and follows the user's intended naming convention. This also simplifies future updates by moving from hex to resource-linked colors.
+
+**Principle:** Favor explicit resource naming over implicit matches; if a specific resource name is requested but missing, create it to fulfill the structural intent of the request while maintaining a single source of truth for colors.
+
+### Observation 19: Interactive Calendar for Historical Data
+**Status:** OPEN
+**Date:** 2026-08-27
+**Session context:** Changing "workout_history" to "Workout Calendar" and adding interactivity.
+**Skill:** New skill candidate: Data Visualization Components
+**Type:** open-source
+**Phase/Area:** UI Design
+
+**Issue:** Static history grids lack engagement and quick searchability for specific workout sessions. Users need to see both the overview (frequency) and details (specific sets) without leaving the context.
+
+**Suggested improvement:** Implement a monthly grid where each cell is interactive and contains both the weekday name and date. Use primary color tints and icons for "working days" and provide a vertical details list below the grid that updates on selection. Add a weekly summary (e.g., workout count) to provide a secondary layer of information.
+
+**Principle:** Interactive calendar components should bridge the gap between high-level frequency overview and low-level detail retrieval, using clear visual cues for "active" days and providing immediate feedback upon selection.
+
+### Observation 20: Replicating UI from Reference Images
+**Status:** OPEN
+**Date:** 2026-08-27
+**Session context:** Redesigning Workout Calendar to match a specific reference image.
+**Skill:** UI Design & Custom Drawing
+**Type:** open-source
+**Phase/Area:** Design Fidelity
+
+**Issue:** Users often provide reference images for specific dashboard components that combine different chart types (e.g., line and bar) and stylized effects (glow, gradients). Replicating these in Compose requires a mix of standard Layouts and custom Canvas drawing.
+
+**Suggested improvement:** When replicating a design from an image, break it down into: 1. Information Hierarchy (Header, Nav, Metrics), 2. Layout Structure, 3. Stylistic Details (Fonts, Glow, Gradients). Use custom Canvas for overlaid charts where standard libraries might be too rigid.
+
+**Principle:** High-fidelity UI replication in Compose is best achieved by combining structural Composables for layout and custom Canvas drawing for specialized visualizations, ensuring that colors and styles remain theme-aware.
+
+---
+
+## 2026-08-28
+
+### Observation 21: Context-Aware Action Bars for Routine Management
+**Status:** OPEN
+**Date:** 2026-08-28
+**Session context:** Modifying Workout tab to distinguish between "Today" and "Historical/Future" days.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** UX Design / State Management
+
+**Issue:** In workout trackers, users often view routines for different days. If the UI presents the same "Log/Action" button (e.g., "Save Set") for all days, it leads to confusion or accidental data logging for the wrong day. Users typically want to "Act" on today but only "Navigate/Review" other days.
+
+**Suggested improvement:** Implement a day-contextual action bar. If the selected day is Today, show the primary logging actions (Save, Start Timer). For any other day, replace these actions with navigation controls (Previous, Next) that allow the user to review the routine without the risk of accidental logging.
+
+**Principle:** User interfaces for date-sensitive data should clearly distinguish between "Actionable Today" and "Navigable History/Future" states, providing distinct affordances (logging vs. browsing) based on the temporal context.
+
+### Observation 22: Unified Analytics Dashboard Card
+**Status:** OPEN
+**Date:** 2026-08-28
+**Session context:** Refactoring Workout Calendar into an embedded card.
+**Skill:** UI Components & Architecture
+**Type:** open-source
+**Phase/Area:** Visual Integration
+
+**Issue:** Splitting analytics between a main screen and a dialog title can feel fragmented. Users prefer "embedded" experiences where detail inspection happens within the same visual container as the summary.
+
+**Suggested improvement:** Integrate detail views (like day-by-day exercise lists) directly into the primary dashboard card using conditional visibility or expansion. Ensure the card's horizontal spacing and styling (shape, color) perfectly match the rest of the tab system to create a "clean, imbedded" feel.
+
+**Principle:** For data-rich analytics, favor unified card containers that house both high-level visualizations and contextual details, reducing cognitive load by keeping related information in one place.
+
+### Observation 23: Balancing Primary Action Prominence vs. Visual Friction
+**Status:** OPEN
+**Date:** 2026-08-28
+**Session context:** Reducing primary button height from 64dp to 52dp based on user feedback.
+**Skill:** task-observer
+**Type:** open-source
+**Phase/Area:** UI Component Design
+
+**Issue:** Large primary action buttons (e.g., 64dp height) are intended to be highly accessible during physical activity, but can feel overwhelming and "noisy" (the "blind user" effect) if they occupy too much vertical space or use oversized typography. This is especially true on screens with multiple information layers.
+
+**Suggested improvement:** For primary actions, aim for a "Goldilocks" height (typically 48dp to 56dp) that maintains a large touch target for physical activity while preserving a clean visual hierarchy. Adjust icon and typography scales proportionally to prevent the button from feeling "bulky."
+
+**Principle:** In high-utility mobile apps (like fitness trackers), primary actions must be accessible but not visually intrusive. Respect the vertical rhythm of the screen by keeping main call-to-action buttons within standard ergonomic ranges (48-56dp) unless a specialized "large mode" is explicitly desired.
+
+### Observation 24: Synchronizing Custom DecorationBox Height
+**Status:** OPEN
+**Date:** 2026-08-28
+**Session context:** Fixing vertical height discrepancy between Sets and Reps inputs.
+**Skill:** UI Components & Architecture
+**Type:** open-source
+**Phase/Area:** Visual Alignment
+
+**Issue:** Custom components using `OutlinedTextFieldDefaults.DecorationBox` can result in slightly different heights than standard `OutlinedTextField` if vertical padding is not perfectly matched or if internal containers don't correctly fill the provided height.
+
+**Suggested improvement:** To ensure custom decoration boxes match standard fields in an `IntrinsicSize.Min` row: 1. Add `fillMaxHeight()` to the internal layout (e.g., Row) passed to `innerTextField`. 2. Use `OutlinedTextFieldDefaults.contentPadding(top = 0.dp, bottom = 0.dp)` to avoid cumulative padding that pushes the height. 3. Ensure all fields in the row share the same `supportingText` logic (even if just a placeholder space) to keep baselines aligned.
+
+**Principle:** Perfect visual alignment of mixed text field types requires strict synchronization of vertical padding and forced expansion to the maximum height permitted by the shared intrinsic layout container.

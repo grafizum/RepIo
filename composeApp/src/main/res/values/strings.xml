@@ -7,8 +7,9 @@
     <string name="rest_day_active">Rest day active. Active recovery &amp; mobility.</string>
     <string name="exercises_scheduled">%1$d exercises scheduled for today</string>
     <string name="workout_now">WORKOUT NOW</string>
-    <string name="total_volume">Total Volume</string>
-    <string name="all_time_volume">All-time volume</string>
+    <string name="total_volume">Repio Points</string>
+    <string name="pts_abbr">Pts.</string>
+    <string name="all_time_volume">All-time Repio Points</string>
     <string name="sets_logged">Sets Saved</string>
     <string name="completed_sets">Completed sets</string>
     <string name="quick_actions">Quick Actions</string>
@@ -81,7 +82,8 @@
     <string name="recent_history">Recent History</string>
     <string name="no_sets_logged">No sets saved yet.</string>
     <string name="no_sets_logged_full">No sets saved yet. Complete workouts to see muscle focus breakdown!</string>
-    <string name="volume_progress_kg">Volume Progress (kg)</string>
+    <string name="volume_progress_kg">Weekly Repio Points</string>
+    <string name="weekly_progress">Weekly Progress</string>
     <string name="tap_bar_to_inspect">Tap any bar to inspect daily total</string>
     <string name="muscle_group_focus">Muscle Group Focus</string>
     <string name="watch_demo">Watch Demo</string>
@@ -93,7 +95,8 @@
     <string name="demo_video_link">Demo Video Link</string>
     <string name="enter_video_url_desc">Enter a video URL for this exercise demo:</string>
     <string name="video_url">Video URL</string>
-    <string name="volume_label">Volume</string>
+    <string name="volume_label">Points</string>
+    <string name="points_label">Repio Points</string>
     <string name="time_label">Time</string>
     <string name="sets_label">Sets</string>
     <string name="balanced_workout_routine">Balanced Workout Routine</string>
@@ -111,7 +114,16 @@
     <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your saved workout sets.</string>
-    <string name="delete_all">Delete All</string>
+    <string name="workout_history">Workout Calendar</string>
+    <string name="no_workout_on_day">No workout recorded for this day.</string>
+    <string name="no_workouts_for_day">No workouts done on %1$s</string>
+    <string name="workout_on_day">Workout on %1$s</string>
+    <string name="week_metrics">WEEK METRICS // LIVE</string>
+    <string name="training_output">Training Output</string>
+    <string name="sessions_label">SESSIONS</string>
+    <string name="min_logged_label">MIN LOGGED</string>
+    <string name="avg_load_label">AVG LOAD</string>
+    <string name="week_of">Week of %1$s</string>
     <string name="cancel">Cancel</string>
 
     <string name="allow_notifications">Allow Notifications</string>
@@ -144,7 +156,7 @@
     <string name="start_workout_again">START WORKOUT AGAIN</string>
     <string name="exercise_x_of_y">Exercise %1$d of %2$d • Set %3$d/%4$d</string>
     <string name="rest_timer">SET REST</string>
-    <string name="intensity_label">Target Intensity (RPE)</string>
+    <string name="intensity_label">RPE Intensity</string>
     <string name="rest_timer_label">Rest Time</string>
     <string name="exercise_transition_label">NEXT EXERCISE IN</string>
     <string name="seconds_remaining">%1$ds remaining</string>
@@ -161,18 +173,13 @@
     <string name="start_timer_x">START %1$ds TIMER</string>
     <string name="program_name">My Workout</string>
     <string name="description">Description</string>
-    <string name="equipment">Equipment</string>
     <string name="ex_description_generic">Focus on the mind-muscle connection. Execute the movement with a controlled tempo and a full range of motion while strictly engaging the %1$s.</string>
-    <string name="ex_equipment_gym">Full Gym / Machines</string>
-    <string name="ex_equipment_barbell">Barbell</string>
-    <string name="ex_equipment_dumbbell">Dumbbells</string>
-    <string name="ex_equipment_bodyweight">Bodyweight</string>
-    <string name="ex_equipment_cables">Cables / Pulleys</string>
     <string name="ex_bench_press_desc">Lie on your back. Lower the weight to your mid-chest, then press up until arms are fully extended.</string>
     <string name="ex_squats_desc">Stand with feet shoulder-width apart. Lower your hips as if sitting in a chair, then drive back up to standing.</string>
     <string name="ex_deadlifts_desc">Hinge at hips to grip the bar. Keeping a flat back, drive through your heels to stand up straight.</string>
     <string name="ex_pull_ups_desc">Hang from a bar and pull your chest toward it by driving your elbows down. Lower yourself with control.</string>
     <string name="ex_overhead_press_desc">Press the weight from shoulder level upward until arms are locked out. Keep your core tight.</string>
+    <string name="ex_curls">Curls</string>
     <string name="ex_curls_desc">Keep elbows close to your sides. Curl the weights toward your shoulders, then lower slowly.</string>
     <string name="ex_rows_desc">Hinge forward with a flat back. Pull the weight toward your lower ribs, squeezing your shoulder blades.</string>
     <string name="ex_lateral_raise_desc">Raise weights out to your sides until arms are level with shoulders. Keep a slight bend in your elbows.</string>
@@ -287,6 +294,8 @@
     <string name="exercise_set_summary">• %1$s (%2$d sets)</string>
 
     <string name="back">Back</string>
+    <string name="previous">Previous</string>
+    <string name="next">Next</string>
     <string name="biceps">Biceps</string>
     <string name="shoulders">Shoulders</string>
     <string name="chest">Chest</string>
@@ -315,39 +324,39 @@
     <string name="rest_days_only">%1$d Rest Days</string>
 
     <!-- Consolidated Exercise Names -->
-    <string name="ex_dumbbell_row">Dumbbell Row</string>
-    <string name="ex_barbell_row">Barbell Row</string>
-    <string name="ex_dumbbell_pullover">Dumbbell Pullover</string>
-    <string name="ex_dumbbell_curl">Dumbbell Curl</string>
-    <string name="ex_hammer_curl">Hammer Curl</string>
-    <string name="ex_dumbbell_shoulder_press">Dumbbell Shoulder Press</string>
-    <string name="ex_dumbbell_lateral_raise">Dumbbell Lateral Raise</string>
+    <string name="ex_dumbbell_row">Dumbbell Rows</string>
+    <string name="ex_barbell_row">Barbell Rows</string>
+    <string name="ex_dumbbell_pullover">Dumbbell Pullovers</string>
+    <string name="ex_dumbbell_curl">Dumbbell Curls</string>
+    <string name="ex_hammer_curl">Hammer Curls</string>
+    <string name="ex_dumbbell_shoulder_press">Dumbbell Shoulder Presses</string>
+    <string name="ex_dumbbell_lateral_raise">Dumbbell Lateral Raises</string>
     <string name="ex_crunches">Crunches</string>
-    <string name="ex_barbell_floor_press">Barbell Floor Press</string>
-    <string name="ex_dumbbell_floor_press">Dumbbell Floor Press</string>
-    <string name="ex_leg_raise">Leg Raise</string>
-    <string name="ex_barbell_squat">Barbell Squat</string>
-    <string name="ex_romanian_deadlift">Romanian Deadlift</string>
-    <string name="ex_dumbbell_lunge">Dumbbell Lunge</string>
-    <string name="ex_plank">Plank</string>
+    <string name="ex_barbell_floor_press">Barbell Floor Presses</string>
+    <string name="ex_dumbbell_floor_press">Dumbbell Floor Presses</string>
+    <string name="ex_leg_raise">Leg Raises</string>
+    <string name="ex_barbell_squat">Barbell Squats</string>
+    <string name="ex_romanian_deadlift">Romanian Deadlifts</string>
+    <string name="ex_dumbbell_lunge">Dumbbell Lunges</string>
+    <string name="ex_plank">Planks</string>
     <string name="ex_tricep_dips_extensions">Tricep Dips / Extensions</string>
-    <string name="ex_overhead_tricep_extension">Overhead Tricep Extension</string>
-    <string name="ex_dumbbell_overhead_extension">Dumbbell Overhead Extension</string>
-    <string name="ex_bench_press_floor_press">Bench Press / Floor Press</string>
+    <string name="ex_overhead_tricep_extension">Overhead Tricep Extensions</string>
+    <string name="ex_dumbbell_overhead_extension">Dumbbell Overhead Extensions</string>
+    <string name="ex_bench_press_floor_press">Bench Presses / Floor Presses</string>
     <string name="ex_barbell_rows_generic">Barbell Rows</string>
     <string name="ex_bicep_curls_generic">Bicep Curls</string>
-    <string name="ex_dumbbell_rear_delt_fly">Dumbbell Rear Delt Fly</string>
-    <string name="ex_rear_delt_fly">Rear Delt Fly</string>
-    <string name="ex_deadlift">Deadlift</string>
+    <string name="ex_dumbbell_rear_delt_fly">Dumbbell Rear Delt Flyes</string>
+    <string name="ex_rear_delt_fly">Rear Delt Flyes</string>
+    <string name="ex_deadlift">Deadlifts</string>
     <string name="ex_calves">Calves</string>
     <string name="ex_abs">Abs</string>
-    <string name="ex_pull_up">Pull-up</string>
-    <string name="ex_squat">Squat</string>
-    <string name="ex_press">Press</string>
-    <string name="ex_row">Row</string>
-    <string name="ex_lunge">Lunge</string>
+    <string name="ex_pull_up">Pull-ups</string>
+    <string name="ex_squat">Squats</string>
+    <string name="ex_press">Presses</string>
+    <string name="ex_row">Rows</string>
+    <string name="ex_lunge">Lunges</string>
     <string name="ex_biceps_generic">Biceps</string>
-    <string name="ex_chest_press">Chest Press</string>
+    <string name="ex_chest_press">Chest Presses</string>
     <string name="ex_arms">Arms</string>
     <string name="ex_core">Core</string>
     <string name="ex_triceps_generic">Triceps</string>
@@ -355,23 +364,23 @@
     <string name="ex_back_generic">Back</string>
     <string name="ex_legs_generic">Legs</string>
     <string name="ex_flyes">Flyes</string>
-    <string name="ex_push_up">Push-up</string>
-    <string name="ex_chin_up">Chin-up</string>
-    <string name="ex_bench_press">Bench Press</string>
-    <string name="ex_military_press">Military Press</string>
-    <string name="ex_lat_pulldown">Lat Pulldown</string>
-    <string name="ex_seated_row">Seated Row</string>
-    <string name="ex_leg_press">Leg Press</string>
-    <string name="ex_leg_curl">Leg Curl</string>
-    <string name="ex_leg_extension">Leg Extension</string>
-    <string name="ex_calf_raise">Calf Raise</string>
-    <string name="ex_hip_thrust">Hip Thrust</string>
-    <string name="ex_glute_bridge">Glute Bridge</string>
-    <string name="ex_tricep_pushdown">Tricep Pushdown</string>
-    <string name="ex_face_pull">Face Pull</string>
-    <string name="ex_side_raise">Side Raise</string>
+    <string name="ex_push_up">Push-ups</string>
+    <string name="ex_chin_up">Chin-ups</string>
+    <string name="ex_bench_press">Bench Presses</string>
+    <string name="ex_military_press">Military Presses</string>
+    <string name="ex_lat_pulldown">Lat Pulldowns</string>
+    <string name="ex_seated_row">Seated Rows</string>
+    <string name="ex_leg_press">Leg Presses</string>
+    <string name="ex_leg_curl">Leg Curls</string>
+    <string name="ex_leg_extension">Leg Extensions</string>
+    <string name="ex_calf_raise">Calf Raises</string>
+    <string name="ex_hip_thrust">Hip Thrusts</string>
+    <string name="ex_glute_bridge">Glute Bridges</string>
+    <string name="ex_tricep_pushdown">Tricep Pushdowns</string>
+    <string name="ex_face_pull">Face Pulls</string>
+    <string name="ex_side_raise">Side Raises</string>
     <string name="ex_dips">Dips</string>
-    <string name="ex_back_extension">Back Extension</string>
+    <string name="ex_back_extension">Back Extensions</string>
 
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Push (Chest, Shoulders, Triceps)</string>
@@ -391,9 +400,9 @@
     <string name="upper_power_desc">Heavy chest, back, shoulders, and arm pressing</string>
     <string name="lower_power_desc">Squats, deadlifts, and abs</string>
     <string name="rest_desc">Active rest, foam rolling, and mobility</string>
-    <string name="full_body_a_desc">Squat, Press, Row, Core</string>
-    <string name="full_body_b_desc">Ausfallschritte, Schulterdrücken, Überzüge, Bizeps</string>
-    <string name="full_body_c_desc">Rumänisches Kreuzheben, Brustdrücken, Arme, Core</string>
+    <string name="full_body_a_desc">Squats, Presses, Rows, Core</string>
+    <string name="full_body_b_desc">Lunges, Shoulder Presses, Pullovers, Biceps</string>
+    <string name="full_body_c_desc">Romanian Deadlifts, Chest Presses, Arms, Core</string>
 
     <string name="warm_beige">Warm Beige</string>
     <string name="developer_theme">Developer Theme</string>
@@ -442,17 +451,9 @@
     <string name="exit">Exit</string>
     <string name="stay">Stay</string>
 
-    <string name="choose_equipment">Choose Your Equipment</string>
     <string name="choose_intensity">Choose Difficulty</string>
     <string name="choose_body_parts">Target Body Parts</string>
     <string name="choose_days">Training Days Per Week</string>
-    <string name="full_gym">Full Gym</string>
-    <string name="full_gym_desc">All equipment and machines</string>
-    <string name="dumbbells_only">Dumbbells</string>
-    <string name="bodyweight_only">Bodyweight</string>
-    <string name="barbell_only">Barbell</string>
-    <string name="cables_only">Cables &amp; Machines</string>
-    <string name="specific_equipment">OR SPECIFIC EQUIPMENT</string>
 
     <string name="min_sets">Min Sets Per Exercise</string>
     <string name="max_sets">Max Sets Per Exercise</string>
@@ -495,8 +496,6 @@
     <string name="triceps_part">Triceps</string>
     <string name="biceps_part">Biceps</string>
 
-    <string name="equipment_limitation_title">Equipment Limitation</string>
-    <string name="equipment_limitation_desc">The following muscle groups cannot be effectively trained with your current equipment: %1$s.</string>
     <string name="rep_format_error">Format must be a number (10) or range (8-12)</string>
     <string name="invalid_char_error">Only numbers and dashes are allowed</string>
     <string name="only_numbers_error">Only numbers are allowed</string>
@@ -563,11 +562,6 @@
     <string name="insight_rest_goal_strength_desc">Longer rest (3–5 mins) is optimal for recovery of the ATP-CP system.</string>
     <string name="ex_push_ups">Push-ups</string>
     <string name="ex_chin_ups">Chin-ups</string>
-    <string name="ex_bench_press">Bench Press</string>
-    <string name="ex_military_press">Military Press</string>
-    <string name="ex_lat_pulldown">Lat Pulldown</string>
-    <string name="ex_seated_row">Seated Row</string>
-    <string name="ex_leg_press">Leg Press</string>
     <string name="ex_leg_curls">Leg Curls</string>
     <string name="ex_leg_extensions">Leg Extensions</string>
     <string name="ex_calf_raises">Calf Raises</string>
@@ -592,11 +586,4 @@
     <string name="ex_desc_fallback_abs">Brace your midsection and flex or rotate your torso under control, focusing on contracting your abdominals.</string>
     <string name="ex_desc_fallback_generic">Perform the movement with precision. Control the weight throughout the entire path and focus on the maximum contraction of your %1$s.</string>
 
-    <string name="ex_bird_dog_desc">Start on all fours. Extend the opposite arm and leg simultaneously while keeping your back flat and core engaged.</string>
-    <string name="ex_pullover_desc">Lie on your back. Hold the weight with both hands and lower it behind your head in an arc, then pull it back over your chest.</string>
-    <string name="ex_superman_desc">Lie face down on the floor. Simultaneously lift your arms, chest, and legs off the ground, then lower them slowly.</string>
-    <string name="ex_good_morning_desc">With a weight on your upper back or at chest height, hinge forward at the hips while keeping your back straight and knees slightly bent.</string>
-    <string name="ex_mountain_climbers_desc">In a plank position, drive your knees toward your chest one at a time in a quick, alternating motion.</string>
-    <string name="ex_hollow_hold_desc">Lie on your back and lift your legs and shoulders off the floor, pressing your lower back firmly into the ground.</string>
-    <string name="ex_clamshell_desc">Lie on your side with knees bent. Lift your top knee while keeping your feet together, focusing on your side glutes.</string>
 </resources>

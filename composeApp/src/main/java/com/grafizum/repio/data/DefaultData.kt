@@ -26,7 +26,7 @@ object DefaultData {
         // MONDAY
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Barbell Row",
+            name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "8–12",
@@ -35,7 +35,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Dumbbell Row",
+            name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "10–15 each side",
@@ -44,7 +44,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Dumbbell Pullover",
+            name = "Dumbbell Pullovers",
             muscleGroup = "Back",
             targetSets = 2,
             targetReps = "10–15",
@@ -53,7 +53,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Dumbbell Curl",
+            name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "8–15",
@@ -62,7 +62,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Hammer Curl",
+            name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "10–15",
@@ -71,7 +71,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Dumbbell Shoulder Press",
+            name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "8–15",
@@ -80,7 +80,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Dumbbell Lateral Raise",
+            name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "12–20",
@@ -89,7 +89,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "MONDAY",
-            name = "Crunch",
+            name = "Crunches",
             muscleGroup = "Abs",
             targetSets = 3,
             targetReps = "15–25",
@@ -100,7 +100,7 @@ object DefaultData {
         // TUESDAY
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Barbell Floor Press",
+            name = "Barbell Bench Presses",
             muscleGroup = "Chest",
             targetSets = 3,
             targetReps = "8–15",
@@ -109,7 +109,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Dumbbell Floor Press",
+            name = "Dumbbell Bench Presses",
             muscleGroup = "Chest",
             targetSets = 2,
             targetReps = "10–15",
@@ -118,7 +118,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Barbell Row",
+            name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "8–12",
@@ -127,7 +127,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Dumbbell Row",
+            name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 2,
             targetReps = "10–15",
@@ -136,7 +136,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Barbell Curl",
+            name = "Barbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "8–15",
@@ -145,7 +145,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Hammer Curl",
+            name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
             targetReps = "10–15",
@@ -154,7 +154,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "TUESDAY",
-            name = "Leg Raise",
+            name = "Leg Raises",
             muscleGroup = "Abs",
             targetSets = 3,
             targetReps = "10–20",
@@ -165,7 +165,7 @@ object DefaultData {
         // WEDNESDAY
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Barbell Squat",
+            name = "Barbell Squats",
             muscleGroup = "Legs",
             targetSets = 3,
             targetReps = "8–12",
@@ -174,7 +174,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Romanian Deadlift",
+            name = "Barbell Romanian Deadlifts",
             muscleGroup = "Legs",
             targetSets = 3,
             targetReps = "8–12",
@@ -183,7 +183,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Dumbbell Lunge",
+            name = "Dumbbell Lunges",
             muscleGroup = "Legs",
             targetSets = 2,
             targetReps = "10 each leg",
@@ -192,7 +192,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Dumbbell Shoulder Press",
+            name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "8–15",
@@ -201,7 +201,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Dumbbell Lateral Raise",
+            name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "12–20",
@@ -210,7 +210,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Crunch",
+            name = "Crunches",
             muscleGroup = "Abs",
             targetSets = 3,
             targetReps = "15–25",
@@ -219,7 +219,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "WEDNESDAY",
-            name = "Plank",
+            name = "Planks",
             muscleGroup = "Abs",
             targetSets = 2,
             targetReps = "30–60 sec",
@@ -230,7 +230,7 @@ object DefaultData {
         // THURSDAY
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Barbell Row",
+            name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "8–12",
@@ -239,7 +239,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Dumbbell Row",
+            name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "10–15",
@@ -248,7 +248,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Dumbbell Pullover",
+            name = "Dumbbell Pullovers",
             muscleGroup = "Back",
             targetSets = 2,
             targetReps = "10–15",
@@ -257,7 +257,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Barbell Curl",
+            name = "Barbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "8–12",
@@ -266,7 +266,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Dumbbell Curl",
+            name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "10–15",
@@ -275,7 +275,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Hammer Curl",
+            name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
             targetReps = "10–15",
@@ -284,7 +284,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Dumbbell Lateral Raise",
+            name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "12–20",
@@ -293,7 +293,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
-            name = "Bent-over Rear Delt Fly",
+            name = "Dumbbell Flyes",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "12–20",
@@ -304,7 +304,7 @@ object DefaultData {
         // FRIDAY
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Dumbbell Shoulder Press",
+            name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "8–15",
@@ -313,7 +313,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Dumbbell Lateral Raise",
+            name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
             targetReps = "12–20",
@@ -322,7 +322,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Bent-over Rear Delt Fly",
+            name = "Dumbbell Flyes",
             muscleGroup = "Shoulders",
             targetSets = 2,
             targetReps = "12–20",
@@ -331,7 +331,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Barbell Row",
+            name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
             targetReps = "10–15",
@@ -340,7 +340,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Dumbbell Curl",
+            name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
             targetReps = "10–15",
@@ -349,7 +349,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Hammer Curl",
+            name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
             targetReps = "10–15",
@@ -358,7 +358,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Dumbbell Overhead Extension",
+            name = "Dumbbell Tricep Extensions",
             muscleGroup = "Triceps",
             targetSets = 2,
             targetReps = "10–15",
@@ -367,7 +367,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Crunch",
+            name = "Crunches",
             muscleGroup = "Abs",
             targetSets = 3,
             targetReps = "15–25",
