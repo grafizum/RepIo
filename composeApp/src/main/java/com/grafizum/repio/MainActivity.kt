@@ -29,6 +29,7 @@ import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
 import androidx.compose.material3.Surface
+import androidx.compose.foundation.clickable
 import androidx.compose.foundation.pager.HorizontalPager
 import androidx.compose.foundation.pager.rememberPagerState
 import androidx.compose.foundation.shape.RoundedCornerShape
@@ -90,6 +91,9 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
 import androidx.compose.ui.res.painterResource
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import com.grafizum.repio.R
 
 
@@ -347,20 +351,49 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     if (showExitConfirmation) {
         val activityContext = context.findActivity()
+        val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { showExitConfirmation = false },
-            title = { Text(stringResource(R.string.exit_app_title)) },
-            text = { Text(stringResource(R.string.exit_app_message)) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(stringResource(R.string.exit_app_title))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { androidx.compose.foundation.interaction.MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(stringResource(R.string.exit_app_message))
+                }
+            },
             confirmButton = {
                 Button(
-                    onClick = { activityContext?.finish() }
+                    onClick = {
+                        focusManager.clearFocus()
+                        activityContext?.finish()
+                    }
                 ) {
                     Text(stringResource(R.string.exit))
                 }
             },
             dismissButton = {
                 TextButton(
-                    onClick = { showExitConfirmation = false }
+                    onClick = {
+                        focusManager.clearFocus()
+                        showExitConfirmation = false
+                    }
                 ) {
                     Text(stringResource(R.string.stay))
                 }
@@ -426,14 +459,15 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                     // ViewModel updates isFirstTimeUser, which triggers recomposition
                 },
                 onCancel = {
-                    viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Workout"
                     viewModel.cancelFirstTimeSetup()
+                    viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Workout"
                     coroutineScope.launch {
                         pagerState.scrollToPage(1) // Set main pager to "My Workout"
                     }
                 }
             )
         } else {
+            val focusManager = LocalFocusManager.current
             Scaffold(
                 bottomBar = {
                     Surface(
@@ -540,7 +574,13 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                         }
                     }
                 },
-            modifier = Modifier.fillMaxSize()
+            modifier = Modifier
+                .fillMaxSize()
+                .pointerInput(Unit) {
+                    detectTapGestures(onTap = {
+                        focusManager.clearFocus()
+                    })
+                }
         ) { innerPadding ->
             Box(modifier = Modifier.fillMaxSize()) {
                 HorizontalPager(

@@ -87,6 +87,8 @@ import androidx.compose.ui.layout.MeasureResult
 import androidx.compose.ui.layout.Placeable
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.foundation.lazy.rememberLazyListState
 import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
@@ -123,8 +125,7 @@ fun WorkoutScreen(
     val workoutState by viewModel.workoutNowState.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val today = remember { getTodayDayOfWeek() }
-    val equipment by viewModel.equipment.collectAsState()
-    val allAvailableExercises = remember(equipment) { WorkoutTemplates.getAllExerciseNames(equipment) }
+    val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
 
     val dayExercises = remember(allExercises, workoutState.selectedDayOfWeek) {
         allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
@@ -159,6 +160,7 @@ fun WorkoutScreen(
     var showDeleteMultipleConfirmation by remember { mutableStateOf(false) }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
+    val focusManager = LocalFocusManager.current
 
     androidx.compose.runtime.LaunchedEffect(workoutState.selectedDayOfWeek) {
         expandedExerciseId = null
@@ -194,7 +196,12 @@ fun WorkoutScreen(
                 Spacer(modifier = Modifier.height(16.dp))
 
                 LazyColumn(
-                    modifier = Modifier.height(380.dp),
+                    modifier = Modifier.height(380.dp)
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = {
+                                focusManager.clearFocus()
+                            })
+                        },
                     verticalArrangement = Arrangement.spacedBy(12.dp)
                 ) {
                     items(WorkoutTemplates.allTemplates) { template ->
@@ -242,6 +249,11 @@ fun WorkoutScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -285,7 +297,10 @@ fun WorkoutScreen(
             Row(verticalAlignment = Alignment.CenterVertically) {
                 if (onCustomClick != null) {
                     OutlinedButton(
-                        onClick = onCustomClick,
+                        onClick = {
+                            focusManager.clearFocus()
+                            onCustomClick()
+                        },
                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                         border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
                         colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
@@ -300,7 +315,10 @@ fun WorkoutScreen(
 
                 Spacer(modifier = Modifier.width(8.dp))
                 Button(
-                    onClick = { viewModel.resetFirstTimeSetup() },
+                    onClick = {
+                        focusManager.clearFocus()
+                        viewModel.resetFirstTimeSetup() 
+                    },
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                     colors = ButtonDefaults.buttonColors(
                         containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
@@ -352,7 +370,13 @@ fun WorkoutScreen(
                 
                 LazyColumn(
                     state = listState,
-                    modifier = Modifier.fillMaxSize(),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .pointerInput(Unit) {
+                            detectTapGestures(onTap = {
+                                focusManager.clearFocus()
+                            })
+                        },
                     verticalArrangement = Arrangement.spacedBy(16.dp)
                 ) {
                     // HEADER FOR SELECTED DAY
@@ -411,6 +435,7 @@ fun WorkoutScreen(
                             if (isSelectionMode) {
                                 Surface(
                                     onClick = {
+                                        focusManager.clearFocus()
                                         if (selectedExerciseIds.size == dayExercisesList.size) {
                                             selectedExerciseIds.clear()
                                         } else {
@@ -441,25 +466,35 @@ fun WorkoutScreen(
                             Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
                                 if (isSelectionMode) {
                                     IconButton(
-                                        onClick = { if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true },
+                                        onClick = { 
+                                            focusManager.clearFocus()
+                                            if (selectedExerciseIds.isNotEmpty()) showDeleteMultipleConfirmation = true 
+                                        },
                                         enabled = selectedExerciseIds.isNotEmpty()
                                     ) {
                                         Icon(imageVector = Icons.Default.Delete, contentDescription = "Delete Selected", tint = if (selectedExerciseIds.isNotEmpty()) MaterialTheme.colorScheme.error else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
                                     }
 
                                     IconButton(onClick = { 
+                                        focusManager.clearFocus()
                                         isSelectionMode = false
                                         selectedExerciseIds.clear()
                                     }) {
                                         Icon(imageVector = Icons.Default.Close, contentDescription = "Cancel")
                                     }
                                 } else {
-                                    IconButton(onClick = { isSelectionMode = true }) {
+                                    IconButton(onClick = { 
+                                        focusManager.clearFocus()
+                                        isSelectionMode = true 
+                                    }) {
                                         Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
                                     }
 
                                     IconButton(
-                                        onClick = { showAddDialog = true },
+                                        onClick = { 
+                                            focusManager.clearFocus()
+                                            showAddDialog = true 
+                                        },
                                         modifier = Modifier.size(24.dp)
                                     ) {
                                         Icon(
@@ -482,7 +517,10 @@ fun WorkoutScreen(
                                 border = if (isDeveloper) BorderStroke(1.dp, Color.White.copy(alpha = 0.5f)) else null,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .clickable { showAddDialog = true }
+                                    .clickable { 
+                                        focusManager.clearFocus()
+                                        showAddDialog = true 
+                                    }
                             ) {
                                 Row(
                                     modifier = Modifier
@@ -663,13 +701,37 @@ fun WorkoutScreen(
     }
 
     exerciseToDelete?.let { exercise ->
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { exerciseToDelete = null },
-            title = { Text(getString("confirm_delete_title")) },
-            text = { Text(getString("confirm_delete_msg")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_delete_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_delete_msg"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.deleteExercise(exercise.id)
                         exerciseToDelete = null
                     },
@@ -679,7 +741,10 @@ fun WorkoutScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { exerciseToDelete = null }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    exerciseToDelete = null
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -687,13 +752,37 @@ fun WorkoutScreen(
     }
 
     if (showDeleteMultipleConfirmation) {
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { showDeleteMultipleConfirmation = false },
-            title = { Text(getString("confirm_delete_multiple_title")) },
-            text = { Text(getString("confirm_delete_multiple_msg", selectedExerciseIds.count())) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_delete_multiple_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_delete_multiple_msg", selectedExerciseIds.count()))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         selectedExerciseIds.forEach { id -> viewModel.deleteExercise(id) }
                         selectedExerciseIds.clear()
                         isSelectionMode = false
@@ -705,7 +794,10 @@ fun WorkoutScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showDeleteMultipleConfirmation = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showDeleteMultipleConfirmation = false
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -713,15 +805,35 @@ fun WorkoutScreen(
     }
 
     replacingExercise?.let { exercise ->
-        val alternatives = remember(exercise.name, exercise.muscleGroup, equipment) {
-            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup, equipment)
+        val alternatives = remember(exercise.name, exercise.muscleGroup) {
+            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
         }
 
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { replacingExercise = null },
-            title = { Text(getString("alternative_exercises")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("alternative_exercises"))
+                }
+            },
             text = {
-                Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(12.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
                     Text(
                         text = getString("select_alternative_desc", translateMuscleGroup(exercise.muscleGroup)),
                         style = MaterialTheme.typography.bodyMedium
@@ -750,6 +862,7 @@ fun WorkoutScreen(
                                             interactionSource = remember { MutableInteractionSource() },
                                             indication = null
                                         ) {
+                                            focusManager.clearFocus()
                                             viewModel.saveExercise(exercise.copy(name = altName, videoUrl = ""))
                                             replacingExercise = null
                                         }
@@ -776,7 +889,10 @@ fun WorkoutScreen(
                                         }
 
                                         if (altDesc.isNotBlank()) {
-                                            IconButton(onClick = { expanded = !expanded }) {
+                                            IconButton(onClick = { 
+                                                focusManager.clearFocus()
+                                                expanded = !expanded 
+                                            }) {
                                                 Icon(
                                                     imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                                                     contentDescription = null,
@@ -799,7 +915,10 @@ fun WorkoutScreen(
             },
             confirmButton = {},
             dismissButton = {
-                TextButton(onClick = { replacingExercise = null }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    replacingExercise = null
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -807,13 +926,37 @@ fun WorkoutScreen(
     }
 
     if (showResetDialog) {
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { showResetDialog = false },
-            title = { Text(getString("reset_program_title")) },
-            text = { Text(getString("reset_program_text")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("reset_program_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("reset_program_text"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.resetToDefaultProgram()
                         showResetDialog = false
                     },
@@ -826,7 +969,10 @@ fun WorkoutScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showResetDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showResetDialog = false
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -834,17 +980,41 @@ fun WorkoutScreen(
     }
 
     pendingTemplate?.let { template ->
+        val focusManager = LocalFocusManager.current
         AlertDialog(
             onDismissRequest = { pendingTemplate = null },
             properties = androidx.compose.ui.window.DialogProperties(
                 dismissOnClickOutside = true,
                 dismissOnBackPress = true
             ),
-            title = { Text(getString("confirm_new_program_title")) },
-            text = { Text(getString("confirm_new_program_message")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_new_program_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_new_program_message"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.applyWorkoutTemplate(template)
                         pendingTemplate = null
                         showTemplatesSheet = false
@@ -858,7 +1028,10 @@ fun WorkoutScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { pendingTemplate = null }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    pendingTemplate = null
+                }) {
                     Text(getString("cancel"))
                 }
             }

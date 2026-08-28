@@ -80,6 +80,17 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     }
 
     suspend fun saveExercise(exercise: RoutineExerciseEntity) {
+        // Ensure day exists in routine_days to satisfy foreign key constraint
+        val days = dao.getAllRoutineDays().first()
+        if (days.none { it.dayOfWeek == exercise.dayOfWeek }) {
+            dao.insertRoutineDays(listOf(RoutineDayEntity(
+                dayOfWeek = exercise.dayOfWeek,
+                title = exercise.dayOfWeek,
+                description = "Custom day",
+                isRestDay = false
+            )))
+        }
+
         var finalExercise = exercise
         if (exercise.videoUrl.isBlank()) {
             val existingUrl = dao.getVideoUrlForExercise(exercise.name)

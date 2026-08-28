@@ -4,14 +4,10 @@ import android.content.Context
 import androidx.room.Database
 import androidx.room.Room
 import androidx.room.RoomDatabase
-import androidx.sqlite.db.SupportSQLiteDatabase
-import kotlinx.coroutines.CoroutineScope
-import kotlinx.coroutines.Dispatchers
-import kotlinx.coroutines.launch
 
 @Database(
     entities = [RoutineDayEntity::class, RoutineExerciseEntity::class, LoggedSetEntity::class],
-    version = 4,
+    version = 5,
     exportSchema = false
 )
 abstract class AppDatabase : RoomDatabase() {
@@ -30,18 +26,6 @@ abstract class AppDatabase : RoomDatabase() {
                     "workout_tracker_db"
                 )
                 .fallbackToDestructiveMigration(dropAllTables = true)
-                .addCallback(object : RoomDatabase.Callback() {
-                    override fun onCreate(db: SupportSQLiteDatabase) {
-                        super.onCreate(db)
-                        // Triggered only once when DB is created
-                        CoroutineScope(Dispatchers.IO).launch {
-                            // Use the instance we are currently building
-                            val dao = getDatabase(context).workoutDao()
-                            dao.insertRoutineDays(DefaultData.routineDays)
-                            dao.insertRoutineExercises(DefaultData.routineExercises)
-                        }
-                    }
-                })
                 .build()
                 INSTANCE = instance
                 instance

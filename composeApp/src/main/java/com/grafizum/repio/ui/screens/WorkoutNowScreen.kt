@@ -14,6 +14,7 @@ import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.*
@@ -48,6 +49,9 @@ import androidx.compose.ui.unit.sp
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.layout.Measurable
 import androidx.compose.ui.layout.MeasureScope
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.layout.MeasureResult
 import androidx.core.app.NotificationManagerCompat
 import androidx.lifecycle.Lifecycle
@@ -79,13 +83,13 @@ fun WorkoutNowScreen(
     val workoutState by viewModel.workoutNowState.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
 
     var showRestartDialog by remember { mutableStateOf(false) }
     var showCustomWeightDialog by remember { mutableStateOf(false) }
     var customWeightInput by remember { mutableStateOf("") }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
-    val equipment by viewModel.equipment.collectAsState()
-    val allAvailableExercises = remember(equipment) { WorkoutTemplates.getAllExerciseNames(equipment) }
+    val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
     val themeKey by viewModel.themeOption.collectAsState()
 
     val context = LocalContext.current
@@ -128,11 +132,34 @@ fun WorkoutNowScreen(
     if (showRestartDialog) {
         AlertDialog(
             onDismissRequest = { showRestartDialog = false },
-            title = { Text(getString("restart_workout_session_title")) },
-            text = { Text(getString("restart_workout_session_text")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("restart_workout_session_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("restart_workout_session_text"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.resetWorkoutSession()
                         showRestartDialog = false
                     },
@@ -145,7 +172,10 @@ fun WorkoutNowScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRestartDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showRestartDialog = false
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -155,9 +185,27 @@ fun WorkoutNowScreen(
     if (showCustomWeightDialog) {
         AlertDialog(
             onDismissRequest = { showCustomWeightDialog = false },
-            title = { Text(getString("set_custom_weight_title")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("set_custom_weight_title"))
+                }
+            },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
                     Text(getString("enter_custom_weight_text"), style = MaterialTheme.typography.bodyMedium)
                     Spacer(modifier = Modifier.height(8.dp))
                     OutlinedTextField(
@@ -173,6 +221,7 @@ fun WorkoutNowScreen(
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         val parsed = customWeightInput.toDoubleOrNull()
                         if (parsed != null && parsed >= 0.0) {
                             viewModel.updateWeightAndReps(parsed, workoutState.currentReps)
@@ -184,7 +233,10 @@ fun WorkoutNowScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showCustomWeightDialog = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showCustomWeightDialog = false 
+                }) {
                     Text(getString("cancel"))
                 }
             }
@@ -195,6 +247,11 @@ fun WorkoutNowScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
     ) {
         Spacer(modifier = Modifier.height(16.dp))
 
@@ -409,19 +466,21 @@ fun WorkoutNowScreen(
                                     )
                                     Spacer(modifier = Modifier.height(24.dp))
 
-                                    Button(
-                                        onClick = { viewModel.resetWorkoutSession() },
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                        ),
-                                        shape = RoundedCornerShape(16.dp),
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Text(
-                                            text = getString("start_workout_again"),
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                        )
+                                    if (targetDay == today) {
+                                        Button(
+                                            onClick = { viewModel.resetWorkoutSession() },
+                                            colors = ButtonDefaults.buttonColors(
+                                                containerColor = MaterialTheme.colorScheme.primary,
+                                                contentColor = MaterialTheme.colorScheme.onPrimary
+                                            ),
+                                            shape = RoundedCornerShape(16.dp),
+                                            modifier = Modifier.fillMaxWidth()
+                                        ) {
+                                            Text(
+                                                text = getString("start_workout_again"),
+                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -458,29 +517,31 @@ fun WorkoutNowScreen(
                                     color = if (isDeveloper) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.primary
                                 )
 
-                                Button(
-                                    onClick = { showRestartDialog = true },
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                                    ),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
-                                    modifier = Modifier
-                                        .height(32.dp)
-                                        .semantics { testTag = "restart_workout_button" }
-                                ) {
-                                    Icon(
-                                        imageVector = Icons.Default.Refresh,
-                                        contentDescription = getString("restart"),
-                                        modifier = Modifier.size(14.dp)
-                                    )
-                                    Spacer(modifier = Modifier.width(4.dp))
-                                    Text(
-                                        getString("restart"),
-                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
-                                    )
+                                if (targetDay == today) {
+                                    Button(
+                                        onClick = { showRestartDialog = true },
+                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                                        colors = ButtonDefaults.buttonColors(
+                                            containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                            contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                        ),
+                                        border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                        contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
+                                        modifier = Modifier
+                                            .height(32.dp)
+                                            .semantics { testTag = "restart_workout_button" }
+                                    ) {
+                                        Icon(
+                                            imageVector = Icons.Default.Refresh,
+                                            contentDescription = getString("restart"),
+                                            modifier = Modifier.size(14.dp)
+                                        )
+                                        Spacer(modifier = Modifier.width(4.dp))
+                                        Text(
+                                            getString("restart"),
+                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                    }
                                 }
                             }
                             Spacer(modifier = Modifier.height(6.dp))
@@ -504,6 +565,11 @@ fun WorkoutNowScreen(
                             modifier = Modifier
                                 .weight(1f)
                                 .fillMaxWidth()
+                                .pointerInput(Unit) {
+                                    detectTapGestures(onTap = {
+                                        focusManager.clearFocus()
+                                    })
+                                }
                                 .verticalScroll(viewModel.workoutNowScrollState),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
@@ -664,11 +730,22 @@ fun WorkoutNowScreen(
                                             style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurface,
                                             modifier = Modifier.weight(1f),
-                                            maxLines = if (isDeveloper) 2 else 1,
+                                            maxLines = if (showPeek) 2 else 1,
                                             overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
                                         )
 
                                         Row(verticalAlignment = Alignment.CenterVertically) {
+                                            IconButton(
+                                                onClick = { editingExercise = currentExercise },
+                                                modifier = Modifier.size(32.dp)
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Edit,
+                                                    contentDescription = "Edit Routine",
+                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
+                                                    modifier = Modifier.size(20.dp)
+                                                )
+                                            }
                                             IconButton(
                                                 onClick = { showPeek = !showPeek },
                                                 modifier = Modifier.size(32.dp)
@@ -842,6 +919,7 @@ fun WorkoutNowScreen(
                                                         .clip(CircleShape)
                                                         .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                                         .clickable {
+                                                            focusManager.clearFocus()
                                                             customWeightInput = workoutState.currentWeightKg.toString()
                                                             showCustomWeightDialog = true
                                                         }
@@ -863,7 +941,10 @@ fun WorkoutNowScreen(
                                         ) {
                                             val canDecrementWeight = workoutState.currentWeightKg > 0
                                             IconButton(
-                                                onClick = { viewModel.decrementWeight() },
+                                                onClick = {
+                                                    focusManager.clearFocus()
+                                                    viewModel.decrementWeight()
+                                                },
                                                 enabled = canDecrementWeight,
                                                 modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                             ) {
@@ -871,7 +952,10 @@ fun WorkoutNowScreen(
                                             }
 
                                             IconButton(
-                                                onClick = { viewModel.incrementWeight() },
+                                                onClick = {
+                                                    focusManager.clearFocus()
+                                                    viewModel.incrementWeight()
+                                                },
                                                 modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
                                             ) {
                                                 Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
@@ -904,7 +988,10 @@ fun WorkoutNowScreen(
                                             if (isTimeBased) {
                                                 val canDecreaseTime = workoutState.currentExerciseSeconds > workoutState.minExerciseSeconds
                                                 IconButton(
-                                                    onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 5) },
+                                                    onClick = {
+                                                        focusManager.clearFocus()
+                                                        viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 15)
+                                                    },
                                                     enabled = canDecreaseTime,
                                                     modifier = Modifier.clip(CircleShape).background(if (canDecreaseTime) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                                 ) {
@@ -913,7 +1000,10 @@ fun WorkoutNowScreen(
 
                                                 val canIncreaseTime = workoutState.currentExerciseSeconds < workoutState.maxExerciseSeconds
                                                 IconButton(
-                                                    onClick = { viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 5) },
+                                                    onClick = {
+                                                        focusManager.clearFocus()
+                                                        viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 15)
+                                                    },
                                                     enabled = canIncreaseTime,
                                                     modifier = Modifier.clip(CircleShape).background(if (canIncreaseTime) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                                 ) {
@@ -922,7 +1012,10 @@ fun WorkoutNowScreen(
                                             } else {
                                                 val canDecreaseReps = workoutState.currentReps > workoutState.minReps
                                                 IconButton(
-                                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1) },
+                                                    onClick = {
+                                                        focusManager.clearFocus()
+                                                        viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1)
+                                                    },
                                                     enabled = canDecreaseReps,
                                                     modifier = Modifier.clip(CircleShape).background(if (canDecreaseReps) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                                 ) {
@@ -931,7 +1024,10 @@ fun WorkoutNowScreen(
 
                                                 val canIncreaseReps = workoutState.currentReps < workoutState.maxReps
                                                 IconButton(
-                                                    onClick = { viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1) },
+                                                    onClick = {
+                                                        focusManager.clearFocus()
+                                                        viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1)
+                                                    },
                                                     enabled = canIncreaseReps,
                                                     modifier = Modifier.clip(CircleShape).background(if (canIncreaseReps) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
                                                 ) {
@@ -962,14 +1058,14 @@ fun WorkoutNowScreen(
                                     ),
                                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
                                     border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                                    modifier = Modifier.fillMaxWidth().height(64.dp)
+                                    modifier = Modifier.fillMaxWidth().height(52.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(24.dp))
+                                        Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(20.dp))
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Text(
                                             text = "${workoutState.restTimerSeconds}s",
-                                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold)
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
                                         )
                                         Spacer(modifier = Modifier.width(8.dp))
                                         Text(
@@ -993,7 +1089,7 @@ fun WorkoutNowScreen(
                                     ),
                                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
                                     border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
-                                    modifier = Modifier.fillMaxWidth().height(64.dp)
+                                    modifier = Modifier.fillMaxWidth().height(52.dp)
                                 ) {
                                     Row(verticalAlignment = Alignment.CenterVertically) {
                                         val icon = if (isTimeBased) Icons.Default.Timer else Icons.Default.CheckCircle
@@ -1003,13 +1099,50 @@ fun WorkoutNowScreen(
                                             getString("log_set_x_next", workoutState.currentSetNumber)
                                         }
                                         
-                                        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(28.dp))
+                                        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(22.dp))
                                         Spacer(modifier = Modifier.width(10.dp))
                                         Text(
                                             text = text,
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
+                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
                                         )
                                     }
+                                }
+                            }
+                        } else {
+                            Spacer(modifier = Modifier.height(16.dp))
+                            Row(
+                                horizontalArrangement = Arrangement.spacedBy(16.dp),
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) {
+                                Button(
+                                    onClick = { viewModel.navigateToExercise(workoutState.currentExerciseIndex - 1, dayExercises.size) },
+                                    enabled = workoutState.currentExerciseIndex > 0,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                ) {
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(20.dp))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Text(getString("previous"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                                }
+                                Button(
+                                    onClick = { viewModel.navigateToExercise(workoutState.currentExerciseIndex + 1, dayExercises.size) },
+                                    enabled = workoutState.currentExerciseIndex < dayExercises.size - 1,
+                                    colors = ButtonDefaults.buttonColors(
+                                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    ),
+                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                    modifier = Modifier.weight(1f).fillMaxHeight()
+                                ) {
+                                    Text(getString("next"), style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold))
+                                    Spacer(modifier = Modifier.width(8.dp))
+                                    Icon(imageVector = Icons.AutoMirrored.Filled.ArrowForward, contentDescription = null, modifier = Modifier.size(20.dp))
                                 }
                             }
                         }

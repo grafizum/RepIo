@@ -15,7 +15,7 @@
       </SelectionState>
       <SelectionState runConfigName="New Run Config">
         <option name="selectionMode" value="DROPDOWN" />
-        <DropdownSelection timestamp="2026-08-16T16:09:43.410329Z">
+        <DropdownSelection timestamp="2026-08-28T14:13:57.071379600Z">
           <Target type="DEFAULT_BOOT">
             <handle>
               <DeviceId pluginId="LocalEmulator" identifier="path=C:\Users\guido\.android\avd\RepIo.avd" />

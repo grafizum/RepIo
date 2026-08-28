@@ -6,6 +6,7 @@ import androidx.compose.foundation.ExperimentalFoundationApi
 import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
+import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
 import androidx.compose.foundation.layout.Column
@@ -73,6 +74,9 @@ import androidx.compose.ui.graphics.Color
 import com.grafizum.repio.util.getString
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.platform.LocalFocusManager
+import androidx.compose.foundation.gestures.detectTapGestures
+import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
@@ -109,6 +113,7 @@ fun SettingsScreen(
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+    val focusManager = LocalFocusManager.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
@@ -150,9 +155,27 @@ fun SettingsScreen(
     if (showRestTimerConfirmation) {
         AlertDialog(
             onDismissRequest = { showRestTimerConfirmation = false },
-            title = { Text(getString("confirm_timer_change_title")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_timer_change_title"))
+                }
+            },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
                     Text(getString("confirm_timer_change_msg"))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -164,6 +187,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 Button(onClick = {
+                    focusManager.clearFocus()
                     viewModel.overrideAllWorkoutsRestTimer(pendingRestTimer)
                     showRestTimerConfirmation = false
                 }) {
@@ -171,7 +195,10 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showRestTimerConfirmation = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showRestTimerConfirmation = false
+                }) {
                     Text(getString("cancel"))
                 }
             },
@@ -182,9 +209,27 @@ fun SettingsScreen(
     if (showTransitionTimerConfirmation) {
         AlertDialog(
             onDismissRequest = { showTransitionTimerConfirmation = false },
-            title = { Text(getString("confirm_timer_change_title")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("confirm_timer_change_title"))
+                }
+            },
             text = {
-                Column {
+                Column(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
                     Text(getString("confirm_timer_change_msg"))
                     Spacer(modifier = Modifier.height(12.dp))
                     Text(
@@ -196,6 +241,7 @@ fun SettingsScreen(
             },
             confirmButton = {
                 Button(onClick = {
+                    focusManager.clearFocus()
                     viewModel.overrideAllWorkoutsTransitionTimer(pendingTransitionTimer)
                     showTransitionTimerConfirmation = false
                 }) {
@@ -203,7 +249,10 @@ fun SettingsScreen(
                 }
             },
             dismissButton = {
-                TextButton(onClick = { showTransitionTimerConfirmation = false }) {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showTransitionTimerConfirmation = false
+                }) {
                     Text(getString("cancel"))
                 }
             },
@@ -218,11 +267,34 @@ fun SettingsScreen(
                 dismissOnBackPress = false,
                 dismissOnClickOutside = false
             ),
-            title = { Text(getString("restart_required_title")) },
-            text = { Text(getString("restart_required_message")) },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("restart_required_title"))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("restart_required_message"))
+                }
+            },
             confirmButton = {
                 Button(
                     onClick = {
+                        focusManager.clearFocus()
                         viewModel.applyThemeRestart()
                         // (context as? Activity)?.finishAffinity()
                     }
@@ -239,6 +311,11 @@ fun SettingsScreen(
         modifier = modifier
             .fillMaxSize()
             .padding(horizontal = 16.dp)
+            .pointerInput(Unit) {
+                detectTapGestures(onTap = {
+                    focusManager.clearFocus()
+                })
+            }
             .verticalScroll(scrollState)
     ) {
         Spacer(modifier = Modifier.height(16.dp))
@@ -330,7 +407,10 @@ fun SettingsScreen(
 
                     ExposedDropdownMenuBox(
                         expanded = expandedLanguage,
-                        onExpandedChange = { expandedLanguage = !expandedLanguage },
+                        onExpandedChange = { 
+                            focusManager.clearFocus()
+                            expandedLanguage = !expandedLanguage 
+                        },
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         OutlinedTextField(
@@ -362,6 +442,7 @@ fun SettingsScreen(
                                         )
                                     },
                                     onClick = {
+                                        focusManager.clearFocus()
                                         viewModel.setAppLanguage(code)
                                         expandedLanguage = false
                                     },

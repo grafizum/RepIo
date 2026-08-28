@@ -44,6 +44,7 @@ data class RoutineExerciseEntity(
     val targetSets: Int,
     val targetReps: String, // e.g. "8–12"
     val targetIntensity: String = "", // e.g. "RPE 8" or "Heavy"
+    val targetWeightKg: Double = 0.0,
     val restSeconds: Int = 60,
     val transitionRestSeconds: Int = 90,
     val videoUrl: String = "",

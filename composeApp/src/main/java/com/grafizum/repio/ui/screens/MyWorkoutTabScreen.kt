@@ -20,7 +20,7 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 fun WorkoutTabScreen(
     viewModel: WorkoutViewModel,
     onBack: (() -> Unit)? = null,
-    initialTab: Int = 0,
+    initialTab: Int = viewModel.requestedWorkoutSubTab.value.tab,
     isActive: Boolean = true,
     modifier: Modifier = Modifier
 ) {
