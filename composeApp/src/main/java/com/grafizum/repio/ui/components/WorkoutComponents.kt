@@ -1993,10 +1993,7 @@ fun CompactNumericField(
                 label = { Text(label, maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
                 placeholder = if (placeholder != null) { { Text(placeholder, fontSize = 16.sp, color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)) } } else null,
                 suffix = suffix,
-                supportingText = {
-                    if (supportingText != null) supportingText()
-                    else Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                },
+                supportingText = supportingText,
                 contentPadding = OutlinedTextFieldDefaults.contentPadding(
                     start = 16.dp,
                     end = 12.dp
@@ -2007,7 +2004,7 @@ fun CompactNumericField(
                         isError = isError,
                         interactionSource = interactionSource,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                         ),
                         shape = RoundedCornerShape(12.dp),
                         focusedBorderThickness = 2.dp,
@@ -2202,10 +2199,7 @@ fun RepsRangeField(
                 enabled = true,
                 isError = isError,
                 singleLine = true,
-                supportingText = {
-                    if (supportingText != null) supportingText()
-                    else Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1)
-                },
+                supportingText = supportingText,
                 interactionSource = interactionSource,
                 contentPadding = OutlinedTextFieldDefaults.contentPadding(),
                 visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
@@ -2215,7 +2209,7 @@ fun RepsRangeField(
                         isError = isError,
                         interactionSource = interactionSource,
                         colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                         ),
                         shape = RoundedCornerShape(12.dp),
                         focusedBorderThickness = 2.dp,
@@ -2382,7 +2376,7 @@ fun ExerciseEditDialog(
                 val showSupportingSpacer = repsError
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
@@ -2422,7 +2416,6 @@ fun ExerciseEditDialog(
                                         isError = false,
                                         label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                        supportingText = { Text(" ", style = MaterialTheme.typography.bodySmall, maxLines = 1) },
                                         contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
                                         container = {
                                             OutlinedTextFieldDefaults.ContainerBox(
@@ -2430,7 +2423,7 @@ fun ExerciseEditDialog(
                                                 isError = false,
                                                 interactionSource = interactionSource,
                                                 colors = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
                                                 ),
                                                 shape = RoundedCornerShape(12.dp),
                                                 focusedBorderThickness = 2.dp,
@@ -2458,7 +2451,7 @@ fun ExerciseEditDialog(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(12.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
