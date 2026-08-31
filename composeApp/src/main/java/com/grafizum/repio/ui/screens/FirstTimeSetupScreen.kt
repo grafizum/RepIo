@@ -22,6 +22,7 @@ import androidx.compose.foundation.relocation.BringIntoViewRequester
 import androidx.compose.foundation.relocation.bringIntoViewRequester
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
+import androidx.compose.foundation.text.BasicTextField
 import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
@@ -57,6 +58,7 @@ import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.RepsTimeToggle
 import com.grafizum.repio.ui.components.RepsRangeField
+import com.grafizum.repio.ui.components.CompactNumericField
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.getExerciseDetails
@@ -1903,7 +1905,13 @@ private fun AlternativeExercisesDialog(
                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
                         ) {
                             Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                Text(translateExerciseName(alt), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold), modifier = Modifier.weight(1f))
+                                            Text(
+                                                text = translateExerciseName(alt), 
+                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis,
+                                                modifier = Modifier.weight(1f)
+                                            )
                                 Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
                             }
                         }
@@ -2039,7 +2047,7 @@ fun AddExerciseDialog(
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
-    var targetWeightValue by remember { mutableStateOf(exercise?.targetWeightKg?.toString() ?: "") }
+    var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
@@ -2101,7 +2109,7 @@ fun AddExerciseDialog(
         },
         text = {
             Column(
-                verticalArrangement = Arrangement.spacedBy(10.dp),
+                verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
@@ -2196,23 +2204,15 @@ fun AddExerciseDialog(
                 val showSupportingSpacer = repsError
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
-                    OutlinedTextField(
+                    CompactNumericField(
                         value = targetSets,
                         onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
-                        label = { Text(getString("sets"), maxLines = 1) },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                        colors = OutlinedTextFieldDefaults.colors(
-                            unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                        ),
-                        supportingText = if (showSupportingSpacer) { { Text(" ", maxLines = 1) } } else null
+                        label = getString("sets"),
+                        modifier = Modifier.weight(1f).fillMaxHeight()
                     )
 
                     if (isTimeBased) {
@@ -2223,19 +2223,43 @@ fun AddExerciseDialog(
                             modifier = Modifier.weight(1f).fillMaxHeight()
                         ) {
                             val digits = targetTimeValue.filter { it.isDigit() }
-                            OutlinedTextField(
+                            val interactionSource = remember { MutableInteractionSource() }
+                            BasicTextField(
                                 value = if (digits.isNotBlank()) "${digits}s" else "30s",
                                 onValueChange = {},
                                 readOnly = true,
-                                label = { Text(getString("time_label"), maxLines = 1) },
-                                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                shape = RoundedCornerShape(12.dp),
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().fillMaxHeight(),
-                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                                colors = OutlinedTextFieldDefaults.colors(
-                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
-                                ),
-                                supportingText = if (showSupportingSpacer) { { Text(" ", maxLines = 1) } } else null
+                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
+                                interactionSource = interactionSource,
+                                enabled = true,
+                                singleLine = true,
+                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+                                decorationBox = { innerTextField ->
+                                    OutlinedTextFieldDefaults.DecorationBox(
+                                        value = if (digits.isNotBlank()) "${digits}s" else "30s",
+                                        innerTextField = innerTextField,
+                                        enabled = true,
+                                        singleLine = true,
+                                        visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                                        interactionSource = interactionSource,
+                                        isError = false,
+                                        label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                        contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
+                                        container = {
+                                            OutlinedTextFieldDefaults.ContainerBox(
+                                                enabled = true,
+                                                isError = false,
+                                                interactionSource = interactionSource,
+                                                colors = OutlinedTextFieldDefaults.colors(
+                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                ),
+                                                shape = RoundedCornerShape(12.dp),
+                                                focusedBorderThickness = 2.dp,
+                                                unfocusedBorderThickness = 1.dp
+                                            )
+                                        }
+                                    )
+                                }
                             )
                             ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
                                 listOf("30", "45", "60", "90", "120").forEach { t ->
@@ -2244,19 +2268,15 @@ fun AddExerciseDialog(
                             }
                         }
                     } else {
-                        com.grafizum.repio.ui.components.RepsRangeField(
+                        RepsRangeField(
                             value = targetRepsValue,
                             onValueChange = { targetRepsValue = it },
                             label = getString("reps"),
                             isError = repsError,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
-                            supportingText = if (showSupportingSpacer) {
+                            supportingText = if (repsHasRangeError) {
                                 {
-                                    if (repsHasRangeError) {
-                                        Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
-                                    } else {
-                                        Text(" ", maxLines = 1)
-                                    }
+                                    Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
                                 }
                             } else null
                         )
@@ -2264,33 +2284,26 @@ fun AddExerciseDialog(
                 }
 
                 Row(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
                     modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                 ) {
-                    OutlinedTextField(
+                    CompactNumericField(
                         value = targetWeightValue,
                         onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
-                        label = { Text(getString("target_weight"), maxLines = 1) },
-                        placeholder = { Text("20.0") },
-                        suffix = { Text("kg") },
-                        singleLine = true,
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        shape = RoundedCornerShape(12.dp),
+                        label = getString("target_weight"),
+                        placeholder = "20.0",
+                        suffix = { Text("kg", fontSize = 12.sp) },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                        supportingText = if (showSupportingSpacer) { { Text(" ", maxLines = 1) } } else null
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
-                    OutlinedTextField(
+                    CompactNumericField(
                         value = targetIntensityStr,
                         onValueChange = { targetIntensityStr = it },
-                        label = { Text(getString("intensity_label"), maxLines = 1) },
-                        placeholder = { Text("RPE 8") },
-                        singleLine = true,
-                        shape = RoundedCornerShape(12.dp),
+                        label = getString("intensity_label"),
+                        placeholder = "RPE 8",
                         modifier = Modifier.weight(1f).fillMaxHeight(),
-                        textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Center),
-                        supportingText = if (showSupportingSpacer) { { Text(" ", maxLines = 1) } } else null
+                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
                 }
 
