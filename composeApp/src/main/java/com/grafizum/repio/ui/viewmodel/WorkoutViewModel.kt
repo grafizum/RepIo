@@ -171,21 +171,41 @@ class WorkoutViewModel(
                 .collect { exercise ->
                     exercise?.let {
                         val cachedWeight = getCachedWeightForExercise(it.name)
+                        val cachedReps = getCachedRepsForExercise(it.name)
+                        val cachedSeconds = getCachedSecondsForExercise(it.name)
                         val isTimeBased = it.targetReps.contains("sec", ignoreCase = true)
                         val isBodyweight = WorkoutTemplates.isBodyweightExercise(it.name)
                         val (minVal, maxVal) = parseRepsRange(it.targetReps)
 
                         _workoutNowState.update { state ->
-                            // Prioritize template weight, fallback to cache
+                            // Suggested weight: the plan weight (set in the Edit screen) wins, otherwise
+                            // remember the last weight the user used for this exercise, else default 20 kg.
                             val templateWeight = it.targetWeightKg
-                            val initialWeight = if (templateWeight > 0.0) templateWeight else cachedWeight
+                            val suggestedWeight = when {
+                                templateWeight > 0.0 -> templateWeight
+                                cachedWeight != null -> cachedWeight
+                                isBodyweight -> 0.0
+                                else -> 20.0
+                            }
+                            val showBodyweight = isBodyweight && suggestedWeight == 0.0
 
-                            val nextReps = if (!isTimeBased) maxVal else state.currentReps
-                            val nextSeconds = if (isTimeBased) maxVal else state.currentExerciseSeconds
+                            // Auto-select reps/seconds: remember what the user last chose for this exercise
+                            // (clamped to the plan's range); otherwise the middle of the target rep range,
+                            // or the upper bound of the time range for time-based exercises.
+                            val nextReps = if (!isTimeBased) {
+                                cachedReps?.takeIf { it in minVal..maxVal } ?: WorkoutTemplates.getMiddleRep(it.targetReps)
+                            } else {
+                                state.currentReps
+                            }
+                            val nextSeconds = if (isTimeBased) {
+                                cachedSeconds?.takeIf { it in 15..3600 } ?: maxVal
+                            } else {
+                                state.currentExerciseSeconds
+                            }
 
                             state.copy(
-                                currentWeightKg = if (isBodyweight && templateWeight <= 0.0) 0.0 else initialWeight,
-                                recommendedWeightKg = if (isBodyweight && templateWeight <= 0.0) 0.0 else initialWeight,
+                                currentWeightKg = if (showBodyweight) 0.0 else suggestedWeight,
+                                recommendedWeightKg = if (showBodyweight) 0.0 else suggestedWeight,
                                 currentReps = nextReps,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
@@ -355,7 +375,12 @@ class WorkoutViewModel(
         maxSets: Int = 0
     ) {
         viewModelScope.launch {
+            // Completing a brand-new build from the Welcome screen replaces the routine,
+            // so its memory (last-used weights/reps/seconds and the in-progress session) resets.
+            val previousExerciseNames = repository.allRoutineExercises.first().map { it.name }
             repository.applyProgram(days, exercises)
+            clearExerciseMemories((previousExerciseNames + exercises.map { it.name }).distinct())
+            resetSessionProgress()
             val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
@@ -481,12 +506,22 @@ class WorkoutViewModel(
 
     fun updateWeightAndReps(weight: Double, reps: Int) {
         val currentState = _workoutNowState.value
+        val newWeight = weight.coerceAtLeast(0.0)
+        val newReps = reps.coerceIn(currentState.minReps, currentState.maxReps)
         val newState = currentState.copy(
-            currentWeightKg = weight.coerceAtLeast(0.0),
-            currentReps = reps
+            currentWeightKg = newWeight,
+            currentReps = newReps
         )
         _workoutNowState.update { newState }
         saveWorkoutNowState(newState)
+
+        // Remember what the user chose for this exercise so it becomes the suggestion next time
+        currentExerciseName()?.let { name ->
+            if (!WorkoutTemplates.isBodyweightExercise(name) || newWeight > 0.0) {
+                prefs.putFloat("cache_weight_$name", newWeight.toFloat())
+            }
+            prefs.putInt("cache_reps_$name", newReps)
+        }
     }
 
     fun updateExerciseSeconds(seconds: Int) {
@@ -496,12 +531,57 @@ class WorkoutViewModel(
         )
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
+
+        // Remember the duration the user chose for time-based exercises
+        currentExerciseName()?.let { name ->
+            prefs.putInt("cache_seconds_$name", newState.currentExerciseSeconds)
+        }
     }
 
-    private fun getCachedWeightForExercise(exerciseName: String): Double {
+    /** Returns the weight the user last used for this exercise, or null when unknown. */
+    private fun getCachedWeightForExercise(exerciseName: String): Double? {
         val exerciseWeight = prefs.getFloat("cache_weight_${exerciseName}", -1f)
-        if (exerciseWeight != -1f) return exerciseWeight.toDouble()
-        return 20.0
+        return if (exerciseWeight >= 0f) exerciseWeight.toDouble() else null
+    }
+
+    /** Returns the last rep count the user set for this exercise, or null when unknown. */
+    private fun getCachedRepsForExercise(exerciseName: String): Int? {
+        val reps = prefs.getInt("cache_reps_${exerciseName}", -1)
+        return if (reps >= 0) reps else null
+    }
+
+    /** Returns the last duration (seconds) the user set for this exercise, or null when unknown. */
+    private fun getCachedSecondsForExercise(exerciseName: String): Int? {
+        val seconds = prefs.getInt("cache_seconds_${exerciseName}", -1)
+        return if (seconds >= 0) seconds else null
+    }
+
+    /** The routine exercise currently active in the workout session, if any. */
+    private fun currentExerciseName(): String? {
+        val dayExercises = allRoutineExercises.value
+            .filter { it.dayOfWeek == _workoutNowState.value.selectedDayOfWeek }
+            .sortedBy { it.orderIndex }
+        return dayExercises.getOrNull(_workoutNowState.value.currentExerciseIndex)?.name
+    }
+
+    /** Forgets the remembered per-exercise values (used when a brand-new build replaces the routine). */
+    private fun clearExerciseMemories(exerciseNames: List<String>) {
+        exerciseNames.forEach { name ->
+            prefs.remove("cache_weight_$name")
+            prefs.remove("cache_reps_$name")
+            prefs.remove("cache_seconds_$name")
+        }
+    }
+
+    /** Resets an in-progress session so a new program starts at exercise 1 of today. */
+    private fun resetSessionProgress() {
+        stopTimer()
+        listOf(
+            "saved_workout_day", "saved_exercise_index", "saved_set_number",
+            "saved_weight_kg", "saved_reps", "saved_exercise_seconds",
+            "saved_is_completed", "saved_total_sets_logged"
+        ).forEach { prefs.remove(it) }
+        _workoutNowState.value = WorkoutNowState(selectedDayOfWeek = getTodayDayOfWeek())
     }
 
     fun incrementWeight() {
@@ -537,17 +617,21 @@ class WorkoutViewModel(
             val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
             val currentExercise = exercises[exerciseIndex]
             
-            // Save weight to cache for next time
+            // Save what the user performed to the per-exercise memory for next time
             if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
                 prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
+            }
+            if (!currentExercise.targetReps.contains("sec", ignoreCase = true)) {
+                prefs.putInt("cache_reps_${currentExercise.name}", currentState.currentReps)
             }
             
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
             
-            // Save current parameters back to template for next week
+            // Save current parameters back to template for next week (keep a full rep range, not a single value)
             repository.saveExercise(currentExercise.copy(
                 targetWeightKg = currentState.currentWeightKg,
-                targetReps = if (currentExercise.targetReps.contains("sec", ignoreCase = true)) currentExercise.targetReps else currentState.currentReps.toString()
+                targetReps = if (currentExercise.targetReps.contains("sec", ignoreCase = true)) currentExercise.targetReps
+                             else WorkoutTemplates.repRangeAround(currentState.currentReps)
             ))
 
             val nextSetNumber = currentState.currentSetNumber + 1
@@ -651,10 +735,11 @@ class WorkoutViewModel(
         val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
         val currentExercise = exercises[exerciseIndex]
         
-        // Save weight to cache for next time
+        // Save what the user performed to the per-exercise memory for next time
         if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
             prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
         }
+        prefs.putInt("cache_seconds_${currentExercise.name}", seconds)
 
         viewModelScope.launch {
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, seconds)

@@ -307,7 +307,60 @@ object WorkoutTemplates {
             }
         }
 
-        return GeneratedProgram(routineDays, routineExercises, unsatisfiedParts.distinct(), insights)
+        return GeneratedProgram(
+            routineDays,
+            routineExercises.map { it.copy(targetReps = enforceRepRange(it.targetReps)) },
+            unsatisfiedParts.distinct(),
+            insights
+        )
+    }
+
+    /**
+     * Every exercise must span at least [MIN_REP_RANGE_SPAN] reps.
+     * Accepts formats like "8–12", "8-12", "10 each leg", "30 sec" and single values.
+     * Time-based entries ("30 sec") are returned unchanged.
+     */
+    const val MIN_REP_RANGE_SPAN = 10
+
+    fun parseRepRange(targetReps: String): Pair<Int, Int>? {
+        if (targetReps.contains("sec", ignoreCase = true)) return null
+        val matches = Regex("\\d+").findAll(targetReps).toList()
+        return when {
+            matches.size >= 2 -> {
+                val v1 = matches.first().value.toInt()
+                val v2 = matches.last().value.toInt()
+                minOf(v1, v2) to maxOf(v1, v2)
+            }
+            matches.size == 1 -> {
+                val v = matches.first().value.toInt()
+                v to v
+            }
+            else -> null
+        }
+    }
+
+    /** Widens a reps string so that max - min >= [MIN_REP_RANGE_SPAN], preserving the center of the range. */
+    fun enforceRepRange(targetReps: String): String {
+        val range = parseRepRange(targetReps) ?: return targetReps
+        val (minVal, maxVal) = range
+        if (maxVal - minVal >= MIN_REP_RANGE_SPAN) return targetReps
+        val mid = (minVal + maxVal) / 2
+        val newMin = (mid - MIN_REP_RANGE_SPAN / 2).coerceAtLeast(1)
+        val newMax = newMin + MIN_REP_RANGE_SPAN
+        val suffix = targetReps.substringAfterLast(Regex("\\d+").findAll(targetReps).last().value, "")
+        return "$newMin–$newMax$suffix"
+    }
+
+    /** The auto-selected rep count for an exercise: the middle of its target range. */
+    fun getMiddleRep(targetReps: String): Int {
+        val (minVal, maxVal) = parseRepRange(targetReps) ?: return 10
+        return (minVal + maxVal) / 2
+    }
+
+    /** Builds a reps string spanning [MIN_REP_RANGE_SPAN] centered on [reps] (clamped at 1). */
+    fun repRangeAround(reps: Int): String {
+        val minVal = (reps - MIN_REP_RANGE_SPAN / 2).coerceAtLeast(1)
+        return "$minVal–${minVal + MIN_REP_RANGE_SPAN}"
     }
 
     private fun getExercisePriority(name: String): Int {
@@ -389,14 +442,14 @@ object WorkoutTemplates {
         
         return when {
             forcedSets >= 6 -> {
-                "${kotlin.math.max(1, baseRange.first - 2)}–${kotlin.math.max(2, baseRange.last - 2)}"
+                enforceRepRange("${kotlin.math.max(1, baseRange.first - 2)}–${kotlin.math.max(2, baseRange.last - 2)}")
             }
             forcedSets <= 2 && forcedSets > 0 -> {
                 val compensatedStart = baseRange.first + 3
                 val compensatedEnd = baseRange.last + 5
-                "$compensatedStart–$compensatedEnd"
+                enforceRepRange("$compensatedStart–$compensatedEnd")
             }
-            else -> "${baseRange.first}–${baseRange.last}"
+            else -> enforceRepRange("${baseRange.first}–${baseRange.last}")
         }
     }
 
@@ -614,26 +667,26 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "8–12", "", 0.0, 90, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Rows", "Back", 4, "8–12", "", 0.0, 90, 90, "", 1),
-            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 2),
-            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Curls", "Biceps", 3, "10–12", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Squats", "Legs", 4, "8–12", "", 0.0, 120, 90, "", 1),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–12", "", 0.0, 90, 90, "", 2),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Crunches", "Abs", 3, "15–20", "", 0.0, 45, 90, "", 4),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 4, "10–12", "", 0.0, 90, 90, "", 1),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 4, "12–20", "", 0.0, 60, 90, "", 2),
-            RoutineExerciseEntity(0, "THURSDAY", "Dips", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "FRIDAY", "Barbell Rows", "Back", 4, "8–12", "", 0.0, 90, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Pullovers", "Back", 3, "10–15", "", 0.0, 60, 90, "", 2),
-            RoutineExerciseEntity(0, "FRIDAY", "Barbell Curls", "Biceps", 3, "8–12", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "SATURDAY", "Barbell Squats", "Legs", 4, "8–12", "", 0.0, 120, 90, "", 1),
-            RoutineExerciseEntity(0, "SATURDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 2)
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "8–18", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–18", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Rows", "Back", 4, "8–18", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Rows", "Back", 3, "10–20", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Curls", "Biceps", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "TUESDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Squats", "Legs", 4, "8–18", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–18", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "5–15 each leg", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Crunches", "Abs", 3, "15–25", "", 0.0, 45, 90, "", 4),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 4, "10–20", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 4, "10–20", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "THURSDAY", "Dips", "Triceps", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Rows", "Back", 4, "8–18", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Pullovers", "Back", 3, "10–20", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Curls", "Biceps", 3, "8–18", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "SATURDAY", "Barbell Squats", "Legs", 4, "8–18", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "SATURDAY", "Leg Raises", "Abs", 3, "10–20", "", 0.0, 45, 90, "", 2)
         )
     )
 
@@ -654,20 +707,20 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "6–10", "", 0.0, 120, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 4, "6–10", "", 0.0, 120, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Curls", "Biceps", 3, "8–12", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Squats", "Legs", 4, "6–10", "", 0.0, 150, 90, "", 1),
-            RoutineExerciseEntity(0, "TUESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–10", "", 0.0, 120, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 4, "6–16", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 4, "6–16", "", 0.0, 120, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–18", "", 0.0, 90, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Curls", "Biceps", 3, "8–18", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Squats", "Legs", 4, "6–16", "", 0.0, 150, 90, "", 1),
+            RoutineExerciseEntity(0, "TUESDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–18", "", 0.0, 120, 90, "", 2),
             RoutineExerciseEntity(0, "TUESDAY", "Planks", "Abs", 3, "45 sec", "", 0.0, 45, 90, "", 3),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 3, "10–12", "", 0.0, 90, 90, "", 1),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 2),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 5),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 2)
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Floor Presses", "Chest", 3, "10–20", "", 0.0, 90, 90, "", 1),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Rows", "Back", 3, "10–20", "", 0.0, 60, 90, "", 2),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "THURSDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–20", "", 0.0, 60, 90, "", 5),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Lunges", "Legs", 3, "5–15 each leg", "", 0.0, 60, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "10–20", "", 0.0, 45, 90, "", 2)
         )
     )
 
@@ -688,20 +741,20 @@ object WorkoutTemplates {
             DayTemplate("SUNDAY", "rest_recovery_day", "rest_desc", true)
         ),
         exercises = listOf(
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Squats", "Legs", 3, "8–12", "", 0.0, 120, 90, "", 1),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 3, "8–12", "", 0.0, 90, 90, "", 2),
-            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 3, "8–12", "", 0.0, 90, 90, "", 3),
-            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "12–15", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "MONDAY", "Crunches", "Abs", 3, "15–20", "", 0.0, 45, 90, "", 5),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "10 each leg", "", 0.0, 60, 90, "", 1),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–12", "", 0.0, 90, 90, "", 2),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Rows", "Back", 3, "10–12", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Curls", "Biceps", 3, "10–12", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "FRIDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–12", "", 0.0, 120, 90, "", 1),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Floor Presses", "Chest", 3, "10–12", "", 0.0, 90, 90, "", 2),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–15", "", 0.0, 60, 90, "", 3),
-            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–15", "", 0.0, 60, 90, "", 4),
-            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "12–20", "", 0.0, 45, 90, "", 5)
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Squats", "Legs", 3, "8–18", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Floor Presses", "Chest", 3, "8–18", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "MONDAY", "Barbell Rows", "Back", 3, "8–18", "", 0.0, 90, 90, "", 3),
+            RoutineExerciseEntity(0, "MONDAY", "Dumbbell Lateral Raises", "Shoulders", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "MONDAY", "Crunches", "Abs", 3, "15–25", "", 0.0, 45, 90, "", 5),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Lunges", "Legs", 3, "5–15 each leg", "", 0.0, 60, 90, "", 1),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Shoulder Presses", "Shoulders", 3, "8–18", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Rows", "Back", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "WEDNESDAY", "Dumbbell Curls", "Biceps", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "FRIDAY", "Barbell Romanian Deadlifts", "Legs", 3, "8–18", "", 0.0, 120, 90, "", 1),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Floor Presses", "Chest", 3, "10–20", "", 0.0, 90, 90, "", 2),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Hammer Curls", "Biceps", 3, "10–20", "", 0.0, 60, 90, "", 3),
+            RoutineExerciseEntity(0, "FRIDAY", "Dumbbell Overhead Extensions", "Triceps", 3, "10–20", "", 0.0, 60, 90, "", 4),
+            RoutineExerciseEntity(0, "FRIDAY", "Leg Raises", "Abs", 3, "10–20", "", 0.0, 45, 90, "", 5)
         )
     )
 
@@ -716,7 +769,7 @@ object WorkoutTemplates {
         if (isExerciseTimeBased(name)) return "30"
         val cleanName = name.trim().lowercase()
         val muscleGroup = getMuscleGroupForExercise(name)
-        return when {
+        val rawRange = when {
             cleanName.contains("squat") || cleanName.contains("deadlift") || 
             cleanName.contains("bench") || cleanName.contains("press") ||
             cleanName.contains("row") || cleanName.contains("pull-up") -> "8–12"
@@ -724,6 +777,7 @@ object WorkoutTemplates {
             muscleGroup == "Abs" || muscleGroup == "Obliques" -> "15–20"
             else -> "8–12"
         }
+        return enforceRepRange(rawRange)
     }
 
     fun getRecommendedSetsForExercise(name: String): Int {
@@ -755,7 +809,7 @@ object WorkoutTemplates {
             lowerName.contains("false grip") ||
             lowerName.contains("inverted curl") ||
             (lowerName.contains("squat") && !lowerName.contains("barbell") && !lowerName.contains("dumbbell") && !lowerName.contains("machine") && !lowerName.contains("hack") && !lowerName.contains("goblet")) ||
-            (lowerName.contains("lunge") && !lowerName.contains("db") && !lowerName.contains("barbell")) ||
+            (lowerName.contains("lunge") && !lowerName.contains("db") && !lowerName.contains("dumbbell") && !lowerName.contains("barbell")) ||
             lowerName.contains("(bw)") || 
             lowerName.contains("bodyweight")
         ) return true

@@ -753,15 +753,17 @@ fun ExpandableExerciseCard(
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
+                    // Drag handle is always visible: drag it in selection mode, or
+                    // long-press the card to start dragging outside selection mode
+                    Icon(
+                        imageVector = Icons.Default.Menu,
+                        contentDescription = "Reorder",
+                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .then(dragHandleModifier)
+                    )
                     if (isSelectionMode) {
-                        Icon(
-                            imageVector = Icons.Default.Menu,
-                            contentDescription = "Reorder",
-                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
-                            modifier = Modifier
-                                .padding(end = 8.dp)
-                                .then(dragHandleModifier)
-                        )
                         Checkbox(
                             checked = isSelected,
                             onCheckedChange = onSelectedChange,
@@ -2495,7 +2497,7 @@ fun ExerciseEditDialog(
                         val finalReps = if (isTimeBased) {
                             val digits = targetTimeValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                        } else targetRepsValue.trim()
+                        } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
                         onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99))
                     }
                 },
