@@ -1,6 +1,0 @@
-- [x] Update `strings.xml` with "Repio Points" and "Points" labels
-- [x] Implement `calculateRepioPoints` in `WorkoutTemplates.kt`
-- [x] Add `formatRepioPoints` and update `InteractiveVolumeBarChart` in `WorkoutComponents.kt`
-- [x] Refactor `AnalyticsScreen.kt` to use Repio Points instead of Volume
-- [x] Verify calculations with a scratch script
-- [x] Update project memory

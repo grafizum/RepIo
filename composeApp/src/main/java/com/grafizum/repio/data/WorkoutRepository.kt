@@ -34,8 +34,17 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         } else {
             val exercises = dao.getAllRoutineExercises().first()
             exercises.forEach { exercise ->
+                var updated = exercise
                 if (exercise.videoUrl.contains("youtube") || exercise.videoUrl.contains("youtu.be")) {
-                    dao.updateExercise(exercise.copy(videoUrl = ""))
+                    updated = updated.copy(videoUrl = "")
+                }
+                // Migration: ensure every exercise targets a rep range of at least 10 reps
+                val normalizedReps = WorkoutTemplates.enforceRepRange(exercise.targetReps)
+                if (normalizedReps != exercise.targetReps) {
+                    updated = updated.copy(targetReps = normalizedReps)
+                }
+                if (updated != exercise) {
+                    dao.updateExercise(updated)
                 }
             }
         }

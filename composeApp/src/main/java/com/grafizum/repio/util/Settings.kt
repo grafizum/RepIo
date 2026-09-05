@@ -15,6 +15,7 @@ interface PlatformSettings {
     fun putLong(key: String, value: Long)
     fun getFloat(key: String, defaultValue: Float): Float
     fun putFloat(key: String, value: Float)
+    fun remove(key: String)
 }
 
 private var appInstance: Application? = null
@@ -34,6 +35,7 @@ class AndroidSettings(private val prefs: SharedPreferences) : PlatformSettings {
     override fun putLong(key: String, value: Long) = prefs.edit().putLong(key, value).apply()
     override fun getFloat(key: String, defaultValue: Float): Float = prefs.getFloat(key, defaultValue)
     override fun putFloat(key: String, value: Float) = prefs.edit().putFloat(key, value).apply()
+    override fun remove(key: String) = prefs.edit().remove(key).apply()
 }
 
 fun getPlatformSettings(name: String): PlatformSettings {
