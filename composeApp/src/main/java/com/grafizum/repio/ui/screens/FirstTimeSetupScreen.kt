@@ -2326,7 +2326,7 @@ fun AddExerciseDialog(
                     val finalReps = if (isTimeBased) {
                         val digits = targetTimeValue.filter { it.isDigit() }
                         if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                    } else targetRepsValue.trim()
+                    } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
                     onConfirm(RoutineExerciseEntity(
                         id = exercise?.id ?: 0, 
                         dayOfWeek = dayOfWeek, 

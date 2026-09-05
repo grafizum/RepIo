@@ -29,7 +29,7 @@ object DefaultData {
             name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 1
         ),
@@ -38,7 +38,7 @@ object DefaultData {
             name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "10–15 each side",
+            targetReps = "10–20 each side",
             videoUrl = "",
             orderIndex = 2
         ),
@@ -47,7 +47,7 @@ object DefaultData {
             name = "Dumbbell Pullovers",
             muscleGroup = "Back",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 3
         ),
@@ -56,7 +56,7 @@ object DefaultData {
             name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 4
         ),
@@ -65,7 +65,7 @@ object DefaultData {
             name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 5
         ),
@@ -74,7 +74,7 @@ object DefaultData {
             name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 6
         ),
@@ -83,7 +83,7 @@ object DefaultData {
             name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 7
         ),
@@ -103,7 +103,7 @@ object DefaultData {
             name = "Barbell Bench Presses",
             muscleGroup = "Chest",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 1
         ),
@@ -112,7 +112,7 @@ object DefaultData {
             name = "Dumbbell Bench Presses",
             muscleGroup = "Chest",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 2
         ),
@@ -121,7 +121,7 @@ object DefaultData {
             name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 3
         ),
@@ -130,7 +130,7 @@ object DefaultData {
             name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 4
         ),
@@ -139,7 +139,7 @@ object DefaultData {
             name = "Barbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 5
         ),
@@ -148,7 +148,7 @@ object DefaultData {
             name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 6
         ),
@@ -168,7 +168,7 @@ object DefaultData {
             name = "Barbell Squats",
             muscleGroup = "Legs",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 1
         ),
@@ -177,7 +177,7 @@ object DefaultData {
             name = "Barbell Romanian Deadlifts",
             muscleGroup = "Legs",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 2
         ),
@@ -186,7 +186,7 @@ object DefaultData {
             name = "Dumbbell Lunges",
             muscleGroup = "Legs",
             targetSets = 2,
-            targetReps = "10 each leg",
+            targetReps = "5–15 each leg",
             videoUrl = "",
             orderIndex = 3
         ),
@@ -195,7 +195,7 @@ object DefaultData {
             name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 4
         ),
@@ -204,7 +204,7 @@ object DefaultData {
             name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 5
         ),
@@ -233,7 +233,7 @@ object DefaultData {
             name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 1
         ),
@@ -242,7 +242,7 @@ object DefaultData {
             name = "Dumbbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 2
         ),
@@ -251,7 +251,7 @@ object DefaultData {
             name = "Dumbbell Pullovers",
             muscleGroup = "Back",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 3
         ),
@@ -260,7 +260,7 @@ object DefaultData {
             name = "Barbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "8–12",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 4
         ),
@@ -269,7 +269,7 @@ object DefaultData {
             name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 5
         ),
@@ -278,7 +278,7 @@ object DefaultData {
             name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 6
         ),
@@ -287,7 +287,7 @@ object DefaultData {
             name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 7
         ),
@@ -296,7 +296,7 @@ object DefaultData {
             name = "Dumbbell Flyes",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 8
         ),
@@ -307,7 +307,7 @@ object DefaultData {
             name = "Dumbbell Shoulder Presses",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "8–15",
+            targetReps = "8–18",
             videoUrl = "",
             orderIndex = 1
         ),
@@ -316,7 +316,7 @@ object DefaultData {
             name = "Dumbbell Lateral Raises",
             muscleGroup = "Shoulders",
             targetSets = 3,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 2
         ),
@@ -325,7 +325,7 @@ object DefaultData {
             name = "Dumbbell Flyes",
             muscleGroup = "Shoulders",
             targetSets = 2,
-            targetReps = "12–20",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 3
         ),
@@ -334,7 +334,7 @@ object DefaultData {
             name = "Barbell Rows",
             muscleGroup = "Back",
             targetSets = 3,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 4
         ),
@@ -343,7 +343,7 @@ object DefaultData {
             name = "Dumbbell Curls",
             muscleGroup = "Biceps",
             targetSets = 3,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 5
         ),
@@ -352,7 +352,7 @@ object DefaultData {
             name = "Dumbbell Hammer Curls",
             muscleGroup = "Biceps",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 6
         ),
@@ -361,7 +361,7 @@ object DefaultData {
             name = "Dumbbell Tricep Extensions",
             muscleGroup = "Triceps",
             targetSets = 2,
-            targetReps = "10–15",
+            targetReps = "10–20",
             videoUrl = "",
             orderIndex = 7
         ),

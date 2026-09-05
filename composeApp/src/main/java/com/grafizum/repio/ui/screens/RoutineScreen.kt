@@ -1,10 +1,12 @@
 package com.grafizum.repio.ui.screens
 
+import androidx.activity.compose.BackHandler
 import androidx.compose.foundation.background
 import androidx.compose.foundation.BorderStroke
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.gestures.detectDragGestures
+import androidx.compose.foundation.gestures.detectDragGesturesAfterLongPress
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.zIndex
@@ -171,6 +173,14 @@ fun WorkoutScreen(
             showAddDialog = true
             onAddDialogDismissed?.invoke()
         }
+    }
+
+    // While in selection mode, the system back button exits selection mode
+    // instead of navigating away from the edit screen.
+    BackHandler(enabled = isSelectionMode) {
+        focusManager.clearFocus()
+        isSelectionMode = false
+        selectedExerciseIds.clear()
     }
 
     if (showTemplatesSheet) {
@@ -367,6 +377,59 @@ fun WorkoutScreen(
                 val dayExercisesList = reorderedList
                 val listState = rememberLazyListState()
                 val density = LocalDensity.current
+
+                // Shared drag-to-reorder logic (used by the selection-mode handle drag
+                // and by long-press drag outside selection mode)
+                fun startExerciseDrag(exerciseId: Long) {
+                    draggingItemId = exerciseId
+                }
+
+                fun moveExerciseByDrag(exerciseId: Long, dragDelta: Float) {
+                    dragOffsetY += dragDelta
+
+                    val currentIndex = reorderedList.indexOfFirst { it.id == exerciseId }
+                    if (currentIndex == -1) return
+                    val spacing = with(density) { 16.dp.toPx() }
+
+                    // Move DOWN
+                    if (dragOffsetY > 0 && currentIndex < reorderedList.size - 1) {
+                        val nextItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex + 1].id }
+                        if (nextItemInfo != null) {
+                            val threshold = (nextItemInfo.size + spacing) / 2
+                            if (dragOffsetY > threshold) {
+                                val newList = reorderedList.toMutableList()
+                                val item = newList.removeAt(currentIndex)
+                                newList.add(currentIndex + 1, item)
+                                reorderedList = newList
+                                dragOffsetY -= (nextItemInfo.size + spacing)
+                            }
+                        }
+                    }
+                    // Move UP
+                    else if (dragOffsetY < 0 && currentIndex > 0) {
+                        val prevItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex - 1].id }
+                        if (prevItemInfo != null) {
+                            val threshold = -(prevItemInfo.size + spacing) / 2
+                            if (dragOffsetY < threshold) {
+                                val newList = reorderedList.toMutableList()
+                                val item = newList.removeAt(currentIndex)
+                                newList.add(currentIndex - 1, item)
+                                reorderedList = newList
+                                dragOffsetY += (prevItemInfo.size + spacing)
+                            }
+                        }
+                    }
+                }
+
+                fun endExerciseDrag() {
+                    draggingItemId = null
+                    dragOffsetY = 0f
+                    // Persist orderIndex
+                    val finalOrderedList = reorderedList.mapIndexed { index, ex ->
+                        ex.copy(orderIndex = index)
+                    }
+                    viewModel.reorderExercises(finalOrderedList)
+                }
                 
                 LazyColumn(
                     state = listState,
@@ -549,56 +612,33 @@ fun WorkoutScreen(
                             val isDragging = draggingItemId == exercise.id
                             
                             val dragHandleModifier = if (isSelectionMode) {
+                                // Selection mode: immediate drag on the handle
                                 Modifier.pointerInput(exercise.id) {
                                     detectDragGestures(
-                                        onDragStart = { draggingItemId = exercise.id },
+                                        onDragStart = { startExerciseDrag(exercise.id) },
                                         onDrag = { change, dragAmount ->
                                             change.consume()
-                                            dragOffsetY += dragAmount.y
-                                            
-                                            val currentIndex = reorderedList.indexOfFirst { it.id == exercise.id }
-                                            if (currentIndex != -1) {
-                                                val spacing = with(density) { 16.dp.toPx() }
-                                                
-                                                // Move DOWN
-                                                if (dragOffsetY > 0 && currentIndex < reorderedList.size - 1) {
-                                                    val nextItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex + 1].id }
-                                                    if (nextItemInfo != null) {
-                                                        val threshold = (nextItemInfo.size + spacing) / 2
-                                                        if (dragOffsetY > threshold) {
-                                                            val newList = reorderedList.toMutableList()
-                                                            val item = newList.removeAt(currentIndex)
-                                                            newList.add(currentIndex + 1, item)
-                                                            reorderedList = newList
-                                                            dragOffsetY -= (nextItemInfo.size + spacing)
-                                                        }
-                                                    }
-                                                }
-                                                // Move UP
-                                                else if (dragOffsetY < 0 && currentIndex > 0) {
-                                                    val prevItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex - 1].id }
-                                                    if (prevItemInfo != null) {
-                                                        val threshold = -(prevItemInfo.size + spacing) / 2
-                                                        if (dragOffsetY < threshold) {
-                                                            val newList = reorderedList.toMutableList()
-                                                            val item = newList.removeAt(currentIndex)
-                                                            newList.add(currentIndex - 1, item)
-                                                            reorderedList = newList
-                                                            dragOffsetY += (prevItemInfo.size + spacing)
-                                                        }
-                                                    }
-                                                }
-                                            }
+                                            moveExerciseByDrag(exercise.id, dragAmount.y)
                                         },
-                                        onDragEnd = {
+                                        onDragEnd = { endExerciseDrag() },
+                                        onDragCancel = {
                                             draggingItemId = null
                                             dragOffsetY = 0f
-                                            // Persist orderIndex
-                                            val finalOrderedList = reorderedList.mapIndexed { index, ex ->
-                                                ex.copy(orderIndex = index)
-                                            }
-                                            viewModel.reorderExercises(finalOrderedList)
+                                        }
+                                    )
+                                }
+                            } else Modifier
+
+                            // Outside selection mode: long-press anywhere on the card to start dragging
+                            val cardDragModifier = if (!isSelectionMode) {
+                                Modifier.pointerInput(exercise.id) {
+                                    detectDragGesturesAfterLongPress(
+                                        onDragStart = { startExerciseDrag(exercise.id) },
+                                        onDrag = { change, dragAmount ->
+                                            change.consume()
+                                            moveExerciseByDrag(exercise.id, dragAmount.y)
                                         },
+                                        onDragEnd = { endExerciseDrag() },
                                         onDragCancel = {
                                             draggingItemId = null
                                             dragOffsetY = 0f
@@ -626,7 +666,7 @@ fun WorkoutScreen(
                                 onSaveVideoUrl = { newUrl ->
                                     viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
                                 },
-                                modifier = if (isDragging) {
+                                modifier = (if (isDragging) {
                                     Modifier.graphicsLayer {
                                         translationY = dragOffsetY
                                         scaleX = 1.05f
@@ -635,7 +675,7 @@ fun WorkoutScreen(
                                     }.zIndex(1f)
                                 } else {
                                     Modifier.animateItem()
-                                }
+                                }).then(cardDragModifier)
                             )
                         }
 
