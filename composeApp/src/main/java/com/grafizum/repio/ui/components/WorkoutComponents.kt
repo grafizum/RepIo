@@ -277,24 +277,9 @@ fun StatCard(
     icon: ImageVector?,
     iconColor: Color,
     modifier: Modifier = Modifier,
-    customPainter: androidx.compose.ui.graphics.painter.Painter? = null,
-    numericValue: Double? = null,
-    workoutDaysCount: Int? = null
+    badgeText: String? = null
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    val goldColor = Color(0xFFD4AF37) // Soft Metallic Gold
-    
-    val pointsColor = if (numericValue != null) {
-        when {
-            numericValue < 1000 -> Color(0xFF2C2C2E) // Darkish black
-            numericValue < 10000 -> Color(0xFF007AFF) // 1k+ (4 digits)
-            numericValue < 100000 -> Color(0xFF34C759) // 10k+ (5 digits)
-            numericValue < 1000000 -> Color(0xFF8B5CF6) // 100k+ (6 digits)
-            else -> Color(0xFFFF9500) // 1M+ (7 digits)
-        }
-    } else {
-        MaterialTheme.colorScheme.primary
-    }
 
     Card(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
@@ -309,7 +294,7 @@ fun StatCard(
             modifier = Modifier.padding(if (subtitle.isBlank()) 24.dp else 16.dp)
         ) {
             if (subtitle.isBlank()) {
-                // HERO MODE: Repio Points
+                // HERO MODE: headline stat with optional badge
                 Row(
                     modifier = Modifier.fillMaxWidth(),
                     horizontalArrangement = Arrangement.SpaceBetween,
@@ -321,13 +306,13 @@ fun StatCard(
                         color = MaterialTheme.colorScheme.onSurface
                     )
                     
-                    if (workoutDaysCount != null) {
+                    if (badgeText != null) {
                         Surface(
                             color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
                             shape = RoundedCornerShape(8.dp)
                         ) {
                             Text(
-                                text = "Consecutive training days: $workoutDaysCount",
+                                text = badgeText,
                                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
@@ -349,32 +334,16 @@ fun StatCard(
                             fontSize = 44.sp,
                             lineHeight = 44.sp
                         ),
-                        color = pointsColor
-                    )
-                    
-                    Spacer(modifier = Modifier.width(6.dp))
-                    
-                    Text(
-                        text = getString("pts_abbr"),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = pointsColor.copy(alpha = 0.6f),
-                        modifier = Modifier.padding(bottom = 6.dp)
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
                     )
                     
                     Spacer(modifier = Modifier.width(16.dp))
                     
-                    if (customPainter != null) {
-                        Image(
-                            painter = customPainter,
-                            contentDescription = null,
-                            colorFilter = androidx.compose.ui.graphics.ColorFilter.tint(goldColor),
-                            modifier = Modifier.size(52.dp).align(Alignment.CenterVertically)
-                        )
-                    } else if (icon != null) {
+                    if (icon != null) {
                         Icon(
                             imageVector = icon,
                             contentDescription = null,
-                            tint = goldColor,
+                            tint = if (isDeveloper) Color.White else iconColor,
                             modifier = Modifier.size(44.dp).align(Alignment.CenterVertically)
                         )
                     }
@@ -1241,214 +1210,6 @@ fun formatTimerValue(seconds: Int): String {
     }
 }
 
-fun formatRepioPoints(points: Double): String {
-    return if (points > 999999) {
-        val k = points / 1000.0
-        val whole = k.toInt()
-        val decimal = ((k - whole) * 10).toInt()
-        if (decimal > 0) "${whole}.${decimal}k" else "${whole}k"
-    } else {
-        points.toInt().toString()
-    }
-}
-
-/**
- * Interactive Weekly Volume / Sets Bar Chart
- */
-@Composable
-fun InteractiveVolumeBarChart(
-    dailyData: Map<String, Double>, // "Mon" -> volume
-    selectedKey: String?,
-    onKeySelected: (String) -> Unit,
-    onCalendarClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
-) {
-    val keys = listOf(
-        getString("monday_short"),
-        getString("tuesday_short"),
-        getString("wednesday_short"),
-        getString("thursday_short"),
-        getString("friday_short"),
-        getString("saturday_short"),
-        getString("sunday_short")
-    )
-    val isDeveloper = LocalDeveloperSkin.current
-    val maxVal = (dailyData.values.maxOrNull() ?: 100.0).coerceAtLeast(100.0)
-
-    val primaryColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-    val highlightColor = if (isDeveloper) Color.LightGray else MaterialTheme.colorScheme.secondary
-    val labelColor = MaterialTheme.colorScheme.onSurfaceVariant
-
-    Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-        modifier = modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp)) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.SpaceBetween,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Column {
-                    Text(
-                        text = getString("weekly_progress"),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                    )
-                    Text(
-                        text = if (selectedKey != null && dailyData.containsKey(selectedKey)) {
-                            getString("volume_label") + " $selectedKey: ${formatRepioPoints(dailyData[selectedKey] ?: 0.0)} " + getString("total_volume")
-                        } else {
-                            getString("tap_bar_to_inspect")
-                        },
-                        style = MaterialTheme.typography.bodySmall,
-                        color = if (selectedKey != null) highlightColor else labelColor
-                    )
-                }
-                
-                if (onCalendarClick != null) {
-                    IconButton(
-                        onClick = onCalendarClick,
-                        modifier = Modifier
-                            .size(40.dp)
-                            .clip(CircleShape)
-                            .background(primaryColor.copy(alpha = 0.1f))
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.CalendarMonth,
-                            contentDescription = "Show Full History",
-                            tint = primaryColor,
-                            modifier = Modifier.size(22.dp)
-                        )
-                    }
-                } else {
-                    Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = null,
-                        tint = primaryColor,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-            }
-
-            Spacer(modifier = Modifier.height(16.dp))
-
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(180.dp)
-            ) {
-                Row(modifier = Modifier.fillMaxSize()) {
-                    // Y-Axis Labels
-                    Column(
-                        modifier = Modifier
-                            .fillMaxHeight()
-                            .padding(bottom = 30.dp), // Match Canvas height reserve
-                        verticalArrangement = Arrangement.SpaceBetween,
-                        horizontalAlignment = Alignment.End
-                    ) {
-                        for (i in 4 downTo 0) {
-                            Text(
-                                text = formatRepioPoints(maxVal * (i / 4f)),
-                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
-                                color = labelColor.copy(alpha = 0.5f)
-                            )
-                        }
-                    }
-
-                    Spacer(modifier = Modifier.width(8.dp))
-
-                    Box(modifier = Modifier.weight(1f).fillMaxHeight()) {
-                        Canvas(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .pointerInput(Unit) {
-                                    detectTapGestures { offset ->
-                                        val barWidth = size.width / keys.size
-                                        val index = (offset.x / barWidth).toInt().coerceIn(0, keys.size - 1)
-                                        onKeySelected(keys[index])
-                                    }
-                                }
-                        ) {
-                            val width = size.width
-                            val height = size.height - 30.dp.toPx() // Reserve space for labels
-                            val barWidth = (width / keys.size) * 0.5f
-
-                            // Draw subtle grid lines
-                            for (i in 0..4) {
-                                val y = height * (1f - i / 4f)
-                                drawLine(
-                                    color = labelColor.copy(alpha = 0.1f),
-                                    start = Offset(0f, y),
-                                    end = Offset(width, y),
-                                    strokeWidth = 1.dp.toPx()
-                                )
-                            }
-
-                            keys.forEachIndexed { index, key ->
-                                val value = dailyData[key] ?: 0.0
-                                val barHeight = ((value / maxVal) * height).toFloat()
-                                val xCenter = (width / keys.size) * (index + 0.5f)
-                                val xLeft = xCenter - (barWidth / 2f)
-                                val yTop = height - barHeight
-
-                                val isSelected = key == selectedKey
-                                val gradient = if (isSelected) {
-                                    Brush.verticalGradient(
-                                        colors = listOf(highlightColor, highlightColor.copy(alpha = 0.7f))
-                                    )
-                                } else {
-                                    Brush.verticalGradient(
-                                        colors = listOf(primaryColor, primaryColor.copy(alpha = 0.5f))
-                                    )
-                                }
-
-                                // Draw Bar
-                                if (barHeight > 0) {
-                                    drawRoundRect(
-                                        brush = gradient,
-                                        topLeft = Offset(xLeft, yTop),
-                                        size = Size(barWidth, barHeight),
-                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(12f, 12f)
-                                    )
-                                } else {
-                                    // Empty bar indicator
-                                    drawRoundRect(
-                                        color = labelColor.copy(alpha = 0.15f),
-                                        topLeft = Offset(xLeft, height - 8.dp.toPx()),
-                                        size = Size(barWidth, 8.dp.toPx()),
-                                        cornerRadius = androidx.compose.ui.geometry.CornerRadius(4f, 4f)
-                                    )
-                                }
-                            }
-                        }
-
-                        // X-Axis labels
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceAround,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .align(Alignment.BottomCenter)
-                                .padding(top = 4.dp)
-                        ) {
-                            keys.forEach { key ->
-                                Text(
-                                    text = key,
-                                    style = MaterialTheme.typography.labelSmall.copy(
-                                        fontWeight = if (key == selectedKey) FontWeight.Bold else FontWeight.Normal
-                                    ),
-                                    color = if (key == selectedKey) highlightColor else labelColor,
-                                    textAlign = TextAlign.Center
-                                )
-                            }
-                        }
-                    }
-                }
-            }
-        }
-    }
-}
 
 /**
  * Interactive Donut Chart for Muscle Group Distribution
@@ -2707,15 +2468,13 @@ fun WorkoutCalendar(
                 "SUNDAY" -> sunShort
                 else -> monShort
             }
-            val points = WorkoutTemplates.calculateRepioPoints(set.exerciseName, set.weightKg, set.reps)
-            map[shortDay] = (map[shortDay] ?: 0.0) + points
+            map[shortDay] = (map[shortDay] ?: 0.0) + 1.0 // Sets logged per day
         }
         map
     }
 
     val sessionsCount = dailyDataMap.size
-    val totalVolume = dailyDataMap.values.sum()
-    val avgLoad = if (sessionsCount > 0) totalVolume / sessionsCount else 0.0
+    val totalSets = weekSets.size
     
     val totalDurationMin = remember(weekSets) {
         weekSets.groupBy { 
@@ -2809,8 +2568,8 @@ fun WorkoutCalendar(
                     color = colorScheme.primary
                 )
                 MetricItem(
-                    value = avgLoad.toInt().toString(),
-                    label = getString("avg_load_label"),
+                    value = totalSets.toString(),
+                    label = getString("total_sets_short"),
                     color = colorScheme.primary
                 )
             }
@@ -2876,10 +2635,6 @@ private fun DayDetailContent(
     sets: List<LoggedSetEntity>,
     isDeveloper: Boolean
 ) {
-    val totalPoints = sets.sumOf { 
-        WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
-    }
-    
     Column {
         Row(
             modifier = Modifier.fillMaxWidth(),
@@ -2892,7 +2647,7 @@ private fun DayDetailContent(
                 color = MaterialTheme.colorScheme.primary
             )
             Text(
-                text = formatRepioPoints(totalPoints) + " " + getString("pts_abbr"),
+                text = "${sets.size} ${getString("sets_label")}",
                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
                 color = MaterialTheme.colorScheme.primary
             )
@@ -3061,4 +2816,224 @@ private fun WeeklyOutputChart(
             }
         }
     }
+}
+
+/**
+ * Dialog for replacing an exercise. The exercise pool is pre-filtered to the
+ * replaced exercise's equipment and muscle group, but the user can change both
+ * to browse the complete pool.
+ */
+// Sentinel used for the "Any" muscle group option in the replace dialog.
+private const val ANY_MUSCLE_GROUP_KEY = "__any_muscle_group__"
+
+@OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
+@Composable
+fun ReplaceExerciseDialog(
+    exercise: RoutineExerciseEntity,
+    onDismiss: () -> Unit,
+    onSelect: (name: String, muscleGroup: String) -> Unit
+) {
+    val focusManager = LocalFocusManager.current
+    val allMuscleGroups = remember { WorkoutTemplates.getAllMuscleGroups() }
+
+    val equipmentOptions = listOf(
+        WorkoutTemplates.EQUIPMENT_ALL to getString("equipment_all"),
+        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
+        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
+        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
+        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
+    )
+
+    val anyMuscleGroupLabel = getString("any_muscle_group")
+
+    // Auto-select the replaced exercise's equipment & muscle group
+    var selectedEquipment by remember(exercise.name) {
+        mutableStateOf(
+            WorkoutTemplates.getEquipmentForExercise(exercise.name)
+                .ifEmpty { WorkoutTemplates.EQUIPMENT_ALL }
+        )
+    }
+    var selectedMuscleGroup by remember(exercise.name) {
+        mutableStateOf(exercise.muscleGroup.ifBlank { allMuscleGroups.firstOrNull() ?: "Chest" })
+    }
+    var muscleMenuExpanded by remember { mutableStateOf(false) }
+
+    val alternatives = remember(exercise.name, selectedEquipment, selectedMuscleGroup) {
+        val pool = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) {
+            WorkoutTemplates.getAllExercisesForEquipment(selectedEquipment)
+        } else {
+            WorkoutTemplates.getExercisesForEquipment(selectedEquipment, selectedMuscleGroup)
+        }
+        pool.filter { it.lowercase() != exercise.name.lowercase() }.sorted()
+    }
+
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = {
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { focusManager.clearFocus() }
+            ) {
+                Text(getString("replace_exercise"))
+            }
+        },
+        text = {
+            Column(
+                verticalArrangement = Arrangement.spacedBy(12.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable(
+                        indication = null,
+                        interactionSource = remember { MutableInteractionSource() }
+                    ) { focusManager.clearFocus() }
+            ) {
+                Text(
+                    text = getString("replace_exercise_desc", translateExerciseName(exercise.name)),
+                    style = MaterialTheme.typography.bodyMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // EQUIPMENT FILTER (all options visible, no horizontal scrolling)
+                Text(
+                    text = getString("equipment"),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp)
+                ) {
+                    equipmentOptions.forEach { (key, label) ->
+                        FilterChip(
+                            selected = selectedEquipment == key,
+                            onClick = { selectedEquipment = key },
+                            label = { Text(label, maxLines = 1) },
+                            shape = RoundedCornerShape(10.dp)
+                        )
+                    }
+                }
+
+                // MUSCLE GROUP FILTER
+                ExposedDropdownMenuBox(
+                    expanded = muscleMenuExpanded,
+                    onExpandedChange = { muscleMenuExpanded = !muscleMenuExpanded }
+                ) {
+                    OutlinedTextField(
+                        value = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) anyMuscleGroupLabel else translateMuscleGroup(selectedMuscleGroup),
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(getString("muscle_group")) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = muscleMenuExpanded) },
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    )
+                    ExposedDropdownMenu(
+                        expanded = muscleMenuExpanded,
+                        onDismissRequest = { muscleMenuExpanded = false }
+                    ) {
+                        DropdownMenuItem(
+                            text = { Text(anyMuscleGroupLabel, fontWeight = FontWeight.Bold) },
+                            onClick = {
+                                selectedMuscleGroup = ANY_MUSCLE_GROUP_KEY
+                                muscleMenuExpanded = false
+                            }
+                        )
+                        HorizontalDivider()
+                        allMuscleGroups.forEach { group ->
+                            DropdownMenuItem(
+                                text = { Text(translateMuscleGroup(group)) },
+                                onClick = {
+                                    selectedMuscleGroup = group
+                                    muscleMenuExpanded = false
+                                }
+                            )
+                        }
+                    }
+                }
+
+                Text(
+                    text = getString("exercises_count", alternatives.size),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                if (alternatives.isEmpty()) {
+                    Text(
+                        text = getString("no_exercises_for_filters"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                } else {
+                    LazyColumn(
+                        modifier = Modifier.heightIn(max = 280.dp),
+                        verticalArrangement = Arrangement.spacedBy(8.dp)
+                    ) {
+                        items(alternatives) { altName ->
+                            val altMuscleGroup = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) {
+                                WorkoutTemplates.getMuscleGroupForExercise(altName)
+                            } else {
+                                selectedMuscleGroup
+                            }
+                            val (altDesc, _) = getExerciseDetails(altName, altMuscleGroup, exercise.targetIntensity)
+                            Card(
+                                shape = RoundedCornerShape(12.dp),
+                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                modifier = Modifier
+                                    .fillMaxWidth()
+                                    .clickable(
+                                        interactionSource = remember { MutableInteractionSource() },
+                                        indication = null
+                                    ) {
+                                        focusManager.clearFocus()
+                                        onSelect(altName, altMuscleGroup)
+                                    }
+                            ) {
+                                Row(
+                                    modifier = Modifier.padding(14.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    Column(modifier = Modifier.weight(1f)) {
+                                        Text(
+                                            text = translateExerciseName(altName),
+                                            style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
+                                        )
+                                        if (altDesc.isNotBlank()) {
+                                            Text(
+                                                text = altDesc,
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                                                maxLines = 2,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                        }
+                                    }
+
+                                    Spacer(modifier = Modifier.width(8.dp))
+
+                                    Icon(
+                                        imageVector = Icons.Default.Add,
+                                        contentDescription = null,
+                                        tint = MaterialTheme.colorScheme.primary
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {},
+        dismissButton = {
+            TextButton(onClick = {
+                focusManager.clearFocus()
+                onDismiss()
+            }) {
+                Text(getString("cancel"))
+            }
+        }
+    )
 }

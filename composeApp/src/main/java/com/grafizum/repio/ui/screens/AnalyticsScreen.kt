@@ -27,6 +27,7 @@ import androidx.compose.material.icons.filled.CalendarMonth
 import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
 import androidx.compose.material.icons.filled.FitnessCenter
+import androidx.compose.material.icons.filled.LocalFireDepartment
 import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
@@ -82,6 +83,7 @@ fun AnalyticsScreen(
 ) {
     val loggedSets by viewModel.allLoggedSets.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
+    val routineDays by viewModel.allRoutineDays.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
     var showClearConfirmDialog by remember { mutableStateOf(false) }
@@ -121,17 +123,14 @@ fun AnalyticsScreen(
     }
 
     val maxWeightForExercise = exerciseLogs.maxOfOrNull { it.weightKg } ?: 0.0
-    val totalPointsForExercise = exerciseLogs.sumOf { 
-        com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
-    }
+    val totalSetsForExercise = exerciseLogs.size
 
     // Logic for Weekly Report
-    val totalPoints = loggedSets.sumOf { 
-        com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
+    val consecutiveWorkoutDays = remember(loggedSets) {
+        com.grafizum.repio.data.WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
     }
-    val totalWorkoutDays = remember(loggedSets) {
-        val sdf = SimpleDateFormat("yyyy-MM-dd", Locale.US)
-        loggedSets.map { sdf.format(Date(it.timestamp)) }.distinct().size
+    val skippedWorkoutDays = remember(loggedSets, routineDays) {
+        com.grafizum.repio.data.WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
     }
 
     if (showClearConfirmDialog) {
@@ -274,15 +273,13 @@ fun AnalyticsScreen(
             // 2. QUICK STAT CARDS
             item {
                 StatCard(
-                    title = getString("total_volume"),
-                    value = com.grafizum.repio.ui.components.formatRepioPoints(totalPoints),
+                    title = getString("consecutive_days_title"),
+                    value = consecutiveWorkoutDays.toString(),
                     subtitle = "",
-                    icon = null,
+                    icon = Icons.Default.LocalFireDepartment,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
-                    customPainter = painterResource(id = R.drawable.ic_repio_points),
-                    numericValue = totalPoints,
-                    workoutDaysCount = totalWorkoutDays
+                    badgeText = getString("skipped_days_format", skippedWorkoutDays)
                 )
             }
 
@@ -385,12 +382,12 @@ fun AnalyticsScreen(
 
                             Column {
                                 Text(
-                                    text = getString("total_volume"),
+                                    text = getString("total_sets"),
                                     style = MaterialTheme.typography.labelMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 Text(
-                                    text = com.grafizum.repio.ui.components.formatRepioPoints(totalPointsForExercise),
+                                    text = totalSetsForExercise.toString(),
                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
                                     color = MaterialTheme.colorScheme.primary
                                 )

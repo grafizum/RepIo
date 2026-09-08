@@ -102,6 +102,7 @@ import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExpandableExerciseCard
 import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.components.MuscleGroupBadge
+import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.WorkoutDayWheel
@@ -845,122 +846,12 @@ fun WorkoutScreen(
     }
 
     replacingExercise?.let { exercise ->
-        val alternatives = remember(exercise.name, exercise.muscleGroup) {
-            WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup)
-        }
-
-        val focusManager = LocalFocusManager.current
-        AlertDialog(
-            onDismissRequest = { replacingExercise = null },
-            title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(getString("alternative_exercises"))
-                }
-            },
-            text = {
-                Column(
-                    verticalArrangement = Arrangement.spacedBy(12.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(
-                        text = getString("select_alternative_desc", translateMuscleGroup(exercise.muscleGroup)),
-                        style = MaterialTheme.typography.bodyMedium
-                    )
-                    
-                    if (alternatives.isEmpty()) {
-                        Text(
-                            text = "No other exercises found for this muscle group.",
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant
-                        )
-                    } else {
-                        LazyColumn(
-                            modifier = Modifier.heightIn(max = 300.dp),
-                            verticalArrangement = Arrangement.spacedBy(8.dp)
-                        ) {
-                            items(alternatives) { altName ->
-                                var expanded by remember { mutableStateOf(false) }
-                                Card(
-                                    shape = RoundedCornerShape(12.dp),
-                                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .animateContentSize()
-                                        .clickable(
-                                            interactionSource = remember { MutableInteractionSource() },
-                                            indication = null
-                                        ) {
-                                            focusManager.clearFocus()
-                                            viewModel.saveExercise(exercise.copy(name = altName, videoUrl = ""))
-                                            replacingExercise = null
-                                        }
-                                ) {
-                                    val (altDesc, _) = getExerciseDetails(altName, exercise.muscleGroup, exercise.targetIntensity)
-                                    Row(
-                                        modifier = Modifier.padding(16.dp),
-                                        verticalAlignment = Alignment.CenterVertically
-                                    ) {
-                                        Column(modifier = Modifier.weight(1f)) {
-                                            Text(
-                                                text = translateExerciseName(altName),
-                                                style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
-                                            )
-                                            if (altDesc.isNotBlank()) {
-                                                Text(
-                                                    text = altDesc,
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                    maxLines = if (expanded) Int.MAX_VALUE else 2,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-
-                                        if (altDesc.isNotBlank()) {
-                                            IconButton(onClick = { 
-                                                focusManager.clearFocus()
-                                                expanded = !expanded 
-                                            }) {
-                                                Icon(
-                                                    imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                                    contentDescription = null,
-                                                    tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                                                )
-                                            }
-                                        }
-
-                                        Icon(
-                                            imageVector = Icons.Default.Add,
-                                            contentDescription = null,
-                                            tint = MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            },
-            confirmButton = {},
-            dismissButton = {
-                TextButton(onClick = {
-                    focusManager.clearFocus()
-                    replacingExercise = null
-                }) {
-                    Text(getString("cancel"))
-                }
+        ReplaceExerciseDialog(
+            exercise = exercise,
+            onDismiss = { replacingExercise = null },
+            onSelect = { altName, muscleGroup ->
+                viewModel.saveExercise(exercise.copy(name = altName, muscleGroup = muscleGroup, videoUrl = ""))
+                replacingExercise = null
             }
         )
     }
