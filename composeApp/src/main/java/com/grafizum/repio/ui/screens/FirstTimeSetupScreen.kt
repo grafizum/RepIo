@@ -56,6 +56,7 @@ import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
+import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.RepsTimeToggle
 import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.CompactNumericField
@@ -1314,14 +1315,14 @@ fun FirstTimeSetupScreen(
     }
 
     replacingExercise?.let { exercise ->
-        AlternativeExercisesDialog(
+        ReplaceExerciseDialog(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
-            onSelect = { altName ->
+            onSelect = { altName, muscleGroup ->
                 val index = customExercises.indexOf(exercise)
                 if (index != -1) {
                     val existing = customExercises.find { it.name == altName && it.videoUrl.isNotBlank() }
-                    customExercises[index] = exercise.copy(name = altName, videoUrl = existing?.videoUrl ?: "")
+                    customExercises[index] = exercise.copy(name = altName, muscleGroup = muscleGroup, videoUrl = existing?.videoUrl ?: "")
                 }
                 replacingExercise = null
             }
@@ -1856,75 +1857,6 @@ private fun TemplatePreviewDialog(
                 focusManager.clearFocus()
                 onDismiss()
             }) { Text(getString("close")) }
-        }
-    )
-}
-
-@Composable
-private fun AlternativeExercisesDialog(
-    exercise: RoutineExerciseEntity,
-    onDismiss: () -> Unit,
-    onSelect: (String) -> Unit
-) {
-    val focusManager = LocalFocusManager.current
-    val alternatives = remember(exercise.name, exercise.muscleGroup) { 
-        WorkoutTemplates.getAlternativeExercises(exercise.name, exercise.muscleGroup) 
-    }
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-                ) {
-                Text(getString("alternative_exercises"))
-            }
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
-                Text(getString("select_alternative_desc", translateMuscleGroup(exercise.muscleGroup)), style = MaterialTheme.typography.bodySmall)
-                LazyColumn(modifier = Modifier.heightIn(max = 250.dp)) {
-                    items(alternatives) { alt ->
-                        Card(
-                            modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { 
-                                focusManager.clearFocus()
-                                onSelect(alt) 
-                            },
-                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant)
-                        ) {
-                            Row(modifier = Modifier.padding(12.dp), verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = translateExerciseName(alt), 
-                                                style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis,
-                                                modifier = Modifier.weight(1f)
-                                            )
-                                Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(16.dp))
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = {
-                focusManager.clearFocus()
-                onDismiss()
-            }) { Text(getString("cancel")) }
         }
     )
 }

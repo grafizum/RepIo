@@ -105,14 +105,11 @@ fun HomeScreen(
         }
     }
 
-    val totalPointsThisWeek = remember(loggedSets) {
-        loggedSets.sumOf { 
-            com.grafizum.repio.data.WorkoutTemplates.calculateRepioPoints(it.exerciseName, it.weightKg, it.reps)
-        }
+    val consecutiveWorkoutDays = remember(loggedSets) {
+        WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
     }
-    val totalWorkoutDays = remember(loggedSets) {
-        val sdf = java.text.SimpleDateFormat("yyyy-MM-dd", java.util.Locale.US)
-        loggedSets.map { sdf.format(java.util.Date(it.timestamp)) }.distinct().size
+    val skippedWorkoutDays = remember(loggedSets, routineDays) {
+        WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
     }
     val isDeveloper = LocalDeveloperSkin.current
 
@@ -328,15 +325,13 @@ fun HomeScreen(
             // QUICK STATS ROW
             item {
                 StatCard(
-                    title = getString("total_volume"),
-                    value = com.grafizum.repio.ui.components.formatRepioPoints(totalPointsThisWeek),
+                    title = getString("consecutive_days_title"),
+                    value = consecutiveWorkoutDays.toString(),
                     subtitle = "",
-                    icon = null,
+                    icon = Icons.Default.LocalFireDepartment,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
-                    customPainter = painterResource(id = R.drawable.ic_repio_points),
-                    numericValue = totalPointsThisWeek,
-                    workoutDaysCount = totalWorkoutDays
+                    badgeText = getString("skipped_days_format", skippedWorkoutDays)
                 )
             }
 

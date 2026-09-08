@@ -7,9 +7,9 @@
     <string name="rest_day_active">Ruhetag. Aktive Erholung &amp; Mobilität.</string>
     <string name="exercises_scheduled">%1$d Übungen für heute geplant</string>
     <string name="workout_now">JETZT TRAINIEREN</string>
-    <string name="total_volume">Repio-Punkte</string>
-    <string name="pts_abbr">Pkt.</string>
-    <string name="all_time_volume">Gesamte Repio-Punkte</string>
+    <string name="consecutive_days_title">Aufeinanderfolgende Tage</string>
+    <string name="skipped_days_format">Übersprungene Trainingstage: %1$d</string>
+    <string name="total_sets_short">SÄTZE</string>
     <string name="sets_logged">Sätze gespeichert</string>
     <string name="completed_sets">Abgeschlossene Sätze</string>
     <string name="quick_actions">Schnellzugriff</string>
@@ -82,7 +82,6 @@
     <string name="recent_history">Letzte Verläufe</string>
     <string name="no_sets_logged">Noch keine Sätze gespeichert.</string>
     <string name="no_sets_logged_full">Noch keine Sätze gespeichert. Beende Workouts, um den Muskelfokus zu sehen!</string>
-    <string name="volume_progress_kg">Wöchentliche Repio-Punkte</string>
     <string name="weekly_progress">Wöchentlicher Fortschritt</string>
     <string name="tap_bar_to_inspect">Tippe auf einen Balken für das Tages-Total</string>
     <string name="muscle_group_focus">Muskelgruppen-Fokus</string>
@@ -95,8 +94,6 @@
     <string name="demo_video_link">Demo-Video Link</string>
     <string name="enter_video_url_desc">Gib eine Video-URL für diese Übungs-Demo ein:</string>
     <string name="video_url">Video-URL</string>
-    <string name="volume_label">Punkte</string>
-    <string name="points_label">Repio-Punkte</string>
     <string name="time_label">Zeit</string>
     <string name="sets_label">Sätze</string>
     <string name="balanced_workout_routine">Ausgewogene Routine</string>
@@ -112,6 +109,15 @@
     <string name="replace">Ersetzen</string>
     <string name="alternative_exercises">Alternative Übungen</string>
     <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
+    <string name="replace_exercise">Übung ersetzen</string>
+    <string name="replace_exercise_desc">Ersetze %1$s. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
+    <string name="equipment">Geräte</string>
+    <string name="equipment_all">Alle</string>
+    <string name="any_muscle_group">Alle</string>
+    <string name="equipment_dumbbell">Kurzhanteln</string>
+    <string name="equipment_barbell">Langhanteln</string>
+    <string name="equipment_gym">Kabel &amp; Maschine</string>
+    <string name="no_exercises_for_filters">Keine Übungen entsprechen diesen Filtern.</string>
     <string name="clear_history_title">Verlauf löschen?</string>
     <string name="clear_history_text">Dies wird permanent alle deine gespeicherten Sätze entfernen.</string>
     <string name="delete_all">Alle löschen</string>
@@ -123,7 +129,6 @@
     <string name="training_output">Training-Output</string>
     <string name="sessions_label">SITZUNGEN</string>
     <string name="min_logged_label">MIN GELOGGT</string>
-    <string name="avg_load_label">DURCHSCHN. LAST</string>
     <string name="week_of">Woche vom %1$s</string>
     <string name="cancel">Abbrechen</string>
 

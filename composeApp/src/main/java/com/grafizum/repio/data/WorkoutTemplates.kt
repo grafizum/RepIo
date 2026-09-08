@@ -1,5 +1,7 @@
 package com.grafizum.repio.data
 
+import java.util.Calendar
+
 data class DayTemplate(
     val dayOfWeek: String,
     val titleKey: String,
@@ -19,6 +21,21 @@ data class WorkoutTemplate(
 )
 
 object WorkoutTemplates {
+
+    // Equipment categories used to organize the exercise pool.
+    const val EQUIPMENT_ALL = "All"
+    const val EQUIPMENT_BODYWEIGHT = "Bodyweight"
+    const val EQUIPMENT_DUMBBELL = "Dumbbell"
+    const val EQUIPMENT_BARBELL = "Barbell"
+    const val EQUIPMENT_GYM = "Gym" // Cables & Machines
+
+    /** All equipment categories (excluding [EQUIPMENT_ALL]). */
+    val allEquipmentCategories = listOf(
+        EQUIPMENT_BODYWEIGHT,
+        EQUIPMENT_DUMBBELL,
+        EQUIPMENT_BARBELL,
+        EQUIPMENT_GYM
+    )
 
     data class ScienceInsight(
         val titleKey: String,
@@ -485,10 +502,62 @@ object WorkoutTemplates {
         }
     }
 
-    fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String): List<String> {
-        val allForGroup = getBodyweightExercises(muscleGroup) + getDumbbellExercises(muscleGroup) + getBarbellExercises(muscleGroup) + getGymExercises(muscleGroup)
-        
-        return allForGroup.distinct()
+    /**
+     * Returns the exercises available for [muscleGroup] that use [equipment].
+     * Pass [EQUIPMENT_ALL] (default) to include every equipment category.
+     */
+    fun getExercisesForEquipment(equipment: String, muscleGroup: String): List<String> {
+        val allForGroup = when (equipment) {
+            EQUIPMENT_BODYWEIGHT -> getBodyweightExercises(muscleGroup)
+            EQUIPMENT_DUMBBELL -> getDumbbellExercises(muscleGroup)
+            EQUIPMENT_BARBELL -> getBarbellExercises(muscleGroup)
+            EQUIPMENT_GYM -> getGymExercises(muscleGroup)
+            else -> getBodyweightExercises(muscleGroup) + getDumbbellExercises(muscleGroup) + getBarbellExercises(muscleGroup) + getGymExercises(muscleGroup)
+        }
+        return allForGroup.distinct().sorted()
+    }
+
+    /**
+     * Every exercise available for an equipment category across all muscle
+     * groups (used when the muscle group filter is set to "Any").
+     */
+    fun getAllExercisesForEquipment(equipment: String): List<String> {
+        return getAllMuscleGroups()
+            .flatMap { getExercisesForEquipment(equipment, it) }
+            .distinct()
+            .sorted()
+    }
+
+    /**
+     * Returns the equipment category an exercise belongs to (one of the
+     * EQUIPMENT_* constants), or "" when it isn't part of the built-in pool
+     * (e.g. a user-created custom exercise).
+     */
+    fun getEquipmentForExercise(name: String): String {
+        val clean = name.trim().lowercase()
+        if (clean.isEmpty()) return ""
+        val map = _equipmentCache ?: buildEquipmentCache().also { _equipmentCache = it }
+        return map[clean] ?: ""
+    }
+
+    private var _equipmentCache: Map<String, String>? = null
+
+    private fun buildEquipmentCache(): Map<String, String> {
+        val map = mutableMapOf<String, String>()
+        getAllMuscleGroups().forEach { muscle ->
+            fun addAll(equipment: String, exercises: List<String>) {
+                exercises.forEach { map.putIfAbsent(it.trim().lowercase(), equipment) }
+            }
+            addAll(EQUIPMENT_BODYWEIGHT, getBodyweightExercises(muscle))
+            addAll(EQUIPMENT_DUMBBELL, getDumbbellExercises(muscle))
+            addAll(EQUIPMENT_BARBELL, getBarbellExercises(muscle))
+            addAll(EQUIPMENT_GYM, getGymExercises(muscle))
+        }
+        return map
+    }
+
+    fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String, equipment: String = EQUIPMENT_ALL): List<String> {
+        return getExercisesForEquipment(equipment, muscleGroup)
             .filter { it.lowercase() != currentExerciseName.lowercase() }
             .sorted()
     }
@@ -818,13 +887,96 @@ object WorkoutTemplates {
         return allBW.any { it.equals(name, ignoreCase = true) }
     }
 
-    fun calculateRepioPoints(exerciseName: String, weightKg: Double, reps: Int): Double {
-        if (isExerciseTimeBased(exerciseName)) return 0.0
-        
-        return if (isBodyweightExercise(exerciseName) && weightKg == 0.0) {
-            1.0 * reps
-        } else {
-            weightKg * reps
+    /**
+     * Consecutive days with at least one logged set, counting back from today.
+     * If today has no workout yet, the streak is counted from yesterday so a
+     * workout done yesterday still keeps the streak alive. Returns 0 when there
+     * is no streak.
+     */
+    fun calculateConsecutiveWorkoutDays(loggedSets: List<LoggedSetEntity>): Int {
+        if (loggedSets.isEmpty()) return 0
+        val workoutDayKeys = loggedSets.map { dateKey(it.timestamp) }.toSet()
+
+        val cursor = Calendar.getInstance().apply { startOfDay() }
+        if (dateKey(cursor.timeInMillis) !in workoutDayKeys) {
+            cursor.add(Calendar.DAY_OF_YEAR, -1)
         }
+
+        var count = 0
+        while (dateKey(cursor.timeInMillis) in workoutDayKeys) {
+            count++
+            cursor.add(Calendar.DAY_OF_YEAR, -1)
+        }
+        return count
+    }
+
+    /**
+     * Scheduled workout days (routine days that are not rest days) which have
+     * passed without a single logged set. Counted from the Monday of the week
+     * containing the first logged set (or the current week when nothing has
+     * been logged yet) up to yesterday, so today isn't marked as skipped while
+     * it can still be completed. Starts at 0 when there is no schedule.
+     */
+    fun calculateSkippedWorkoutDays(
+        loggedSets: List<LoggedSetEntity>,
+        routineDays: List<RoutineDayEntity>
+    ): Int {
+        val scheduledDays = routineDays
+            .filter { !it.isRestDay }
+            .mapNotNull { dayOfWeekToCalendarDay(it.dayOfWeek) }
+            .toSet()
+        if (scheduledDays.isEmpty()) return 0
+
+        val loggedKeys = loggedSets.map { dateKey(it.timestamp) }.toSet()
+
+        val start = Calendar.getInstance().apply { startOfDay() }
+        if (loggedSets.isNotEmpty()) {
+            start.timeInMillis = loggedSets.minOf { it.timestamp }
+            start.startOfDay()
+        }
+        // Align to the Monday of the start week
+        while (start.get(Calendar.DAY_OF_WEEK) != Calendar.MONDAY) {
+            start.add(Calendar.DAY_OF_YEAR, -1)
+        }
+
+        val today = Calendar.getInstance().apply { startOfDay() }
+        var skipped = 0
+        val cursor = start.clone() as Calendar
+        while (cursor.before(today)) {
+            if (cursor.get(Calendar.DAY_OF_WEEK) in scheduledDays &&
+                dateKey(cursor.timeInMillis) !in loggedKeys
+            ) {
+                skipped++
+            }
+            cursor.add(Calendar.DAY_OF_YEAR, 1)
+        }
+        return skipped
+    }
+
+    private fun dayOfWeekToCalendarDay(dayOfWeek: String): Int? = when (dayOfWeek.uppercase()) {
+        "MONDAY" -> Calendar.MONDAY
+        "TUESDAY" -> Calendar.TUESDAY
+        "WEDNESDAY" -> Calendar.WEDNESDAY
+        "THURSDAY" -> Calendar.THURSDAY
+        "FRIDAY" -> Calendar.FRIDAY
+        "SATURDAY" -> Calendar.SATURDAY
+        "SUNDAY" -> Calendar.SUNDAY
+        else -> null
+    }
+
+    /** Normalizes a timestamp to a (year, day-of-year) key for date comparisons. */
+    private fun dateKey(timestamp: Long): Pair<Int, Int> {
+        val cal = Calendar.getInstance().apply {
+            timeInMillis = timestamp
+            startOfDay()
+        }
+        return cal.get(Calendar.YEAR) to cal.get(Calendar.DAY_OF_YEAR)
+    }
+
+    private fun Calendar.startOfDay() {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
     }
 }

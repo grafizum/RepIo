@@ -7,9 +7,9 @@
     <string name="rest_day_active">Rest day active. Active recovery &amp; mobility.</string>
     <string name="exercises_scheduled">%1$d exercises scheduled for today</string>
     <string name="workout_now">WORKOUT NOW</string>
-    <string name="total_volume">Repio Points</string>
-    <string name="pts_abbr">Pts.</string>
-    <string name="all_time_volume">All-time Repio Points</string>
+    <string name="consecutive_days_title">Consecutive Days</string>
+    <string name="skipped_days_format">Workout days skipped: %1$d</string>
+    <string name="total_sets_short">SETS</string>
     <string name="sets_logged">Sets Saved</string>
     <string name="completed_sets">Completed sets</string>
     <string name="quick_actions">Quick Actions</string>
@@ -82,7 +82,6 @@
     <string name="recent_history">Recent History</string>
     <string name="no_sets_logged">No sets saved yet.</string>
     <string name="no_sets_logged_full">No sets saved yet. Complete workouts to see muscle focus breakdown!</string>
-    <string name="volume_progress_kg">Weekly Repio Points</string>
     <string name="weekly_progress">Weekly Progress</string>
     <string name="tap_bar_to_inspect">Tap any bar to inspect daily total</string>
     <string name="muscle_group_focus">Muscle Group Focus</string>
@@ -95,8 +94,6 @@
     <string name="demo_video_link">Demo Video Link</string>
     <string name="enter_video_url_desc">Enter a video URL for this exercise demo:</string>
     <string name="video_url">Video URL</string>
-    <string name="volume_label">Points</string>
-    <string name="points_label">Repio Points</string>
     <string name="time_label">Time</string>
     <string name="sets_label">Sets</string>
     <string name="balanced_workout_routine">Balanced Workout Routine</string>
@@ -112,6 +109,15 @@
     <string name="replace">Replace</string>
     <string name="alternative_exercises">Alternative Exercises</string>
     <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
+    <string name="replace_exercise">Replace Exercise</string>
+    <string name="replace_exercise_desc">Replacing %1$s. Filters are pre-set to its equipment and muscle group — change them to browse the full exercise pool.</string>
+    <string name="equipment">Equipment</string>
+    <string name="equipment_all">All</string>
+    <string name="any_muscle_group">Any</string>
+    <string name="equipment_dumbbell">Dumbbells</string>
+    <string name="equipment_barbell">Barbells</string>
+    <string name="equipment_gym">Cable &amp; Machine</string>
+    <string name="no_exercises_for_filters">No exercises match these filters.</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your saved workout sets.</string>
     <string name="workout_history">Workout Calendar</string>
@@ -122,7 +128,6 @@
     <string name="training_output">Training Output</string>
     <string name="sessions_label">SESSIONS</string>
     <string name="min_logged_label">MIN LOGGED</string>
-    <string name="avg_load_label">AVG LOAD</string>
     <string name="week_of">Week of %1$s</string>
     <string name="cancel">Cancel</string>
 
