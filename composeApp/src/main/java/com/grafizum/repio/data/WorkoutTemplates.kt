@@ -546,7 +546,7 @@ object WorkoutTemplates {
         val map = mutableMapOf<String, String>()
         getAllMuscleGroups().forEach { muscle ->
             fun addAll(equipment: String, exercises: List<String>) {
-                exercises.forEach { map.putIfAbsent(it.trim().lowercase(), equipment) }
+                exercises.forEach { map.getOrPut(it.trim().lowercase()) { equipment } }
             }
             addAll(EQUIPMENT_BODYWEIGHT, getBodyweightExercises(muscle))
             addAll(EQUIPMENT_DUMBBELL, getDumbbellExercises(muscle))
@@ -847,6 +847,58 @@ object WorkoutTemplates {
             else -> "8–12"
         }
         return enforceRepRange(rawRange)
+    }
+
+    /** Classifies an intensity string into "Easy", "Medium" or "Hard" based on RPE, RIR or keywords. */
+    fun classifyIntensity(intensity: String): String {
+        val t = intensity.lowercase()
+        val rpeMatch = Regex("rpe\\s*(\\d+(?:\\.\\d+)?)|(\\d+(?:\\.\\d+)?)\\s*rpe").find(t)
+        if (rpeMatch != null) {
+            val raw = rpeMatch.groupValues[1].ifBlank { rpeMatch.groupValues[2] }
+            val rpe = raw.toDoubleOrNull()
+            if (rpe != null) {
+                return when {
+                    rpe >= 9.0 -> "Hard"
+                    rpe <= 7.0 -> "Easy"
+                    else -> "Medium"
+                }
+            }
+        }
+        val rirMatch = Regex("rir\\s*(\\d+)|(\\d+)\\s*rir").find(t)
+        if (rirMatch != null) {
+            val raw = rirMatch.groupValues[1].ifBlank { rirMatch.groupValues[2] }
+            val rir = raw.toIntOrNull()
+            if (rir != null) {
+                return when {
+                    rir <= 1 -> "Hard"
+                    rir >= 3 -> "Easy"
+                    else -> "Medium"
+                }
+            }
+        }
+        return when {
+            t.contains("hard") || t.contains("heavy") || t.contains("failure") || t.contains("max") || t.contains("intense") -> "Hard"
+            t.contains("easy") || t.contains("light") || t.contains("warm") -> "Easy"
+            else -> "Medium"
+        }
+    }
+
+    /**
+     * Adapts an auto-selected reps range to the intensity/difficulty the user typed:
+     * Hard / high RPE shifts the rep center down, Easy / low RPE shifts it up.
+     * Single values (e.g. time-based entries) are returned unchanged.
+     */
+    fun adaptRepsToIntensity(recommended: String, intensity: String): String {
+        val range = parseRepRange(recommended) ?: return recommended
+        val (minVal, maxVal) = range
+        if (minVal == maxVal) return recommended
+        val center = (minVal + maxVal) / 2
+        val adaptedCenter = when (classifyIntensity(intensity)) {
+            "Hard" -> (center - 3).coerceAtLeast(1)
+            "Easy" -> center + 3
+            else -> center
+        }
+        return repRangeAround(adaptedCenter)
     }
 
     fun getRecommendedSetsForExercise(name: String): Int {

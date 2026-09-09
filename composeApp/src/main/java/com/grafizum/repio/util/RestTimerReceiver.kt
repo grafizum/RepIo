@@ -6,6 +6,21 @@ import android.content.Intent
 
 class RestTimerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        if (intent.action == ACTION_SKIP_TIMER) {
+            // User pressed "Skip" on the countdown notification: stop the timer quietly.
+            val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            prefs.edit()
+                .putLong("timer_end_time_millis", 0L)
+                .putBoolean("is_exercise_timer", false)
+                .putBoolean("is_silent_timer", false)
+                .remove("timer_day")
+                .apply()
+            try {
+                getTimerManager().cancelTimer()
+            } catch (e: Exception) {}
+            return
+        }
+
         val expectedEndTime = intent.getLongExtra("TIMER_END_TIME", 0L)
         
         // Clear saved timer state in SharedPreferences
@@ -23,4 +38,8 @@ class RestTimerReceiver : BroadcastReceiver() {
         // Show notification and play sound
         NotificationHelper.showRestTimerEndedNotification(context)
     }
-}
+
+    companion object {
+        const val ACTION_SKIP_TIMER = "com.grafizum.repio.action.SKIP_TIMER"
+    }
+}

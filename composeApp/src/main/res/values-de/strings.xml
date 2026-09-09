@@ -103,6 +103,10 @@
     <string name="missing_parts_desc">Dein benutzerdefiniertes Workout enthält keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Gruppen sorgt für eine ausgewogene Kraftentwicklung.</string>
     <string name="notification_channel_name">Satzpausen-Benachrichtigungen</string>
     <string name="notification_channel_desc">Benachrichtigt, wenn die Satzpause endet</string>
+    <string name="notification_countdown_channel_name">Satzpause-Countdown</string>
+    <string name="notification_countdown_channel_desc">Zeigt die verbleibende Pausenzeit, während der Timer läuft</string>
+    <string name="notification_countdown_title">Pausentimer</string>
+    <string name="notification_countdown_text">Pause zwischen den Sätzen…</string>
     <string name="notification_title">Satzpause beendet! 💪</string>
     <string name="notification_text">Zeit für den nächsten Satz!</string>
     <string name="in_app_rest_ended_message">Pause beendet. Weiter mit dem Training!</string>
@@ -112,8 +116,14 @@
     <string name="replace_exercise">Übung ersetzen</string>
     <string name="replace_exercise_desc">Ersetze %1$s. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
     <string name="equipment">Geräte</string>
+    <string name="equipment_filter_hint">Wähle die Geräte, die dein vorgefertigter Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
     <string name="equipment_all">Alle</string>
     <string name="any_muscle_group">Alle</string>
+    <string name="copy_day_title">%1$s kopieren</string>
+    <string name="copy_day_desc">Alle Übungen von %1$s auf einen anderen Tag kopieren:</string>
+    <string name="copy_day_replace">Ersetzen</string>
+    <string name="copy_day_append">Anhängen</string>
+    <string name="copy">Kopieren</string>
     <string name="equipment_dumbbell">Kurzhanteln</string>
     <string name="equipment_barbell">Langhanteln</string>
     <string name="equipment_gym">Kabel &amp; Maschine</string>
@@ -266,7 +276,6 @@
     <string name="assisted_build">Geführter Aufbau</string>
     <string name="build_custom">Eigener Aufbau</string>
     <string name="choose_recommended_template">Wähle eine Vorlage</string>
-    <string name="selected">Ausgewählt</string>
     <string name="preview_breakdown">Vorschau</string>
     <string name="rest_and_recovery">Pause &amp; Erholung</string>
     <string name="customize_exercises">Passe deine Übungen an</string>
@@ -284,7 +293,7 @@
     <string name="select">Wählen</string>
     <string name="select_time">Zeit wählen</string>
     <string name="timer_durations">Timer-Dauern</string>
-    <string name="timer_settings_desc">\'Sätze\' für Pausen; \'Training\' für Übungen.</string>
+    <string name="timer_settings_desc">Pausen zwischen Sätzen und Übungen festlegen</string>
 
     <string name="faq_change_program_q">Wie ändere ich mein Programm?</string>
     <string name="faq_change_program_a">Gehe zum Tab \'Mein Training\' und tippe oben auf \'Custom Workout\', um eine neue Vorlage zu wählen.</string>
@@ -591,5 +600,13 @@
     <string name="ex_desc_fallback_triceps">Strecke das Ellbogengelenk, um das Gewicht zu drücken. Spanne den Trizeps am Ende der Bewegung fest an.</string>
     <string name="ex_desc_fallback_abs">Spanne die Körpermitte an und beuge oder rotiere den Rumpf kontrolliert aus der Bauchmuskulatur.</string>
     <string name="ex_desc_fallback_generic">Führe die Bewegung präzise aus. Kontrolliere das Gewicht über den gesamten Weg und fokussiere die Kontraktion des %1$s.</string>
+
+    <!-- Update nudge -->
+    <string name="update_available_title">Update verfügbar 🎉</string>
+    <string name="update_available_message">Eine neue Version von RepIo ist bereit. Aktualisiere, um die neuesten Verbesserungen zu erhalten!</string>
+    <string name="update_now">Aktualisieren</string>
+    <string name="update_later">Nicht jetzt</string>
+    <string name="notification_update_channel_name">App-Updates</string>
+    <string name="notification_update_channel_desc">Benachrichtigt, wenn eine neue Version von RepIo verfügbar ist</string>
 
 </resources>
