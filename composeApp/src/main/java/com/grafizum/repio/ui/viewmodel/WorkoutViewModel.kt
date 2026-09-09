@@ -5,6 +5,8 @@ import com.grafizum.repio.util.getTimerManager
 import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.getTodayDayOfWeek
+import com.grafizum.repio.util.remainingRestSeconds
+import com.grafizum.repio.util.startOfTodayMillis
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.ViewModel
@@ -37,6 +39,7 @@ data class WorkoutNowState(
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
     val isExerciseTimerActive: Boolean = false,
+    val timerDayOfWeek: String? = null,
     val currentExerciseSeconds: Int = 30,
     val minExerciseSeconds: Int = 10,
     val maxExerciseSeconds: Int = 600,
@@ -133,6 +136,9 @@ class WorkoutViewModel(
             // Only force-select today if it's a new day, which will reset progress correctly
             selectDayForWorkoutNow(today)
         }
+
+        // Re-post the phone countdown indicator if a timer was still running
+        resyncTimerCountdownNotification()
 
         allRoutineDays = repository.allRoutineDays.stateIn(
             viewModelScope,
@@ -235,22 +241,70 @@ class WorkoutViewModel(
         prefs.putInt("saved_exercise_seconds", state.currentExerciseSeconds)
         prefs.putBoolean("saved_is_completed", state.isWorkoutCompleted)
         prefs.putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
+        // The session is only valid for the calendar date it was saved on.
+        prefs.putLong("saved_session_date", startOfTodayMillis())
+        saveDayProgress(state.selectedDayOfWeek, state)
+    }
+
+    /** Per-day session progress (exercise index, set number, completion, logged sets). */
+    private data class DaySessionProgress(
+        val exerciseIndex: Int = 0,
+        val setNumber: Int = 1,
+        val completed: Boolean = false,
+        val totalSetsLogged: Int = 0
+    )
+
+    private fun loadDayProgress(day: String): DaySessionProgress? {
+        val raw = prefs.getString("day_progress_$day", null) ?: return null
+        val parts = raw.split(",")
+        // Day progress only applies to the calendar date it was saved on. Progress from a
+        // previous date (e.g. last week's same weekday) must not carry over, otherwise an
+        // old "completed" session shows up as today's already-done workout.
+        val savedDate = parts.getOrNull(4)?.toLongOrNull()
+        if (savedDate == null || savedDate != startOfTodayMillis()) return null
+        return DaySessionProgress(
+            exerciseIndex = parts.getOrNull(0)?.toIntOrNull() ?: 0,
+            setNumber = parts.getOrNull(1)?.toIntOrNull() ?: 1,
+            completed = parts.getOrNull(2)?.toBooleanStrictOrNull() ?: false,
+            totalSetsLogged = parts.getOrNull(3)?.toIntOrNull() ?: 0
+        )
+    }
+
+    private fun saveDayProgress(day: String, state: WorkoutNowState) {
+        prefs.putString(
+            "day_progress_$day",
+            "${state.currentExerciseIndex},${state.currentSetNumber},${state.isWorkoutCompleted},${state.totalSetsLoggedToday},${startOfTodayMillis()}"
+        )
     }
 
     private fun loadSavedWorkoutNowState(): WorkoutNowState {
-        val savedDay = prefs.getString("saved_workout_day", null) ?: getTodayDayOfWeek()
-        val savedExerciseIndex = prefs.getInt("saved_exercise_index", 0)
-        val savedSetNumber = prefs.getInt("saved_set_number", 1)
+        val today = getTodayDayOfWeek()
+        val savedDay = prefs.getString("saved_workout_day", null) ?: today
+        val dayProgress = loadDayProgress(savedDay)
+
+        // A session saved on a previous calendar date is stale: it must not masquerade
+        // as today's workout (e.g. last week's completed Thursday showing as already done
+        // this Thursday). Start today fresh instead.
+        val sessionDate = prefs.getLong("saved_session_date", 0L)
+        val isStaleSession = sessionDate != 0L && sessionDate != startOfTodayMillis()
+
+        if (dayProgress == null || isStaleSession) {
+            return WorkoutNowState(selectedDayOfWeek = today)
+        }
+
+        val savedExerciseIndex = dayProgress.exerciseIndex
+        val savedSetNumber = dayProgress.setNumber
+        val savedIsCompleted = dayProgress.completed
+        val savedTotalSetsLogged = dayProgress.totalSetsLogged
         val savedWeightKg = prefs.getFloat("saved_weight_kg", 20.0f).toDouble()
         val savedReps = prefs.getInt("saved_reps", 10)
         val savedExSeconds = prefs.getInt("saved_exercise_seconds", 30)
-        val savedIsCompleted = prefs.getBoolean("saved_is_completed", false)
-        val savedTotalSetsLogged = prefs.getInt("saved_total_sets_logged", 0)
 
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
         val isExTimer = prefs.getBoolean("is_exercise_timer", false)
         val now = currentTimeMillis()
-        val remainingSecs = if (endTime > now) ((endTime - now) / 1000L).toInt() + 1 else 0
+        val remainingSecs = if (endTime > now) remainingRestSeconds(endTime, now) else 0
+        val timerDay = prefs.getString("timer_day", null)
 
         return WorkoutNowState(
             selectedDayOfWeek = savedDay,
@@ -263,6 +317,7 @@ class WorkoutViewModel(
             restTimerSeconds = remainingSecs,
             isTimerActive = remainingSecs > 0,
             isExerciseTimerActive = if (remainingSecs > 0) isExTimer else false,
+            timerDayOfWeek = if (remainingSecs > 0) timerDay else null,
             totalSetsLoggedToday = savedTotalSetsLogged
         )
     }
@@ -372,14 +427,21 @@ class WorkoutViewModel(
         intensity: String = "",
         templateId: String = "",
         minSets: Int = 0,
-        maxSets: Int = 0
+        maxSets: Int = 0,
+        equipment: List<String> = emptyList()
     ) {
         viewModelScope.launch {
             // Completing a brand-new build from the Welcome screen replaces the routine,
             // so its memory (last-used weights/reps/seconds and the in-progress session) resets.
             val previousExerciseNames = repository.allRoutineExercises.first().map { it.name }
-            repository.applyProgram(days, exercises)
-            clearExerciseMemories((previousExerciseNames + exercises.map { it.name }).distinct())
+            // Premade builds can restrict which equipment the template may use.
+            val effectiveExercises = if (setupType == "PREMADE" && equipment.isNotEmpty()) {
+                mapToEquipmentFiltered(exercises, equipment, _workoutGoal.value)
+            } else {
+                exercises
+            }
+            repository.applyProgram(days, effectiveExercises)
+            clearExerciseMemories((previousExerciseNames + effectiveExercises.map { it.name }).distinct())
             resetSessionProgress()
             val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
@@ -392,11 +454,35 @@ class WorkoutViewModel(
             prefs.putString("setup_days", selectedDays.joinToString(","))
             prefs.putString("setup_intensity", intensity)
             prefs.putString("setup_template_id", templateId)
+            prefs.putString("setup_equipment", equipment.joinToString(","))
             prefs.putInt("setup_min_sets", minSets)
             prefs.putInt("setup_max_sets", maxSets)
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
+    }
+
+    private fun mapToEquipmentFiltered(
+        exercises: List<RoutineExerciseEntity>,
+        equipment: List<String>,
+        goal: String
+    ): List<RoutineExerciseEntity> {
+        val selected = equipment.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
+        val base = if (selected.isEmpty()) exercises
+                   else exercises.filter { WorkoutTemplates.getEquipmentForExercise(it.name) in selected }
+        return base.map {
+            it.copy(
+                targetReps = WorkoutTemplates.getGoalReps(it.name, goal, it.targetSets),
+                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name)
+            )
+        }
+    }
+
+    /** The equipment restriction saved with the last build (empty = no restriction). */
+    private fun loadSetupEquipment(): List<String> {
+        val raw = prefs.getString("setup_equipment", null) ?: return emptyList()
+        if (raw.isBlank() || raw == WorkoutTemplates.EQUIPMENT_ALL) return emptyList()
+        return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
     }
 
     fun regenerateProgramWithNewGoal(newGoal: String) {
@@ -408,7 +494,8 @@ class WorkoutViewModel(
             val selectedDays = prefs.getString("setup_days", "")?.split(",")?.filter { it.isNotBlank() } ?: emptyList()
             val intensity = prefs.getString("setup_intensity", "") ?: ""
             val templateId = prefs.getString("setup_template_id", "") ?: ""
-
+            val equipment = loadSetupEquipment()
+            
             when (setupType) {
                 "ASSISTED" -> {
                     val program = WorkoutTemplates.generateAssistedProgram(
@@ -427,13 +514,8 @@ class WorkoutViewModel(
                         // For premade, we need to know which days were selected. 
                         // setup_days should contain the selected week days.
                         val mapped = remapTemplateToDays(template, selectedDays)
-                        val mappedExercises = mapped.second.map { 
-                            it.copy(
-                                targetReps = WorkoutTemplates.getGoalReps(it.name, newGoal),
-                                restSeconds = WorkoutTemplates.getGoalRestSeconds(newGoal, it.name)
-                            ) 
-                        }
-                        repository.applyProgram(mapped.first, mappedExercises)
+                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal)
+                        repository.applyProgram(mapped.first, filteredExercises)
                     }
                 }
                 else -> {
@@ -485,12 +567,17 @@ class WorkoutViewModel(
             return
         }
 
+        // Save the progress of the day we are leaving
+        saveDayProgress(currentState.selectedDayOfWeek, currentState)
+
+        // Restore the target day's own progress (fresh defaults if never started)
+        val target = loadDayProgress(dayOfWeek) ?: DaySessionProgress()
         val newState = currentState.copy(
             selectedDayOfWeek = dayOfWeek,
-            currentExerciseIndex = 0,
-            currentSetNumber = 1,
-            isWorkoutCompleted = false,
-            totalSetsLoggedToday = 0 // Reset for the new day
+            currentExerciseIndex = target.exerciseIndex,
+            currentSetNumber = target.setNumber,
+            isWorkoutCompleted = target.completed,
+            totalSetsLoggedToday = target.totalSetsLogged
         )
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
@@ -501,6 +588,17 @@ class WorkoutViewModel(
         if (index in 0 until totalExercises) {
             _workoutNowState.update { it.copy(currentExerciseIndex = index, currentSetNumber = 1) }
             saveWorkoutNowState(_workoutNowState.value)
+        }
+    }
+
+    /** Re-posts the phone countdown indicator for a still-running timer (e.g. after process restart). */
+    fun resyncTimerCountdownNotification() {
+        val state = _workoutNowState.value
+        if (state.isTimerActive && state.restTimerSeconds > 0) {
+            val endTime = prefs.getLong("timer_end_time_millis", 0L)
+            if (endTime > currentTimeMillis()) {
+                timerManager.showCountdownNotification(remainingRestSeconds(endTime))
+            }
         }
     }
 
@@ -579,8 +677,10 @@ class WorkoutViewModel(
         listOf(
             "saved_workout_day", "saved_exercise_index", "saved_set_number",
             "saved_weight_kg", "saved_reps", "saved_exercise_seconds",
-            "saved_is_completed", "saved_total_sets_logged"
+            "saved_is_completed", "saved_total_sets_logged", "saved_session_date"
         ).forEach { prefs.remove(it) }
+        com.grafizum.repio.data.DayOfWeekEnum.entries.forEach { prefs.remove("day_progress_${it.name}") }
+        prefs.remove("timer_day")
         _workoutNowState.value = WorkoutNowState(selectedDayOfWeek = getTodayDayOfWeek())
     }
 
@@ -598,15 +698,17 @@ class WorkoutViewModel(
         updateWeightAndReps(prevWeight, currentState.currentReps)
     }
 
-    fun startRestTimer(seconds: Int, isExerciseTimer: Boolean = false, silent: Boolean = false) {
+    fun startRestTimer(seconds: Int, isExerciseTimer: Boolean = false, silent: Boolean = false, day: String? = null) {
         if (seconds <= 0) return
         stopTimer()
+        val timerDay = day ?: _workoutNowState.value.selectedDayOfWeek
         val endTime = currentTimeMillis() + (seconds * 1000L)
         prefs.putLong("timer_end_time_millis", endTime)
         prefs.putBoolean("is_exercise_timer", isExerciseTimer)
         prefs.putBoolean("is_silent_timer", silent)
-        timerManager.scheduleTimer(endTime)
-        _workoutNowState.update { it.copy(restTimerSeconds = seconds, isTimerActive = true, isExerciseTimerActive = isExerciseTimer) }
+        prefs.putString("timer_day", timerDay)
+        timerManager.scheduleTimer(endTime, seconds)
+        _workoutNowState.update { it.copy(restTimerSeconds = seconds, isTimerActive = true, isExerciseTimerActive = isExerciseTimer, timerDayOfWeek = timerDay) }
     }
 
     fun logCurrentSetAndAdvance(exercises: List<RoutineExerciseEntity>) {
@@ -668,6 +770,7 @@ class WorkoutViewModel(
             repository.deleteTodayLogs()
         }
         _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0) }
+        saveDayProgress(_workoutNowState.value.selectedDayOfWeek, _workoutNowState.value)
         saveWorkoutNowState(_workoutNowState.value)
     }
 
@@ -677,16 +780,20 @@ class WorkoutViewModel(
             val now = currentTimeMillis()
             val remainingMillis = endTime - now
             if (remainingMillis > 0L) {
-                val remainingSecs = (remainingMillis / 1000L).toInt() + 1
+                val remainingSecs = remainingRestSeconds(endTime, now)
                 _workoutNowState.update { it.copy(restTimerSeconds = remainingSecs, isTimerActive = true) }
+                // Keep the notification countdown in lockstep with the in-app timer: same value,
+                // same tick, so they always show the identical remaining time.
+                timerManager.showCountdownNotification(remainingSecs)
             } else {
                 val wasActive = _workoutNowState.value.isTimerActive
                 val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
                 val isSilent = prefs.getBoolean("is_silent_timer", false)
                 
                 if (wasActive && wasExerciseTimer) {
+                    val timerDay = _workoutNowState.value.timerDayOfWeek ?: _workoutNowState.value.selectedDayOfWeek
                     val dayExercises = allRoutineExercises.value
-                        .filter { it.dayOfWeek == _workoutNowState.value.selectedDayOfWeek }
+                        .filter { it.dayOfWeek == timerDay }
                         .sortedBy { it.orderIndex }
                     if (dayExercises.isNotEmpty()) {
                         advanceAfterTimer(dayExercises)
@@ -704,14 +811,6 @@ class WorkoutViewModel(
         }
     }
 
-    fun stopTimer() {
-        prefs.putLong("timer_end_time_millis", 0L)
-        prefs.putBoolean("is_exercise_timer", false)
-        prefs.putBoolean("is_silent_timer", false)
-        timerManager.cancelTimer()
-        _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false, isExerciseTimerActive = false) }
-    }
-
     fun checkTimerOnAppClose() {
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
         if (endTime > 0L) {
@@ -724,9 +823,18 @@ class WorkoutViewModel(
                 )
                 timerManager.showTimerNotification()
             } else {
-                timerManager.scheduleTimer(endTime)
+                timerManager.scheduleTimer(endTime, remainingRestSeconds(endTime))
             }
         }
+    }
+
+    fun stopTimer() {
+        prefs.putLong("timer_end_time_millis", 0L)
+        prefs.putBoolean("is_exercise_timer", false)
+        prefs.putBoolean("is_silent_timer", false)
+        prefs.remove("timer_day")
+        timerManager.cancelTimer()
+        _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false, isExerciseTimerActive = false, timerDayOfWeek = null) }
     }
 
     fun startExerciseTimerWithLog(exercises: List<RoutineExerciseEntity>, seconds: Int) {
@@ -758,33 +866,47 @@ class WorkoutViewModel(
 
     fun advanceAfterTimer(exercises: List<RoutineExerciseEntity>) {
         if (exercises.isEmpty()) return
+        val timerDay = _workoutNowState.value.timerDayOfWeek ?: _workoutNowState.value.selectedDayOfWeek
         stopTimer()
-        val currentState = _workoutNowState.value
-        val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
+        val viewedDay = _workoutNowState.value.selectedDayOfWeek
+        
+        // Advance the timer's own day progress (not the day the user happens to be viewing)
+        val progress = loadDayProgress(timerDay) ?: DaySessionProgress()
+        val exerciseIndex = progress.exerciseIndex.coerceIn(0, exercises.size - 1)
         val currentExercise = exercises[exerciseIndex]
-        val nextSetNumber = currentState.currentSetNumber + 1
+        val nextSetNumber = progress.setNumber + 1
         
         var isTransition = false
-        _workoutNowState.update { state ->
-            if (nextSetNumber <= currentExercise.targetSets) {
-                state.copy(currentSetNumber = nextSetNumber)
+        val updated = if (nextSetNumber <= currentExercise.targetSets) {
+            progress.copy(setNumber = nextSetNumber)
+        } else {
+            val nextExerciseIndex = exerciseIndex + 1
+            if (nextExerciseIndex < exercises.size) {
+                isTransition = true
+                progress.copy(exerciseIndex = nextExerciseIndex, setNumber = 1)
             } else {
-                val nextExerciseIndex = exerciseIndex + 1
-                if (nextExerciseIndex < exercises.size) {
-                    isTransition = true
-                    state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1)
-                } else {
-                    state.copy(isWorkoutCompleted = true)
-                }
+                progress.copy(completed = true)
+            }
+        }
+        prefs.putString(
+            "day_progress_$timerDay",
+            "${updated.exerciseIndex},${updated.setNumber},${updated.completed},${updated.totalSetsLogged},${startOfTodayMillis()}"
+        )
+        if (timerDay == viewedDay) {
+            _workoutNowState.update {
+                it.copy(
+                    currentExerciseIndex = updated.exerciseIndex,
+                    currentSetNumber = updated.setNumber,
+                    isWorkoutCompleted = updated.completed
+                )
             }
         }
         
-        val updatedState = _workoutNowState.value
-        if (!updatedState.isWorkoutCompleted) {
+        if (!updated.completed) {
             if (isTransition) {
-                startRestTimer(currentExercise.transitionRestSeconds)
+                startRestTimer(currentExercise.transitionRestSeconds, day = timerDay)
             } else {
-                startRestTimer(currentExercise.restSeconds)
+                startRestTimer(currentExercise.restSeconds, day = timerDay)
             }
         }
         saveWorkoutNowState(_workoutNowState.value)
@@ -793,9 +915,24 @@ class WorkoutViewModel(
     fun deleteLoggedSet(id: Long) { viewModelScope.launch { repository.deleteLoggedSet(id) } }
     fun saveExercise(exercise: RoutineExerciseEntity) { viewModelScope.launch { repository.saveExercise(exercise) } }
     fun reorderExercises(exercises: List<RoutineExerciseEntity>) { viewModelScope.launch { repository.reorderExercises(exercises) } }
-    fun deleteExercise(id: Long) { viewModelScope.launch { repository.deleteExercise(id) } }
 
-    fun clearHistory() { viewModelScope.launch { repository.clearHistory() } }
+    fun deleteExercise(id: Long) {
+        viewModelScope.launch {
+            repository.deleteExercise(id)
+        }
+    }
+
+    fun markDayAsWorkoutDay(dayOfWeek: String) {
+        viewModelScope.launch {
+            repository.markDayAsWorkoutDay(dayOfWeek)
+        }
+    }
+
+    fun clearHistory() {
+        viewModelScope.launch {
+            repository.clearHistory()
+        }
+    }
 
     fun resetToDefaultProgram() { viewModelScope.launch { repository.resetRoutineToDefault() } }
 

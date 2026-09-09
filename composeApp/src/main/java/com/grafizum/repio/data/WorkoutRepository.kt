@@ -2,7 +2,7 @@ package com.grafizum.repio.data
 
 import kotlinx.coroutines.flow.Flow
 import kotlinx.coroutines.flow.first
-import java.util.Calendar
+import com.grafizum.repio.util.startOfTodayMillis
 
 class WorkoutRepository(private val dao: WorkoutDao) {
 
@@ -124,6 +124,14 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.updateExercises(exercises)
     }
 
+    suspend fun markDayAsWorkoutDay(dayOfWeek: String) {
+        val days = dao.getAllRoutineDays().first()
+        val existing = days.firstOrNull { it.dayOfWeek == dayOfWeek }
+        val updated = existing?.copy(isRestDay = false)
+            ?: RoutineDayEntity(dayOfWeek, dayOfWeek, "Custom day", false)
+        dao.insertRoutineDays(listOf(updated))
+    }
+
     suspend fun deleteExercise(id: Long) {
         dao.deleteExerciseById(id)
     }
@@ -168,12 +176,6 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     }
 
     suspend fun deleteTodayLogs() {
-        val calendar = Calendar.getInstance().apply {
-            set(Calendar.HOUR_OF_DAY, 0)
-            set(Calendar.MINUTE, 0)
-            set(Calendar.SECOND, 0)
-            set(Calendar.MILLISECOND, 0)
-        }
-        dao.deleteLoggedSetsSince(calendar.timeInMillis)
+        dao.deleteLoggedSetsSince(startOfTodayMillis())
     }
 }

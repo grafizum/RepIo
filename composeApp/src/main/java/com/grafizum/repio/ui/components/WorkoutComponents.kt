@@ -81,6 +81,7 @@ import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import androidx.compose.ui.window.DialogProperties
 
 // Color mappings per muscle group
 fun getMuscleGroupColor(muscleGroup: String): Color {
@@ -117,6 +118,8 @@ fun MuscleGroupBadge(
         Text(
             text = translateMuscleGroup(topic),
             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis,
             modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
         )
     }
@@ -149,6 +152,7 @@ fun translateMuscleGroup(muscleGroup: String): String {
         "calves" -> getString("calves_part")
         "hip adductors" -> getString("hip_adductors")
         "hip abductors" -> getString("hip_abductors")
+        "other" -> getString("other")
         else -> muscleGroup
     }
 }
@@ -327,18 +331,6 @@ fun StatCard(
                     verticalAlignment = Alignment.Bottom,
                     horizontalArrangement = Arrangement.Start
                 ) {
-                    Text(
-                        text = value,
-                        style = MaterialTheme.typography.displayLarge.copy(
-                            fontWeight = FontWeight.Black,
-                            fontSize = 44.sp,
-                            lineHeight = 44.sp
-                        ),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
-                    )
-                    
-                    Spacer(modifier = Modifier.width(16.dp))
-                    
                     if (icon != null) {
                         Icon(
                             imageVector = icon,
@@ -347,6 +339,22 @@ fun StatCard(
                             modifier = Modifier.size(44.dp).align(Alignment.CenterVertically)
                         )
                     }
+                    
+                    Spacer(modifier = Modifier.width(16.dp))
+                    
+                    // Shrink the hero number on narrow phones so it never clips mid-glyph.
+                    val isCompact = rememberIsCompactWidth()
+                    Text(
+                        text = value,
+                        style = MaterialTheme.typography.displayLarge.copy(
+                            fontWeight = FontWeight.Black,
+                            fontSize = if (isCompact) 32.sp else 44.sp,
+                            lineHeight = if (isCompact) 32.sp else 44.sp
+                        ),
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
                 }
             } else {
                 // STANDARD MODE: Split layout
@@ -587,15 +595,33 @@ fun getRpeRirExplanation(intensity: String): String {
 
 @Composable
 fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""): Pair<String, String> {
+    // Every built-in exercise has its own accurate, mimic-able description
+    // (see ExerciseDescriptions.kt), so distinct movements never share text.
+    var description = getExerciseDescription(name) ?: genericExerciseDescription(name, muscleGroup)
+
+    if (intensity.contains("RPE", ignoreCase = true)) {
+        description += "\n\n" + getString("intensity_label") + ": " + intensity
+    }
+
+    return description to ""
+}
+
+/**
+ * Fallback description for exercises outside the built-in pool (user-created
+ * customs). Built-in names never reach here because [getExerciseDescription]
+ * matches them exactly.
+ */
+@Composable
+private fun genericExerciseDescription(name: String, muscleGroup: String): String {
     val cleanName = name.trim().lowercase()
-    var description = when {
+    return when {
         cleanName.contains("bench press") || cleanName.contains("floor press") -> getString("ex_bench_press_desc")
         cleanName.contains("incline") && cleanName.contains("press") -> getString("ex_incline_press_desc")
         cleanName.contains("decline") && cleanName.contains("press") -> getString("ex_decline_press_desc")
-        cleanName.contains("squat") && !cleanName.contains("goblet") && !cleanName.contains("split") -> getString("ex_squats_desc")
         cleanName.contains("goblet squat") -> getString("ex_goblet_squat_desc")
-        cleanName.contains("deadlift") && !cleanName.contains("romanian") && !cleanName.contains("rdl") -> getString("ex_deadlifts_desc")
+        cleanName.contains("squat") && !cleanName.contains("goblet") && !cleanName.contains("split") -> getString("ex_squats_desc")
         cleanName.contains("romanian") || cleanName.contains("rdl") -> getString("ex_romanian_deadlift_desc")
+        cleanName.contains("deadlift") -> getString("ex_deadlifts_desc")
         cleanName.contains("pull-up") || cleanName.contains("pullup") || cleanName.contains("chin-up") -> getString("ex_pull_ups_desc")
         cleanName.contains("pulldown") -> getString("ex_pulldown_desc")
         cleanName.contains("pullover") -> getString("ex_pullover_desc")
@@ -616,8 +642,8 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
         cleanName.contains("lunge") || cleanName.contains("step-up") || cleanName.contains("split squat") -> getString("ex_lunges_desc")
         cleanName.contains("side lying leg raise") -> getString("ex_side_lying_leg_raise_desc")
         cleanName.contains("clamshell") -> getString("ex_clamshell_desc")
-        cleanName.contains("crunch") && !cleanName.contains("cable") -> getString("ex_crunches_desc")
         cleanName.contains("cable crunch") -> getString("ex_cable_crunch_desc")
+        cleanName.contains("crunch") -> getString("ex_crunches_desc")
         cleanName.contains("leg raise") -> getString("ex_leg_raises_desc")
         cleanName.contains("russian twist") -> getString("ex_russian_twist_desc")
         cleanName.contains("abs") -> getString("ex_abs_desc")
@@ -652,12 +678,6 @@ fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""
             }
         }
     }
-
-    if (intensity.contains("RPE", ignoreCase = true)) {
-        description += "\n\n" + getString("intensity_label") + ": " + intensity
-    }
-
-    return description to ""
 }
 
 @Composable
@@ -1177,14 +1197,15 @@ private fun TimerSelectionButton(
                 modifier = Modifier.padding(horizontal = 6.dp)
             ) {
                 Column(horizontalAlignment = Alignment.CenterHorizontally) {
-                    Text(
+                    // AutoScaleText keeps the label legible on narrow screens instead of
+                    // collapsing to an unreadable 7sp when selected.
+                    AutoScaleText(
                         text = label,
                         style = MaterialTheme.typography.labelSmall.copy(
-                            fontSize = if (isSelected) 7.sp else 11.sp,
+                            fontSize = 11.sp,
                             fontWeight = FontWeight.Bold
                         ),
-                        maxLines = 1,
-                        overflow = TextOverflow.Ellipsis
+                        minScale = 0.6f
                     )
                     if (isSelected) {
                         Text(
@@ -1212,6 +1233,20 @@ fun formatTimerValue(seconds: Int): String {
 
 
 /**
+ * Softened variant of [getMuscleGroupColor] used only by the analytics donut
+ * chart: blends toward white to calm the palette and harmonize with any
+ * theme while keeping each muscle group's hue recognizable.
+ */
+private fun mutedDonutColor(color: Color): Color {
+    val blend = 0.45f
+    return Color(
+        red = color.red + (1f - color.red) * blend,
+        green = color.green + (1f - color.green) * blend,
+        blue = color.blue + (1f - color.blue) * blend
+    )
+}
+
+/**
  * Interactive Donut Chart for Muscle Group Distribution
  */
 @Composable
@@ -1221,7 +1256,36 @@ fun MuscleGroupDonutChart(
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val total = distribution.values.sum().coerceAtLeast(1)
-    val sortedItems = distribution.entries.sortedByDescending { it.value }
+
+    // Keep the donut and the legend in sync: groups beyond the top 5 are
+    // merged into a single localized "Other" slice instead of being drawn
+    // without a legend entry.
+    val maxLegendItems = 5
+    val otherKey = getString("other")
+    val displayDistribution: Map<String, Int> = run {
+        // Merge raw "Other" entries (custom/unknown exercises) into one bucket first
+        val normalized = mutableMapOf<String, Int>()
+        distribution.forEach { (key, value) ->
+            val k = if (key.equals("Other", ignoreCase = true)) otherKey else key
+            normalized[k] = (normalized[k] ?: 0) + value
+        }
+        val sorted = normalized.entries.sortedByDescending { it.value }
+        if (sorted.size <= maxLegendItems) {
+            normalized
+        } else {
+            val display = sorted.take(maxLegendItems).associate { it.key to it.value }.toMutableMap()
+            val restTotal = sorted.drop(maxLegendItems).sumOf { it.value }
+            if (restTotal > 0) display[otherKey] = (display[otherKey] ?: 0) + restTotal
+            display
+        }
+    }
+    val sortedItems = displayDistribution.entries.sortedByDescending { it.value }
+
+    // Chart-only muted palette (see mutedDonutColor); keyed by group so the
+    // arcs and legend dots always stay in sync.
+    val mutedPalette = remember(displayDistribution) {
+        displayDistribution.mapValues { mutedDonutColor(getMuscleGroupColor(it.key)) }
+    }
 
     Card(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
@@ -1273,7 +1337,7 @@ fun MuscleGroupDonutChart(
                                     val grey = (0.2f + (index.toFloat() / sortedItems.size) * 0.7f).coerceIn(0f, 1f)
                                     Color(grey, grey, grey)
                                 } else {
-                                    getMuscleGroupColor(entry.key)
+                                    mutedPalette[entry.key] ?: getMuscleGroupColor(entry.key)
                                 }
 
                                 drawArc(
@@ -1307,12 +1371,12 @@ fun MuscleGroupDonutChart(
                         verticalArrangement = Arrangement.spacedBy(6.dp),
                         modifier = Modifier.weight(1f)
                     ) {
-                        sortedItems.take(5).forEachIndexed { index, entry ->
+                        sortedItems.forEachIndexed { index, entry ->
                             val color = if (isDeveloper) {
                                 val grey = (0.2f + (index.toFloat() / sortedItems.size) * 0.7f).coerceIn(0f, 1f)
                                 Color(grey, grey, grey)
                             } else {
-                                getMuscleGroupColor(entry.key)
+                                mutedPalette[entry.key] ?: getMuscleGroupColor(entry.key)
                             }
                             val percentage = ((entry.value.toFloat() / total.toFloat()) * 100).toInt()
 
@@ -2003,6 +2067,7 @@ fun ExerciseEditDialog(
     var isExpanded by remember { mutableStateOf(exercise != null) }
     
     var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
+    var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
     var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
     var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
@@ -2046,6 +2111,9 @@ fun ExerciseEditDialog(
 
     AlertDialog(
         onDismissRequest = onDismiss,
+        // Full-width dialog: with the keyboard open on small phones (e.g. Pixel),
+        // the default dialog + fixed content would clip the bottom fields entirely.
+        properties = DialogProperties(usePlatformDefaultWidth = false),
         title = {
             Box(
                 modifier = Modifier
@@ -2063,6 +2131,8 @@ fun ExerciseEditDialog(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
                     .fillMaxWidth()
+                    .imePadding()
+                    .verticalScroll(rememberScrollState())
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
@@ -2100,7 +2170,10 @@ fun ExerciseEditDialog(
                         if (isTimeBased) {
                             if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
                         } else {
-                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
+                                targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
+                                repsManuallyEdited = false
+                            }
                         }
                     },
                     label = getString("exercise_name"),
@@ -2205,7 +2278,7 @@ fun ExerciseEditDialog(
                     } else {
                         RepsRangeField(
                             value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it },
+                            onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
                             label = getString("reps"),
                             isError = repsError,
                             modifier = Modifier.weight(1f).fillMaxHeight()
@@ -2229,7 +2302,16 @@ fun ExerciseEditDialog(
                     )
                     CompactNumericField(
                         value = targetIntensityStr,
-                        onValueChange = { targetIntensityStr = it },
+                        onValueChange = {
+                            targetIntensityStr = it
+                            // Re-adapt the auto-selected reps while the user hasn't typed their own
+                            if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
+                                val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
+                                if (recommended.isNotBlank()) {
+                                    targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
+                                }
+                            }
+                        },
                         label = getString("intensity_label"),
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
@@ -2372,7 +2454,7 @@ fun WorkoutDayWheel(
                                     text = getString("today").uppercase(),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
-                                        fontSize = 6.sp,
+                                        fontSize = 8.sp,
                                         letterSpacing = 0.2.sp
                                     ),
                                     maxLines = 1

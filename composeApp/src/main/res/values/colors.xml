@@ -11,37 +11,6 @@
     <color name="bg_rose">#121212</color>
     <color name="bg_retro">#121212</color>
 
-    <!-- Primaries (Match Theme.kt exactly) -->
-    <color name="theme_beige_primary">#8C6239</color>
-    <color name="theme_emerald_primary">#00796B</color>
-    <color name="theme_crimson_primary">#C62828</color>
-    <color name="theme_azure_primary">#007AFF</color>
-    <color name="theme_purple_primary">#9E7AFF</color>
-    <color name="theme_flame_primary">#FF6D00</color>
-    <color name="theme_ocean_primary">#00B8D4</color>
-    <color name="theme_rose_primary">#F06292</color>
-    <color name="theme_retro_primary">#FFFFFF</color>
-    <color name="theme_orange_primary">#FF6D00</color>
-    <color name="theme_cyan_primary">#00E5FF</color>
-    <color name="theme_red_primary">#FF1744</color>
-
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>
-
-    <!-- Legacy / Compatibility / Icons -->
-    <color name="black">#FF000000</color>
-    <color name="white">#FFFFFFFF</color>
-    <color name="ic_launcher_background_light">#FDFCFB</color>
-    <color name="ic_launcher_background_dark">#121212</color>
-    <color name="ic_launcher_background_beige">#FDFCFB</color>
-    <color name="ic_launcher_background_orange">#121212</color>
-    <color name="ic_launcher_background">#121212</color>
-    <color name="splash_bg_purple">#121212</color>
-    <color name="splash_bg_ocean">#121212</color>
-    <color name="splash_bg_rose">#121212</color>
-    <color name="splash_bg_retro">#121212</color>
-
-    <color name="splash_bg_default">#121212</color>
-    <color name="splash_bg_light">#FDFCFB</color>
-    <color name="splash_bg_black">#121212</color>
-</resources>
+</resources>

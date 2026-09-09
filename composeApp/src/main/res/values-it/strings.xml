@@ -103,6 +103,10 @@
     <string name="missing_parts_desc">Il tuo allenamento personalizzato non ha esercizi per: %1$s. Aggiungere esercizi per questi gruppi assicurerà uno sviluppo equilibrato della forza.</string>
     <string name="notification_channel_name">Notifiche Timer Riposo</string>
     <string name="notification_channel_desc">Notifica quando finisce la pausa tra le serie</string>
+    <string name="notification_countdown_channel_name">Countdown Timer Riposo</string>
+    <string name="notification_countdown_channel_desc">Mostra il tempo di riposo rimanente mentre il timer è attivo</string>
+    <string name="notification_countdown_title">Timer di Riposo</string>
+    <string name="notification_countdown_text">Riposo tra le serie…</string>
     <string name="notification_title">Pausa Finita! 💪</string>
     <string name="notification_text">È ora della prossima serie!</string>
     <string name="in_app_rest_ended_message">Il tempo di riposo è terminato. Continua l\'allenamento!</string>
@@ -112,8 +116,14 @@
     <string name="replace_exercise">Sostituisci esercizio</string>
     <string name="replace_exercise_desc">Sostituzione di %1$s. I filtri sono preimpostati su attrezzatura e gruppo muscolare — modificali per sfogliare l\'intero pool di esercizi.</string>
     <string name="equipment">Attrezzatura</string>
+    <string name="equipment_filter_hint">Seleziona l\'attrezzatura che il tuo programma predefinito può usare — lascia vuoto per mantenerla tutta.</string>
     <string name="equipment_all">Tutti</string>
     <string name="any_muscle_group">Qualsiasi</string>
+    <string name="copy_day_title">Copia %1$s</string>
+    <string name="copy_day_desc">Copia tutti gli esercizi da %1$s in un altro giorno:</string>
+    <string name="copy_day_replace">Sostituisci</string>
+    <string name="copy_day_append">Aggiungi</string>
+    <string name="copy">Copia</string>
     <string name="equipment_dumbbell">Manubri</string>
     <string name="equipment_barbell">Bilancieri</string>
     <string name="equipment_gym">Cavi e macchine</string>
@@ -266,7 +276,6 @@
     <string name="assisted_build">Build Assistito</string>
     <string name="build_custom">Build Personalizzato</string>
     <string name="choose_recommended_template">Scegli un Template</string>
-    <string name="selected">Selezionato</string>
     <string name="preview_breakdown">Anteprima Breakdown</string>
     <string name="rest_and_recovery">Riposo e Recupero</string>
     <string name="customize_exercises">Personalizza i Tuoi Esercizi</string>
@@ -284,7 +293,7 @@
     <string name="select">Seleziona</string>
     <string name="select_time">Seleziona Tempo</string>
     <string name="timer_durations">Durate Timer</string>
-    <string name="timer_settings_desc">\'Serie\' per pause; \'Allenamento\' per esercizi.</string>
+    <string name="timer_settings_desc">Imposta le pause tra serie ed esercizi</string>
 
     <string name="faq_change_program_q">Come cambio il mio programma?</string>
     <string name="faq_change_program_a">Vai alla scheda \'Mio Allenamento\' e tocca \'Custom Workout\' in alto per selezionare un nuovo template.</string>
@@ -591,5 +600,13 @@
     <string name="ex_desc_fallback_triceps">Estendi l\'articolazione del gomito per spingere il peso, concentrandoti sulla contrazione dei tricipiti alla fine del movimento.</string>
     <string name="ex_desc_fallback_abs">Contrai la parte centrale e fletti o ruota il busto sotto controllo, concentrandoti sulla contrazione degli addominali.</string>
     <string name="ex_desc_fallback_generic">Esegui il movimento con precisione. Controlla il peso lungo tutto il percorso e concentrati sulla massima contrazione del %1$s.</string>
+
+    <!-- Update nudge -->
+    <string name="update_available_title">Aggiornamento disponibile 🎉</string>
+    <string name="update_available_message">Una nuova versione di RepIo è pronta. Aggiorna per avere gli ultimi miglioramenti!</string>
+    <string name="update_now">Aggiorna</string>
+    <string name="update_later">Non ora</string>
+    <string name="notification_update_channel_name">Aggiornamenti dell\'app</string>
+    <string name="notification_update_channel_desc">Ti avvisa quando è disponibile una nuova versione di RepIo</string>
 
 </resources>

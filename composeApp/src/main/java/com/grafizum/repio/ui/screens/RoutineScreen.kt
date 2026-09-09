@@ -68,6 +68,7 @@ import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
 import androidx.compose.material.icons.filled.Close
 import androidx.compose.material.icons.filled.Checklist
+import androidx.compose.material.icons.filled.ContentCopy
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
@@ -161,6 +162,11 @@ fun WorkoutScreen(
     val selectedExerciseIds = remember { mutableStateListOf<Long>() }
     var exerciseToDelete by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var showDeleteMultipleConfirmation by remember { mutableStateOf(false) }
+
+    // Copy Day feature: copy the selected day's exercises to another day
+    var showCopyDayDialog by remember { mutableStateOf(false) }
+    var copyTargetDay by remember { mutableStateOf("TUESDAY") }
+    var copyReplaceExercises by remember { mutableStateOf(true) }
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
     val focusManager = LocalFocusManager.current
@@ -555,6 +561,17 @@ fun WorkoutScreen(
                                     }
 
                                     IconButton(
+                                        onClick = {
+                                            focusManager.clearFocus()
+                                            copyTargetDay = if (workoutState.selectedDayOfWeek == "MONDAY") "TUESDAY" else "MONDAY"
+                                            showCopyDayDialog = true
+                                        },
+                                        modifier = Modifier.size(40.dp)
+                                    ) {
+                                        Icon(imageVector = Icons.Default.ContentCopy, contentDescription = getString("copy_day_title", dayOfWeekDisplayName(workoutState.selectedDayOfWeek)), tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
+                                    }
+
+                                    IconButton(
                                         onClick = { 
                                             focusManager.clearFocus()
                                             showAddDialog = true 
@@ -838,6 +855,110 @@ fun WorkoutScreen(
                 TextButton(onClick = {
                     focusManager.clearFocus()
                     showDeleteMultipleConfirmation = false
+                }) {
+                    Text(getString("cancel"))
+                }
+            }
+        )
+    }
+
+    if (showCopyDayDialog) {
+        val focusManager = LocalFocusManager.current
+        val sourceExercises = allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
+        val sourceDayName = dayOfWeekDisplayName(workoutState.selectedDayOfWeek)
+        AlertDialog(
+            onDismissRequest = { showCopyDayDialog = false },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("copy_day_title", sourceDayName))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = getString("copy_day_desc", sourceDayName),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        DaySelectionRow(
+                            selectedDays = listOf(copyTargetDay),
+                            onDayToggle = { copyTargetDay = it }
+                        )
+
+                        // Replace vs append mode
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = copyReplaceExercises,
+                                onClick = { copyReplaceExercises = true },
+                                label = { Text(getString("copy_day_replace")) }
+                            )
+                            FilterChip(
+                                selected = !copyReplaceExercises,
+                                onClick = { copyReplaceExercises = false },
+                                label = { Text(getString("copy_day_append")) }
+                            )
+                        }
+
+                        if (sourceExercises.isEmpty()) {
+                            Text(
+                                text = getString("no_exercises_scheduled"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        if (sourceExercises.isNotEmpty() && copyTargetDay != workoutState.selectedDayOfWeek) {
+                            if (copyReplaceExercises) {
+                                allExercises.filter { it.dayOfWeek == copyTargetDay }
+                                    .forEach { viewModel.deleteExercise(it.id) }
+                            }
+                            val maxOrder = allExercises
+                                .filter { it.dayOfWeek == copyTargetDay }
+                                .maxOfOrNull { it.orderIndex } ?: 0
+                            sourceExercises.sortedBy { it.orderIndex }.forEachIndexed { index, ex ->
+                                viewModel.saveExercise(
+                                    ex.copy(
+                                        id = 0L,
+                                        dayOfWeek = copyTargetDay,
+                                        orderIndex = maxOrder + index + 1
+                                    )
+                                )
+                            }
+                            viewModel.markDayAsWorkoutDay(copyTargetDay)
+                        }
+                        showCopyDayDialog = false
+                    },
+                    enabled = sourceExercises.isNotEmpty() && copyTargetDay != workoutState.selectedDayOfWeek
+                ) {
+                    Text(getString("copy"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showCopyDayDialog = false
                 }) {
                     Text(getString("cancel"))
                 }

@@ -103,6 +103,10 @@
     <string name="missing_parts_desc">Your custom workout has no exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
     <string name="notification_channel_name">Rest Timer Notifications</string>
     <string name="notification_channel_desc">Notifies when rest pause for Sets finishes</string>
+    <string name="notification_countdown_channel_name">Rest Timer Countdown</string>
+    <string name="notification_countdown_channel_desc">Shows how much rest time is left while the timer runs</string>
+    <string name="notification_countdown_title">Rest Timer</string>
+    <string name="notification_countdown_text">Resting between sets…</string>
     <string name="notification_title">Rest Pause Ended! 💪</string>
     <string name="notification_text">Time to smash your next set!</string>
     <string name="in_app_rest_ended_message">Rest time has ended. Continue the next workout!</string>
@@ -112,14 +116,21 @@
     <string name="replace_exercise">Replace Exercise</string>
     <string name="replace_exercise_desc">Replacing %1$s. Filters are pre-set to its equipment and muscle group — change them to browse the full exercise pool.</string>
     <string name="equipment">Equipment</string>
+    <string name="equipment_filter_hint">Select the equipment your premade build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
     <string name="any_muscle_group">Any</string>
+    <string name="copy_day_title">Copy %1$s</string>
+    <string name="copy_day_desc">Copy all exercises from %1$s to another day:</string>
+    <string name="copy_day_replace">Replace</string>
+    <string name="copy_day_append">Append</string>
+    <string name="copy">Copy</string>
     <string name="equipment_dumbbell">Dumbbells</string>
     <string name="equipment_barbell">Barbells</string>
     <string name="equipment_gym">Cable &amp; Machine</string>
     <string name="no_exercises_for_filters">No exercises match these filters.</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your saved workout sets.</string>
+    <string name="delete_all">Delete All</string>
     <string name="workout_history">Workout Calendar</string>
     <string name="no_workout_on_day">No workout recorded for this day.</string>
     <string name="no_workouts_for_day">No workouts done on %1$s</string>
@@ -265,7 +276,6 @@
     <string name="assisted_build">Assisted Build</string>
     <string name="build_custom">Custom Build</string>
     <string name="choose_recommended_template">Choose a Workout Template</string>
-    <string name="selected">Selected</string>
     <string name="preview_breakdown">Preview Breakdown</string>
     <string name="rest_and_recovery">Rest &amp; Recovery</string>
     <string name="customize_exercises">Customize Your Exercises</string>
@@ -283,7 +293,7 @@
     <string name="select">Select</string>
     <string name="select_time">Select Time</string>
     <string name="timer_durations">Timer Durations</string>
-    <string name="timer_settings_desc">\'Sets\' for Sets; \'Workout\' for Exercises.</string>
+    <string name="timer_settings_desc">Set rest between sets and exercises</string>
 
     <string name="faq_change_program_q">How to change my workout program?</string>
     <string name="faq_change_program_a">Go to the \'My Workout\' tab and tap \'Custom Workout\' at the top to select a new template or build your own.</string>
@@ -590,5 +600,13 @@
     <string name="ex_desc_fallback_triceps">Extend at the elbow joint to push the weight straight, focusing on squeezing your triceps at full lockout.</string>
     <string name="ex_desc_fallback_abs">Brace your midsection and flex or rotate your torso under control, focusing on contracting your abdominals.</string>
     <string name="ex_desc_fallback_generic">Perform the movement with precision. Control the weight throughout the entire path and focus on the maximum contraction of your %1$s.</string>
+
+    <!-- Update nudge -->
+    <string name="update_available_title">Update available 🎉</string>
+    <string name="update_available_message">A new version of RepIo is ready. Update to get the latest improvements!</string>
+    <string name="update_now">Update</string>
+    <string name="update_later">Not now</string>
+    <string name="notification_update_channel_name">App updates</string>
+    <string name="notification_update_channel_desc">Notifies when a new version of RepIo is available</string>
 
 </resources>
