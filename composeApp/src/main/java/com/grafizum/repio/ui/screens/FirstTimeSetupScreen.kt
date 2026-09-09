@@ -184,6 +184,9 @@ fun FirstTimeSetupScreen(
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
 
+    // Premade advanced filter state: equipment types the template may use (empty = all)
+    var premadeEquipment by remember { mutableStateOf(listOf<String>()) }
+
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
 
     var selectedTemplate by remember { mutableStateOf(WorkoutTemplates.template5DaySplit) }
@@ -237,6 +240,11 @@ fun FirstTimeSetupScreen(
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var customExerciseToDelete by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     var replacingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+
+    // Copy Day feature: copy the selected day's exercises to another day
+    var showCopyDayDialog by remember { mutableStateOf(false) }
+    var copyTargetDay by remember { mutableStateOf("TUESDAY") }
+    var copyReplaceExercises by remember { mutableStateOf(true) }
     val themeOption by viewModel.themeOption.collectAsState()
 
     // Add / Edit custom exercise dialog
@@ -786,6 +794,10 @@ fun FirstTimeSetupScreen(
                                                     onMinChange = { assistedMinSets = it },
                                                     onMaxChange = { assistedMaxSets = it }
                                                 )
+                                                PremadeEquipmentFilter(
+                                                    selectedEquipment = premadeEquipment,
+                                                    onEquipmentChange = { premadeEquipment = it }
+                                                )
                                                 PreferenceSection(getString("include_exercises"), allAvailableExercises, assistedIncludedExercises, MaterialTheme.colorScheme.primaryContainer)
                                                 PreferenceSection(getString("exclude_exercises"), allAvailableExercises, assistedExcludedExercises, MaterialTheme.colorScheme.errorContainer)
                                             }
@@ -963,6 +975,16 @@ fun FirstTimeSetupScreen(
                                                     IconButton(onClick = { isCustomSelectionMode = true }) {
                                                         Icon(imageVector = Icons.Default.Checklist, contentDescription = "Selection Mode", tint = MaterialTheme.colorScheme.primary)
                                                     }
+                                                    IconButton(
+                                                        onClick = {
+                                                            focusManager.clearFocus()
+                                                            copyTargetDay = if (selectedDayInCustom == "MONDAY") "TUESDAY" else "MONDAY"
+                                                            showCopyDayDialog = true
+                                                        },
+                                                        modifier = Modifier.size(40.dp)
+                                                    ) {
+                                                        Icon(Icons.Default.ContentCopy, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(22.dp))
+                                                    }
                                                     IconButton(onClick = { focusManager.clearFocus(); showAddCustomExerciseDialog = true }, modifier = Modifier.size(40.dp)) {
                                                         Icon(Icons.Default.Add, null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.size(28.dp))
                                                     }
@@ -1081,16 +1103,15 @@ fun FirstTimeSetupScreen(
                             when(selectedTab) {
                                 0 -> {
                                     val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
-                                    val mappedExercises = mapped.second.map { 
-                                        var sets = it.targetSets
+                                    val mappedExercises = mapped.second.map { ex ->
+                                        var sets = ex.targetSets
                                         if (assistedMinSets > 0) sets = kotlin.math.max(sets, assistedMinSets)
                                         if (assistedMaxSets > 0) sets = kotlin.math.min(sets, assistedMaxSets)
-                                        
-                                        it.copy(
+                                        ex.copy(
                                             targetSets = sets,
-                                            targetReps = WorkoutTemplates.getGoalReps(it.name, selectedWorkoutGoal, sets),
-                                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, it.name)
-                                        ) 
+                                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets),
+                                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name)
+                                        )
                                     }
                                     viewModel.completeFirstTimeSetup(
                                         days = mapped.first,
@@ -1099,7 +1120,8 @@ fun FirstTimeSetupScreen(
                                         selectedDays = templateSelectedDays.toList(),
                                         templateId = selectedTemplate.id,
                                         minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets
+                                        maxSets = assistedMaxSets,
+                                        equipment = premadeEquipment
                                     )
                                 }
                                 1 -> {
@@ -1156,16 +1178,15 @@ fun FirstTimeSetupScreen(
             when(selectedTab) {
                 0 -> {
                     val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
-                    val mappedExercises = mapped.second.map { 
-                        var sets = it.targetSets
+                    val mappedExercises = mapped.second.map { ex ->
+                        var sets = ex.targetSets
                         if (assistedMinSets > 0) sets = kotlin.math.max(sets, assistedMinSets)
                         if (assistedMaxSets > 0) sets = kotlin.math.min(sets, assistedMaxSets)
-                        
-                        it.copy(
+                        ex.copy(
                             targetSets = sets,
-                            targetReps = WorkoutTemplates.getGoalReps(it.name, selectedWorkoutGoal, sets),
-                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal)
-                        ) 
+                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets),
+                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name)
+                        )
                     }
                     viewModel.completeFirstTimeSetup(
                         days = mapped.first,
@@ -1174,7 +1195,8 @@ fun FirstTimeSetupScreen(
                         selectedDays = templateSelectedDays.toList(),
                         templateId = selectedTemplate.id,
                         minSets = assistedMinSets,
-                        maxSets = assistedMaxSets
+                        maxSets = assistedMaxSets,
+                        equipment = premadeEquipment
                     )
                 }
                 1 -> {
@@ -1314,6 +1336,117 @@ fun FirstTimeSetupScreen(
         )
     }
 
+    if (showCopyDayDialog) {
+        val focusManager = LocalFocusManager.current
+        val sourceExercises = customExercises.filter { it.dayOfWeek == selectedDayInCustom }
+        val sourceDayName = dayOfWeekDisplayName(selectedDayInCustom)
+        AlertDialog(
+            onDismissRequest = { showCopyDayDialog = false },
+            title = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Text(getString("copy_day_title", sourceDayName))
+                }
+            },
+            text = {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .clickable(
+                            indication = null,
+                            interactionSource = remember { MutableInteractionSource() }
+                        ) { focusManager.clearFocus() }
+                ) {
+                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                        Text(
+                            text = getString("copy_day_desc", sourceDayName),
+                            style = MaterialTheme.typography.bodyMedium,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+
+                        DaySelectionRow(
+                            selectedDays = listOf(copyTargetDay),
+                            onDayToggle = { copyTargetDay = it }
+                        )
+
+                        // Replace vs append mode
+                        Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                            FilterChip(
+                                selected = copyReplaceExercises,
+                                onClick = { copyReplaceExercises = true },
+                                label = { Text(getString("copy_day_replace")) }
+                            )
+                            FilterChip(
+                                selected = !copyReplaceExercises,
+                                onClick = { copyReplaceExercises = false },
+                                label = { Text(getString("copy_day_append")) }
+                            )
+                        }
+
+                        if (sourceExercises.isEmpty()) {
+                            Text(
+                                text = getString("no_exercises_scheduled"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.error
+                            )
+                        }
+                    }
+                }
+            },
+            confirmButton = {
+                Button(
+                    onClick = {
+                        focusManager.clearFocus()
+                        if (sourceExercises.isNotEmpty() && copyTargetDay != selectedDayInCustom) {
+                            if (copyReplaceExercises) {
+                                customExercises.removeAll { it.dayOfWeek == copyTargetDay }
+                            }
+                            val maxOrder = customExercises
+                                .filter { it.dayOfWeek == copyTargetDay }
+                                .maxOfOrNull { it.orderIndex } ?: 0
+                            val copies = sourceExercises.sortedBy { it.orderIndex }.mapIndexed { index, ex ->
+                                ex.copy(
+                                    id = 0L,
+                                    dayOfWeek = copyTargetDay,
+                                    orderIndex = maxOrder + index + 1
+                                )
+                            }
+                            customExercises.addAll(copies)
+
+                            // Also update the target day entity so it is a workout day
+                            val dayIndex = customDays.indexOfFirst { it.dayOfWeek == copyTargetDay }
+                            if (dayIndex != -1) {
+                                val sourceDay = customDays.firstOrNull { it.dayOfWeek == selectedDayInCustom }
+                                customDays[dayIndex] = customDays[dayIndex].copy(
+                                    isRestDay = false,
+                                    title = sourceDay?.title ?: customDays[dayIndex].title
+                                )
+                            }
+                        }
+                        showCopyDayDialog = false
+                    },
+                    enabled = sourceExercises.isNotEmpty() && copyTargetDay != selectedDayInCustom
+                ) {
+                    Text(getString("copy"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = {
+                    focusManager.clearFocus()
+                    showCopyDayDialog = false
+                }) {
+                    Text(getString("cancel"))
+                }
+            }
+        )
+    }
+
     replacingExercise?.let { exercise ->
         ReplaceExerciseDialog(
             exercise = exercise,
@@ -1336,6 +1469,61 @@ fun FirstTimeSetupScreen(
             minSets = assistedMinSets,
             maxSets = assistedMaxSets,
             onDismiss = { previewTemplateModal = null }
+        )
+    }
+}
+
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun PremadeEquipmentFilter(
+    selectedEquipment: List<String>,
+    onEquipmentChange: (List<String>) -> Unit
+) {
+    val equipmentOptions = listOf(
+        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
+        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
+        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
+        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
+    )
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.FitnessCenter,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(14.dp)
+            )
+            Spacer(modifier = Modifier.width(4.dp))
+            Text(
+                text = getString("equipment"),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            equipmentOptions.forEach { (key, label) ->
+                FilterChip(
+                    selected = selectedEquipment.contains(key),
+                    onClick = {
+                        onEquipmentChange(
+                            if (selectedEquipment.contains(key)) selectedEquipment - key
+                            else selectedEquipment + key
+                        )
+                    },
+                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
+                    shape = RoundedCornerShape(10.dp)
+                )
+            }
+        }
+        Text(
+            text = getString("equipment_filter_hint"),
+            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
+            color = MaterialTheme.colorScheme.onSurfaceVariant,
+            modifier = Modifier.padding(top = 2.dp)
         )
     }
 }
@@ -1985,6 +2173,7 @@ fun AddExerciseDialog(
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     
     var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
+    var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
     var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
 
@@ -2104,7 +2293,10 @@ fun AddExerciseDialog(
                         if (isTimeBased) {
                             if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
                         } else {
-                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") targetRepsValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName)
+                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
+                                targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
+                                repsManuallyEdited = false
+                            }
                         }
                     },
                     label = getString("exercise_name"),
@@ -2202,7 +2394,7 @@ fun AddExerciseDialog(
                     } else {
                         RepsRangeField(
                             value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it },
+                            onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
                             label = getString("reps"),
                             isError = repsError,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
@@ -2231,7 +2423,16 @@ fun AddExerciseDialog(
                     )
                     CompactNumericField(
                         value = targetIntensityStr,
-                        onValueChange = { targetIntensityStr = it },
+                        onValueChange = {
+                            targetIntensityStr = it
+                            // Re-adapt the auto-selected reps while the user hasn't typed their own
+                            if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
+                                val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
+                                if (recommended.isNotBlank()) {
+                                    targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
+                                }
+                            }
+                        },
                         label = getString("intensity_label"),
                         placeholder = "RPE 8",
                         modifier = Modifier.weight(1f).fillMaxHeight(),

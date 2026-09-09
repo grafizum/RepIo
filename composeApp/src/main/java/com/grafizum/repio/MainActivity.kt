@@ -4,6 +4,10 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.net.ConnectivityManager
+import android.net.Network
+import android.net.NetworkCapabilities
+import android.net.NetworkRequest
 import android.os.Build
 import android.os.Bundle
 import android.view.WindowManager
@@ -43,6 +47,10 @@ import androidx.compose.material3.NavigationBar
 import androidx.compose.material3.NavigationBarItem
 import androidx.compose.material3.NavigationBarItemDefaults
 import androidx.compose.material3.Scaffold
+import androidx.compose.material3.SnackbarDuration
+import androidx.compose.material3.SnackbarHost
+import androidx.compose.material3.SnackbarHostState
+import androidx.compose.material3.SnackbarResult
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
@@ -79,11 +87,14 @@ import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
+import com.google.android.play.core.appupdate.AppUpdateInfo
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.ViewModelProvider
 import com.grafizum.repio.data.AppDatabase
 import com.grafizum.repio.data.WorkoutRepository
+import com.grafizum.repio.util.AppUpdateChecker
 import com.grafizum.repio.util.NotificationHelper
+import com.grafizum.repio.ui.components.AdaptiveWidthContainer
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -130,6 +141,11 @@ open class MainActivity : AppCompatActivity() {
 
     private val _navTarget = MutableStateFlow<String?>(null)
     val navTarget: StateFlow<String?> = _navTarget.asStateFlow()
+
+    // Set when the app is (re)opened via the "update available" notification,
+    // so the Play update flow can start as soon as the UI is ready.
+    private val _startUpdateFlow = MutableStateFlow(false)
+    val startUpdateFlowOnResume: StateFlow<Boolean> = _startUpdateFlow.asStateFlow()
 
     override fun onCreate(savedInstanceState: Bundle?) {
         val splashScreen = installSplashScreen()
@@ -225,10 +241,18 @@ open class MainActivity : AppCompatActivity() {
             _navTarget.value = it
             intent.removeExtra("TARGET_SCREEN")
         }
+        if (intent?.getBooleanExtra("START_UPDATE_FLOW", false) == true) {
+            _startUpdateFlow.value = true
+            intent.removeExtra("START_UPDATE_FLOW")
+        }
     }
 
     fun clearNavTarget() {
         _navTarget.value = null
+    }
+
+    fun clearStartUpdateFlow() {
+        _startUpdateFlow.value = false
     }
 }
 
@@ -349,6 +373,126 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         }
     }
 
+    // ---------------- Update Nudge (Play In-App Updates, flexible flow) ----------------
+    val lifecycleOwner = LocalLifecycleOwner.current
+    val activity = context as? MainActivity
+
+    // Latest update info Play reported during this session (null = nothing pending).
+    var pendingUpdateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    // Set when the user asks to update (snackbar action or notification tap).
+    var requestedUpdateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
+    // True once the user has dealt with the nudge during this session.
+    var updateNudgeHandled by remember { mutableStateOf(false) }
+    val snackbarHostState = remember { SnackbarHostState() }
+
+    // Fresh session: clear any stale "update available" notification from the tray.
+    LaunchedEffect(Unit) {
+        NotificationHelper.cancelUpdateNotification(context)
+    }
+
+    val updateAvailableMessage = stringResource(R.string.update_available_message)
+    val updateNowLabel = stringResource(R.string.update_now)
+
+    // In-app snackbar nudge + persistent tray notification for a pending update.
+    suspend fun nudgeUpdate() {
+        if (updateNudgeHandled) return
+        NotificationHelper.showUpdateAvailableNotification(context)
+        if (snackbarHostState.currentSnackbarData != null) return
+        val result = snackbarHostState.showSnackbar(
+            message = updateAvailableMessage,
+            actionLabel = updateNowLabel,
+            duration = SnackbarDuration.Short
+        )
+        updateNudgeHandled = true
+        AppUpdateChecker.markNudgeDismissed(context)
+        if (result == SnackbarResult.ActionPerformed) {
+            requestedUpdateInfo = pendingUpdateInfo
+        }
+    }
+
+    // Begin the flexible update via the Play dialog when the user taps the snackbar
+    // action or opens the app from the "update available" notification.
+    LaunchedEffect(requestedUpdateInfo) {
+        requestedUpdateInfo?.let { info ->
+            NotificationHelper.cancelUpdateNotification(context)
+            activity?.let { AppUpdateChecker.startFlexibleUpdate(it, info) }
+            requestedUpdateInfo = null
+        }
+    }
+
+    // Check Play whenever the app is foregrounded (also covers returning after the
+    // user backed out of the Play dialog, which Play marks as CANCELED). Skips
+    // silently when offline, sideloaded, within the cooldown, or when no update exists.
+    DisposableEffect(lifecycleOwner) {
+        val observer = LifecycleEventObserver { _, event ->
+            if (event == Lifecycle.Event.ON_RESUME) {
+                coroutineScope.launch {
+                    val info = AppUpdateChecker.checkForUpdate(context) ?: return@launch
+                    pendingUpdateInfo = info
+                    nudgeUpdate()
+                }
+            }
+        }
+        lifecycleOwner.lifecycle.addObserver(observer)
+        onDispose {
+            lifecycleOwner.lifecycle.removeObserver(observer)
+        }
+    }
+
+    // Opened via the "update available" notification -> go straight to the Play dialog.
+    val startUpdateRequested by (activity?.startUpdateFlowOnResume?.collectAsState()
+        ?: remember { mutableStateOf(false) })
+    LaunchedEffect(startUpdateRequested) {
+        if (startUpdateRequested) {
+            activity?.clearStartUpdateFlow()
+            AppUpdateChecker.checkForUpdate(context, ignoreCooldown = true)?.let { info ->
+                updateNudgeHandled = true
+                pendingUpdateInfo = info
+                requestedUpdateInfo = info
+            }
+        }
+    }
+
+    // Re-nudge later in the same session as soon as connectivity returns,
+    // if Play already told us an update was waiting.
+    DisposableEffect(lifecycleOwner) {
+        val connectivityManager =
+            context.getSystemService(Context.CONNECTIVITY_SERVICE) as? ConnectivityManager
+        val networkCallback = object : ConnectivityManager.NetworkCallback() {
+            override fun onAvailable(network: Network) {
+                // Only surface the nudge once per session; Play is re-queried on next open.
+                if (AppUpdateChecker.isWithinCooldown(context)) return
+                if (pendingUpdateInfo != null) return
+                if (snackbarHostState.currentSnackbarData != null) return
+
+                coroutineScope.launch {
+                    val info = AppUpdateChecker.checkForUpdate(context) ?: return@launch
+                    pendingUpdateInfo = info
+                    nudgeUpdate()
+                }
+            }
+        }
+
+        try {
+            val request = NetworkRequest.Builder()
+                .addCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
+                .build()
+            connectivityManager?.registerNetworkCallback(request, networkCallback)
+        } catch (_: Exception) {
+            // Connectivity nudging is best-effort only.
+        }
+
+        onDispose {
+            try {
+                connectivityManager?.unregisterNetworkCallback(networkCallback)
+            } catch (_: Exception) {
+                // Callback may already be unregistered.
+            }
+        }
+    }
+
+    // ------------------------------------------------------------------------------
+
     if (showExitConfirmation) {
         val activityContext = context.findActivity()
         val focusManager = androidx.compose.ui.platform.LocalFocusManager.current
@@ -404,9 +548,6 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     }
 
     // Observe lifecycle events to check rest timer
-    val lifecycleOwner = LocalLifecycleOwner.current
-    
-    val activity = context as? MainActivity
     val navTarget by activity?.navTarget?.collectAsState() ?: remember { mutableStateOf(null) }
 
     LaunchedEffect(navTarget) {
@@ -432,6 +573,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             when (event) {
                 Lifecycle.Event.ON_START, Lifecycle.Event.ON_RESUME -> {
                     viewModel.tickTimer()
+                    viewModel.resyncTimerCountdownNotification()
                     viewModel.refreshTodaySelection()
                 }
                 Lifecycle.Event.ON_STOP -> {
@@ -453,19 +595,22 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         if (showAppSplash) {
             AppSplashScreen(onComplete = { showAppSplash = false })
         } else if (isFirstTimeUser) {
-            FirstTimeSetupScreen(
-                viewModel = viewModel,
-                onComplete = {
-                    // ViewModel updates isFirstTimeUser, which triggers recomposition
-                },
-                onCancel = {
-                    viewModel.cancelFirstTimeSetup()
-                    viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Workout"
-                    coroutineScope.launch {
-                        pagerState.scrollToPage(1) // Set main pager to "My Workout"
+            // Adaptive shell: caps content width and centers it on tablets/foldables.
+            AdaptiveWidthContainer {
+                FirstTimeSetupScreen(
+                    viewModel = viewModel,
+                    onComplete = {
+                        // ViewModel updates isFirstTimeUser, which triggers recomposition
+                    },
+                    onCancel = {
+                        viewModel.cancelFirstTimeSetup()
+                        viewModel.setRequestedWorkoutSubTab(1) // Set sub-tab to "Workout"
+                        coroutineScope.launch {
+                            pagerState.scrollToPage(1) // Set main pager to "My Workout"
+                        }
                     }
-                }
-            )
+                )
+            }
         } else {
             val focusManager = LocalFocusManager.current
             Scaffold(
@@ -574,6 +719,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                         }
                     }
                 },
+                snackbarHost = { SnackbarHost(snackbarHostState) },
             modifier = Modifier
                 .fillMaxSize()
                 .pointerInput(Unit) {
@@ -590,7 +736,8 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                         .padding(innerPadding),
                     beyondViewportPageCount = 1
                 ) { pageIndex ->
-                    when (navigationItems[pageIndex]) {
+                    AdaptiveWidthContainer {
+                        when (navigationItems[pageIndex]) {
                         is Screen.Home -> {
                             val navigateToTab: (String) -> Unit = { route ->
                                 val targetIndex = navigationItems.indexOfFirst { it.route == route }
@@ -638,6 +785,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
                         else -> {}
                     }
+                    } // AdaptiveWidthContainer
                 }
 
                 // Custom In-App Rest Timer Notification

@@ -43,6 +43,7 @@ import com.grafizum.repio.data.*
 import com.grafizum.repio.ui.components.*
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
+import com.grafizum.repio.util.startOfTodayMillis
 import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 
@@ -66,8 +67,12 @@ fun HomeScreen(
     val todayRoutineDay = remember(routineDays, todayStr) { routineDays.find { it.dayOfWeek == todayStr } }
     val todayExercises = remember(allExercises, todayStr) { allExercises.filter { it.dayOfWeek == todayStr } }
     
-    val todayLoggedSets = remember(loggedSets, todayStr) {
-        loggedSets.filter { it.dayOfWeek == todayStr }
+    // Only sets logged on the actual calendar day count as "done today";
+    // filtering by weekday name alone would count same-weekday sets from previous weeks.
+    // The day-millis key also refreshes the filter when the calendar day flips.
+    val todayLoggedSets = remember(loggedSets, todayStr, startOfTodayMillis()) {
+        val startOfToday = startOfTodayMillis()
+        loggedSets.filter { it.dayOfWeek == todayStr && it.timestamp >= startOfToday }
     }
 
     val expandedExerciseIds = remember { mutableStateListOf<Long>() }

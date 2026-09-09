@@ -1,6 +1,7 @@
 package com.grafizum.repio.ui.screens
 
 import androidx.compose.ui.layout.layout
+import androidx.compose.ui.window.DialogProperties
 import android.Manifest
 import android.content.Intent
 import android.net.Uri
@@ -61,6 +62,7 @@ import com.grafizum.repio.data.DayOfWeekEnum
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
+import com.grafizum.repio.ui.components.rememberIsCompactWidth
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -222,9 +224,12 @@ fun WorkoutNowScreen(
                 Button(
                     onClick = {
                         focusManager.clearFocus()
-                        val parsed = customWeightInput.toDoubleOrNull()
+                        val parsed = customWeightInput.trim().toDoubleOrNull()
                         if (parsed != null && parsed >= 0.0) {
                             viewModel.updateWeightAndReps(parsed, workoutState.currentReps)
+                        } else if (customWeightInput.isBlank()) {
+                            // Clearing the weight marks this exercise as bodyweight (0 kg)
+                            viewModel.updateWeightAndReps(0.0, workoutState.currentReps)
                         }
                         showCustomWeightDialog = false
                     }
@@ -261,7 +266,7 @@ fun WorkoutNowScreen(
             horizontalArrangement = Arrangement.SpaceBetween,
             modifier = Modifier
                 .fillMaxWidth()
-                .heightIn(min = 72.dp)
+                .heightIn(min = 72.dp) // min only: grows if the title wraps on narrow screens
                 .padding(vertical = 4.dp)
         ) {
             Row(
@@ -284,13 +289,13 @@ fun WorkoutNowScreen(
                 }
                 Spacer(modifier = Modifier.width(12.dp))
                 Column {
-                    Row(verticalAlignment = Alignment.CenterVertically) {
-                        Text(
-                            text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
-                            style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onBackground
-                        )
-                    }
+                    // Don't hard-cap the day title: force-one-line in DE/IT caused
+                    // mid-glyph clipping on narrow phones (e.g. Pixel 8).
+                    Text(
+                        text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
+                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
+                        color = MaterialTheme.colorScheme.onBackground
+                    )
                     val trainingType = if (currentDayExercises.isNotEmpty()) {
                         currentDayExercises.map { it.muscleGroup }
                             .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
@@ -379,11 +384,13 @@ fun WorkoutNowScreen(
                     if (dayExercises.isEmpty()) {
                         // Empty / Rest Day State
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                // Without weight(1f), Arrangement.Center + scrolling clips
+                                // the TOP of over-tall content on short screens.
+                                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+                            ) {
                             Card(
                                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -420,11 +427,13 @@ fun WorkoutNowScreen(
                     } else if (workoutState.isWorkoutCompleted && targetDay == workoutState.selectedDayOfWeek) {
                         // WORKOUT COMPLETED CELEBRATION VIEW
                         Column(
-                            modifier = Modifier
-                                .fillMaxSize()
-                                .verticalScroll(rememberScrollState()),
-                            verticalArrangement = Arrangement.Center
-                        ) {
+                                modifier = Modifier
+                                    .fillMaxSize()
+                                    .verticalScroll(rememberScrollState()),
+                                // Without weight(1f), Arrangement.Center + scrolling clips
+                                // the TOP of over-tall content on short screens.
+                                verticalArrangement = Arrangement.spacedBy(16.dp, Alignment.CenterVertically)
+                            ) {
                             Card(
                                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
                                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -514,7 +523,10 @@ fun WorkoutNowScreen(
                                 Text(
                                     text = labelText,
                                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                    color = if (isDeveloper) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.primary
+                                    color = if (isDeveloper) MaterialTheme.colorScheme.onBackground else MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f, fill = false)
                                 )
 
                                 if (targetDay == today) {
@@ -573,11 +585,12 @@ fun WorkoutNowScreen(
                                 .verticalScroll(viewModel.workoutNowScrollState),
                             verticalArrangement = Arrangement.spacedBy(16.dp)
                         ) {
-                            // TIMER AREA
+                            // TIMER AREA (only shown on the day the timer belongs to)
                             val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
                             val isExTimer = workoutState.isExerciseTimerActive
+                            val isTimerForThisDay = isTimerActive && targetDay == workoutState.timerDayOfWeek
 
-                            if (isTimerActive && !isExTimer) {
+                            if (isTimerForThisDay && !isExTimer) {
                                 // Running Rest Timer Card (Only for Rest)
                                 Card(
                                     shape = RoundedCornerShape(16.dp),
@@ -692,9 +705,11 @@ fun WorkoutNowScreen(
                                                         text = com.grafizum.repio.ui.components.translateMuscleGroup(specificMuscle).uppercase(),
                                                         style = MaterialTheme.typography.labelSmall.copy(
                                                             fontWeight = FontWeight.ExtraBold,
-                                                            fontSize = 9.sp,
+                                                            fontSize = if (rememberIsCompactWidth()) 8.sp else 9.sp,
                                                             letterSpacing = 0.5.sp
                                                         ),
+                                                        maxLines = 1,
+                                                        softWrap = false,
                                                         modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
                                                     )
                                                 }
@@ -904,12 +919,13 @@ fun WorkoutNowScreen(
                                                 horizontalArrangement = Arrangement.spacedBy(8.dp)
                                             ) {
                                                 Text(
-                                                    text = if (isBodyweight) {
-                                                        if (workoutState.currentWeightKg == 0.0) getString("bodyweight_label")
-                                                        else "+" + getString("weight_kg_intl", workoutState.currentWeightKg)
+                                                    text = if (workoutState.currentWeightKg == 0.0) {
+                                                        getString("bodyweight_label")
+                                                    } else if (isBodyweight) {
+                                                        "+" + getString("weight_kg_intl", workoutState.currentWeightKg)
                                                     } else getString("weight_kg_intl", workoutState.currentWeightKg),
                                                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                                    color = if (isBodyweight && workoutState.currentWeightKg == 0.0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
+                                                    color = if (workoutState.currentWeightKg == 0.0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
                                                 )
 
                                                 Box(
@@ -1044,7 +1060,7 @@ fun WorkoutNowScreen(
                         // PRIMARY ACTION (PINNED AT BOTTOM)
                         val isSelectedDayToday = targetDay == today
                         val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
-                        val isExTimerRunning = isTimerActive && workoutState.isExerciseTimerActive
+                        val isExTimerRunning = isTimerActive && workoutState.isExerciseTimerActive && targetDay == workoutState.timerDayOfWeek
                         
                         if (isSelectedDayToday) {
                             Spacer(modifier = Modifier.height(16.dp))

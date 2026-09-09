@@ -33,6 +33,17 @@ fun getTodayDayOfWeek(): String {
 
 fun currentTimeMillis(): Long = System.currentTimeMillis()
 
+/** Millis at 00:00 of the current calendar day (same basis as [currentTimeMillis]). */
+fun startOfTodayMillis(): Long {
+    val calendar = Calendar.getInstance().apply {
+        set(Calendar.HOUR_OF_DAY, 0)
+        set(Calendar.MINUTE, 0)
+        set(Calendar.SECOND, 0)
+        set(Calendar.MILLISECOND, 0)
+    }
+    return calendar.timeInMillis
+}
+
 fun openUrl(url: String) {
     val context = appInstance ?: return
     try {

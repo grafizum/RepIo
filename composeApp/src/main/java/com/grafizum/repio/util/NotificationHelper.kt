@@ -19,7 +19,11 @@ import com.grafizum.repio.R
 
 object NotificationHelper {
     private const val CHANNEL_ID = "rest_timer_channel"
+    private const val COUNTDOWN_CHANNEL_ID = "rest_timer_countdown_channel"
     private const val NOTIFICATION_ID = 1001
+    private const val COUNTDOWN_NOTIFICATION_ID = 1003
+    private const val UPDATE_CHANNEL_ID = "app_update_channel"
+    private const val UPDATE_NOTIFICATION_ID = 1005
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -41,10 +45,187 @@ object NotificationHelper {
             val notificationManager: NotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
+
+            // Silent, ongoing channel for the countdown indicator (no sound / vibration while counting down)
+            val countdownChannel = NotificationChannel(
+                COUNTDOWN_CHANNEL_ID,
+                context.getString(R.string.notification_countdown_channel_name),
+                NotificationManager.IMPORTANCE_LOW
+            ).apply {
+                description = context.getString(R.string.notification_countdown_channel_desc)
+                setSound(null, null)
+                enableVibration(false)
+                enableLights(false)
+            }
+            notificationManager.createNotificationChannel(countdownChannel)
+        }
+    }
+
+    /**
+     * Shows a silent, ongoing countdown notification: the remaining time as a big text line
+     * under the title (no small chronometer next to the app name) plus a "Skip" action that
+     * stops the timer. No sound, no vibration — it's only an indicator.
+     *
+     * The caller re-posts this from the same 1-second tick that updates the in-app timer,
+     * passing the identical [remainingSeconds] value, so both stay in lockstep.
+     */
+    fun showRestTimerCountdown(context: Context, remainingSeconds: Int) {
+        // Only show system notification if notifications are enabled
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return
+        }
+
+        createNotificationChannel(context)
+
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("TARGET_SCREEN", "workout")
+        } ?: Intent(context, com.grafizum.repio.MainActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("TARGET_SCREEN", "workout")
+            setPackage(context.packageName)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1001,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        // Skip action -> broadcast to the receiver so the ViewModel's tick loop clears the timer
+        val skipIntent = Intent(context, RestTimerReceiver::class.java).apply {
+            action = RestTimerReceiver.ACTION_SKIP_TIMER
+        }
+        val skipPendingIntent = PendingIntent.getBroadcast(
+            context,
+            1004,
+            skipIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val timeLeft = formatRestTime(remainingSeconds)
+
+        val builder = NotificationCompat.Builder(context, COUNTDOWN_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.notification_countdown_title))
+            .setContentText(timeLeft)
+            .setStyle(NotificationCompat.BigTextStyle().bigText(timeLeft))
+            .setPriority(NotificationCompat.PRIORITY_LOW)
+            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
+            .setContentIntent(pendingIntent)
+            .setOngoing(true)
+            .setOnlyAlertOnce(true)
+            .setShowWhen(false)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+            .addAction(0, context.getString(R.string.skip_timer), skipPendingIntent)
+
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        try {
+            notificationManager.notify(COUNTDOWN_NOTIFICATION_ID, builder.build())
+        } catch (e: Exception) {
+            // Fallback gracefully
+        }
+    }
+
+    fun cancelRestTimerCountdown(context: Context) {
+        try {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(COUNTDOWN_NOTIFICATION_ID)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    /**
+     * Creates a default-importance channel for the "update available" nudge
+     * (visible in the tray, but no heads-up interruption).
+     */
+    fun createUpdateNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                UPDATE_CHANNEL_ID,
+                context.getString(R.string.notification_update_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = context.getString(R.string.notification_update_channel_desc)
+                enableVibration(true)
+                enableLights(true)
+                lightColor = Color.GREEN
+            }
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /**
+     * Posts a system notification telling the user a Play Store update is available.
+     * Tapping it opens the app, which immediately launches the Play update flow.
+     */
+    fun showUpdateAvailableNotification(context: Context) {
+        // Only show system notification if notifications are enabled
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return
+        }
+
+        createUpdateNotificationChannel(context)
+
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("START_UPDATE_FLOW", true)
+        } ?: Intent(context, com.grafizum.repio.MainActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("START_UPDATE_FLOW", true)
+            setPackage(context.packageName)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1006,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, UPDATE_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentTitle(context.getString(R.string.update_available_title))
+            .setContentText(context.getString(R.string.update_available_message))
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText(context.getString(R.string.update_available_message))
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_STATUS)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        try {
+            NotificationManagerCompat.from(context).notify(UPDATE_NOTIFICATION_ID, builder.build())
+        } catch (e: Exception) {
+            // Fallback gracefully
+        }
+    }
+
+    fun cancelUpdateNotification(context: Context) {
+        try {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(UPDATE_NOTIFICATION_ID)
+        } catch (e: Exception) {
+            // Ignore
         }
     }
 
     fun showRestTimerEndedNotification(context: Context) {
+        // Remove the countdown indicator once the timer has ended
+        cancelRestTimerCountdown(context)
+
         val isInForeground = AppEventBus.isAppInForeground.value
         
         // Always trigger in-app event so it's ready when user returns or is inside
@@ -128,4 +309,4 @@ object NotificationHelper {
             // Ignore if vibrator fails
         }
     }
-}
+}
