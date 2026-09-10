@@ -428,7 +428,8 @@ class WorkoutViewModel(
         templateId: String = "",
         minSets: Int = 0,
         maxSets: Int = 0,
-        equipment: List<String> = emptyList()
+        equipment: List<String> = emptyList(),
+        trainingStyle: String = WorkoutTemplates.TRAINING_STYLE_BALANCED
     ) {
         viewModelScope.launch {
             // Completing a brand-new build from the Welcome screen replaces the routine,
@@ -457,6 +458,7 @@ class WorkoutViewModel(
             prefs.putString("setup_equipment", equipment.joinToString(","))
             prefs.putInt("setup_min_sets", minSets)
             prefs.putInt("setup_max_sets", maxSets)
+            prefs.putString("setup_training_style", trainingStyle)
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
@@ -465,15 +467,17 @@ class WorkoutViewModel(
     private fun mapToEquipmentFiltered(
         exercises: List<RoutineExerciseEntity>,
         equipment: List<String>,
-        goal: String
+        goal: String,
+        trainingStyle: String = WorkoutTemplates.TRAINING_STYLE_BALANCED
     ): List<RoutineExerciseEntity> {
         val selected = equipment.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
         val base = if (selected.isEmpty()) exercises
                    else exercises.filter { WorkoutTemplates.getEquipmentForExercise(it.name) in selected }
         return base.map {
             it.copy(
-                targetReps = WorkoutTemplates.getGoalReps(it.name, goal, it.targetSets),
-                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name)
+                targetReps = WorkoutTemplates.getGoalReps(it.name, goal, it.targetSets, trainingStyle),
+                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name, trainingStyle),
+                tempo = WorkoutTemplates.getGoalTempo(trainingStyle)
             )
         }
     }
@@ -495,6 +499,7 @@ class WorkoutViewModel(
             val intensity = prefs.getString("setup_intensity", "") ?: ""
             val templateId = prefs.getString("setup_template_id", "") ?: ""
             val equipment = loadSetupEquipment()
+            val trainingStyle = prefs.getString("setup_training_style", WorkoutTemplates.TRAINING_STYLE_BALANCED) ?: WorkoutTemplates.TRAINING_STYLE_BALANCED
             
             when (setupType) {
                 "ASSISTED" -> {
@@ -504,7 +509,8 @@ class WorkoutViewModel(
                         intensity = intensity,
                         workoutGoal = newGoal,
                         minSets = prefs.getInt("setup_min_sets", 0),
-                        maxSets = prefs.getInt("setup_max_sets", 0)
+                        maxSets = prefs.getInt("setup_max_sets", 0),
+                        trainingStyle = trainingStyle
                     )
                     repository.applyProgram(program.days, program.exercises)
                 }
@@ -514,7 +520,7 @@ class WorkoutViewModel(
                         // For premade, we need to know which days were selected. 
                         // setup_days should contain the selected week days.
                         val mapped = remapTemplateToDays(template, selectedDays)
-                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal)
+                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal, trainingStyle)
                         repository.applyProgram(mapped.first, filteredExercises)
                     }
                 }
@@ -915,6 +921,17 @@ class WorkoutViewModel(
     fun deleteLoggedSet(id: Long) { viewModelScope.launch { repository.deleteLoggedSet(id) } }
     fun saveExercise(exercise: RoutineExerciseEntity) { viewModelScope.launch { repository.saveExercise(exercise) } }
     fun reorderExercises(exercises: List<RoutineExerciseEntity>) { viewModelScope.launch { repository.reorderExercises(exercises) } }
+
+    /** Live multi-replace: swaps [original] for the currently toggled [replacements]. */
+    fun replaceExerciseWith(
+        original: RoutineExerciseEntity,
+        previousNames: List<String>,
+        replacements: List<RoutineExerciseEntity>
+    ) {
+        viewModelScope.launch {
+            repository.replaceExercise(original, previousNames, replacements)
+        }
+    }
 
     fun deleteExercise(id: Long) {
         viewModelScope.launch {

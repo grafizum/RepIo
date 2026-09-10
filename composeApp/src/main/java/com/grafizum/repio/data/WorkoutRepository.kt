@@ -136,6 +136,48 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.deleteExerciseById(id)
     }
 
+    /**
+     * Replaces [original] with [replacements] (may be empty = restore the original),
+     * keeping the day's ordering intact. [previousNames] lists exercises inserted by an
+     * earlier replace step of the same multi-select session, so toggling works idempotently:
+     * each call removes the old set and inserts the new one at the original's slot.
+     */
+    suspend fun replaceExercise(
+        original: RoutineExerciseEntity,
+        previousNames: List<String>,
+        replacements: List<RoutineExerciseEntity>
+    ) {
+        // Reuse known demo URLs so swapped-in exercises keep their video links.
+        val existingUrls = dao.getAllRoutineExercises().first()
+            .filter { it.videoUrl.isNotBlank() }
+            .associate { it.name to it.videoUrl }
+        val synced = replacements.map { ex ->
+            if (ex.videoUrl.isBlank()) existingUrls[ex.name]?.let { url -> ex.copy(videoUrl = url) } ?: ex
+            else ex
+        }
+
+        val dayExercises = dao.getExercisesForDay(original.dayOfWeek).first().sortedBy { it.orderIndex }
+        val kept = dayExercises.filter { it.id != original.id && it.name !in previousNames }
+        val anchorIndex = dayExercises.indexOfFirst { it.id == original.id || it.name in previousNames }
+            .let { if (it == -1) kept.size else it }
+
+        // Empty selection = restore the original exercise at its slot.
+        val effective = if (synced.isEmpty()) listOf(original.copy(id = 0L)) else synced
+
+        // Rebuild the day and renumber it sequentially so the new exercises land
+        // exactly where the old one was, in the user's selected order.
+        val rebuilt = kept.toMutableList().apply { addAll(anchorIndex, effective) }
+        val renumbered = rebuilt.mapIndexed { index, ex -> ex.copy(orderIndex = index + 1) }
+        val keptIds = kept.map { it.id }.toSet()
+        dao.updateExercises(renumbered.filter { it.id in keptIds })
+        dao.insertRoutineExercises(renumbered.filter { it.id !in keptIds })
+
+        // Sync video URLs by name to the rest of the routine (same convention as saveExercise).
+        effective.filter { it.videoUrl.isNotBlank() }.forEach {
+            dao.updateVideoUrlForExercise(it.name, it.videoUrl)
+        }
+    }
+
     suspend fun applyProgram(days: List<RoutineDayEntity>, exercises: List<RoutineExerciseEntity>) {
         val existingUrls = dao.getAllRoutineExercises().first()
             .filter { it.videoUrl.isNotBlank() }

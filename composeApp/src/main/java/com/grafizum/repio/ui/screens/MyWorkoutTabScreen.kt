@@ -19,10 +19,10 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 @Composable
 fun WorkoutTabScreen(
     viewModel: WorkoutViewModel,
+    modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     initialTab: Int = viewModel.requestedWorkoutSubTab.value.tab,
-    isActive: Boolean = true,
-    modifier: Modifier = Modifier
+    isActive: Boolean = true
 ) {
     val requestedTab by viewModel.requestedWorkoutSubTab.collectAsState()
     var selectedSubTab by remember { mutableIntStateOf(initialTab) }

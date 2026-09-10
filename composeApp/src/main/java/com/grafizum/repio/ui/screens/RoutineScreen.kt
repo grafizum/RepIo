@@ -63,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -114,16 +115,17 @@ import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.util.getQuantityString
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun WorkoutScreen(
     viewModel: WorkoutViewModel,
+    modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     initialShowAddDialog: Boolean = false,
     onAddDialogDismissed: (() -> Unit)? = null,
-    onCustomClick: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    onCustomClick: (() -> Unit)? = null
 ) {
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val workoutState by viewModel.workoutNowState.collectAsState()
@@ -141,7 +143,7 @@ fun WorkoutScreen(
     
     // Track dragging state
     var draggingItemId by remember { mutableStateOf<Long?>(null) }
-    var dragOffsetY by remember { mutableStateOf(0f) }
+    var dragOffsetY by remember { mutableFloatStateOf(0f) }
 
     // Sync local list when database exercises change, but NOT while dragging
     LaunchedEffect(dayExercises) {
@@ -239,7 +241,7 @@ fun WorkoutScreen(
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
                                         )
                                         Text(
-                                            text = getString(template.daysCountKey, template.daysCountArgs.first),
+                                            text = getQuantityString(template.daysCountKey, template.daysCountArgs.first, template.daysCountArgs.first),
                                             style = MaterialTheme.typography.bodySmall,
                                             color = MaterialTheme.colorScheme.primary
                                         )
@@ -834,7 +836,7 @@ fun WorkoutScreen(
                             interactionSource = remember { MutableInteractionSource() }
                         ) { focusManager.clearFocus() }
                 ) {
-                    Text(getString("confirm_delete_multiple_msg", selectedExerciseIds.count()))
+                    Text(getQuantityString("confirm_delete_multiple_msg", selectedExerciseIds.count()))
                 }
             },
             confirmButton = {
@@ -970,9 +972,16 @@ fun WorkoutScreen(
         ReplaceExerciseDialog(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
-            onSelect = { altName, muscleGroup ->
-                viewModel.saveExercise(exercise.copy(name = altName, muscleGroup = muscleGroup, videoUrl = ""))
-                replacingExercise = null
+            onSelectionChange = { previous, current ->
+                // Live apply: swap the original for whatever set is currently toggled on.
+                val replacements = current.map { (name, muscleGroup) ->
+                    exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = "")
+                }
+                viewModel.replaceExerciseWith(
+                    original = exercise,
+                    previousNames = previous.map { it.first },
+                    replacements = replacements
+                )
             }
         )
     }

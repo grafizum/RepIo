@@ -2,7 +2,6 @@ package com.grafizum.repio.ui.screens
 
 import androidx.compose.foundation.background
 import androidx.compose.foundation.clickable
-import androidx.compose.foundation.BorderStroke
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Box
@@ -16,32 +15,19 @@ import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
 import androidx.compose.foundation.layout.size
 import androidx.compose.foundation.layout.width
-import androidx.compose.foundation.layout.widthIn
-import androidx.compose.foundation.lazy.LazyColumn
 import androidx.compose.foundation.shape.CircleShape
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
-import androidx.compose.material.icons.filled.CalendarMonth
-import androidx.compose.material.icons.filled.CheckCircle
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.LocalFireDepartment
-import androidx.compose.material.icons.filled.ShowChart
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
 import androidx.compose.material3.ButtonDefaults
-import androidx.compose.material3.Card
-import androidx.compose.material3.CardDefaults
-import androidx.compose.material3.DropdownMenuItem
-import androidx.compose.material3.ExperimentalMaterial3Api
-import androidx.compose.material3.ExposedDropdownMenuBox
-import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
-import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
@@ -61,28 +47,21 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
-import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.res.painterResource
-import com.grafizum.repio.R
 import com.grafizum.repio.ui.components.MuscleGroupDonutChart
 import com.grafizum.repio.ui.components.StatCard
 import com.grafizum.repio.ui.components.WorkoutCalendar
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
-import java.text.SimpleDateFormat
-import java.util.Date
-import java.util.Locale
 
-@OptIn(ExperimentalMaterial3Api::class)
+
 @Composable
 fun AnalyticsScreen(
     viewModel: WorkoutViewModel,
-    onBack: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    onBack: (() -> Unit)? = null
 ) {
     val loggedSets by viewModel.allLoggedSets.collectAsState()
-    val allExercises by viewModel.allRoutineExercises.collectAsState()
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
@@ -102,28 +81,13 @@ fun AnalyticsScreen(
     val muscleGroupDistribution = remember(loggedSets) {
         val map = mutableMapOf<String, Int>()
         loggedSets.forEach { set ->
-            map[set.muscleGroup] = (map[set.muscleGroup] ?: 0) + 1
+            // Aggregate by the precise muscle group so broad parts ("Legs", "Shoulders",
+            // "Back") split into their specific subcategories in the chart.
+            val group = com.grafizum.repio.ui.components.resolvePreciseMuscleGroup(set.exerciseName, set.muscleGroup)
+            map[group] = (map[group] ?: 0) + 1
         }
         map
     }
-
-    val exerciseNames = remember(allExercises, loggedSets) {
-        val namesFromRoutine = allExercises.map { it.name }
-        val namesFromLogs = loggedSets.map { it.exerciseName }
-        (namesFromRoutine + namesFromLogs).distinct().sorted()
-    }
-
-    var selectedExerciseName by remember(exerciseNames) {
-        mutableStateOf(exerciseNames.firstOrNull() ?: "")
-    }
-    var expandedDropdown by remember { mutableStateOf(false) }
-
-    val exerciseLogs = remember(loggedSets, selectedExerciseName) {
-        loggedSets.filter { it.exerciseName.equals(selectedExerciseName, ignoreCase = true) }
-    }
-
-    val maxWeightForExercise = exerciseLogs.maxOfOrNull { it.weightKg } ?: 0.0
-    val totalSetsForExercise = exerciseLogs.size
 
     // Logic for Weekly Report
     val consecutiveWorkoutDays = remember(loggedSets) {
@@ -196,7 +160,7 @@ fun AnalyticsScreen(
                 })
             }
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
         // COMPACT HEADER
         Row(
@@ -258,192 +222,50 @@ fun AnalyticsScreen(
 
         // Removed showCalendarDialog block
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(8.dp))
 
-        LazyColumn(
+        // Cards column: compact stat card + week metrics + muscle focus.
+        // Fills the remaining screen height so the muscle focus card can
+        // stretch down to the 10dp gap above the bottom menu bar.
+        Column(
             modifier = Modifier
-                .fillMaxSize()
+                .fillMaxWidth()
+                .weight(1f)
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
                     })
                 },
-            verticalArrangement = Arrangement.spacedBy(16.dp)
+            verticalArrangement = Arrangement.spacedBy(12.dp)
         ) {
-            // 2. QUICK STAT CARDS
-            item {
-                StatCard(
-                    title = getString("consecutive_days_title"),
-                    value = consecutiveWorkoutDays.toString(),
-                    subtitle = "",
-                    icon = Icons.Default.LocalFireDepartment,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                    badgeText = getString("skipped_days_format", skippedWorkoutDays)
-                )
-            }
+            // 1. QUICK STAT CARD (compact so the Analytics tab fits one screen)
+            StatCard(
+                title = getString("consecutive_days_title"),
+                value = consecutiveWorkoutDays.toString(),
+                subtitle = "",
+                icon = Icons.Default.LocalFireDepartment,
+                iconColor = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.fillMaxWidth(),
+                badgeText = getString("skipped_days_format", skippedWorkoutDays),
+                compact = true
+            )
 
-            // 2. TRAINING OUTPUT (REPLACES BAR CHART)
-            item {
-                WorkoutCalendar(
-                    loggedSets = loggedSets,
-                    selectedDayKey = selectedChartDay,
-                    onDaySelected = { selectedChartDay = it }
-                )
-            }
+            // 2. WEEK METRICS (TRAINING OUTPUT)
+            WorkoutCalendar(
+                loggedSets = loggedSets,
+                selectedDayKey = selectedChartDay,
+                onDaySelected = { selectedChartDay = it }
+            )
 
-            // 4. MUSCLE GROUP DONUT CHART
-            item {
-                MuscleGroupDonutChart(distribution = muscleGroupDistribution)
-            }
-
-            // 5. EXERCISE SPECIFIC STRENGTH TRACKER
-            item {
-                Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Column(modifier = Modifier.padding(16.dp)) {
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Text(
-                                text = getString("exercise_progression"),
-                                style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                            )
-                            Icon(
-                                imageVector = Icons.Default.ShowChart,
-                                contentDescription = null,
-                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-                            )
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        if (exerciseNames.isNotEmpty()) {
-                            ExposedDropdownMenuBox(
-                                expanded = expandedDropdown,
-                                onExpandedChange = { 
-                                    focusManager.clearFocus()
-                                    expandedDropdown = !expandedDropdown 
-                                }
-                            ) {
-                                OutlinedTextField(
-                                    value = com.grafizum.repio.ui.components.translateExerciseName(selectedExerciseName),
-                                    onValueChange = {},
-                                    readOnly = true,
-                                    label = { Text(getString("select_exercise")) },
-                                    trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedDropdown) },
-                                    modifier = Modifier
-                                        .menuAnchor()
-                                        .fillMaxWidth()
-                                )
-
-                                ExposedDropdownMenu(
-                                    expanded = expandedDropdown,
-                                    onDismissRequest = { expandedDropdown = false }
-                                ) {
-                                    exerciseNames.forEach { name ->
-                                        DropdownMenuItem(
-                                            text = { Text(com.grafizum.repio.ui.components.translateExerciseName(name)) },
-                                            onClick = {
-                                                focusManager.clearFocus()
-                                                selectedExerciseName = name
-                                                expandedDropdown = false
-                                            }
-                                        )
-                                    }
-                                }
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(16.dp))
-
-                        Row(
-                            horizontalArrangement = Arrangement.SpaceBetween,
-                            modifier = Modifier.fillMaxWidth()
-                        ) {
-                            Column {
-                                Text(
-                                    text = getString("max_weight"),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = getString("weight_kg_intl", maxWeightForExercise),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-
-                            Column {
-                                Text(
-                                    text = getString("total_sets"),
-                                    style = MaterialTheme.typography.labelMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                Text(
-                                    text = totalSetsForExercise.toString(),
-                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                    color = MaterialTheme.colorScheme.primary
-                                )
-                            }
-                        }
-
-                        Spacer(modifier = Modifier.height(12.dp))
-
-                        Text(
-                            text = getString("recent_history"),
-                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                        )
-                        Spacer(modifier = Modifier.height(6.dp))
-
-                        if (exerciseLogs.isEmpty()) {
-                            Text(
-                                text = getString("no_sets_logged"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        } else {
-                            exerciseLogs.take(5).forEach { set ->
-                                val dateStr = SimpleDateFormat("MMM dd, HH:mm", Locale.getDefault()).format(Date(set.timestamp))
-                                val isBW = com.grafizum.repio.data.WorkoutTemplates.isBodyweightExercise(set.exerciseName)
-                                val isTime = com.grafizum.repio.data.WorkoutTemplates.isExerciseTimeBased(set.exerciseName)
-                                
-                                val logDetail = when {
-                                    isTime && isBW -> "${set.reps} sec"
-                                    isTime -> getString("weight_kg_intl", set.weightKg) + " x ${set.reps} sec"
-                                    isBW -> getString("reps_count", set.reps)
-                                    else -> getString("kg_x_reps", set.weightKg, set.reps)
-                                }
-
-                                Row(
-                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                    modifier = Modifier
-                                        .fillMaxWidth()
-                                        .padding(vertical = 4.dp)
-                                ) {
-                                    Text(
-                                        text = dateStr,
-                                        style = MaterialTheme.typography.bodySmall,
-                                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
-                                    Text(
-                                        text = logDetail,
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold)
-                                    )
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-
-            item { Spacer(modifier = Modifier.height(32.dp)) }
+            // 3. MUSCLE GROUP FOCUS — stretches to fill the leftover height,
+            // ending exactly 10dp above the bottom menu bar.
+            MuscleGroupDonutChart(
+                distribution = muscleGroupDistribution,
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .weight(1f)
+                    .padding(bottom = 10.dp)
+            )
         }
     }
 }

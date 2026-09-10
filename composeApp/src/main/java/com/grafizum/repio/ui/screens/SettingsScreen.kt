@@ -64,6 +64,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableIntStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.setValue
@@ -127,8 +128,8 @@ fun SettingsScreen(
     var showFAQ by remember { mutableStateOf(false) }
     var showRestTimerConfirmation by remember { mutableStateOf(false) }
     var showTransitionTimerConfirmation by remember { mutableStateOf(false) }
-    var pendingRestTimer by remember { mutableStateOf(defaultRestTimerSeconds) }
-    var pendingTransitionTimer by remember { mutableStateOf(defaultExerciseTimerSeconds) }
+    var pendingRestTimer by remember { mutableIntStateOf(defaultRestTimerSeconds) }
+    var pendingTransitionTimer by remember { mutableIntStateOf(defaultExerciseTimerSeconds) }
 
     val scrollState = rememberScrollState()
 

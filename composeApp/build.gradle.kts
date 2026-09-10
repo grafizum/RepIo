@@ -32,12 +32,12 @@ if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
 
 android {
     namespace = "com.grafizum.repio"
-    compileSdk = 37
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.grafizum.repio"
         minSdk = 23
-        targetSdk = 37
+        targetSdk = 36
         versionCode = playStoreVersion
         versionName = appVersion
 
@@ -83,9 +83,8 @@ android {
     buildTypes {
         release {
             isCrunchPngs = true
-            optimization {
-                enable = true
-            }
+            isMinifyEnabled = true
+            isShrinkResources = true
             proguardFiles(
                 getDefaultProguardFile("proguard-android-optimize.txt"),
                 "proguard-rules.pro"
@@ -102,15 +101,21 @@ android {
         }
     }
     compileOptions {
-        sourceCompatibility = JavaVersion.VERSION_11
-        targetCompatibility = JavaVersion.VERSION_11
+        sourceCompatibility = JavaVersion.VERSION_17
+        targetCompatibility = JavaVersion.VERSION_17
     }
     buildFeatures {
         compose = true
         buildConfig = true
     }
     kotlinOptions {
-        jvmTarget = "11"
+        jvmTarget = "17"
+    }
+    testOptions {
+        unitTests {
+            // Required for Robolectric tests to access the app's merged resources and manifest.
+            isIncludeAndroidResources = true
+        }
     }
 }
 
@@ -178,6 +183,7 @@ dependencies {
     testImplementation(libs.robolectric)
     testImplementation(libs.androidx.core)
     testImplementation(libs.androidx.compose.ui.test.junit4)
+    testImplementation(libs.androidx.compose.ui.test.manifest)
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)

@@ -6,6 +6,8 @@ import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
 import android.os.Build
+import androidx.core.content.edit
+import androidx.core.net.toUri
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
@@ -38,15 +40,11 @@ object AppUpdateChecker {
             ?: return false
 
         return try {
-            if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.M) {
-                val network = connectivityManager.activeNetwork ?: return false
-                val capabilities =
-                    connectivityManager.getNetworkCapabilities(network) ?: return false
-                capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
-            } else {
-                @Suppress("DEPRECATION")
-                connectivityManager.activeNetworkInfo?.isConnected == true
-            }
+            // minSdk is 23 (M), so the modern NetworkCapabilities API is always available.
+            val network = connectivityManager.activeNetwork ?: return false
+            val capabilities =
+                connectivityManager.getNetworkCapabilities(network) ?: return false
+            capabilities.hasCapability(NetworkCapabilities.NET_CAPABILITY_INTERNET)
         } catch (_: Exception) {
             false
         }
@@ -77,9 +75,7 @@ object AppUpdateChecker {
     /** Stores "user said not now" so we don't nag again for [NUDGE_COOLDOWN_MS]. */
     fun markNudgeDismissed(context: Context) {
         context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
-            .edit()
-            .putLong(KEY_LAST_DISMISSED, System.currentTimeMillis())
-            .apply()
+            .edit { putLong(KEY_LAST_DISMISSED, System.currentTimeMillis()) }
     }
 
     /**
@@ -130,14 +126,14 @@ object AppUpdateChecker {
     fun openPlayStore(activity: Activity) {
         try {
             activity.startActivity(
-                Intent(Intent.ACTION_VIEW, android.net.Uri.parse("market://details?id=${activity.packageName}"))
+                Intent(Intent.ACTION_VIEW, "market://details?id=${activity.packageName}".toUri())
             )
         } catch (_: Exception) {
             try {
                 activity.startActivity(
                     Intent(
                         Intent.ACTION_VIEW,
-                        android.net.Uri.parse("https://play.google.com/store/apps/details?id=${activity.packageName}")
+                        "https://play.google.com/store/apps/details?id=${activity.packageName}".toUri()
                     )
                 )
             } catch (_: Exception) {

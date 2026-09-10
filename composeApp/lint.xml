@@ -1,0 +1,36 @@
+<?xml version="1.0" encoding="UTF-8"?>
+<lint>
+    <!-- The Flame (dark) theme intentionally ships the same launcher artwork as the Orange
+         theme for now. Real bitmaps must stay in all density folders because minSdk is 23
+         (adaptive icons only exist on API 26+). When the Flame artwork is redesigned,
+         remove this suppression. -->
+    <issue id="IconDuplicates" severity="ignore" />
+
+    <!-- Dependency updates are handled deliberately, not automatically by lint.
+         The following suggestions are intentionally NOT applied for now, with reasons:
+
+         - AGP 9.3.1 -> 9.4.0: keep the toolchain locked while 9.3.x is validated.
+         - Kotlin 2.1.0 / Compose compiler plugin: requires coordinated migration with
+           compose-multiplatform 1.7.x; upgrading Kotlin alone breaks the build.
+         - compose-multiplatform 1.7.3 / Compose BOM 2024.10.01: moving to a newer BOM
+           (2026.x) is a large UI migration, not a safe bump.
+         - navigation-compose 2.8.9 / activity-compose 1.10.1: tied to the Compose BOM line
+           above; bumping independently risks runtime incompatibilities.
+         - Retrofit 2.12.0 -> 3.0.0 and OkHttp 4.10.0 -> 5.x: major version jumps that
+           need package/API migration work.
+         - roborazzi 1.59.0: screenshot-test infra pinned to the current Compose test stack.
+
+         Safe minor/patch bumps (lifecycle, coroutines, CameraX, Firebase, credentials,
+         appcompat, datastore, test libs) ARE applied in libs.versions.toml. -->
+    <issue id="GradleDependency" severity="ignore" />
+    <issue id="NewerVersionAvailable" severity="ignore" />
+    <issue id="AndroidGradlePluginVersion" severity="ignore" />
+
+    <!-- All app strings are resolved through dynamic keys (getString("some_key")) using
+         Resources.getIdentifier, because resource ids are not known at compile time.
+         The Compose-recommended replacements (stringResource / LocalResources.current)
+         require statically known R entries and a newer Compose version than this project
+         pins (BOM 2024.10.01). The helpers live in util/Resources.kt. -->
+    <issue id="LocalContextGetResourceValueCall" severity="ignore" />
+    <issue id="LocalContextResourcesRead" severity="ignore" />
+</lint>

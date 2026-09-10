@@ -1,6 +1,7 @@
 package com.grafizum.repio.ui.screens
 
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.util.getQuantityString
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
 import androidx.compose.foundation.background
@@ -287,7 +288,7 @@ fun HomeScreen(
                                 text = if (todayRoutineDay?.isRestDay == true) {
                                     getString("rest_day_active")
                                 } else {
-                                    getString("exercises_scheduled", todayExercises.size)
+                                    getQuantityString("exercises_scheduled", todayExercises.size)
                                 },
                                 style = MaterialTheme.typography.bodyMedium,
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
@@ -336,7 +337,8 @@ fun HomeScreen(
                     icon = Icons.Default.LocalFireDepartment,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
-                    badgeText = getString("skipped_days_format", skippedWorkoutDays)
+                    badgeText = getString("skipped_days_format", skippedWorkoutDays),
+                    compact = true
                 )
             }
 
@@ -542,10 +544,20 @@ fun HomeScreen(
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
+                                    text = getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
+                                if (exercise.tempo.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(6.dp))
+                                    Text(
+                                        text = getTempoLabel(exercise.tempo),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
                                 Spacer(modifier = Modifier.width(10.dp))
                                 Box(
                                     modifier = Modifier
@@ -555,9 +567,12 @@ fun HomeScreen(
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
-                                    text = translateMuscleGroup(exercise.muscleGroup),
+                                    text = formatMuscleGroup(exercise.muscleGroup, exercise.name),
                                     style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    modifier = Modifier.weight(1f, fill = false),
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
                                 )
                             }
 
