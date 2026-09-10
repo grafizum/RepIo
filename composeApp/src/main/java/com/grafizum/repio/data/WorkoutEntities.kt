@@ -48,7 +48,9 @@ data class RoutineExerciseEntity(
     val restSeconds: Int = 60,
     val transitionRestSeconds: Int = 90,
     val videoUrl: String = "",
-    val orderIndex: Int
+    val orderIndex: Int,
+    // Tempo cue from the training style ("explosive", "slow" or "" = balanced).
+    val tempo: String = ""
 )
 
 @Entity(tableName = "logged_sets")

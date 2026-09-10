@@ -68,6 +68,7 @@ import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.util.getQuantityString
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import androidx.compose.ui.platform.LocalContext
 import androidx.core.app.NotificationManagerCompat
@@ -178,6 +179,7 @@ fun FirstTimeSetupScreen(
     ) }
     val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
     var assistedIntensity by remember { mutableStateOf("Medium") }
+    var assistedTrainingStyle by remember { mutableStateOf(WorkoutTemplates.TRAINING_STYLE_BALANCED) }
     var assistedMinSets by remember { mutableIntStateOf(0) }
     var assistedMaxSets by remember { mutableIntStateOf(0) }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
@@ -701,7 +703,7 @@ fun FirstTimeSetupScreen(
                                                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
                                                             )
                                                             Text(
-                                                                text = getString(template.daysCountKey, template.daysCountArgs.first),
+                                                                text = getQuantityString(template.daysCountKey, template.daysCountArgs.first, template.daysCountArgs.first),
                                                                 style = MaterialTheme.typography.labelSmall,
                                                                 color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
                                                             )
@@ -794,6 +796,7 @@ fun FirstTimeSetupScreen(
                                                     onMinChange = { assistedMinSets = it },
                                                     onMaxChange = { assistedMaxSets = it }
                                                 )
+                                                TrainingStyleSelectionBlock(assistedTrainingStyle) { assistedTrainingStyle = it }
                                                 PremadeEquipmentFilter(
                                                     selectedEquipment = premadeEquipment,
                                                     onEquipmentChange = { premadeEquipment = it }
@@ -841,8 +844,13 @@ fun FirstTimeSetupScreen(
                                         }
 
                                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                            OnboardingStepHeader(stepNumber = 4, title = getString("choose_training_style"))
+                                            TrainingStyleSelectionBlock(assistedTrainingStyle) { assistedTrainingStyle = it }
+                                        }
+
+                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                             OnboardingStepHeader(
-                                                stepNumber = 4,
+                                                stepNumber = 5,
                                                 title = getString("additional_preferences"),
                                                 isCollapsible = true,
                                                 isExpanded = preferencesExpanded,
@@ -868,7 +876,8 @@ fun FirstTimeSetupScreen(
                                             intensity = assistedIntensity,
                                             workoutGoal = selectedWorkoutGoal,
                                             includedExercises = assistedIncludedExercises.toList(),
-                                            excludedExercises = assistedExcludedExercises.toList()
+                                            excludedExercises = assistedExcludedExercises.toList(),
+                                            trainingStyle = assistedTrainingStyle
                                         )
 
                                         val missing = getMissingMuscleGroups(program.exercises)
@@ -1030,11 +1039,11 @@ fun FirstTimeSetupScreen(
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
                                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
-                                                                MuscleGroupBadge(exercise.muscleGroup)
+                                                                MuscleGroupBadge(muscleGroup = exercise.muscleGroup, exerciseName = exercise.name)
                                                                 Spacer(modifier = Modifier.width(8.dp))
                                                                 Text(
-                                                                    text = if (exercise.targetReps.contains("sec")) getString("sets_x_time", exercise.targetSets, exercise.targetReps)
-                                                                    else getString("sets_x_reps", exercise.targetSets, exercise.targetReps),
+                                                                    text = if (exercise.targetReps.contains("sec")) getQuantityString("sets_x_time_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps)
+                                                                    else getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
@@ -1044,7 +1053,19 @@ fun FirstTimeSetupScreen(
                                                                     Text(
                                                                         text = " • $displayIntensity",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                                        color = MaterialTheme.colorScheme.primary
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
+                                                                    )
+                                                                }
+                                                                if (exercise.tempo.isNotBlank()) {
+                                                                    Text(
+                                                                        text = " • ${com.grafizum.repio.ui.components.getTempoLabel(exercise.tempo)}",
+                                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                                        color = MaterialTheme.colorScheme.primary,
+                                                                        modifier = Modifier.weight(1f, fill = false),
+                                                                        maxLines = 1,
+                                                                        overflow = TextOverflow.Ellipsis
                                                                     )
                                                                 }
                                                             }
@@ -1109,8 +1130,9 @@ fun FirstTimeSetupScreen(
                                         if (assistedMaxSets > 0) sets = kotlin.math.min(sets, assistedMaxSets)
                                         ex.copy(
                                             targetSets = sets,
-                                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets),
-                                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name)
+                                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets, assistedTrainingStyle),
+                                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name, assistedTrainingStyle),
+                                            tempo = WorkoutTemplates.getGoalTempo(assistedTrainingStyle)
                                         )
                                     }
                                     viewModel.completeFirstTimeSetup(
@@ -1121,7 +1143,8 @@ fun FirstTimeSetupScreen(
                                         templateId = selectedTemplate.id,
                                         minSets = assistedMinSets,
                                         maxSets = assistedMaxSets,
-                                        equipment = premadeEquipment
+                                        equipment = premadeEquipment,
+                                        trainingStyle = assistedTrainingStyle
                                     )
                                 }
                                 1 -> {
@@ -1133,7 +1156,8 @@ fun FirstTimeSetupScreen(
                                         includedExercises = assistedIncludedExercises.toList(),
                                         excludedExercises = assistedExcludedExercises.toList(),
                                         minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets
+                                        maxSets = assistedMaxSets,
+                                        trainingStyle = assistedTrainingStyle
                                     )
                                     viewModel.completeFirstTimeSetup(
                                         days = program.days,
@@ -1143,7 +1167,8 @@ fun FirstTimeSetupScreen(
                                         selectedDays = assistedSelectedDays.toList(),
                                         intensity = assistedIntensity,
                                         minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets
+                                        maxSets = assistedMaxSets,
+                                        trainingStyle = assistedTrainingStyle
                                     )
                                 }
                                 else -> viewModel.completeFirstTimeSetup(
@@ -1257,7 +1282,7 @@ fun FirstTimeSetupScreen(
                             interactionSource = remember { MutableInteractionSource() }
                         ) { focusManager.clearFocus() }
                 ) {
-                    Text(getString("confirm_delete_multiple_msg", customSelectedExercises.count()))
+                    Text(getQuantityString("confirm_delete_multiple_msg", customSelectedExercises.count()))
                 }
             },
             confirmButton = {
@@ -1448,16 +1473,31 @@ fun FirstTimeSetupScreen(
     }
 
     replacingExercise?.let { exercise ->
+        val anchorIndex = remember(exercise) {
+            customExercises.indexOfFirst { it.name == exercise.name && it.dayOfWeek == exercise.dayOfWeek }.coerceAtLeast(0)
+        }
         ReplaceExerciseDialog(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
-            onSelect = { altName, muscleGroup ->
-                val index = customExercises.indexOf(exercise)
-                if (index != -1) {
-                    val existing = customExercises.find { it.name == altName && it.videoUrl.isNotBlank() }
-                    customExercises[index] = exercise.copy(name = altName, muscleGroup = muscleGroup, videoUrl = existing?.videoUrl ?: "")
+            onSelectionChange = { previous, current ->
+                // Live apply: drop the original (if still present) plus whatever set was
+                // previously applied, then insert the newly toggled set at the same slot.
+                val prevNames = previous.map { it.first }
+                customExercises.removeAll {
+                    it.dayOfWeek == exercise.dayOfWeek && (it.name == exercise.name || it.name in prevNames)
                 }
-                replacingExercise = null
+                if (current.isEmpty()) {
+                    // Nothing selected anymore -> restore the original exercise.
+                    customExercises.add(anchorIndex, exercise)
+                } else {
+                    val knownUrl = customExercises
+                        .firstOrNull { current.any { sel -> sel.first == it.name } && it.videoUrl.isNotBlank() }
+                        ?.videoUrl ?: ""
+                    val replacements = current.map { (name, muscleGroup) ->
+                        exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = knownUrl)
+                    }
+                    customExercises.addAll(anchorIndex, replacements)
+                }
             }
         )
     }
@@ -1908,6 +1948,145 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
 }
 
 @Composable
+private fun TrainingStyleSelectionBlock(selected: String, onSelect: (String) -> Unit) {
+    val levels = WorkoutTemplates.allTrainingStyles
+    val selectedIndex = levels.indexOf(selected).coerceAtLeast(0)
+    val isDeveloper = LocalDeveloperSkin.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        val density = LocalDensity.current
+        val swipeThreshold = with(density) { 40.dp.toPx() }
+
+        BoxWithConstraints(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(52.dp)
+                .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .padding(4.dp)
+                .pointerInput(selected) {
+                    var totalDrag = 0f
+                    detectHorizontalDragGestures(
+                        onDragEnd = {
+                            if (totalDrag > swipeThreshold) {
+                                if (selectedIndex < levels.size - 1) onSelect(levels[selectedIndex + 1])
+                            } else if (totalDrag < -swipeThreshold) {
+                                if (selectedIndex > 0) onSelect(levels[selectedIndex - 1])
+                            }
+                            totalDrag = 0f
+                        },
+                        onHorizontalDrag = { _, dragAmount ->
+                            totalDrag += dragAmount
+                        }
+                    )
+                }
+        ) {
+            val tabWidth = this.maxWidth / levels.size
+            val indicatorPosition by animateDpAsState(
+                targetValue = tabWidth * selectedIndex,
+                animationSpec = spring(
+                    dampingRatio = Spring.DampingRatioLowBouncy,
+                    stiffness = Spring.StiffnessLow
+                ),
+                label = "trainingStyleIndicator"
+            )
+
+            // Sliding Indicator
+            val density = LocalDensity.current
+            Surface(
+                modifier = Modifier
+                    .width(tabWidth)
+                    .fillMaxHeight()
+                    .graphicsLayer {
+                        translationX = with(density) { indicatorPosition.toPx() }
+                    },
+                color = MaterialTheme.colorScheme.primary,
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
+                shadowElevation = if (isDeveloper) 0.dp else 1.dp
+            ) {}
+
+            Row(
+                modifier = Modifier.fillMaxSize(),
+                horizontalArrangement = Arrangement.spacedBy(0.dp)
+            ) {
+                levels.forEach { level ->
+                    val isSelected = selected == level
+                    val contentColor by animateColorAsState(
+                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                     else MaterialTheme.colorScheme.onSurfaceVariant,
+                        label = "trainingStyleContentColor"
+                    )
+
+                    Box(
+                        modifier = Modifier
+                            .weight(1f)
+                            .fillMaxHeight()
+                            .clickable(
+                                interactionSource = remember { MutableInteractionSource() },
+                                indication = null
+                            ) {
+                                onSelect(level)
+                            },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Text(
+                            text = getString("training_style_${level}"),
+                            style = MaterialTheme.typography.labelSmall.copy(
+                                fontWeight = FontWeight.Bold,
+                                fontSize = 10.sp
+                            ),
+                            color = contentColor,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+        }
+
+        // Short, newcomer-friendly description of the chosen style
+        val description = getString("training_style_${selected}_desc")
+
+        AnimatedContent(
+            targetState = description,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            },
+            label = "trainingStyleDesc"
+        ) { desc ->
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Info,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
 private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
     val focusManager = LocalFocusManager.current
     AlertDialog(
@@ -2169,6 +2348,7 @@ fun AddExerciseDialog(
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
+    var tempoValue by remember { mutableStateOf(exercise?.tempo ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     
@@ -2370,7 +2550,7 @@ fun AddExerciseDialog(
                                         trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
                                         contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
                                         container = {
-                                            OutlinedTextFieldDefaults.ContainerBox(
+                                            OutlinedTextFieldDefaults.Container(
                                                 enabled = true,
                                                 isError = false,
                                                 interactionSource = interactionSource,
@@ -2441,6 +2621,49 @@ fun AddExerciseDialog(
                 }
 
 
+                var expandedTempo by remember { mutableStateOf(false) }
+                ExposedDropdownMenuBox(
+                    expanded = expandedTempo,
+                    onExpandedChange = {
+                        focusManager.clearFocus()
+                        expandedTempo = !expandedTempo
+                    }
+                ) {
+                    val tempoLabel = when(tempoValue) {
+                        "explosive" -> getString("tempo_explosive")
+                        "slow" -> getString("tempo_slow")
+                        else -> getString("tempo_none")
+                    }
+                    OutlinedTextField(
+                        value = tempoLabel,
+                        onValueChange = {},
+                        readOnly = true,
+                        label = { Text(getString("tempo_label")) },
+                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTempo) },
+                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
+                    )
+                    ExposedDropdownMenu(
+                        expanded = expandedTempo,
+                        onDismissRequest = { expandedTempo = false }
+                    ) {
+                        listOf("", "explosive", "slow").forEach { t ->
+                            val label = when(t) {
+                                "explosive" -> getString("tempo_explosive")
+                                "slow" -> getString("tempo_slow")
+                                else -> getString("tempo_none")
+                            }
+                            DropdownMenuItem(
+                                text = { Text(label, style = MaterialTheme.typography.bodySmall) },
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    tempoValue = t
+                                    expandedTempo = false
+                                }
+                            )
+                        }
+                    }
+                }
+
                 OutlinedTextField(
                     value = videoUrl,
                     onValueChange = { videoUrl = it },
@@ -2471,7 +2694,8 @@ fun AddExerciseDialog(
                         targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0,
                         restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
                         videoUrl = videoUrl, 
-                        orderIndex = exercise?.orderIndex ?: 99
+                        orderIndex = exercise?.orderIndex ?: 99,
+                        tempo = tempoValue
                     ))
                 },
                 enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)

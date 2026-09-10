@@ -68,6 +68,7 @@ import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.util.getQuantityString
 import com.grafizum.repio.ui.components.ExerciseEditDialog
 import kotlinx.coroutines.delay
 
@@ -77,10 +78,10 @@ import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 @Composable
 fun WorkoutNowScreen(
     viewModel: WorkoutViewModel,
+    modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onChangeRoutine: (() -> Unit)? = null,
-    isActive: Boolean = true,
-    modifier: Modifier = Modifier
+    isActive: Boolean = true
 ) {
     val workoutState by viewModel.workoutNowState.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
@@ -468,7 +469,7 @@ fun WorkoutNowScreen(
                                     )
                                     Spacer(modifier = Modifier.height(8.dp))
                                     Text(
-                                        text = getString("workout_completed_text", workoutState.totalSetsLoggedToday, dayOfWeekDisplayName(targetDay)),
+                                        text = getQuantityString("workout_completed_text", workoutState.totalSetsLoggedToday, workoutState.totalSetsLoggedToday, dayOfWeekDisplayName(targetDay)),
                                         style = MaterialTheme.typography.bodyMedium,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
@@ -690,30 +691,11 @@ fun WorkoutNowScreen(
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                                            MuscleGroupBadge(muscleGroup = currentExercise.muscleGroup)
-                                            
-                                            val specificMuscle = currentExercise.muscleGroup
-                                            val topic = WorkoutTemplates.getTopicForMuscle(specificMuscle)
-                                            if (!specificMuscle.equals(topic, ignoreCase = true)) {
-                                                Surface(
-                                                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.secondary.copy(alpha = 0.1f),
-                                                    contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary,
-                                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(4.dp),
-                                                    border = BorderStroke(if (isDeveloper) 1.dp else 0.5.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f))
-                                                ) {
-                                                    Text(
-                                                        text = com.grafizum.repio.ui.components.translateMuscleGroup(specificMuscle).uppercase(),
-                                                        style = MaterialTheme.typography.labelSmall.copy(
-                                                            fontWeight = FontWeight.ExtraBold,
-                                                            fontSize = if (rememberIsCompactWidth()) 8.sp else 9.sp,
-                                                            letterSpacing = 0.5.sp
-                                                        ),
-                                                        maxLines = 1,
-                                                        softWrap = false,
-                                                        modifier = Modifier.padding(horizontal = 4.dp, vertical = 2.dp)
-                                                    )
-                                                }
-                                            }
+                                            // Badge shows the broad body part + precise muscle group together.
+                                            MuscleGroupBadge(
+                                                muscleGroup = currentExercise.muscleGroup,
+                                                exerciseName = currentExercise.name
+                                            )
                                         }
                                         
                                         Surface(
@@ -807,8 +789,8 @@ fun WorkoutNowScreen(
                                     ) {
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             Text(
-                                                text = if (isTimeBased) getString("sets_x_time", currentExercise.targetSets, currentExercise.targetReps)
-                                                       else getString("sets_x_reps", currentExercise.targetSets, currentExercise.targetReps),
+                                                text = if (isTimeBased) getQuantityString("sets_x_time_pl", currentExercise.targetSets, currentExercise.targetSets, currentExercise.targetReps)
+                                                       else getQuantityString("sets_x_reps_pl", currentExercise.targetSets, currentExercise.targetSets, currentExercise.targetReps),
                                                 style = MaterialTheme.typography.bodyMedium,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
@@ -818,7 +800,19 @@ fun WorkoutNowScreen(
                                                 Text(
                                                     text = " • $displayIntensity",
                                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                    color = MaterialTheme.colorScheme.primary
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
+                                                )
+                                            }
+                                            if (currentExercise.tempo.isNotBlank()) {
+                                                Text(
+                                                    text = " • ${com.grafizum.repio.ui.components.getTempoLabel(currentExercise.tempo)}",
+                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.weight(1f, fill = false),
+                                                    maxLines = 1,
+                                                    overflow = TextOverflow.Ellipsis
                                                 )
                                             }
                                         }
@@ -992,7 +986,7 @@ fun WorkoutNowScreen(
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                                             )
                                             Text(
-                                                text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else getString("reps_count", workoutState.currentReps),
+                                                text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else getQuantityString("reps_count", workoutState.currentReps),
                                                 style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
                                             )
                                         }

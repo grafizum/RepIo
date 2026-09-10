@@ -1,8 +1,8 @@
 package com.grafizum.repio.util
 
 import android.content.Intent
-import android.net.Uri
 import android.app.Application
+import androidx.core.net.toUri
 import com.grafizum.repio.RepIoApplication
 import java.util.Calendar
 
@@ -52,7 +52,7 @@ fun openUrl(url: String) {
         } else {
             url
         }
-        val intent = Intent(Intent.ACTION_VIEW, Uri.parse(formattedUrl)).apply {
+        val intent = Intent(Intent.ACTION_VIEW, formattedUrl.toUri()).apply {
             addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
         }
         context.startActivity(intent)

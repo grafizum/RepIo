@@ -294,7 +294,7 @@ object DefaultData {
         RoutineExerciseEntity(
             dayOfWeek = "THURSDAY",
             name = "Dumbbell Flyes",
-            muscleGroup = "Shoulders",
+            muscleGroup = "Chest",
             targetSets = 3,
             targetReps = "10–20",
             videoUrl = "",
@@ -323,7 +323,7 @@ object DefaultData {
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
             name = "Dumbbell Flyes",
-            muscleGroup = "Shoulders",
+            muscleGroup = "Chest",
             targetSets = 2,
             targetReps = "10–20",
             videoUrl = "",

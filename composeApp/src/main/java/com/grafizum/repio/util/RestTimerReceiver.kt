@@ -3,18 +3,19 @@ package com.grafizum.repio.util
 import android.content.BroadcastReceiver
 import android.content.Context
 import android.content.Intent
+import androidx.core.content.edit
 
 class RestTimerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
         if (intent.action == ACTION_SKIP_TIMER) {
             // User pressed "Skip" on the countdown notification: stop the timer quietly.
             val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
-            prefs.edit()
-                .putLong("timer_end_time_millis", 0L)
-                .putBoolean("is_exercise_timer", false)
-                .putBoolean("is_silent_timer", false)
-                .remove("timer_day")
-                .apply()
+            prefs.edit {
+                putLong("timer_end_time_millis", 0L)
+                putBoolean("is_exercise_timer", false)
+                putBoolean("is_silent_timer", false)
+                remove("timer_day")
+            }
             try {
                 getTimerManager().cancelTimer()
             } catch (e: Exception) {}
@@ -33,7 +34,7 @@ class RestTimerReceiver : BroadcastReceiver() {
             return
         }
 
-        prefs.edit().putLong("timer_end_time_millis", 0L).apply()
+        prefs.edit { putLong("timer_end_time_millis", 0L) }
 
         // Show notification and play sound
         NotificationHelper.showRestTimerEndedNotification(context)

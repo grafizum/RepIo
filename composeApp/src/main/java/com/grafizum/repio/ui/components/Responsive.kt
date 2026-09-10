@@ -36,6 +36,7 @@ import androidx.compose.ui.unit.dp
  * never overflows or collides on small screens.
  */
 @Composable
+@Suppress("ConfigurationScreenWidthHeight") // LocalWindowInfo.containerSize needs Compose 1.8 (BOM 2025.x); see lint.xml note
 fun rememberIsCompactWidth(maxWidthDp: Int = 400): Boolean {
     val configuration = LocalConfiguration.current
     return configuration.screenWidthDp < maxWidthDp
@@ -51,6 +52,7 @@ enum class WindowWidthClass { COMPACT, MEDIUM, EXPANDED }
  * (single column vs. two-pane, grids vs. lists) per screen size.
  */
 @Composable
+@Suppress("ConfigurationScreenWidthHeight") // LocalWindowInfo.containerSize needs Compose 1.8 (BOM 2025.x); see lint.xml note
 fun rememberWindowWidthClass(): WindowWidthClass {
     val widthDp = LocalConfiguration.current.screenWidthDp
     return when {
