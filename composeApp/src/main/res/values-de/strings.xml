@@ -1,11 +1,14 @@
-<resources>
+<resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">RepIo</string>
     <string name="smart_workout_assistant">Startseite</string>
     <string name="settings">Einstellungen</string>
     <string name="todays_workout">HEUTIGES TRAINING</string>
     <string name="workout_routine">Trainingsplan</string>
     <string name="rest_day_active">Ruhetag. Aktive Erholung &amp; Mobilität.</string>
-    <string name="exercises_scheduled">%1$d Übungen für heute geplant</string>
+    <plurals name="exercises_scheduled">
+        <item quantity="one">%1$d Übung für heute geplant</item>
+        <item quantity="other">%1$d Übungen für heute geplant</item>
+    </plurals>
     <string name="workout_now">JETZT TRAINIEREN</string>
     <string name="consecutive_days_title">Aufeinanderfolgende Tage</string>
     <string name="skipped_days_format">Übersprungene Trainingstage: %1$d</string>
@@ -24,8 +27,14 @@
     <string name="collapse_all">Alle einklappen</string>
     <string name="tap_for_details">Tippen für Details</string>
     <string name="no_exercises_today">Keine Übungen für heute geplant. Genieße deinen Ruhetag!</string>
-    <string name="sets_x_reps">%1$d Sätze × %2$s Wdh.</string>
-    <string name="sets_x_time">%1$d Sätze × %2$s</string>
+    <plurals name="sets_x_reps_pl">
+        <item quantity="one">%1$d Satz × %2$s Wdh.</item>
+        <item quantity="other">%1$d Sätze × %2$s Wdh.</item>
+    </plurals>
+    <plurals name="sets_x_time_pl">
+        <item quantity="one">%1$d Satz × %2$s</item>
+        <item quantity="other">%1$d Sätze × %2$s</item>
+    </plurals>
     <string name="target_time">Zielzeit</string>
 
     <string name="app_settings">App-Einstellungen</string>
@@ -85,6 +94,13 @@
     <string name="weekly_progress">Wöchentlicher Fortschritt</string>
     <string name="tap_bar_to_inspect">Tippe auf einen Balken für das Tages-Total</string>
     <string name="muscle_group_focus">Muskelgruppen-Fokus</string>
+    <string name="muscle_distribution">Muskelverteilung</string>
+    <string name="show_all_muscle_groups">Alle Muskelgruppen anzeigen (%1$d)</string>
+    <string name="show_less">Weniger anzeigen</string>
+    <string name="overview_view">Übersicht</string>
+    <string name="detailed_view">Detailansicht</string>
+    <string name="previous_view">Vorherige Ansicht</string>
+    <string name="next_view">Nächste Ansicht</string>
     <string name="watch_demo">Demo ansehen</string>
     <string name="edit_demo">Demo bearbeiten</string>
     <string name="watch_demo_video">Demo-Video ansehen</string>
@@ -114,7 +130,8 @@
     <string name="alternative_exercises">Alternative Übungen</string>
     <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
     <string name="replace_exercise">Übung ersetzen</string>
-    <string name="replace_exercise_desc">Ersetze %1$s. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
+    <string name="replace_exercise_desc">Ersetze %1$s. Tippe auf eine oder mehrere Alternativen, um sie zu übernehmen — erneut tippen macht es rückgängig. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
+    <string name="x_selected">%1$d ausgewählt</string>
     <string name="equipment">Geräte</string>
     <string name="equipment_filter_hint">Wähle die Geräte, die dein vorgefertigter Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
     <string name="equipment_all">Alle</string>
@@ -168,7 +185,10 @@
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein Krafttraining für %1$s geplant. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training beendet! 🎉</string>
-    <string name="workout_completed_text">Du hast %1$d Sätze für %2$s gespeichert!</string>
+    <plurals name="workout_completed_text">
+        <item quantity="one">Du hast %1$d Satz für %2$s gespeichert!</item>
+        <item quantity="other">Du hast %1$d Sätze für %2$s gespeichert!</item>
+    </plurals>
     <string name="start_workout_again">TRAINING ERNEUT STARTEN</string>
     <string name="exercise_x_of_y">Übung %1$d von %2$d • Satz %3$d/%4$d</string>
     <string name="rest_timer">PAUSE</string>
@@ -179,11 +199,14 @@
     <string name="set_x_of_y">SATZ %1$d / %2$d</string>
     <string name="next_up">NÄCHSTE ÜBUNG</string>
     <string name="next_up_none">Keine (Fertig 🎉)</string>
-    <string name="next_up_exercise">%1$s (%2$d Sätze)</string>
+    <string name="next_up_exercise" tools:ignore="PluralsCandidate">%1$s (%2$d Sätze)</string>
     <string name="log_current_set_parameters">Satz-Parameter speichern</string>
     <string name="weight">Gewicht</string>
     <string name="reps_completed">Wdh. geschafft</string>
-    <string name="reps_count">%1$d Wdh.</string>
+    <plurals name="reps_count">
+        <item quantity="one">%1$d Wdh.</item>
+        <item quantity="other">%1$d Wdh.</item>
+    </plurals>
     <string name="log_set_x_next">SATZ %1$d SPEICHERN &amp; WEITER ➔</string>
     <string name="start_timer_x_and_log">START %1$ds TIMER &amp; SPEICHERN</string>
     <string name="start_timer_x">START %1$ds TIMER</string>
@@ -251,7 +274,10 @@
     <string name="confirm_delete_title">Übung löschen?</string>
     <string name="confirm_delete_msg">Bist du sicher, dass du diese Übung löschen möchtest?</string>
     <string name="confirm_delete_multiple_title">Übungen löschen?</string>
-    <string name="confirm_delete_multiple_msg">Bist du sicher, dass du %1$d Übungen löschen möchtest?</string>
+    <plurals name="confirm_delete_multiple_msg">
+        <item quantity="one">Bist du sicher, dass du %1$d Übung löschen möchtest?</item>
+        <item quantity="other">Bist du sicher, dass du %1$d Übungen löschen möchtest?</item>
+    </plurals>
     <string name="workout_templates">Workout-Vorlagen</string>
     <string name="switch_program_text">Wechsle jederzeit dein Programm zu einem unserer entworfenen Splits.</string>
     <string name="apply">Anwenden</string>
@@ -305,8 +331,11 @@
     <string name="weight_kg_intl">%1$s kg</string>
     <string name="exercise_name_placeholder">z.B. Bankdrücken, Kniebeugen, Klimmzüge</string>
     <string name="add">Hinzufügen</string>
-    <string name="kg_x_reps">%1$s kg × %2$d Wdh.</string>
-    <string name="exercise_set_summary">• %1$s (%2$d Sätze)</string>
+    <plurals name="kg_x_reps_pl">
+        <item quantity="one">%1$s kg × %2$d Wdh.</item>
+        <item quantity="other">%1$s kg × %2$d Wdh.</item>
+    </plurals>
+    <string name="exercise_set_summary" tools:ignore="PluralsCandidate">• %1$s (%2$d Sätze)</string>
 
     <string name="back">Rücken</string>
     <string name="biceps">Bizeps</string>
@@ -332,9 +361,12 @@
     <string name="strength_mass">Kraft &amp; Masse</string>
     <string name="optimal_recovery">Optimale Erholung</string>
     <string name="time_efficient">Zeitsparend</string>
-    <string name="workout_days_format">%1$d Tage</string>
-    <string name="workout_days_plus_rest">%1$d Trainingstage + %2$d Ruhetage</string>
-    <string name="rest_days_only">%1$d Ruhetage</string>
+    <plurals name="workout_days_format_pl">
+        <item quantity="one">%1$d Tag</item>
+        <item quantity="other">%1$d Tage</item>
+    </plurals>
+    <string name="workout_days_plus_rest" tools:ignore="PluralsCandidate">%1$d Trainingstage + %2$d Ruhetage</string>
+    <string name="rest_days_only" tools:ignore="PluralsCandidate">%1$d Ruhetage</string>
 
     <!-- Exercise Names -->
     <string name="ex_dumbbell_row">Kurzhantel-Rudern</string>
@@ -345,6 +377,7 @@
     <string name="ex_dumbbell_shoulder_press">KH-Schulterdrücken</string>
     <string name="ex_dumbbell_lateral_raise">KH-Seitheben</string>
     <string name="ex_crunches">Crunches</string>
+    <string name="ex_bicycle_crunches">Fahrrad-Crunches</string>
     <string name="ex_barbell_floor_press">LH-Floor Press</string>
     <string name="ex_dumbbell_floor_press">KH-Floor Press</string>
     <string name="ex_leg_raise">Beinheben</string>
@@ -481,9 +514,21 @@
     <string name="intensity_easy">Leicht</string>
     <string name="intensity_medium">Mittel</string>
     <string name="intensity_hard">Schwer</string>
-    <string name="intensity_easy_desc">Erhaltungsvolumen (6-10 Sätze/Woche). Fokus auf Technik und Konstanz.</string>
-    <string name="intensity_medium_desc">Optimales Wachstum (10-15 Sätze/Woche). Ausgewogene Intensität für Hypertrophie (MEV/MAV).</string>
-    <string name="intensity_hard_desc">Max. regenerierbares Volumen (15-20+ Sätze/Woche). Hohe Intensität an der Belastungsgrenze (MRV).</string>
+    <string name="intensity_easy_desc">Erhaltungsvolumen (6–10 Sätze/Woche). Fokus auf Technik und Konstanz.</string>
+    <string name="intensity_medium_desc">Optimales Wachstum (10–15 Sätze/Woche). Ausgewogene Intensität für Hypertrophie (MEV/MAV).</string>
+    <string name="intensity_hard_desc">Max. regenerierbares Volumen (15–20+ Sätze/Woche). Hohe Intensität an der Belastungsgrenze (MRV).</string>
+
+    <string name="choose_training_style">Trainingsstil</string>
+    <string name="training_style_balanced">Ausgewogen</string>
+    <string name="training_style_balanced_desc">Gleichmäßiges Tempo, mittlere Gewichte. Der Allround-Standard — ideal für den Start.</string>
+    <string name="training_style_explosive">Explosiv</string>
+    <string name="training_style_explosive_desc">Weniger Wiederholungen mit schwereren Gewichten, schnell ausgeführt. Baut Kraft und Power auf.</string>
+    <string name="training_style_slow">Langsam</string>
+    <string name="training_style_slow_desc">Mehr Wiederholungen mit leichteren Gewichten, langsam ausgeführt. Baut Ausdauer und Muskeltonus auf.</string>
+    <string name="tempo_label">Tempo</string>
+    <string name="tempo_none">Kein Tempo</string>
+    <string name="tempo_explosive">Explosiv</string>
+    <string name="tempo_slow">3s runter</string>
 
     <string name="major_muscle_groups">Hauptgruppen</string>
     <string name="specialized_body_parts">Detail-Fokus</string>
@@ -511,7 +556,7 @@
     <string name="triceps_part">Trizeps</string>
     <string name="biceps_part">Bizeps</string>
 
-    <string name="rep_format_error">Format muss Zahl (10) oder Bereich (8-12) sein</string>
+    <string name="rep_format_error">Format muss Zahl (10) oder Bereich (8–12) sein</string>
     <string name="invalid_char_error">Nur Zahlen und Bindestriche erlaubt</string>
     <string name="only_numbers_error">Nur Zahlen erlaubt</string>
     <string name="min_greater_than_max">Min darf nicht größer als Max sein</string>

@@ -2,6 +2,7 @@ package com.grafizum.repio
 
 import android.app.Application
 import android.content.res.Configuration
+import androidx.core.content.edit
 import com.grafizum.repio.util.IconSwitchHelper
 import com.google.firebase.FirebaseApp
 import com.google.firebase.appcheck.FirebaseAppCheck
@@ -22,7 +23,10 @@ class RepIoApplication : Application() {
             val isSystemDark = uiMode == Configuration.UI_MODE_NIGHT_YES
             
             val initialTheme = if (isSystemDark) "FLAME" else "BEIGE"
-            prefs.edit().putString("theme_option", initialTheme).putBoolean("auto_theme_selected", true).apply()
+            prefs.edit {
+                putString("theme_option", initialTheme)
+                putBoolean("auto_theme_selected", true)
+            }
             // We removed the immediate switchIcon call here to prevent duplicate icons during first launch.
             // The app will use the manifest default (Beige) until the user changes it or it's applied later.
         }

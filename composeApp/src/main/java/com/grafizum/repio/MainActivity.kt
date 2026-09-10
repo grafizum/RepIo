@@ -4,6 +4,7 @@ import android.app.Activity
 import android.content.Context
 import android.content.ContextWrapper
 import android.content.Intent
+import android.content.pm.ActivityInfo
 import android.net.ConnectivityManager
 import android.net.Network
 import android.net.NetworkCapabilities
@@ -59,6 +60,7 @@ import androidx.compose.runtime.LaunchedEffect
 import androidx.compose.runtime.SideEffect
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
+import androidx.compose.runtime.mutableLongStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.rememberCoroutineScope
@@ -151,6 +153,12 @@ open class MainActivity : AppCompatActivity() {
         val splashScreen = installSplashScreen()
         super.onCreate(savedInstanceState)
         enableEdgeToEdge()
+
+        // Lock phones to portrait. Tablets (>=600dp smallest screen width) keep full
+        // sensor rotation so they can also be used in landscape.
+        if (resources.configuration.smallestScreenWidthDp < 600) {
+            requestedOrientation = ActivityInfo.SCREEN_ORIENTATION_PORTRAIT
+        }
 
         // Create notification channel for rest timer
         NotificationHelper.createNotificationChannel(this)
@@ -269,7 +277,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     var easterEggUnlocked by remember { mutableStateOf(false) }
     var navSequence by remember { mutableStateOf(emptyList<Int>()) }
-    var lastInteractionTime by remember { mutableStateOf(0L) }
+    var lastInteractionTime by remember { mutableLongStateOf(0L) }
 
     val baseNavigationItems = listOf(
         Screen.Home,
