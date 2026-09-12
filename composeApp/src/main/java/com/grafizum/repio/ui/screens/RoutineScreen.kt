@@ -972,15 +972,14 @@ fun WorkoutScreen(
         ReplaceExerciseDialog(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
-            onSelectionChange = { previous, current ->
-                // Live apply: swap the original for whatever set is currently toggled on.
-                val replacements = current.map { (name, muscleGroup) ->
-                    exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = "")
-                }
+            onReplace = { name, muscleGroup ->
+                // Swap the original for the picked exercise, in its slot.
                 viewModel.replaceExerciseWith(
                     original = exercise,
-                    previousNames = previous.map { it.first },
-                    replacements = replacements
+                    previousNames = emptyList(),
+                    replacements = listOf(
+                        exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = "")
+                    )
                 )
             }
         )

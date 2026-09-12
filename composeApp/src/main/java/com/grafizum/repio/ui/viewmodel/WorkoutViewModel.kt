@@ -1,6 +1,7 @@
 package com.grafizum.repio.ui.viewmodel
 
 import com.grafizum.repio.util.getPlatformSettings
+import com.grafizum.repio.util.AppEventBus
 import com.grafizum.repio.util.getTimerManager
 import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
@@ -75,6 +76,10 @@ class WorkoutViewModel(
     private val _keepScreenOn = MutableStateFlow(prefs.getBoolean("keep_screen_on", false))
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn.asStateFlow()
 
+    // Motivational "you skipped a day" nudges (real athletes' catchphrases).
+    private val _motivationalNudges = MutableStateFlow(prefs.getBoolean("motivational_nudges", true))
+    val motivationalNudges: StateFlow<Boolean> = _motivationalNudges.asStateFlow()
+
     private val _defaultRestTimerSeconds = MutableStateFlow(prefs.getInt("default_rest_timer_seconds", 60))
     val defaultRestTimerSeconds: StateFlow<Int> = _defaultRestTimerSeconds.asStateFlow()
 
@@ -137,8 +142,18 @@ class WorkoutViewModel(
             selectDayForWorkoutNow(today)
         }
 
-        // Re-post the phone countdown indicator if a timer was still running
-        resyncTimerCountdownNotification()
+        // Pick a timer that was still running back up, countdown and all
+        ensureRestTimerRunning()
+
+        // The timer reports back from outside the UI — a finished rest through
+        // [AppEventBus.restTimerEnded], a skipped one through restTimerSkipped. Winding the
+        // session up here is what keeps it in step when the app was closed at the time.
+        viewModelScope.launch {
+            AppEventBus.restTimerEnded.collect { onRestTimerFinished() }
+        }
+        viewModelScope.launch {
+            AppEventBus.restTimerSkipped.collect { stopTimer() }
+        }
 
         allRoutineDays = repository.allRoutineDays.stateIn(
             viewModelScope,
@@ -184,14 +199,19 @@ class WorkoutViewModel(
                         val (minVal, maxVal) = parseRepsRange(it.targetReps)
 
                         _workoutNowState.update { state ->
-                            // Suggested weight: the plan weight (set in the Edit screen) wins, otherwise
-                            // remember the last weight the user used for this exercise, else default 20 kg.
+                            // Suggested weight, in priority order: the weight the plan set explicitly
+                            // (Edit screen), then what the user last used for this exercise, then an
+                            // estimate adapted to the chosen difficulty + training style. That estimate
+                            // is a fallback only — a remembered weight is never overwritten by it.
                             val templateWeight = it.targetWeightKg
+                            val setupIntensity = prefs.getString("setup_intensity", "") ?: ""
                             val suggestedWeight = when {
                                 templateWeight > 0.0 -> templateWeight
                                 cachedWeight != null -> cachedWeight
                                 isBodyweight -> 0.0
-                                else -> 20.0
+                                else -> WorkoutTemplates
+                                    .getStartingWeightKg(it.name, setupIntensity)
+                                    .takeIf { kg -> kg > 0.0 } ?: 20.0
                             }
                             val showBodyweight = isBodyweight && suggestedWeight == 0.0
 
@@ -329,6 +349,11 @@ class WorkoutViewModel(
         prefs.putBoolean("keep_screen_on", enabled)
     }
 
+    fun setMotivationalNudges(enabled: Boolean) {
+        _motivationalNudges.value = enabled
+        prefs.putBoolean("motivational_nudges", enabled)
+    }
+
     fun setDefaultRestTimerSeconds(seconds: Int) {
         val validSecs = seconds.coerceAtLeast(10)
         _defaultRestTimerSeconds.value = validSecs
@@ -428,8 +453,7 @@ class WorkoutViewModel(
         templateId: String = "",
         minSets: Int = 0,
         maxSets: Int = 0,
-        equipment: List<String> = emptyList(),
-        trainingStyle: String = WorkoutTemplates.TRAINING_STYLE_BALANCED
+        equipment: List<String> = emptyList()
     ) {
         viewModelScope.launch {
             // Completing a brand-new build from the Welcome screen replaces the routine,
@@ -458,7 +482,6 @@ class WorkoutViewModel(
             prefs.putString("setup_equipment", equipment.joinToString(","))
             prefs.putInt("setup_min_sets", minSets)
             prefs.putInt("setup_max_sets", maxSets)
-            prefs.putString("setup_training_style", trainingStyle)
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
@@ -467,17 +490,16 @@ class WorkoutViewModel(
     private fun mapToEquipmentFiltered(
         exercises: List<RoutineExerciseEntity>,
         equipment: List<String>,
-        goal: String,
-        trainingStyle: String = WorkoutTemplates.TRAINING_STYLE_BALANCED
+        goal: String
     ): List<RoutineExerciseEntity> {
         val selected = equipment.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
         val base = if (selected.isEmpty()) exercises
                    else exercises.filter { WorkoutTemplates.getEquipmentForExercise(it.name) in selected }
         return base.map {
             it.copy(
-                targetReps = WorkoutTemplates.getGoalReps(it.name, goal, it.targetSets, trainingStyle),
-                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name, trainingStyle),
-                tempo = WorkoutTemplates.getGoalTempo(trainingStyle)
+                targetReps = WorkoutTemplates.getGoalReps(it.name, goal),
+                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name),
+                tempo = ""
             )
         }
     }
@@ -499,7 +521,6 @@ class WorkoutViewModel(
             val intensity = prefs.getString("setup_intensity", "") ?: ""
             val templateId = prefs.getString("setup_template_id", "") ?: ""
             val equipment = loadSetupEquipment()
-            val trainingStyle = prefs.getString("setup_training_style", WorkoutTemplates.TRAINING_STYLE_BALANCED) ?: WorkoutTemplates.TRAINING_STYLE_BALANCED
             
             when (setupType) {
                 "ASSISTED" -> {
@@ -510,7 +531,7 @@ class WorkoutViewModel(
                         workoutGoal = newGoal,
                         minSets = prefs.getInt("setup_min_sets", 0),
                         maxSets = prefs.getInt("setup_max_sets", 0),
-                        trainingStyle = trainingStyle
+                        equipment = equipment
                     )
                     repository.applyProgram(program.days, program.exercises)
                 }
@@ -520,7 +541,7 @@ class WorkoutViewModel(
                         // For premade, we need to know which days were selected. 
                         // setup_days should contain the selected week days.
                         val mapped = remapTemplateToDays(template, selectedDays)
-                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal, trainingStyle)
+                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal)
                         repository.applyProgram(mapped.first, filteredExercises)
                     }
                 }
@@ -597,15 +618,21 @@ class WorkoutViewModel(
         }
     }
 
-    /** Re-posts the phone countdown indicator for a still-running timer (e.g. after process restart). */
-    fun resyncTimerCountdownNotification() {
-        val state = _workoutNowState.value
-        if (state.isTimerActive && state.restTimerSeconds > 0) {
-            val endTime = prefs.getLong("timer_end_time_millis", 0L)
-            if (endTime > currentTimeMillis()) {
-                timerManager.showCountdownNotification(remainingRestSeconds(endTime))
-            }
+    /**
+     * Arms the background timer. Called when the session starts and every time the app
+     * comes back to the foreground, so a process restarted mid-rest picks the timer up
+     * again instead of leaving the countdown frozen where it was.
+     */
+    fun ensureRestTimerRunning() {
+        val endTime = prefs.getLong("timer_end_time_millis", 0L)
+        if (endTime <= 0L) return
+        if (endTime <= currentTimeMillis()) {
+            // It ended while nothing was watching: drop it rather than announce a rest
+            // that finished minutes (or hours) ago.
+            stopTimer()
+            return
         }
+        timerManager.scheduleTimer(endTime, remainingRestSeconds(endTime))
     }
 
     fun updateWeightAndReps(weight: Double, reps: Int) {
@@ -780,57 +807,67 @@ class WorkoutViewModel(
         saveWorkoutNowState(_workoutNowState.value)
     }
 
+    /**
+     * Follows the running timer into the session state.
+     *
+     * Both the countdown notification and the end-of-rest alert belong to
+     * [com.grafizum.repio.util.RestTimerService], which keeps them going while the app is
+     * closed; here we only read the same stored end time, so the screen always shows the
+     * identical remaining time.
+     */
     fun tickTimer() {
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
-        if (endTime > 0L) {
-            val now = currentTimeMillis()
-            val remainingMillis = endTime - now
-            if (remainingMillis > 0L) {
-                val remainingSecs = remainingRestSeconds(endTime, now)
-                _workoutNowState.update { it.copy(restTimerSeconds = remainingSecs, isTimerActive = true) }
-                // Keep the notification countdown in lockstep with the in-app timer: same value,
-                // same tick, so they always show the identical remaining time.
-                timerManager.showCountdownNotification(remainingSecs)
-            } else {
-                val wasActive = _workoutNowState.value.isTimerActive
-                val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
-                val isSilent = prefs.getBoolean("is_silent_timer", false)
-                
-                if (wasActive && wasExerciseTimer) {
-                    val timerDay = _workoutNowState.value.timerDayOfWeek ?: _workoutNowState.value.selectedDayOfWeek
-                    val dayExercises = allRoutineExercises.value
-                        .filter { it.dayOfWeek == timerDay }
-                        .sortedBy { it.orderIndex }
-                    if (dayExercises.isNotEmpty()) {
-                        advanceAfterTimer(dayExercises)
-                    } else {
-                        stopTimer()
-                    }
-                } else {
-                    stopTimer()
-                }
-                
-                if (wasActive && !isSilent) timerManager.showTimerNotification()
+        if (endTime > currentTimeMillis()) {
+            _workoutNowState.update {
+                it.copy(restTimerSeconds = remainingRestSeconds(endTime), isTimerActive = true)
             }
-        } else if (_workoutNowState.value.isTimerActive) {
+        } else if (endTime <= 0L && _workoutNowState.value.isTimerActive) {
+            // Cleared without a report of ours: the rest ended while the app was away, so the
+            // session is only left with a stale countdown. Drop that, but leave the
+            // timed-exercise flags alone — the report may still be on its way, and it is what
+            // decides whether the session moves on.
             _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
+        }
+        // An expired timer that is still stored is deliberately left alone: the service
+        // finishes it on its next tick and reports back through AppEventBus.
+    }
+
+    /**
+     * Winds up a finished rest.
+     *
+     * The report can arrive twice, once from the service and once from the alarm backing
+     * it up, so a timer that has meanwhile been replaced by the next rest must not be
+     * cancelled by the late one — hence the look at what is stored now.
+     */
+    private fun onRestTimerFinished() {
+        if (prefs.getLong("timer_end_time_millis", 0L) > currentTimeMillis()) return
+
+        val state = _workoutNowState.value
+        if (state.isExerciseTimerActive) {
+            // A timed exercise: move the session on. advanceAfterTimer clears the finished
+            // timer and starts the next rest itself.
+            val timerDay = state.timerDayOfWeek ?: state.selectedDayOfWeek
+            val dayExercises = allRoutineExercises.value
+                .filter { it.dayOfWeek == timerDay }
+                .sortedBy { it.orderIndex }
+            if (dayExercises.isNotEmpty()) {
+                advanceAfterTimer(dayExercises)
+            } else {
+                stopTimer()
+            }
+        } else if (state.isTimerActive) {
+            stopTimer()
         }
     }
 
+    /**
+     * Called when the app leaves the foreground. The timer lives on in the background
+     * service, so all this has to do is make sure that service is armed before the UI goes.
+     */
     fun checkTimerOnAppClose() {
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
-        if (endTime > 0L) {
-            val now = currentTimeMillis()
-            if (endTime <= now) {
-                prefs.putLong("timer_end_time_millis", 0L)
-                _workoutNowState.value = _workoutNowState.value.copy(
-                    restTimerSeconds = 0,
-                    isTimerActive = false
-                )
-                timerManager.showTimerNotification()
-            } else {
-                timerManager.scheduleTimer(endTime, remainingRestSeconds(endTime))
-            }
+        if (endTime > currentTimeMillis()) {
+            timerManager.scheduleTimer(endTime, remainingRestSeconds(endTime))
         }
     }
 

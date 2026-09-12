@@ -5,11 +5,24 @@ import android.content.Context
 import android.content.Intent
 import androidx.core.content.edit
 
+/**
+ * The two ways out of a rest that are driven from outside the UI:
+ *
+ *  - the "Skip" action on the countdown notification, and
+ *  - the fallback alarm, which reports the end of a rest when [RestTimerService] could not
+ *    run — a refused background start, a reboot, or the OS reclaiming the process.
+ *
+ * The service normally gets there first and clears the stored end time, which is what the
+ * mismatch check below is about: it keeps the two from reporting the same rest twice.
+ */
 class RestTimerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
+        val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+
         if (intent.action == ACTION_SKIP_TIMER) {
             // User pressed "Skip" on the countdown notification: stop the timer quietly.
-            val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
+            // The session has to be told, or it would sit on a countdown that no longer
+            // exists anywhere else.
             prefs.edit {
                 putLong("timer_end_time_millis", 0L)
                 putBoolean("is_exercise_timer", false)
@@ -18,18 +31,18 @@ class RestTimerReceiver : BroadcastReceiver() {
             }
             try {
                 getTimerManager().cancelTimer()
-            } catch (e: Exception) {}
+            } catch (e: Exception) {
+                // Already gone.
+            }
+            AppEventBus.onRestTimerSkipped()
             return
         }
 
         val expectedEndTime = intent.getLongExtra("TIMER_END_TIME", 0L)
-        
-        // Clear saved timer state in SharedPreferences
-        val prefs = context.getSharedPreferences("app_settings", Context.MODE_PRIVATE)
         val actualEndTime = prefs.getLong("timer_end_time_millis", 0L)
 
         // If the expected end time from the intent doesn't match what's currently in prefs,
-        // it means this timer was replaced by a newer one or cancelled.
+        // it means this timer was replaced by a newer one, cancelled, or already reported.
         if (expectedEndTime != 0L && expectedEndTime != actualEndTime) {
             return
         }
@@ -43,4 +56,4 @@ class RestTimerReceiver : BroadcastReceiver() {
     companion object {
         const val ACTION_SKIP_TIMER = "com.grafizum.repio.action.SKIP_TIMER"
     }
-}
+}

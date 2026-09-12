@@ -29,6 +29,7 @@ import androidx.compose.foundation.verticalScroll
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.Chat
 import androidx.compose.material.icons.automirrored.filled.Send
+import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Email
@@ -116,6 +117,7 @@ fun SettingsScreen(
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
+    val motivationalNudges by viewModel.motivationalNudges.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
@@ -517,6 +519,63 @@ fun SettingsScreen(
                             ),
                             modifier = Modifier.semantics { testTag = "keep_screen_on_switch" }
                         )
+                    }
+                }
+            }
+
+            // MOTIVATIONAL NUDGES TOGGLE
+            // Hidden while the feature is dormant (waiting on quote permission), so
+            // users never see a switch that does nothing. It reappears by itself
+            // when MotivationNudger.NUDGES_ENABLED is set back to true.
+            if (com.grafizum.repio.util.MotivationNudger.NUDGES_ENABLED) {
+                Card(
+                    shape = RoundedCornerShape(16.dp),
+                    colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Column(modifier = Modifier.padding(16.dp)) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.weight(0.75f)
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Bolt,
+                                    contentDescription = null,
+                                    tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    modifier = Modifier.size(22.dp)
+                                )
+                                Spacer(modifier = Modifier.width(10.dp))
+                                Column {
+                                    Text(
+                                        text = getString("motivational_nudges"),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    Text(
+                                        text = getString("motivational_nudges_desc"),
+                                        style = MaterialTheme.typography.bodySmall,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                    )
+                                }
+                            }
+
+                            Spacer(modifier = Modifier.width(16.dp))
+
+                            Switch(
+                                checked = motivationalNudges,
+                                onCheckedChange = { viewModel.setMotivationalNudges(it) },
+                                colors = SwitchDefaults.colors(
+                                    checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                    checkedTrackColor = MaterialTheme.colorScheme.primary
+                                ),
+                                modifier = Modifier.semantics { testTag = "motivational_nudges_switch" }
+                            )
+                        }
                     }
                 }
             }

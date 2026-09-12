@@ -137,10 +137,10 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     }
 
     /**
-     * Replaces [original] with [replacements] (may be empty = restore the original),
-     * keeping the day's ordering intact. [previousNames] lists exercises inserted by an
-     * earlier replace step of the same multi-select session, so toggling works idempotently:
-     * each call removes the old set and inserts the new one at the original's slot.
+     * Swaps [original] for [replacements] (may be empty = restore the original),
+     * keeping the day's ordering intact. [previousNames] lets a caller that applies
+     * several steps in a row drop exercises it inserted earlier; it is empty for the
+     * single-shot replace used by the routine editor.
      */
     suspend fun replaceExercise(
         original: RoutineExerciseEntity,
@@ -169,6 +169,10 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         val rebuilt = kept.toMutableList().apply { addAll(anchorIndex, effective) }
         val renumbered = rebuilt.mapIndexed { index, ex -> ex.copy(orderIndex = index + 1) }
         val keptIds = kept.map { it.id }.toSet()
+        // Rows that are no longer part of the day have to be deleted explicitly:
+        // @Update only touches ids that still exist, so without this the outgoing
+        // exercise stayed in the table and the day gained an exercise every swap.
+        dayExercises.map { it.id }.filterNot { it in keptIds }.forEach { dao.deleteExerciseById(it) }
         dao.updateExercises(renumbered.filter { it.id in keptIds })
         dao.insertRoutineExercises(renumbered.filter { it.id !in keptIds })
 

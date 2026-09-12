@@ -6,7 +6,11 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
+    <!-- The rest timer runs in a foreground service so it keeps counting (and alerts) with the app closed -->
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
+    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
+    <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
     <application
         android:name="com.grafizum.repio.RepIoApplication"
@@ -28,9 +32,6 @@
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
             android:theme="@style/Theme.App.Starting">
-            <intent-filter>
-                <action android:name="android.intent.action.MAIN" />
-            </intent-filter>
         </activity>
 
         <!-- Flame / Dark Theme Entry Point -->
@@ -159,9 +160,30 @@
             </intent-filter>
         </activity>
 
+        <!-- Rest timer: counts the rest down and alerts, whether or not the app is open.
+             "specialUse" is the type for work that fits no other category; the subtype
+             below is the justification Play asks for. -->
+        <service
+            android:name=".util.RestTimerService"
+            android:exported="false"
+            android:foregroundServiceType="specialUse">
+            <property
+                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
+                android:value="workout rest timer: keeps counting and alerts when a set ends while the app is closed" />
+        </service>
+
         <receiver
             android:name=".util.RestTimerReceiver"
             android:exported="false" />
+
+        <!-- Daily motivational nudge for skipped days + re-arm after reboot -->
+        <receiver
+            android:name=".util.SkipNudgeReceiver"
+            android:exported="false">
+            <intent-filter>
+                <action android:name="android.intent.action.BOOT_COMPLETED" />
+            </intent-filter>
+        </receiver>
     </application>
 
 </manifest>

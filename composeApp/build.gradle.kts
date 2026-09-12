@@ -32,12 +32,12 @@ if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
 
 android {
     namespace = "com.grafizum.repio"
-    compileSdk = 36
+    compileSdk = 35
 
     defaultConfig {
         applicationId = "com.grafizum.repio"
         minSdk = 23
-        targetSdk = 36
+        targetSdk = 35
         versionCode = playStoreVersion
         versionName = appVersion
 
@@ -68,7 +68,7 @@ android {
             FileInputStream(envFile).use { env.load(it) }
         }
 
-        val keystorePath = (System.getenv("KEYSTORE_PATH") ?: env.getProperty("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks") as String
+        val keystorePath = System.getenv("KEYSTORE_PATH") ?: env.getProperty("KEYSTORE_PATH") ?: "${rootDir}/my-upload-key.jks"
         val relKeystoreFile = file(keystorePath)
         if (relKeystoreFile.exists()) {
             create("release") {
@@ -187,4 +187,9 @@ dependencies {
     testImplementation(libs.roborazzi)
     testImplementation(libs.roborazzi.compose)
     testImplementation(libs.roborazzi.junit.rule)
+
+    // Instrumented tests (need a connected device or emulator). The runner is named by
+    // testInstrumentationRunner above, so it has to be on the androidTest classpath too.
+    androidTestImplementation(libs.androidx.junit)
+    androidTestImplementation(libs.androidx.runner)
 }
