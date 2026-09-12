@@ -563,7 +563,7 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(getMuscleGroupColor(exercise.muscleGroup))
+                                        .background(muscleGroupColor(exercise.muscleGroup))
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(

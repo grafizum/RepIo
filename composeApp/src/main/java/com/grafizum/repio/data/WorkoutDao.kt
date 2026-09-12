@@ -13,6 +13,10 @@ interface WorkoutDao {
     @Query("SELECT * FROM routine_days")
     fun getAllRoutineDays(): Flow<List<RoutineDayEntity>>
 
+    /** One-shot read used by the background skip nudge (no Flow to collect). */
+    @Query("SELECT * FROM routine_days")
+    suspend fun getAllRoutineDaysOnce(): List<RoutineDayEntity>
+
     @Insert(onConflict = OnConflictStrategy.REPLACE)
     suspend fun insertRoutineDays(days: List<RoutineDayEntity>)
 
@@ -51,6 +55,10 @@ interface WorkoutDao {
 
     @Query("SELECT * FROM logged_sets ORDER BY timestamp DESC")
     fun getAllLoggedSets(): Flow<List<LoggedSetEntity>>
+
+    /** One-shot read used by the background skip nudge (no Flow to collect). */
+    @Query("SELECT * FROM logged_sets ORDER BY timestamp DESC")
+    suspend fun getAllLoggedSetsOnce(): List<LoggedSetEntity>
 
     @Query("DELETE FROM logged_sets WHERE timestamp >= :startTime")
     suspend fun deleteLoggedSetsSince(startTime: Long)

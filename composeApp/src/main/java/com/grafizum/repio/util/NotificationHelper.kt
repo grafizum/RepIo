@@ -1,5 +1,6 @@
 package com.grafizum.repio.util
 
+import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -21,9 +22,17 @@ object NotificationHelper {
     private const val CHANNEL_ID = "rest_timer_channel"
     private const val COUNTDOWN_CHANNEL_ID = "rest_timer_countdown_channel"
     private const val NOTIFICATION_ID = 1001
-    private const val COUNTDOWN_NOTIFICATION_ID = 1003
+
+    /**
+     * The rest timer's ongoing countdown. Public because the background timer promotes
+     * it to its foreground notification, so the same single notification follows the
+     * rest whether or not the app is open.
+     */
+    const val COUNTDOWN_NOTIFICATION_ID = 1003
     private const val UPDATE_CHANNEL_ID = "app_update_channel"
     private const val UPDATE_NOTIFICATION_ID = 1005
+    private const val MOTIVATION_CHANNEL_ID = "motivation_channel"
+    private const val MOTIVATION_NOTIFICATION_ID = 1007
 
     fun createNotificationChannel(context: Context) {
         if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
@@ -66,8 +75,8 @@ object NotificationHelper {
      * under the title (no small chronometer next to the app name) plus a "Skip" action that
      * stops the timer. No sound, no vibration — it's only an indicator.
      *
-     * The caller re-posts this from the same 1-second tick that updates the in-app timer,
-     * passing the identical [remainingSeconds] value, so both stay in lockstep.
+     * Posted by [RestTimerService] once a second, so the countdown keeps ticking from the
+     * same value the in-app timer shows even when the app is gone.
      */
     fun showRestTimerCountdown(context: Context, remainingSeconds: Int) {
         // Only show system notification if notifications are enabled
@@ -77,6 +86,20 @@ object NotificationHelper {
 
         createNotificationChannel(context)
 
+        val notificationManager =
+            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+        try {
+            notificationManager.notify(
+                COUNTDOWN_NOTIFICATION_ID,
+                restTimerCountdownNotification(context, remainingSeconds)
+            )
+        } catch (e: Exception) {
+            // Fallback gracefully
+        }
+    }
+
+    /** Builds the countdown notification, for posting and for the foreground service. */
+    fun restTimerCountdownNotification(context: Context, remainingSeconds: Int): Notification {
         val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
             flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
             putExtra("TARGET_SCREEN", "workout")
@@ -94,7 +117,7 @@ object NotificationHelper {
             PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
         )
 
-        // Skip action -> broadcast to the receiver so the ViewModel's tick loop clears the timer
+        // Skip action -> broadcast to the receiver, which clears the stored timer and stops the service
         val skipIntent = Intent(context, RestTimerReceiver::class.java).apply {
             action = RestTimerReceiver.ACTION_SKIP_TIMER
         }
@@ -121,13 +144,7 @@ object NotificationHelper {
             .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
             .addAction(0, context.getString(R.string.skip_timer), skipPendingIntent)
 
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        try {
-            notificationManager.notify(COUNTDOWN_NOTIFICATION_ID, builder.build())
-        } catch (e: Exception) {
-            // Fallback gracefully
-        }
+        return builder.build()
     }
 
     fun cancelRestTimerCountdown(context: Context) {
@@ -222,15 +239,113 @@ object NotificationHelper {
         }
     }
 
-    fun showRestTimerEndedNotification(context: Context) {
+    /**
+     * Default-importance channel for the motivational "you skipped a day" nudge.
+     * Deliberately not HIGH: it should sit quietly in the tray, not interrupt.
+     */
+    fun createMotivationNotificationChannel(context: Context) {
+        if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.O) {
+            val channel = NotificationChannel(
+                MOTIVATION_CHANNEL_ID,
+                context.getString(R.string.notification_motivation_channel_name),
+                NotificationManager.IMPORTANCE_DEFAULT
+            ).apply {
+                description = context.getString(R.string.notification_motivation_channel_desc)
+                enableVibration(false)
+                enableLights(true)
+                lightColor = Color.GREEN
+            }
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.createNotificationChannel(channel)
+        }
+    }
+
+    /**
+     * Posts the skip nudge. Only two things are shown: the short [line] and the
+     * [author] credited directly beneath it. No extra copy — the quote is the
+     * whole message. Tapping opens the workout screen.
+     */
+    fun showMotivationNotification(
+        context: Context,
+        line: String,
+        author: String
+    ) {
+        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
+            return
+        }
+
+        createMotivationNotificationChannel(context)
+
+        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("TARGET_SCREEN", "workout")
+        } ?: Intent(context, com.grafizum.repio.MainActivity::class.java).apply {
+            action = Intent.ACTION_MAIN
+            addCategory(Intent.CATEGORY_LAUNCHER)
+            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
+            putExtra("TARGET_SCREEN", "workout")
+            setPackage(context.packageName)
+        }
+        val pendingIntent = PendingIntent.getActivity(
+            context,
+            1008,
+            launchIntent,
+            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
+        )
+
+        val builder = NotificationCompat.Builder(context, MOTIVATION_CHANNEL_ID)
+            .setSmallIcon(R.drawable.ic_notification)
+            .setContentText(line)
+            // Only the quote and its credit, so the name is visible even when the
+            // line is all the user reads.
+            .setSubText(author)
+            .setStyle(
+                NotificationCompat.BigTextStyle()
+                    .bigText("$line\n— $author")
+            )
+            .setPriority(NotificationCompat.PRIORITY_DEFAULT)
+            .setCategory(NotificationCompat.CATEGORY_REMINDER)
+            .setContentIntent(pendingIntent)
+            .setAutoCancel(true)
+            .setVibrate(null)
+            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
+
+        try {
+            NotificationManagerCompat.from(context).notify(MOTIVATION_NOTIFICATION_ID, builder.build())
+        } catch (e: Exception) {
+            // Fallback gracefully
+        }
+    }
+
+    /** Clears the skip nudge (user came back, trained, or turned the setting off). */
+    fun cancelMotivationNotification(context: Context) {
+        try {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(MOTIVATION_NOTIFICATION_ID)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
+    /**
+     * Reports the end of a rest.
+     *
+     * [alert] is false for a silent timer, which ends without a sound, a vibration or a
+     * notification — the session still hears about it either way.
+     */
+    fun showRestTimerEndedNotification(context: Context, alert: Boolean = true) {
         // Remove the countdown indicator once the timer has ended
         cancelRestTimerCountdown(context)
 
         val isInForeground = AppEventBus.isAppInForeground.value
-        
+
         // Always trigger in-app event so it's ready when user returns or is inside
         AppEventBus.onRestTimerEnded()
-        
+
+        if (!alert) return
+
         if (isInForeground) {
             vibrate(context)
             return

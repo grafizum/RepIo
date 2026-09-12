@@ -9,6 +9,10 @@ object AppEventBus {
     private val _restTimerEnded = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
     val restTimerEnded = _restTimerEnded.asSharedFlow()
 
+    /** A rest the user skipped from the countdown notification: nothing to ring for. */
+    private val _restTimerSkipped = MutableSharedFlow<Unit>(extraBufferCapacity = 1)
+    val restTimerSkipped = _restTimerSkipped.asSharedFlow()
+
     private val _isAppInForeground = MutableStateFlow(false)
     val isAppInForeground = _isAppInForeground.asStateFlow()
 
@@ -17,6 +21,10 @@ object AppEventBus {
 
     fun onRestTimerEnded() {
         _restTimerEnded.tryEmit(Unit)
+    }
+
+    fun onRestTimerSkipped() {
+        _restTimerSkipped.tryEmit(Unit)
     }
 
     fun setAppForeground(foreground: Boolean) {

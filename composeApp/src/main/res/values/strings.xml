@@ -40,6 +40,10 @@
     <string name="app_settings">App Settings</string>
     <string name="keep_screen_on">Keep Screen On</string>
     <string name="force_screen_stay_active">Force screen to stay active while app is open</string>
+    <string name="motivational_nudges">Motivational Nudges</string>
+    <string name="motivational_nudges_desc">When you skip a workout day, RepIo sends an encouraging line from a real athlete to get you back. Turn off to stop these phrases.</string>
+    <string name="notification_motivation_channel_name">Motivational nudges</string>
+    <string name="notification_motivation_channel_desc">Encouraging phrases from real athletes when you skip a workout day</string>
     <string name="resting_timer_duration">Sets</string>
     <string name="auto_countdown_interval">Sets</string>
     <string name="exercise_transition_timer">Exercises</string>
@@ -130,10 +134,10 @@
     <string name="alternative_exercises">Alternative Exercises</string>
     <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
     <string name="replace_exercise">Replace Exercise</string>
-    <string name="replace_exercise_desc">Replacing %1$s. Tap one or more alternatives to swap them in — tap again to undo. Filters are pre-set to its equipment and muscle group — change them to browse the full exercise pool.</string>
+    <string name="replace_exercise_desc">Replacing %1$s. Tap an alternative and it is swapped in straight away, closing this card. Filters are pre-set to its equipment and muscle group — change them to browse the full exercise pool.</string>
     <string name="x_selected">%1$d selected</string>
     <string name="equipment">Equipment</string>
-    <string name="equipment_filter_hint">Select the equipment your premade build may use — leave empty to keep every type.</string>
+    <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
     <string name="any_muscle_group">Any</string>
     <string name="copy_day_title">Copy %1$s</string>
@@ -177,6 +181,7 @@
     <string name="set_custom_weight_title">Set Custom Weight (kg)</string>
     <string name="enter_custom_weight_text">Enter custom weight for your set:</string>
     <string name="weight_in_kg">Weight in kg</string>
+    <string name="target_weight">Weight (kg)</string>
     <string name="save_weight">Save Weight</string>
     <string name="custom">Custom</string>
     <string name="editor">Editor</string>
@@ -298,8 +303,11 @@
     <string name="welcome_title">Welcome to Your Fitness Journey!</string>
     <string name="welcome_text">Set up your workout routine name and choose a structured template or build a custom split.</string>
     <string name="select_routine_type">Select Workout Routine Type</string>
+    <string name="build_routine">Build Routine</string>
     <string name="premade_templates">Premade Build</string>
     <string name="assisted_build">Assisted Build</string>
+    <string name="assisted_build_short_desc">Auto-generated plan</string>
+    <string name="assisted_build_desc">Picks the exercises for your target muscles automatically — no template needed.</string>
     <string name="build_custom">Custom Build</string>
     <string name="choose_recommended_template">Choose a Workout Template</string>
     <string name="preview_breakdown">Preview Breakdown</string>
@@ -343,6 +351,7 @@
     <string name="biceps">Biceps</string>
     <string name="shoulders">Shoulders</string>
     <string name="chest">Chest</string>
+    <string name="pectorals">Pectorals</string>
     <string name="legs">Legs</string>
     <string name="abs">Abs</string>
     <string name="triceps">Triceps</string>
@@ -517,14 +526,8 @@
     <string name="intensity_easy_desc">Maintenance volume (6–10 sets/week). Lower neurological demand, focus on technique and consistency.</string>
     <string name="intensity_medium_desc">Optimal Growth volume (10–15 sets/week). Balanced intensity for muscle hypertrophy (MEV/MAV).</string>
     <string name="intensity_hard_desc">Max Recoverable Volume (15–20+ sets/week). High intensity pushing your recovery capacity (MRV).</string>
+    <string name="intensity_rpe_value">RPE %1$d</string>
 
-    <string name="choose_training_style">Training Style</string>
-    <string name="training_style_balanced">Balanced</string>
-    <string name="training_style_balanced_desc">Steady pace, moderate weights. The all-around default — a great place to start.</string>
-    <string name="training_style_explosive">Explosive</string>
-    <string name="training_style_explosive_desc">Fewer reps with heavier weights, lifted fast. Builds power and strength.</string>
-    <string name="training_style_slow">Slow</string>
-    <string name="training_style_slow_desc">More reps with lighter weights, moved slowly. Builds endurance and muscle tone.</string>
     <string name="tempo_label">Tempo</string>
     <string name="tempo_none">No tempo</string>
     <string name="tempo_explosive">Explosive</string>
@@ -564,7 +567,7 @@
     <!-- Workout Goals -->
     <string name="workout_goal">Workout Goal</string>
     <string name="choose_workout_goal">What is your primary training goal?</string>
-    <string name="workout_goal_desc">This influences rep ranges, set counts, and exercise prioritization.</string>
+    <string name="workout_goal_desc">Sets the rep range, the rest between sets, and which exercises get picked. Difficulty stays in charge of how many sets you do.</string>
     <string name="goal_bodybuilding">Bodybuilding / Hypertrophy</string>
     <string name="goal_strength">Strength Training / Powerlifting</string>
     <string name="goal_calisthenics">Calisthenics</string>

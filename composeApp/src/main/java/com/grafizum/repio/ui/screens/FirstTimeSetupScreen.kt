@@ -166,7 +166,9 @@ fun FirstTimeSetupScreen(
             }
         )
     }
-    var selectedTab by remember { mutableIntStateOf(0) } // 0 = Premade, 1 = Assisted, 2 = Custom
+    // The two ways to build a routine: 0 = the assisted (auto-generated) build,
+    // 1 = the manual custom build. The switch below flips between them.
+    var selectedTab by remember { mutableIntStateOf(0) }
     var selectedWorkoutGoal by remember { mutableStateOf("goal_bodybuilding") }
 
     // Assisted Build State
@@ -179,33 +181,18 @@ fun FirstTimeSetupScreen(
     ) }
     val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
     var assistedIntensity by remember { mutableStateOf("Medium") }
-    var assistedTrainingStyle by remember { mutableStateOf(WorkoutTemplates.TRAINING_STYLE_BALANCED) }
     var assistedMinSets by remember { mutableIntStateOf(0) }
     var assistedMaxSets by remember { mutableIntStateOf(0) }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
 
-    // Premade advanced filter state: equipment types the template may use (empty = all)
-    var premadeEquipment by remember { mutableStateOf(listOf<String>()) }
+    // Equipment types the build may use (empty = all)
+    var buildEquipment by remember { mutableStateOf(listOf<String>()) }
 
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
 
-    var selectedTemplate by remember { mutableStateOf(WorkoutTemplates.template5DaySplit) }
-    val templateSelectedDays = remember { mutableStateListOf<String>() }
     var selectedDayInCustom by remember { mutableStateOf("MONDAY") }
-
-    // Sync template days when template changes
-    LaunchedEffect(selectedTemplate) {
-        templateSelectedDays.clear()
-        templateSelectedDays.addAll(
-            selectedTemplate.dayTemplates
-                .filter { !it.isRestDay }
-                .map { it.dayOfWeek }
-        )
-    }
-
-    var previewTemplateModal by remember { mutableStateOf<WorkoutTemplate?>(null) }
     var showFinalSaveConfirmation by remember { mutableStateOf(false) }
     val isManualReentry by viewModel.isManualReentry.collectAsState()
 
@@ -248,6 +235,44 @@ fun FirstTimeSetupScreen(
     var copyTargetDay by remember { mutableStateOf("TUESDAY") }
     var copyReplaceExercises by remember { mutableStateOf(true) }
     val themeOption by viewModel.themeOption.collectAsState()
+
+    // Both the Save button and the final confirmation dialog go through here, so the
+    // generated build and the manual one can't drift apart.
+    //   0 = assisted: generate the program from the chosen parts and settings.
+    //   1 = custom: save the day-by-day routine built by hand.
+    fun saveSelectedBuild() {
+        viewModel.setWorkoutGoal(selectedWorkoutGoal)
+        if (selectedTab == 1) {
+            viewModel.completeFirstTimeSetup(
+                days = customDays.toList(),
+                exercises = customExercises.toList(),
+                setupType = "CUSTOM"
+            )
+            return
+        }
+        val program = WorkoutTemplates.generateAssistedProgram(
+            bodyParts = assistedBodyParts.toList(),
+            selectedDays = assistedSelectedDays.toList(),
+            intensity = assistedIntensity,
+            workoutGoal = selectedWorkoutGoal,
+            includedExercises = assistedIncludedExercises.toList(),
+            excludedExercises = assistedExcludedExercises.toList(),
+            minSets = assistedMinSets,
+            maxSets = assistedMaxSets,
+            equipment = buildEquipment
+        )
+        viewModel.completeFirstTimeSetup(
+            days = program.days,
+            exercises = program.exercises,
+            setupType = "ASSISTED",
+            bodyParts = assistedBodyParts.toList(),
+            selectedDays = assistedSelectedDays.toList(),
+            intensity = assistedIntensity,
+            minSets = assistedMinSets,
+            maxSets = assistedMaxSets,
+            equipment = buildEquipment
+        )
+    }
 
     // Add / Edit custom exercise dialog
     if (showAddCustomExerciseDialog || editingExercise != null) {
@@ -396,139 +421,32 @@ fun FirstTimeSetupScreen(
                                     modifier = Modifier.padding(horizontal = 8.dp)
                                 )
 
-                                Spacer(modifier = Modifier.height(16.dp))
-
-                                // GOAL SELECTION
-                                Column(modifier = Modifier.fillMaxWidth().padding(10.dp)) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(
-                                            imageVector = Icons.Default.Adjust,
-                                            contentDescription = null,
-                                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                            modifier = Modifier.size(14.dp)
-                                        )
-                                        Spacer(modifier = Modifier.width(4.dp))
-                                        Text(
-                                            text = getString("workout_goal"),
-                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary
-                                        )
-                                    }
-
-                                    Spacer(modifier = Modifier.height(6.dp))
-
-                                    var expanded by remember { mutableStateOf(false) }
-                                    val selectedGoalLabel = when(selectedWorkoutGoal) {
-                                        "goal_bodybuilding" -> getString("goal_bodybuilding")
-                                        "goal_strength" -> getString("goal_strength")
-                                        "goal_calisthenics" -> getString("goal_calisthenics")
-                                        "goal_functional" -> getString("goal_functional")
-                                        "goal_olympic" -> getString("goal_olympic")
-                                        "goal_powerbuilding" -> getString("goal_powerbuilding")
-                                        "goal_crossfit" -> getString("goal_crossfit")
-                                        "goal_athletic" -> getString("goal_athletic")
-                                        else -> getString("goal_bodybuilding")
-                                    }
-
-                                    ExposedDropdownMenuBox(
-                                        expanded = expanded,
-                                        onExpandedChange = { expanded = !expanded },
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        OutlinedTextField(
-                                            value = selectedGoalLabel,
-                                            onValueChange = {},
-                                            readOnly = true,
-                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-                                            colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                                                focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                                unfocusedBorderColor = if (isDeveloper) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
-                                            ),
-                                            modifier = Modifier
-                                                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                                                .fillMaxWidth(),
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                            textStyle = MaterialTheme.typography.bodyMedium.copy(color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface)
-                                        )
-
-                                        ExposedDropdownMenu(
-                                            expanded = expanded,
-                                            onDismissRequest = { expanded = false }
-                                        ) {
-                                            listOf(
-                                                "goal_bodybuilding", "goal_strength", "goal_calisthenics",
-                                                "goal_functional", "goal_olympic", "goal_powerbuilding",
-                                                "goal_crossfit", "goal_athletic"
-                                            ).forEach { goalKey ->
-                                                val label = when(goalKey) {
-                                                    "goal_bodybuilding" -> getString("goal_bodybuilding")
-                                                    "goal_strength" -> getString("goal_strength")
-                                                    "goal_calisthenics" -> getString("goal_calisthenics")
-                                                    "goal_functional" -> getString("goal_functional")
-                                                    "goal_olympic" -> getString("goal_olympic")
-                                                    "goal_powerbuilding" -> getString("goal_powerbuilding")
-                                                    "goal_crossfit" -> getString("goal_crossfit")
-                                                    "goal_athletic" -> getString("goal_athletic")
-                                                    else -> ""
-                                                }
-                                                DropdownMenuItem(
-                                                    text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
-                                                    onClick = {
-                                                        selectedWorkoutGoal = goalKey
-                                                        expanded = false
-                                                    },
-                                                    contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
-                                                )
-                                            }
-                                        }
-                                    }
-
-                                    // GOAL IMPACT SUMMARY
-                                    val goalImpactText = when(selectedWorkoutGoal) {
-                                        "goal_strength", "goal_olympic" -> getString("goal_strength_desc")
-                                        "goal_bodybuilding", "goal_powerbuilding" -> getString("goal_bodybuilding_desc")
-                                        "goal_calisthenics", "goal_crossfit" -> getString("goal_calisthenics_desc")
-                                        "goal_functional", "goal_athletic" -> getString("goal_functional_desc")
-                                        else -> ""
-                                    }
-                                    
-                                    if (goalImpactText.isNotBlank()) {
-                                        AnimatedContent(
-                                            targetState = goalImpactText,
-                                            transitionSpec = { fadeIn() togetherWith fadeOut() },
-                                            label = "GoalImpact"
-                                        ) { text ->
-                                            Text(
-                                                text = text,
-                                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-                                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                                modifier = Modifier.padding(top = 8.dp, start = 4.dp, end = 4.dp)
-                                            )
-                                        }
-                                    }
-                                }
                             }
                         }
                     }
                 }
 
                 item {
+                    // ONE two-way switch for the whole build: the left half is the
+                    // assisted (auto-generated) build, the right half is the manual
+                    // custom build. Both halves are the control — tap one, or drag
+                    // across, and the thumb slides between them.
                     Surface(
-                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f),
-                        shape = RoundedCornerShape(16.dp),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f)),
+                        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(18.dp),
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
                         BoxWithConstraints(
                             modifier = Modifier
                                 .fillMaxWidth()
-                                .padding(4.dp)
+                                .padding(3.dp)
                                 .pointerInput(selectedTab) {
                                     var totalDrag = 0f
                                     detectHorizontalDragGestures(
                                         onDragEnd = {
                                             if (totalDrag > 50) {
-                                                if (selectedTab < 2) selectedTab++
+                                                if (selectedTab < 1) selectedTab++
                                             } else if (totalDrag < -50) {
                                                 if (selectedTab > 0) selectedTab--
                                             }
@@ -540,12 +458,15 @@ fun FirstTimeSetupScreen(
                                     )
                                 }
                         ) {
-                            val tabWidth = this.maxWidth / 3
+                            val tabWidth = this.maxWidth / 2
                             val density = LocalDensity.current
                             val swipeThreshold = with(density) { 40.dp.toPx() }
 
+                            // The thumb is the "on" side of the switch. It is inset so the
+                            // track stays visible around it as it slides between halves.
+                            val thumbInset = 3.dp
                             val indicatorPosition by animateDpAsState(
-                                targetValue = tabWidth * selectedTab,
+                                targetValue = tabWidth * selectedTab + thumbInset,
                                 animationSpec = spring(
                                     dampingRatio = Spring.DampingRatioLowBouncy,
                                     stiffness = Spring.StiffnessLow
@@ -553,17 +474,18 @@ fun FirstTimeSetupScreen(
                                 label = "routineTabIndicator"
                             )
 
-                            // Sliding Indicator
                             Surface(
                                 modifier = Modifier
-                                    .width(tabWidth)
+                                    .width(tabWidth - thumbInset * 2)
                                     .height(44.dp)
                                     .graphicsLayer {
                                         translationX = with(density) { indicatorPosition.toPx() }
                                     },
-                                color = MaterialTheme.colorScheme.primary,
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                shadowElevation = if (isDeveloper) 0.dp else 1.dp,
+                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                // Radius = track radius (18dp) minus the thumbInset, so the two
+                                // curves stay concentric and the thumb never pokes past the track.
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(15.dp),
+                                shadowElevation = if (isDeveloper) 0.dp else 2.dp,
                                 border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null
                             ) {}
 
@@ -575,7 +497,7 @@ fun FirstTimeSetupScreen(
                                         detectHorizontalDragGestures(
                                             onDragEnd = {
                                                 if (totalDrag > swipeThreshold) {
-                                                    if (selectedTab < 2) selectedTab++
+                                                    if (selectedTab < 1) selectedTab++
                                                 } else if (totalDrag < -swipeThreshold) {
                                                     if (selectedTab > 0) selectedTab--
                                                 }
@@ -589,9 +511,8 @@ fun FirstTimeSetupScreen(
                                 horizontalArrangement = Arrangement.spacedBy(0.0.dp)
                             ) {
                                 val tabs = listOf(
-                                    0 to (Icons.Default.FitnessCenter to "premade_templates"),
-                                    1 to (Icons.Default.Info to "assisted_build"),
-                                    2 to (Icons.Default.Edit to "build_custom")
+                                    0 to (Icons.Default.FitnessCenter to "assisted_build"),
+                                    1 to (Icons.Default.Edit to "build_custom")
                                 )
                                 tabs.forEach { (index, info) ->
                                     val isSelected = selectedTab == index
@@ -662,124 +583,55 @@ fun FirstTimeSetupScreen(
                         Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                             when (targetTab) {
                                 0 -> {
-                                    // PREMADE CONTENT
-                                    WorkoutTemplates.allTemplates.forEach { template ->
-                                        val isSelected = selectedTemplate.id == template.id
+                                    // ASSISTED BUILD — the only generated build on offer.
+                                    // Everything it needs is here, and the options most
+                                    // people leave alone live under Advanced.
+
+                                    // 1. HOW OFTEN — the quickest choice, so it leads.
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_days"))
                                         Card(
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(18.dp),
-                                            colors = CardDefaults.cardColors(
-                                                containerColor = if (isSelected) MaterialTheme.colorScheme.primaryContainer else MaterialTheme.colorScheme.surfaceVariant,
-                                                contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.onSurface
-                                            ),
-                                            border = if (isDeveloper) BorderStroke(if (isSelected) 3.dp else 1.dp, if (isSelected) Color.Black else Color.White)
-                                                     else if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) 
-                                                     else null,
-                                            modifier = Modifier
-                                                .fillMaxWidth()
-                                                .clickable { 
-                                                    focusManager.clearFocus()
-                                                    selectedTemplate = template 
-                                                }
+                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                            modifier = Modifier.fillMaxWidth()
                                         ) {
-                                            Column(modifier = Modifier.padding(14.dp)) {
-                                                Row(
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    modifier = Modifier.fillMaxWidth()
-                                                ) {
-                                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                                        RadioButton(
-                                                            selected = isSelected,
-                                                            onClick = { selectedTemplate = template },
-                                                            colors = RadioButtonDefaults.colors(
-                                                                selectedColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                                                unselectedColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outline
-                                                            )
-                                                        )
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Column {
-                                                            Text(
-                                                                text = getString(template.nameKey),
-                                                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-                                                            )
-                                                            Text(
-                                                                text = getQuantityString(template.daysCountKey, template.daysCountArgs.first, template.daysCountArgs.first),
-                                                                style = MaterialTheme.typography.labelSmall,
-                                                                color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                                                            )
-                                                        }
+                                            Column(modifier = Modifier.padding(12.dp)) {
+                                                DaySelectionRow(
+                                                    selectedDays = assistedSelectedDays,
+                                                    onDayToggle = { day ->
+                                                        if (assistedSelectedDays.contains(day)) {
+                                                            // Always keep at least one training day.
+                                                            if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
+                                                        } else assistedSelectedDays.add(day)
                                                     }
-
-                                                    Surface(
-                                                        color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                                                        border = if (isDeveloper) BorderStroke(1.dp, if (isSelected) Color.Black else Color.White) else null
-                                                    ) {
-                                                        Text(
-                                                            text = getString(template.badgeKey),
-                                                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                            color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary,
-                                                            modifier = Modifier.padding(horizontal = 8.dp, vertical = 2.dp)
-                                                        )
-                                                    }
-                                                }
-
-                                                Text(
-                                                    text = getString(template.descriptionKey),
-                                                    style = MaterialTheme.typography.bodySmall,
-                                                    color = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                                    modifier = Modifier.padding(top = 4.dp)
-                                                )
-
-                                                Row(
-                                                    horizontalArrangement = Arrangement.SpaceBetween,
-                                                    verticalAlignment = Alignment.CenterVertically,
-                                                    modifier = Modifier.fillMaxWidth().padding(top = 8.dp)
-                                                ) {
-                                                    TextButton(
-                                                        onClick = { previewTemplateModal = template },
-                                                        contentPadding = PaddingValues(0.dp),
-                                                        colors = ButtonDefaults.textButtonColors(
-                                                            contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimaryContainer else MaterialTheme.colorScheme.primary
-                                                        )
-                                                    ) {
-                                                        Icon(Icons.Default.Info, null, modifier = Modifier.size(14.dp))
-                                                        Spacer(modifier = Modifier.width(4.dp))
-                                                        Text(getString("preview_breakdown"), style = MaterialTheme.typography.labelSmall)
-                                                    }
-                                                    if (isSelected) {
-                                                        Icon(Icons.Default.CheckCircle, null, tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary, modifier = Modifier.size(20.dp))
-                                                    }
-                                                }
-                                            }
-                                        }
-                                    }
-
-                                    Card(
-                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column(modifier = Modifier.padding(12.dp)) {
-                                            DaySelectionRow(
-                                                selectedDays = templateSelectedDays,
-                                                onDayToggle = { day ->
-                                                    if (templateSelectedDays.contains(day)) templateSelectedDays.remove(day)
-                                                    else templateSelectedDays.add(day)
-                                                }
-                                            )
-                                            if (templateSelectedDays.size != selectedTemplate.daysCountArgs.first) {
-                                                Text(
-                                                    text = "Select exactly ${selectedTemplate.daysCountArgs.first} days",
-                                                    style = MaterialTheme.typography.labelSmall,
-                                                    color = MaterialTheme.colorScheme.error,
-                                                    modifier = Modifier.padding(top = 4.dp)
                                                 )
                                             }
                                         }
                                     }
 
+                                    // 2. WHAT THE BUILD MAY USE
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("equipment"))
+                                        EquipmentFilterBlock(
+                                            selectedEquipment = buildEquipment,
+                                            onEquipmentChange = { buildEquipment = it }
+                                        )
+                                    }
+
+                                    // 3. WHAT TO TRAIN
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_body_parts"))
+                                        BodyPartsSelectionBlock(assistedBodyParts)
+                                    }
+
+                                    // 4. HOW HARD — sets the target RPE
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_intensity"))
+                                        IntensitySelectionBlock(assistedIntensity) { assistedIntensity = it }
+                                    }
+
+                                    // ADVANCED (collapsible) — fine-tuning most users leave alone
                                     Column {
                                         OnboardingStepHeader(
                                             stepNumber = null,
@@ -796,10 +648,10 @@ fun FirstTimeSetupScreen(
                                                     onMinChange = { assistedMinSets = it },
                                                     onMaxChange = { assistedMaxSets = it }
                                                 )
-                                                TrainingStyleSelectionBlock(assistedTrainingStyle) { assistedTrainingStyle = it }
-                                                PremadeEquipmentFilter(
-                                                    selectedEquipment = premadeEquipment,
-                                                    onEquipmentChange = { premadeEquipment = it }
+                                                WorkoutGoalBlock(
+                                                    selectedGoal = selectedWorkoutGoal,
+                                                    onGoalChange = { selectedWorkoutGoal = it },
+                                                    isDeveloper = isDeveloper
                                                 )
                                                 PreferenceSection(getString("include_exercises"), allAvailableExercises, assistedIncludedExercises, MaterialTheme.colorScheme.primaryContainer)
                                                 PreferenceSection(getString("exclude_exercises"), allAvailableExercises, assistedExcludedExercises, MaterialTheme.colorScheme.errorContainer)
@@ -807,93 +659,31 @@ fun FirstTimeSetupScreen(
                                         }
                                     }
 
-                                    AnimatedContent(
-                                        targetState = getMissingMuscleGroups(selectedTemplate.exercises),
-                                        transitionSpec = {
-                                            (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
-                                                .togetherWith(fadeOut(animationSpec = tween(200)))
-                                        },
-                                        label = "PremadeWarning"
-                                    ) { missing ->
-                                        MissingBodyPartsWarningCard(missingParts = missing)
-                                    }
-                                }
-                                1 -> {
-                                    // ASSISTED CONTENT
-                                    Column(verticalArrangement = Arrangement.spacedBy(24.dp)) {
-                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            OnboardingStepHeader(stepNumber = 1, title = getString("choose_body_parts"))
-                                            BodyPartsSelectionBlock(assistedBodyParts)
-                                        }
-
-                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            OnboardingStepHeader(stepNumber = 2, title = getString("choose_days"))
-                                            DaySelectionRow(
-                                                selectedDays = assistedSelectedDays,
-                                                onDayToggle = { day ->
-                                                    if (assistedSelectedDays.contains(day)) {
-                                                        if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
-                                                    } else assistedSelectedDays.add(day)
-                                                }
-                                            )
-                                        }
-
-                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            OnboardingStepHeader(stepNumber = 3, title = getString("choose_intensity"))
-                                            IntensitySelectionBlock(assistedIntensity) { assistedIntensity = it }
-                                        }
-
-                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            OnboardingStepHeader(stepNumber = 4, title = getString("choose_training_style"))
-                                            TrainingStyleSelectionBlock(assistedTrainingStyle) { assistedTrainingStyle = it }
-                                        }
-
-                                        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                            OnboardingStepHeader(
-                                                stepNumber = 5,
-                                                title = getString("additional_preferences"),
-                                                isCollapsible = true,
-                                                isExpanded = preferencesExpanded,
-                                                onToggle = { preferencesExpanded = !preferencesExpanded }
-                                            )
-                                            AnimatedVisibility(visible = preferencesExpanded) {
-                                                Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                                    SetsAllocationBlock(
-                                                        minSets = assistedMinSets,
-                                                        maxSets = assistedMaxSets,
-                                                        onMinChange = { assistedMinSets = it },
-                                                        onMaxChange = { assistedMaxSets = it }
-                                                    )
-                                                    PreferenceSection(getString("include_exercises"), allAvailableExercises, assistedIncludedExercises, MaterialTheme.colorScheme.primaryContainer)
-                                                    PreferenceSection(getString("exclude_exercises"), allAvailableExercises, assistedExcludedExercises, MaterialTheme.colorScheme.errorContainer)
-                                                }
-                                            }
-                                        }
-
-                                        val program = WorkoutTemplates.generateAssistedProgram(
+                                    // Warn about anything the chosen parts + equipment could not
+                                    // actually cover, using the same build that will be saved.
+                                    val buildMissing = getMissingMuscleGroups(
+                                        WorkoutTemplates.generateAssistedProgram(
                                             bodyParts = assistedBodyParts.toList(),
                                             selectedDays = assistedSelectedDays.toList(),
                                             intensity = assistedIntensity,
                                             workoutGoal = selectedWorkoutGoal,
                                             includedExercises = assistedIncludedExercises.toList(),
                                             excludedExercises = assistedExcludedExercises.toList(),
-                                            trainingStyle = assistedTrainingStyle
-                                        )
+                                            minSets = assistedMinSets,
+                                            maxSets = assistedMaxSets,
+                                            equipment = buildEquipment
+                                        ).exercises
+                                    )
 
-                                        val missing = getMissingMuscleGroups(program.exercises)
-                                        
-                                        AnimatedContent(
-                                            targetState = missing,
-                                            transitionSpec = {
-                                                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
-                                                    .togetherWith(fadeOut(animationSpec = tween(200)))
-                                            },
-                                            label = "AssistedWarning"
-                                        ) { m ->
-                                            MissingBodyPartsWarningCard(
-                                                missingParts = m
-                                            )
-                                        }
+                                    AnimatedContent(
+                                        targetState = buildMissing,
+                                        transitionSpec = {
+                                            (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
+                                                .togetherWith(fadeOut(animationSpec = tween(200)))
+                                        },
+                                        label = "BuildWarning"
+                                    ) { missing ->
+                                        MissingBodyPartsWarningCard(missingParts = missing)
                                     }
                                 }
                                 else -> {
@@ -1120,71 +910,13 @@ fun FirstTimeSetupScreen(
                         focusManager.clearFocus()
                         if (isManualReentry) showFinalSaveConfirmation = true 
                         else {
-                            viewModel.setWorkoutGoal(selectedWorkoutGoal)
-                            when(selectedTab) {
-                                0 -> {
-                                    val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
-                                    val mappedExercises = mapped.second.map { ex ->
-                                        var sets = ex.targetSets
-                                        if (assistedMinSets > 0) sets = kotlin.math.max(sets, assistedMinSets)
-                                        if (assistedMaxSets > 0) sets = kotlin.math.min(sets, assistedMaxSets)
-                                        ex.copy(
-                                            targetSets = sets,
-                                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets, assistedTrainingStyle),
-                                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name, assistedTrainingStyle),
-                                            tempo = WorkoutTemplates.getGoalTempo(assistedTrainingStyle)
-                                        )
-                                    }
-                                    viewModel.completeFirstTimeSetup(
-                                        days = mapped.first,
-                                        exercises = mappedExercises,
-                                        setupType = "PREMADE",
-                                        selectedDays = templateSelectedDays.toList(),
-                                        templateId = selectedTemplate.id,
-                                        minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets,
-                                        equipment = premadeEquipment,
-                                        trainingStyle = assistedTrainingStyle
-                                    )
-                                }
-                                1 -> {
-                                    val program = WorkoutTemplates.generateAssistedProgram(
-                                        bodyParts = assistedBodyParts.toList(),
-                                        selectedDays = assistedSelectedDays.toList(),
-                                        intensity = assistedIntensity,
-                                        workoutGoal = selectedWorkoutGoal,
-                                        includedExercises = assistedIncludedExercises.toList(),
-                                        excludedExercises = assistedExcludedExercises.toList(),
-                                        minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets,
-                                        trainingStyle = assistedTrainingStyle
-                                    )
-                                    viewModel.completeFirstTimeSetup(
-                                        days = program.days,
-                                        exercises = program.exercises,
-                                        setupType = "ASSISTED",
-                                        bodyParts = assistedBodyParts.toList(),
-                                        selectedDays = assistedSelectedDays.toList(),
-                                        intensity = assistedIntensity,
-                                        minSets = assistedMinSets,
-                                        maxSets = assistedMaxSets,
-                                        trainingStyle = assistedTrainingStyle
-                                    )
-                                }
-                                else -> viewModel.completeFirstTimeSetup(
-                                    days = customDays.toList(),
-                                    exercises = customExercises.toList(),
-                                    setupType = "CUSTOM"
-                                )
-                            }
+                            saveSelectedBuild()
                             onComplete()
                         }
                     },
-                    enabled = when(selectedTab) {
-                        0 -> templateSelectedDays.size == selectedTemplate.daysCountArgs.first
-                        1 -> assistedSelectedDays.isNotEmpty()
-                        else -> true
-                    },
+                    // The assisted build needs at least one training day; the custom
+                    // builder seeds its own days so it is always saveable.
+                    enabled = if (selectedTab == 0) assistedSelectedDays.isNotEmpty() else true,
                     shape = RoundedCornerShape(16.dp),
                     modifier = Modifier.weight(1f).height(50.dp)
                 ) {
@@ -1199,59 +931,7 @@ fun FirstTimeSetupScreen(
     // DIALOGS
     if (showFinalSaveConfirmation) {
         SaveConfirmationDialog(onDismiss = { showFinalSaveConfirmation = false }, onConfirm = {
-            viewModel.setWorkoutGoal(selectedWorkoutGoal)
-            when(selectedTab) {
-                0 -> {
-                    val mapped = remapTemplateToDays(selectedTemplate, templateSelectedDays.toList())
-                    val mappedExercises = mapped.second.map { ex ->
-                        var sets = ex.targetSets
-                        if (assistedMinSets > 0) sets = kotlin.math.max(sets, assistedMinSets)
-                        if (assistedMaxSets > 0) sets = kotlin.math.min(sets, assistedMaxSets)
-                        ex.copy(
-                            targetSets = sets,
-                            targetReps = WorkoutTemplates.getGoalReps(ex.name, selectedWorkoutGoal, sets),
-                            restSeconds = WorkoutTemplates.getGoalRestSeconds(selectedWorkoutGoal, ex.name)
-                        )
-                    }
-                    viewModel.completeFirstTimeSetup(
-                        days = mapped.first,
-                        exercises = mappedExercises,
-                        setupType = "PREMADE",
-                        selectedDays = templateSelectedDays.toList(),
-                        templateId = selectedTemplate.id,
-                        minSets = assistedMinSets,
-                        maxSets = assistedMaxSets,
-                        equipment = premadeEquipment
-                    )
-                }
-                1 -> {
-                    val program = WorkoutTemplates.generateAssistedProgram(
-                        bodyParts = assistedBodyParts.toList(),
-                        selectedDays = assistedSelectedDays.toList(),
-                        intensity = assistedIntensity,
-                        workoutGoal = selectedWorkoutGoal,
-                        includedExercises = assistedIncludedExercises.toList(),
-                        excludedExercises = assistedExcludedExercises.toList(),
-                        minSets = assistedMinSets,
-                        maxSets = assistedMaxSets
-                    )
-                    viewModel.completeFirstTimeSetup(
-                        days = program.days,
-                        exercises = program.exercises,
-                        setupType = "ASSISTED",
-                        bodyParts = assistedBodyParts.toList(),
-                        selectedDays = assistedSelectedDays.toList(),
-                        intensity = assistedIntensity,
-                        minSets = assistedMinSets,
-                        maxSets = assistedMaxSets
-                    )
-                }
-                else -> viewModel.completeFirstTimeSetup(
-                    days = customDays.toList(),
-                    exercises = customExercises.toList(),
-                    setupType = "CUSTOM"
-                )
-            }
+            saveSelectedBuild()
             onComplete()
             showFinalSaveConfirmation = false
         })
@@ -1479,43 +1159,128 @@ fun FirstTimeSetupScreen(
         ReplaceExerciseDialog(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
-            onSelectionChange = { previous, current ->
-                // Live apply: drop the original (if still present) plus whatever set was
-                // previously applied, then insert the newly toggled set at the same slot.
-                val prevNames = previous.map { it.first }
+            onReplace = { name, muscleGroup ->
+                // Drop the original and put the pick in its slot, keeping any demo
+                // link already recorded for that exercise.
+                val knownUrl = customExercises
+                    .firstOrNull { it.name == name && it.videoUrl.isNotBlank() }
+                    ?.videoUrl ?: ""
                 customExercises.removeAll {
-                    it.dayOfWeek == exercise.dayOfWeek && (it.name == exercise.name || it.name in prevNames)
+                    it.dayOfWeek == exercise.dayOfWeek && it.name == exercise.name
                 }
-                if (current.isEmpty()) {
-                    // Nothing selected anymore -> restore the original exercise.
-                    customExercises.add(anchorIndex, exercise)
-                } else {
-                    val knownUrl = customExercises
-                        .firstOrNull { current.any { sel -> sel.first == it.name } && it.videoUrl.isNotBlank() }
-                        ?.videoUrl ?: ""
-                    val replacements = current.map { (name, muscleGroup) ->
-                        exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = knownUrl)
-                    }
-                    customExercises.addAll(anchorIndex, replacements)
-                }
+                customExercises.add(
+                    anchorIndex,
+                    exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = knownUrl)
+                )
             }
         )
     }
 
-    previewTemplateModal?.let { template ->
-        TemplatePreviewDialog(
-            template = template,
-            goal = selectedWorkoutGoal,
-            minSets = assistedMinSets,
-            maxSets = assistedMaxSets,
-            onDismiss = { previewTemplateModal = null }
-        )
+}
+
+/**
+ * The primary training goal. It is NOT a duplicate of difficulty or training
+ * style: difficulty sets the target RPE, style sets the tempo, while the goal
+ * drives the rep ranges (1–5 for strength vs 12–20 for conditioning), the rest
+ * times and the set counts. Kept out of the main flow but still selectable —
+ * without it every routine would silently be built as bodybuilding.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+private fun WorkoutGoalBlock(
+    selectedGoal: String,
+    onGoalChange: (String) -> Unit,
+    isDeveloper: Boolean
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val goalKeys = listOf(
+        "goal_bodybuilding", "goal_strength", "goal_calisthenics",
+        "goal_functional", "goal_olympic", "goal_powerbuilding",
+        "goal_crossfit", "goal_athletic"
+    )
+    val selectedGoalLabel = when (selectedGoal) {
+        "goal_bodybuilding" -> getString("goal_bodybuilding")
+        "goal_strength" -> getString("goal_strength")
+        "goal_calisthenics" -> getString("goal_calisthenics")
+        "goal_functional" -> getString("goal_functional")
+        "goal_olympic" -> getString("goal_olympic")
+        "goal_powerbuilding" -> getString("goal_powerbuilding")
+        "goal_crossfit" -> getString("goal_crossfit")
+        "goal_athletic" -> getString("goal_athletic")
+        else -> ""
+    }
+
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+        ExposedDropdownMenuBox(
+            expanded = expanded,
+            onExpandedChange = { expanded = !expanded },
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            OutlinedTextField(
+                value = selectedGoalLabel,
+                onValueChange = {},
+                readOnly = true,
+                label = { Text(getString("workout_goal")) },
+                trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+                colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
+                    focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = if (isDeveloper) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
+                ),
+                modifier = Modifier
+                    .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+                    .fillMaxWidth(),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface)
+            )
+
+            ExposedDropdownMenu(
+                expanded = expanded,
+                onDismissRequest = { expanded = false }
+            ) {
+                goalKeys.forEach { goalKey ->
+                    val label = when (goalKey) {
+                        "goal_bodybuilding" -> getString("goal_bodybuilding")
+                        "goal_strength" -> getString("goal_strength")
+                        "goal_calisthenics" -> getString("goal_calisthenics")
+                        "goal_functional" -> getString("goal_functional")
+                        "goal_olympic" -> getString("goal_olympic")
+                        "goal_powerbuilding" -> getString("goal_powerbuilding")
+                        "goal_crossfit" -> getString("goal_crossfit")
+                        "goal_athletic" -> getString("goal_athletic")
+                        else -> ""
+                    }
+                    DropdownMenuItem(
+                        text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
+                        onClick = {
+                            onGoalChange(goalKey)
+                            expanded = false
+                        },
+                        contentPadding = ExposedDropdownMenuDefaults.ItemContentPadding
+                    )
+                }
+            }
+        }
+
+        val impact = when (selectedGoal) {
+            "goal_strength", "goal_olympic" -> getString("goal_strength_desc")
+            "goal_bodybuilding", "goal_powerbuilding" -> getString("goal_bodybuilding_desc")
+            "goal_calisthenics", "goal_crossfit" -> getString("goal_calisthenics_desc")
+            "goal_functional", "goal_athletic" -> getString("goal_functional_desc")
+            else -> ""
+        }
+        if (impact.isNotBlank()) {
+            Text(
+                text = impact,
+                style = MaterialTheme.typography.labelSmall,
+                color = MaterialTheme.colorScheme.primary
+            )
+        }
     }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun PremadeEquipmentFilter(
+private fun EquipmentFilterBlock(
     selectedEquipment: List<String>,
     onEquipmentChange: (List<String>) -> Unit
 ) {
@@ -1526,46 +1291,70 @@ private fun PremadeEquipmentFilter(
         WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
     )
 
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.FitnessCenter,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(14.dp)
-            )
-            Spacer(modifier = Modifier.width(4.dp))
-            Text(
-                text = getString("equipment"),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.primary
-            )
-        }
-        FlowRow(
-            horizontalArrangement = Arrangement.spacedBy(8.dp),
-            verticalArrangement = Arrangement.spacedBy(8.dp)
-        ) {
-            equipmentOptions.forEach { (key, label) ->
-                FilterChip(
-                    selected = selectedEquipment.contains(key),
-                    onClick = {
-                        onEquipmentChange(
-                            if (selectedEquipment.contains(key)) selectedEquipment - key
-                            else selectedEquipment + key
-                        )
-                    },
-                    label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-                    shape = RoundedCornerShape(10.dp)
-                )
-            }
-        }
-        Text(
-            text = getString("equipment_filter_hint"),
-            style = MaterialTheme.typography.labelSmall.copy(fontSize = 9.sp),
-            color = MaterialTheme.colorScheme.onSurfaceVariant,
-            modifier = Modifier.padding(top = 2.dp)
-        )
+    // "All" is not a fifth equipment type — see WorkoutTemplates.toggleEquipmentSelection.
+    val optionKeys = equipmentOptions.map { it.first }
+    fun toggle(key: String) {
+        onEquipmentChange(WorkoutTemplates.toggleEquipmentSelection(selectedEquipment, key, optionKeys))
     }
+
+    // The section title comes from the caller's OnboardingStepHeader.
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            EquipmentChip(
+                label = getString("equipment_all"),
+                selected = selectedEquipment.isEmpty(),
+                modifier = Modifier.weight(1f)
+            ) { toggle(WorkoutTemplates.EQUIPMENT_ALL) }
+            EquipmentChip(
+                label = equipmentOptions[0].second,
+                selected = selectedEquipment.contains(equipmentOptions[0].first),
+                modifier = Modifier.weight(1f)
+            ) { toggle(equipmentOptions[0].first) }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
+            EquipmentChip(
+                label = equipmentOptions[1].second,
+                selected = selectedEquipment.contains(equipmentOptions[1].first),
+                modifier = Modifier.weight(1f)
+            ) { toggle(equipmentOptions[1].first) }
+            EquipmentChip(
+                label = equipmentOptions[2].second,
+                selected = selectedEquipment.contains(equipmentOptions[2].first),
+                modifier = Modifier.weight(1f)
+            ) { toggle(equipmentOptions[2].first) }
+        }
+        EquipmentChip(
+            label = equipmentOptions[3].second,
+            selected = selectedEquipment.contains(equipmentOptions[3].first),
+            modifier = Modifier.fillMaxWidth()
+        ) { toggle(equipmentOptions[3].first) }
+    }
+}
+
+/** One equipment chip, stretched to its grid cell so the rows line up symmetrically. */
+@Composable
+private fun EquipmentChip(
+    label: String,
+    selected: Boolean,
+    modifier: Modifier = Modifier,
+    onClick: () -> Unit
+) {
+    FilterChip(
+        selected = selected,
+        onClick = onClick,
+        label = {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelSmall,
+                textAlign = TextAlign.Center,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.fillMaxWidth()
+            )
+        },
+        shape = RoundedCornerShape(10.dp),
+        modifier = modifier
+    )
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1888,14 +1677,21 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                             },
                         contentAlignment = Alignment.Center
                     ) {
-                        Text(
-                            text = getString("intensity_${level.lowercase()}"),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = contentColor
-                        )
+                        Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                            Text(
+                                text = getString("intensity_${level.lowercase()}"),
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = FontWeight.Bold,
+                                    fontSize = 10.sp
+                                ),
+                                color = contentColor
+                            )
+                            Text(
+                                text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(level)),
+                                style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
+                                color = contentColor.copy(alpha = 0.85f)
+                            )
+                        }
                     }
                 }
             }
@@ -1936,150 +1732,18 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = desc,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun TrainingStyleSelectionBlock(selected: String, onSelect: (String) -> Unit) {
-    val levels = WorkoutTemplates.allTrainingStyles
-    val selectedIndex = levels.indexOf(selected).coerceAtLeast(0)
-    val isDeveloper = LocalDeveloperSkin.current
-
-    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-        val density = LocalDensity.current
-        val swipeThreshold = with(density) { 40.dp.toPx() }
-
-        BoxWithConstraints(
-            modifier = Modifier
-                .fillMaxWidth()
-                .height(52.dp)
-                .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
-                .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
-                .padding(4.dp)
-                .pointerInput(selected) {
-                    var totalDrag = 0f
-                    detectHorizontalDragGestures(
-                        onDragEnd = {
-                            if (totalDrag > swipeThreshold) {
-                                if (selectedIndex < levels.size - 1) onSelect(levels[selectedIndex + 1])
-                            } else if (totalDrag < -swipeThreshold) {
-                                if (selectedIndex > 0) onSelect(levels[selectedIndex - 1])
-                            }
-                            totalDrag = 0f
-                        },
-                        onHorizontalDrag = { _, dragAmount ->
-                            totalDrag += dragAmount
-                        }
-                    )
-                }
-        ) {
-            val tabWidth = this.maxWidth / levels.size
-            val indicatorPosition by animateDpAsState(
-                targetValue = tabWidth * selectedIndex,
-                animationSpec = spring(
-                    dampingRatio = Spring.DampingRatioLowBouncy,
-                    stiffness = Spring.StiffnessLow
-                ),
-                label = "trainingStyleIndicator"
-            )
-
-            // Sliding Indicator
-            val density = LocalDensity.current
-            Surface(
-                modifier = Modifier
-                    .width(tabWidth)
-                    .fillMaxHeight()
-                    .graphicsLayer {
-                        translationX = with(density) { indicatorPosition.toPx() }
-                    },
-                color = MaterialTheme.colorScheme.primary,
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
-                shadowElevation = if (isDeveloper) 0.dp else 1.dp
-            ) {}
-
-            Row(
-                modifier = Modifier.fillMaxSize(),
-                horizontalArrangement = Arrangement.spacedBy(0.dp)
-            ) {
-                levels.forEach { level ->
-                    val isSelected = selected == level
-                    val contentColor by animateColorAsState(
-                        targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
-                                     else MaterialTheme.colorScheme.onSurfaceVariant,
-                        label = "trainingStyleContentColor"
-                    )
-
-                    Box(
-                        modifier = Modifier
-                            .weight(1f)
-                            .fillMaxHeight()
-                            .clickable(
-                                interactionSource = remember { MutableInteractionSource() },
-                                indication = null
-                            ) {
-                                onSelect(level)
-                            },
-                        contentAlignment = Alignment.Center
-                    ) {
+                    Column {
                         Text(
-                            text = getString("training_style_${level}"),
-                            style = MaterialTheme.typography.labelSmall.copy(
-                                fontWeight = FontWeight.Bold,
-                                fontSize = 10.sp
-                            ),
-                            color = contentColor,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
+                            text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(selected)),
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
+                        )
+                        Text(
+                            text = desc,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
-                }
-            }
-        }
-
-        // Short, newcomer-friendly description of the chosen style
-        val description = getString("training_style_${selected}_desc")
-
-        AnimatedContent(
-            targetState = description,
-            transitionSpec = {
-                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
-                    .togetherWith(fadeOut(animationSpec = tween(200)))
-            },
-            label = "trainingStyleDesc"
-        ) { desc ->
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(
-                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
-                ),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Row(
-                    modifier = Modifier.padding(16.dp),
-                    verticalAlignment = Alignment.CenterVertically
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Info,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(20.dp)
-                    )
-                    Spacer(modifier = Modifier.width(12.dp))
-                    Text(
-                        text = desc,
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
                 }
             }
         }
@@ -2126,104 +1790,6 @@ private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit)
                 focusManager.clearFocus()
                 onDismiss()
             }) { Text(getString("cancel")) }
-        }
-    )
-}
-
-@Composable
-private fun TemplatePreviewDialog(
-    template: WorkoutTemplate,
-    goal: String,
-    minSets: Int,
-    maxSets: Int,
-    onDismiss: () -> Unit
-) {
-    val focusManager = LocalFocusManager.current
-    AlertDialog(
-        onDismissRequest = onDismiss,
-        title = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
-                Text(getString(template.nameKey))
-            }
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
-                Text(
-                    text = "Goal Adapted: ${goal.replace("goal_", "").replace("_", " ").replaceFirstChar { it.uppercase() }}",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.primary
-                )
-                
-                LazyColumn(modifier = Modifier.heightIn(max = 400.dp)) {
-                    val logicalDays = template.dayTemplates.filter { !it.isRestDay }
-                    logicalDays.forEach { day ->
-                        item {
-                            Text(
-                                text = getEnglishTitleFromKey(day.titleKey),
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                modifier = Modifier.padding(vertical = 8.dp)
-                            )
-                        }
-                        
-                        val dayExercises = template.exercises.filter { it.dayOfWeek == day.dayOfWeek }
-                        items(dayExercises) { ex ->
-                            var sets = ex.targetSets
-                            if (minSets > 0) sets = kotlin.math.max(sets, minSets)
-                            if (maxSets > 0) sets = kotlin.math.min(sets, maxSets)
-                            val reps = WorkoutTemplates.getGoalReps(ex.name, goal, sets)
-                            val rest = WorkoutTemplates.getGoalRestSeconds(goal, ex.name)
-                            
-                            Card(
-                                modifier = Modifier.fillMaxWidth().padding(vertical = 4.dp).clickable { focusManager.clearFocus() },
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f))
-                            ) {
-                                Row(modifier = Modifier.padding(8.dp), verticalAlignment = Alignment.CenterVertically) {
-                                    Column(modifier = Modifier.weight(1f)) {
-                                        Text(translateExerciseName(ex.name), style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold))
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = if (reps.contains("sec")) "${sets}x $reps | ${rest}s Rest" else "${sets}x $reps reps | ${rest}s Rest",
-                                                style = MaterialTheme.typography.labelSmall,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            if (ex.targetIntensity.isNotBlank()) {
-                                                val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(ex.targetIntensity)
-                                                val displayIntensity = if (rpeExpl.isNotBlank()) "${ex.targetIntensity} ($rpeExpl)" else ex.targetIntensity
-                                                Text(
-                                                    text = " • $displayIntensity",
-                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                        }
-                    }
-                }
-            }
-        },
-        confirmButton = {
-            Button(onClick = {
-                focusManager.clearFocus()
-                onDismiss()
-            }) { Text(getString("close")) }
         }
     )
 }
@@ -2348,7 +1914,6 @@ fun AddExerciseDialog(
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
-    var tempoValue by remember { mutableStateOf(exercise?.tempo ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     
@@ -2621,49 +2186,8 @@ fun AddExerciseDialog(
                 }
 
 
-                var expandedTempo by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expandedTempo,
-                    onExpandedChange = {
-                        focusManager.clearFocus()
-                        expandedTempo = !expandedTempo
-                    }
-                ) {
-                    val tempoLabel = when(tempoValue) {
-                        "explosive" -> getString("tempo_explosive")
-                        "slow" -> getString("tempo_slow")
-                        else -> getString("tempo_none")
-                    }
-                    OutlinedTextField(
-                        value = tempoLabel,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(getString("tempo_label")) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTempo) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTempo,
-                        onDismissRequest = { expandedTempo = false }
-                    ) {
-                        listOf("", "explosive", "slow").forEach { t ->
-                            val label = when(t) {
-                                "explosive" -> getString("tempo_explosive")
-                                "slow" -> getString("tempo_slow")
-                                else -> getString("tempo_none")
-                            }
-                            DropdownMenuItem(
-                                text = { Text(label, style = MaterialTheme.typography.bodySmall) },
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    tempoValue = t
-                                    expandedTempo = false
-                                }
-                            )
-                        }
-                    }
-                }
-
+                // Tempo is not a manual choice — it is never touched here, so an
+                // existing value on the exercise is kept as-is.
                 OutlinedTextField(
                     value = videoUrl,
                     onValueChange = { videoUrl = it },
@@ -2695,7 +2219,8 @@ fun AddExerciseDialog(
                         restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
                         videoUrl = videoUrl, 
                         orderIndex = exercise?.orderIndex ?: 99,
-                        tempo = tempoValue
+                        // Kept from the generated build; tempo is not typed in by hand.
+                        tempo = exercise?.tempo ?: ""
                     ))
                 },
                 enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
