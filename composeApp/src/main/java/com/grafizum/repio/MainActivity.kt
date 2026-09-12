@@ -211,7 +211,12 @@ open class MainActivity : AppCompatActivity() {
                 val observer = LifecycleEventObserver { _, event ->
                     when (event) {
                         Lifecycle.Event.ON_START -> com.grafizum.repio.util.AppEventBus.setAppForeground(true)
-                        Lifecycle.Event.ON_STOP -> com.grafizum.repio.util.AppEventBus.setAppForeground(false)
+                        Lifecycle.Event.ON_STOP -> {
+                            com.grafizum.repio.util.AppEventBus.setAppForeground(false)
+                            // Timestamp the last use so the background check can tell
+                            // how many days the app has been sitting idle.
+                            com.grafizum.repio.util.MotivationNudger.recordAppUsage(context)
+                        }
                         else -> {}
                     }
                 }
@@ -272,6 +277,14 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val motivationalNudges by viewModel.motivationalNudges.collectAsState()
+
+    // The skip nudge is delivered by a daily background alarm (only while the app
+    // is closed and has been unused for days). Opening the app records the visit,
+    // clears any waiting nudge and re-arms/removes the alarm with the setting.
+    LaunchedEffect(motivationalNudges) {
+        com.grafizum.repio.util.MotivationNudger.onAppOpened(context)
+    }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var showInAppRestNotification by remember { mutableStateOf(false) }
 
@@ -581,7 +594,9 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             when (event) {
                 Lifecycle.Event.ON_START, Lifecycle.Event.ON_RESUME -> {
                     viewModel.tickTimer()
-                    viewModel.resyncTimerCountdownNotification()
+                    // Keep the background timer armed: it is what counts the rest down and
+                    // alerts when the app is closed.
+                    viewModel.ensureRestTimerRunning()
                     viewModel.refreshTodaySelection()
                 }
                 Lifecycle.Event.ON_STOP -> {

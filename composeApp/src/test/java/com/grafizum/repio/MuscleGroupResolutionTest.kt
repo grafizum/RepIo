@@ -54,8 +54,8 @@ class MuscleGroupResolutionTest {
     fun poolWinsWhenTheStoredGroupDisagrees() {
         // Dumbbell Flyes are a chest exercise in the pool, even though the old
         // default routine stored them under "Shoulders".
-        assertEquals("Chest", resolvePreciseMuscleGroup("Dumbbell Flyes", "Shoulders"))
-        assertEquals("Chest", resolvePreciseMuscleGroup("Dumbbell Floor Presses", "Chest"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Dumbbell Flyes", "Shoulders"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Dumbbell Floor Presses", "Chest"))
     }
 
     @Test
@@ -63,7 +63,7 @@ class MuscleGroupResolutionTest {
         assertEquals("Biceps", resolvePreciseMuscleGroup("Dumbbell Curls", "Biceps"))
         assertEquals("Triceps", resolvePreciseMuscleGroup("Dips", "Triceps"))
         assertEquals("Quadriceps", resolvePreciseMuscleGroup("Barbell Squats", "Quadriceps"))
-        assertEquals("Chest", resolvePreciseMuscleGroup("Push-ups", "Chest"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Push-ups", "Chest"))
     }
 
     @Test

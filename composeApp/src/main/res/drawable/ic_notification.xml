@@ -1,17 +1,41 @@
 <?xml version="1.0" encoding="utf-8"?>
+<!--
+  Notification small icon — the same RepIo mark as the launcher icon.
+
+  Geometry is copied 1:1 from ic_launcher_fg_* (which draws the logo on the
+  108dp adaptive-icon canvas at x 34..73, y 33..74.5). The group below maps
+  that 108-space onto this 24dp canvas so the mark keeps the launcher icon's
+  exact proportions, internal spacing and centring:
+
+      scale 13 / 39 = 1/3   (launcher logo is 39dp wide -> 13dp = 54% of the
+                             24dp box, the same share it takes of the launcher
+                             icon's 72dp visible viewport)
+
+  Keep the path data in sync with ic_launcher_monochrome.xml — that file holds
+  the identical artwork at 108dp for the themed launcher icon.
+-->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
     <group
-        android:scaleX="0.70"
-        android:scaleY="0.70"
-        android:translateY="-1.75"
-        android:pivotX="12"
-        android:pivotY="12">
+        android:scaleX="0.33333"
+        android:scaleY="0.33333"
+        android:translateX="-5.83333"
+        android:translateY="-5.91667">
+
+        <!-- Dumbbell: two plates (tall sleeve + wider collar) joined by the bar. -->
         <path
             android:fillColor="#FFFFFFFF"
-            android:pathData="M3,9h2v6h-2z M6,7h2v10h-2z M8,11h8v2h-8z M16,7h2v10h-2z M19,9h2v6h-2z M4,20h3l2,-3l2,5l2,-4h7" />
+            android:pathData="M38.25,33 h7.5 v22.5 h-7.5 z M34,37 h4.25 v14 h-4.25 z M34,42.25 h39 v3.75 h-39 z M61,33 h7.75 v22.5 h-7.75 z M68.75,37 h4.25 v14 h-4.25 z" />
+
+        <!-- Heartbeat: flat line, spike up, spike down past the line, flat line. -->
+        <path
+            android:pathData="M34.7,67.1 L43.75,67.1 L46,62.2 L50,73.8 L54,67.1 L72.3,67.1"
+            android:strokeColor="#FFFFFFFF"
+            android:strokeWidth="1.4"
+            android:strokeLineCap="round"
+            android:strokeLineJoin="round" />
     </group>
 </vector>

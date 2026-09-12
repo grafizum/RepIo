@@ -40,6 +40,10 @@
     <string name="app_settings">App-Einstellungen</string>
     <string name="keep_screen_on">Bildschirm anlassen</string>
     <string name="force_screen_stay_active">Bildschirm aktiv lassen, während die App offen ist</string>
+    <string name="motivational_nudges">Motivations-Impulse</string>
+    <string name="motivational_nudges_desc">Wenn du einen Trainingstag auslässt, schickt RepIo einen motivierenden Satz eines echten Athleten, um dich zurückzubringen. Ausschalten, um diese Sprüche zu stoppen.</string>
+    <string name="notification_motivation_channel_name">Motivations-Impulse</string>
+    <string name="notification_motivation_channel_desc">Motivierende Sprüche echter Athleten, wenn du einen Trainingstag auslässt</string>
     <string name="resting_timer_duration">Sätze</string>
     <string name="auto_countdown_interval">Sätze</string>
     <string name="exercise_transition_timer">Übungen</string>
@@ -130,10 +134,10 @@
     <string name="alternative_exercises">Alternative Übungen</string>
     <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
     <string name="replace_exercise">Übung ersetzen</string>
-    <string name="replace_exercise_desc">Ersetze %1$s. Tippe auf eine oder mehrere Alternativen, um sie zu übernehmen — erneut tippen macht es rückgängig. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
+    <string name="replace_exercise_desc">Ersetze %1$s. Tippe eine Alternative an, und sie wird sofort übernommen und diese Karte schließt sich. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
     <string name="x_selected">%1$d ausgewählt</string>
     <string name="equipment">Geräte</string>
-    <string name="equipment_filter_hint">Wähle die Geräte, die dein vorgefertigter Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
+    <string name="equipment_filter_hint">Wähle die Geräte, die dein Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
     <string name="equipment_all">Alle</string>
     <string name="any_muscle_group">Alle</string>
     <string name="copy_day_title">%1$s kopieren</string>
@@ -177,6 +181,7 @@
     <string name="set_custom_weight_title">Gewicht festlegen (kg)</string>
     <string name="enter_custom_weight_text">Gib das Gewicht für deinen Satz ein:</string>
     <string name="weight_in_kg">Gewicht in kg</string>
+    <string name="target_weight">Gewicht (kg)</string>
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Eigene</string>
     <string name="editor">Editor</string>
@@ -298,8 +303,11 @@
     <string name="welcome_title">Willkommen zu deiner Fitness-Reise!</string>
     <string name="welcome_text">Richte deinen Trainingsplan ein. Wähle eine strukturierte Vorlage oder erstelle einen eigenen Split.</string>
     <string name="select_routine_type">Wähle Trainingsplan-Typ</string>
+    <string name="build_routine">Plan erstellen</string>
     <string name="premade_templates">Vorlage nutzen</string>
     <string name="assisted_build">Geführter Aufbau</string>
+    <string name="assisted_build_short_desc">Automatischer Plan</string>
+    <string name="assisted_build_desc">Wählt die Übungen für deine Zielmuskeln automatisch — ohne Vorlage.</string>
     <string name="build_custom">Eigener Aufbau</string>
     <string name="choose_recommended_template">Wähle eine Vorlage</string>
     <string name="preview_breakdown">Vorschau</string>
@@ -341,6 +349,7 @@
     <string name="biceps">Bizeps</string>
     <string name="shoulders">Schultern</string>
     <string name="chest">Brust</string>
+    <string name="pectorals">Brustmuskeln</string>
     <string name="legs">Beine</string>
     <string name="abs">Bauch</string>
     <string name="triceps">Trizeps</string>
@@ -517,14 +526,8 @@
     <string name="intensity_easy_desc">Erhaltungsvolumen (6–10 Sätze/Woche). Fokus auf Technik und Konstanz.</string>
     <string name="intensity_medium_desc">Optimales Wachstum (10–15 Sätze/Woche). Ausgewogene Intensität für Hypertrophie (MEV/MAV).</string>
     <string name="intensity_hard_desc">Max. regenerierbares Volumen (15–20+ Sätze/Woche). Hohe Intensität an der Belastungsgrenze (MRV).</string>
+    <string name="intensity_rpe_value">RPE %1$d</string>
 
-    <string name="choose_training_style">Trainingsstil</string>
-    <string name="training_style_balanced">Ausgewogen</string>
-    <string name="training_style_balanced_desc">Gleichmäßiges Tempo, mittlere Gewichte. Der Allround-Standard — ideal für den Start.</string>
-    <string name="training_style_explosive">Explosiv</string>
-    <string name="training_style_explosive_desc">Weniger Wiederholungen mit schwereren Gewichten, schnell ausgeführt. Baut Kraft und Power auf.</string>
-    <string name="training_style_slow">Langsam</string>
-    <string name="training_style_slow_desc">Mehr Wiederholungen mit leichteren Gewichten, langsam ausgeführt. Baut Ausdauer und Muskeltonus auf.</string>
     <string name="tempo_label">Tempo</string>
     <string name="tempo_none">Kein Tempo</string>
     <string name="tempo_explosive">Explosiv</string>
@@ -564,7 +567,7 @@
     <!-- Workout Goals -->
     <string name="workout_goal">Trainingsziel</string>
     <string name="choose_workout_goal">Was ist dein primäres Trainingsziel?</string>
-    <string name="workout_goal_desc">Dies beeinflusst Wdh.-Bereiche, Satzzahlen und Übungsauswahl.</string>
+    <string name="workout_goal_desc">Legt Wiederholungsbereich, Pausenzeit und Übungsauswahl fest. Die Schwierigkeit bestimmt weiterhin allein die Satzzahl.</string>
     <string name="goal_bodybuilding">Bodybuilding / Hypertrophie</string>
     <string name="goal_strength">Krafttraining / Powerlifting</string>
     <string name="goal_calisthenics">Calisthenics</string>

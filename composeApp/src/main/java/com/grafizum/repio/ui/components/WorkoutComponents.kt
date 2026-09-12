@@ -4,6 +4,7 @@ import com.grafizum.repio.util.openUrl
 import androidx.compose.animation.*
 import androidx.compose.animation.core.tween
 import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.animateFloatAsState
 import androidx.compose.animation.core.Spring
 import androidx.compose.animation.core.animateDpAsState
 import androidx.compose.animation.core.spring
@@ -36,6 +37,7 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.alpha
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.geometry.CornerRadius
 import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
@@ -45,6 +47,8 @@ import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
@@ -77,8 +81,10 @@ import com.grafizum.repio.util.getString
 import com.grafizum.repio.util.getQuantityString
 import com.grafizum.repio.util.rememberCurrentLocale
 import kotlinx.coroutines.delay
+import kotlinx.coroutines.launch
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.LoggedSetEntity
+import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.WorkoutTemplates
 import java.util.Calendar
 import kotlin.math.roundToInt
@@ -95,27 +101,43 @@ import androidx.compose.ui.window.DialogProperties
 // Color mappings per muscle group
 fun getMuscleGroupColor(muscleGroup: String): Color {
     return when (muscleGroup.lowercase().trim()) {
-        "back", "lats", "upper back", "traps", "spinal erectors" -> Color(0xFF3B82F6) // Blue
-        "chest" -> Color(0xFFEF4444) // Red
-        "legs", "quadriceps", "hamstrings", "glutes", "calves" -> Color(0xFF10B981) // Emerald
-        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFEC4899) // Pink
+        "chest", "pectorals" -> Color(0xFFEF4444) // Red
+        "abs", "abdominals" -> Color(0xFFF59E0B) // Amber
+        "core", "obliques" -> Color(0xFFEAB308) // Yellow
+        "legs", "quadriceps", "hamstrings", "glutes", "calves",
+        "hip adductors", "hip abductors", "adductors", "abductors" -> Color(0xFF10B981) // Emerald
+        "back", "lats", "upper back", "traps", "upper traps", "spinal erectors", "erectors" -> Color(0xFF3B82F6) // Blue
         "biceps" -> Color(0xFF8B5CF6) // Purple
         "triceps" -> Color(0xFF06B6D4) // Cyan
         "arms" -> Color(0xFF6366F1) // Indigo
-        "abs" -> Color(0xFFF59E0B) // Amber
-        "core", "obliques" -> Color(0xFFD946EF) // Fuchsia
         "forearms" -> Color(0xFFF97316) // Orange
+        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFEC4899) // Pink
         else -> Color(0xFF64748B) // Grey
     }
 }
+
+/**
+ * [getMuscleGroupColor] tuned for the surface it is about to be drawn on. A mid-tone
+ * hue that reads well on the dark themes is too washed out to serve as text or as a
+ * small chip on the light ones (yellow most of all), so on a light surface it is
+ * deepened one step. The hue — and therefore which body part it means — never
+ * changes, only the depth.
+ */
+@Composable
+fun muscleGroupColor(muscleGroup: String): Color {
+    val base = getMuscleGroupColor(muscleGroup)
+    return if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) deepenForLightSurface(base) else base
+}
+
+/** One step deeper, for legibility on a light background. */
+private fun deepenForLightSurface(color: Color): Color = lerp(color, Color.Black, 0.3f)
 
 /**
  * Refines a stored muscle group into the most precise well-known group for an
  * exercise when possible, using the built-in pool as the authoritative real
  * data for what the exercise trains. Exercises stored under a broad category
  * ("Legs", "Shoulders", "Back"…) resolve to their specific subcategory
- * (Quadriceps, Front Deltoids, Lats…), preferring the precise muscle that
- * belongs to the same overall body part as the stored group. Never guesses:
+ * (Quadriceps, Front Deltoids, Lats…, Pectorals for the chest). Never guesses:
  * custom/unknown exercises keep their stored group.
  */
 fun resolvePreciseMuscleGroup(exerciseName: String, storedGroup: String): String {
@@ -149,7 +171,7 @@ fun MuscleGroupBadge(
 ) {
     val effective = resolvePreciseMuscleGroup(exerciseName, muscleGroup)
     val topic = WorkoutTemplates.getTopicForMuscle(effective)
-    val color = getMuscleGroupColor(topic)
+    val color = muscleGroupColor(topic)
     val isDeveloper = LocalDeveloperSkin.current
     val topicLabel = translateMuscleGroup(topic)
     val preciseLabel = translateMuscleGroup(effective)
@@ -193,6 +215,7 @@ fun translateMuscleGroup(muscleGroup: String): String {
         "biceps" -> getString("biceps")
         "shoulders" -> getString("shoulders")
         "chest" -> getString("chest")
+        "pectorals" -> getString("pectorals")
         "legs" -> getString("legs")
         "abs" -> getString("abs")
         "triceps" -> getString("triceps")
@@ -1461,10 +1484,9 @@ fun MuscleGroupDonutChart(
     }
 
     // Palette: one color per broad body part from the app's usual muscle-group
-    // mapping, dimmed so the arcs and dots stay soft on the card surface.
-    // Keyed by group so the arcs and legend dots always stay in sync.
-    val scheme = MaterialTheme.colorScheme
-
+    // mapping, drawn at full strength so the arcs, dots and legend labels stay
+    // light and vibrant on the card surface. Keyed by group so the arcs and
+    // legend dots always stay in sync.
     fun entryColor(key: String): Color {
         if (isDeveloper) {
             val index = overviewItems.indexOfFirst { it.first == key }
@@ -1472,7 +1494,6 @@ fun MuscleGroupDonutChart(
             return Color(grey, grey, grey)
         }
         return getMuscleGroupColor(WorkoutTemplates.getTopicForMuscle(key))
-            .copy(alpha = 0.8f)
     }
 
     @Composable
@@ -1700,6 +1721,12 @@ fun MuscleGroupDonutChart(
  * the shared group order; rows inside each section are precise muscles with
  * their real per-group colors (same mapping the workout screens use), not
  * theme-matched shades.
+ *
+ * The rows are the chart: each precise muscle carries a bar of its own, so the
+ * breakdown reads as a bar chart without the numbers having to move out of the
+ * tree. A donut is deliberately not repeated here — the overview card already
+ * answers "how do the body parts split up", while bar length answers "which
+ * muscles carry that volume, and by how much".
  */
 @Composable
 private fun MuscleGroupDetailDialog(
@@ -1708,6 +1735,14 @@ private fun MuscleGroupDetailDialog(
     onDismiss: () -> Unit
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+
+    // Position of each muscle in the flattened list, used to draw the bars in top-to-bottom.
+    val rowRanks = remember(detailedSections) {
+        detailedSections
+            .flatMap { (_, members) -> members }
+            .mapIndexed { index, (muscleKey, _) -> muscleKey to index }
+            .toMap()
+    }
 
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1767,37 +1802,12 @@ private fun MuscleGroupDetailDialog(
                     }
                     Spacer(modifier = Modifier.height(4.dp))
                     members.forEach { (muscleKey, sets) ->
-                        val muscleColor = getMuscleGroupColor(muscleKey)
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            modifier = Modifier
-                                .fillMaxWidth()
-                                .padding(start = 14.dp, top = 2.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(muscleColor)
-                            )
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = translateMuscleGroup(muscleKey),
-                                style = MaterialTheme.typography.bodySmall.copy(
-                                    fontSize = 13.sp,
-                                    lineHeight = 16.sp,
-                                    fontWeight = FontWeight.Medium
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
-                            )
-                            Text(
-                                text = "${sets.toString()} · ${(sets.toFloat() / total.toFloat() * 100f).roundToInt()}%",
-                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
+                        MuscleVolumeRow(
+                            muscleKey = muscleKey,
+                            sets = sets,
+                            total = total,
+                            rank = rowRanks[muscleKey] ?: 0
+                        )
                     }
                     if (index < detailedSections.lastIndex) {
                         Spacer(modifier = Modifier.height(8.dp))
@@ -1811,6 +1821,112 @@ private fun MuscleGroupDetailDialog(
             }
         }
     )
+}
+
+/** Stagger between two bars drawing in, and the ceiling that keeps the cascade brief. */
+private const val MUSCLE_BAR_STAGGER_MILLIS = 22
+private const val MUSCLE_BAR_MAX_STAGGER_MILLIS = 260
+
+/** How long a single bar takes to reach its length. */
+private const val MUSCLE_BAR_GROW_MILLIS = 420
+
+private val MUSCLE_BAR_HEIGHT = 5.dp
+
+/**
+ * One muscle in the detailed breakdown: its name and share, over a bar as long as its share
+ * of [total] — the same 100% the percentage next to it is taken from, so the longest bar is
+ * the biggest share and a full track always means the whole breakdown. The bar makes the
+ * volume readable at a glance where two percentages a point apart would not, and keeps the
+ * exact sets and percentage in place next to it.
+ */
+@Composable
+private fun MuscleVolumeRow(
+    muscleKey: String,
+    sets: Int,
+    total: Int,
+    rank: Int
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    val muscleColor = getMuscleGroupColor(muscleKey)
+    val barRadius = if (isDeveloper) 0.dp else 3.dp
+    val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
+
+    // Bars cascade from the top so the shape of the breakdown arrives before the eye has to
+    // scan for it, without holding the numbers back: they are on screen from the start.
+    var grown by remember(muscleKey) { mutableStateOf(false) }
+    LaunchedEffect(muscleKey) {
+        delay((rank * MUSCLE_BAR_STAGGER_MILLIS).coerceAtMost(MUSCLE_BAR_MAX_STAGGER_MILLIS).toLong())
+        grown = true
+    }
+    val fraction by animateFloatAsState(
+        targetValue = if (grown && total > 0) {
+            (sets.toFloat() / total.toFloat()).coerceIn(0f, 1f)
+        } else {
+            0f
+        },
+        animationSpec = tween(durationMillis = MUSCLE_BAR_GROW_MILLIS, easing = FastOutSlowInEasing),
+        label = "muscleVolume"
+    )
+    val share = if (total > 0) (sets.toFloat() / total.toFloat() * 100f).roundToInt() else 0
+
+    Column(
+        modifier = Modifier
+            .fillMaxWidth()
+            .padding(start = 14.dp, top = 2.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Box(
+                modifier = Modifier
+                    .size(8.dp)
+                    .clip(CircleShape)
+                    .background(muscleColor)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = translateMuscleGroup(muscleKey),
+                style = MaterialTheme.typography.bodySmall.copy(
+                    fontSize = 13.sp,
+                    lineHeight = 16.sp,
+                    fontWeight = FontWeight.Medium
+                ),
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.weight(1f)
+            )
+            Text(
+                text = "$sets · $share%",
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+        }
+
+        Spacer(modifier = Modifier.height(3.dp))
+
+        // Track plus fill, drawn rather than re-laid out: the growing fraction is read in the
+        // draw pass, so animating 25 bars costs redraws instead of a recomposition a frame.
+        // The track holds the full scale open, so a short bar still reads as a small share
+        // rather than as a missing row.
+        Canvas(
+            modifier = Modifier
+                .fillMaxWidth()
+                .height(MUSCLE_BAR_HEIGHT)
+        ) {
+            val radius = barRadius.toPx()
+            val corners = CornerRadius(radius, radius)
+            drawRoundRect(color = trackColor, cornerRadius = corners)
+            val filled = size.width * fraction
+            if (filled > 0f) {
+                drawRoundRect(
+                    color = muscleColor,
+                    size = Size(filled, size.height),
+                    cornerRadius = corners
+                )
+            }
+        }
+    }
 }
 
 fun getUpperCategoryKey(muscleGroup: String): String {
@@ -1957,17 +2073,10 @@ fun SearchableExerciseField(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // Typo-tolerant search: still finds "Dumbbell Curls" from "dumbell curls"
+    // or "Bench Press" from "bnech pres". Exact/prefix matches stay on top.
     val filteredExercises = remember(value, allExercises) {
-        if (value.isBlank()) emptyList()
-        else {
-            val query = value.lowercase().trim()
-            allExercises.filter { it.lowercase().contains(query) }
-                .sortedWith(
-                    compareByDescending<String> { it.equals(value, ignoreCase = true) }
-                        .thenByDescending { it.startsWith(value, ignoreCase = true) }
-                        .thenBy { it.lowercase() }
-                )
-        }
+        ExerciseSearch.search(allExercises, value)
     }
 
     ExposedDropdownMenuBox(
@@ -2461,7 +2570,6 @@ fun ExerciseEditDialog(
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
     var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
-    var tempoValue by remember { mutableStateOf(exercise?.tempo ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
     var isExpanded by remember { mutableStateOf(exercise != null) }
@@ -2719,49 +2827,8 @@ fun ExerciseEditDialog(
                 }
 
 
-                var expandedTempo by remember { mutableStateOf(false) }
-                ExposedDropdownMenuBox(
-                    expanded = expandedTempo,
-                    onExpandedChange = {
-                        focusManager.clearFocus()
-                        expandedTempo = !expandedTempo
-                    }
-                ) {
-                    val tempoLabel = when(tempoValue) {
-                        "explosive" -> getString("tempo_explosive")
-                        "slow" -> getString("tempo_slow")
-                        else -> getString("tempo_none")
-                    }
-                    OutlinedTextField(
-                        value = tempoLabel,
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(getString("tempo_label")) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTempo) },
-                        modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth()
-                    )
-                    ExposedDropdownMenu(
-                        expanded = expandedTempo,
-                        onDismissRequest = { expandedTempo = false }
-                    ) {
-                        listOf("", "explosive", "slow").forEach { t ->
-                            val label = when(t) {
-                                "explosive" -> getString("tempo_explosive")
-                                "slow" -> getString("tempo_slow")
-                                else -> getString("tempo_none")
-                            }
-                            DropdownMenuItem(
-                                text = { Text(label, style = MaterialTheme.typography.bodySmall) },
-                                onClick = {
-                                    focusManager.clearFocus()
-                                    tempoValue = t
-                                    expandedTempo = false
-                                }
-                            )
-                        }
-                    }
-                }
-
+                // Tempo is not a manual choice — it is never touched here, so an
+                // existing value on the exercise is kept as-is.
                 ThemedToast(activeToastMessage ?: "", themeKey, activeToastMessage != null) { activeToastMessage = null }
                 OutlinedTextField(
                     value = videoUrl, 
@@ -2784,7 +2851,7 @@ fun ExerciseEditDialog(
                             val digits = targetTimeValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
                         } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
-                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = tempoValue))
+                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
                     }
                 },
                 enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
@@ -3347,22 +3414,36 @@ private fun WeeklyOutputChart(
  * Dialog for replacing an exercise. The exercise pool is pre-filtered to the
  * replaced exercise's equipment and muscle group, but the user can change both
  * to browse the complete pool.
+ *
+ * Tapping anywhere on an exercise replaces it and closes the dialog — the "+" is the
+ * action itself, not a selection to be confirmed later. The tap first plays a short
+ * "+" -> tick acknowledgement on that card, and only then does the swap land, so the
+ * list doesn't jump out from under the finger.
  */
 // Sentinel used for the "Any" muscle group option in the replace dialog.
 private const val ANY_MUSCLE_GROUP_KEY = "__any_muscle_group__"
+
+/** How long the picked card's "+" takes to turn into a tick before the swap is applied. */
+private const val REPLACE_TICK_MILLIS = 220L
+
+/**
+ * A beat between applying the swap and closing the dialog: it gives the new exercise time to
+ * reach the list behind the scrim, so the change is part of the transition rather than a
+ * jump the instant the dialog disappears.
+ */
+private const val REPLACE_SETTLE_MILLIS = 160L
 
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReplaceExerciseDialog(
     exercise: RoutineExerciseEntity,
     onDismiss: () -> Unit,
-    onSelectionChange: (previous: List<Pair<String, String>>, current: List<Pair<String, String>>) -> Unit
+    onReplace: (name: String, muscleGroup: String) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
     val allMuscleGroups = remember { WorkoutTemplates.getAllMuscleGroups() }
 
     val equipmentOptions = listOf(
-        WorkoutTemplates.EQUIPMENT_ALL to getString("equipment_all"),
         WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
         WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
         WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
@@ -3371,11 +3452,11 @@ fun ReplaceExerciseDialog(
 
     val anyMuscleGroupLabel = getString("any_muscle_group")
 
-    // Auto-select the replaced exercise's equipment & muscle group
+    // Auto-select the replaced exercise's equipment & muscle group. An empty
+    // equipment selection means "every category" (replaces the old "All" chip).
     var selectedEquipment by remember(exercise.name) {
         mutableStateOf(
-            WorkoutTemplates.getEquipmentForExercise(exercise.name)
-                .ifEmpty { WorkoutTemplates.EQUIPMENT_ALL }
+            listOf(WorkoutTemplates.getEquipmentForExercise(exercise.name)).filter { it.isNotEmpty() }
         )
     }
     var selectedMuscleGroup by remember(exercise.name) {
@@ -3383,16 +3464,31 @@ fun ReplaceExerciseDialog(
     }
     var muscleMenuExpanded by remember { mutableStateOf(false) }
 
-    // Exercises toggled on for replacement (name to muscle group captured at toggle time).
-    val selected = remember { mutableStateListOf<Pair<String, String>>() }
+    // The card whose acknowledgement is playing: its "+" turns into a tick while the swap is
+    // held back for [REPLACE_TICK_MILLIS]. Nothing else can be picked meanwhile, so a second
+    // tap can't swap a different exercise in behind the first one.
+    var pickedName by remember { mutableStateOf<String?>(null) }
+    val scope = rememberCoroutineScope()
+
+    fun pick(name: String, muscleGroup: String) {
+        if (pickedName != null) return
+        pickedName = name
+        scope.launch {
+            delay(REPLACE_TICK_MILLIS)
+            onReplace(name, muscleGroup)
+            delay(REPLACE_SETTLE_MILLIS)
+            onDismiss()
+        }
+    }
 
     val alternatives = remember(exercise.name, selectedEquipment, selectedMuscleGroup) {
+        val equipmentFilter = selectedEquipment.ifEmpty { WorkoutTemplates.allEquipmentCategories }
         val pool = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) {
-            WorkoutTemplates.getAllExercisesForEquipment(selectedEquipment)
+            equipmentFilter.flatMap { WorkoutTemplates.getAllExercisesForEquipment(it) }
         } else {
-            WorkoutTemplates.getExercisesForEquipment(selectedEquipment, selectedMuscleGroup)
+            equipmentFilter.flatMap { WorkoutTemplates.getExercisesForEquipment(it, selectedMuscleGroup) }
         }
-        pool.filter { it.lowercase() != exercise.name.lowercase() }.sorted()
+        pool.distinct().filter { it.lowercase() != exercise.name.lowercase() }.sorted()
     }
 
     AlertDialog(
@@ -3436,8 +3532,14 @@ fun ReplaceExerciseDialog(
                 ) {
                     equipmentOptions.forEach { (key, label) ->
                         FilterChip(
-                            selected = selectedEquipment == key,
-                            onClick = { selectedEquipment = key },
+                            selected = selectedEquipment.contains(key),
+                            onClick = {
+                                selectedEquipment = if (selectedEquipment.contains(key)) {
+                                    selectedEquipment - key
+                                } else {
+                                    selectedEquipment + key
+                                }
+                            },
                             label = { Text(label, maxLines = 1) },
                             shape = RoundedCornerShape(10.dp)
                         )
@@ -3484,11 +3586,7 @@ fun ReplaceExerciseDialog(
                 }
 
                 Text(
-                    text = if (selected.isEmpty()) {
-                        getString("exercises_count", alternatives.size)
-                    } else {
-                        getString("exercises_count", alternatives.size) + "  •  " + getString("x_selected", selected.size)
-                    },
+                    text = getString("exercises_count", alternatives.size),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
                 )
@@ -3504,47 +3602,57 @@ fun ReplaceExerciseDialog(
                         modifier = Modifier.heightIn(max = 280.dp),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
-                        itemsIndexed(alternatives) { index, altName ->
+                        itemsIndexed(alternatives) { _, altName ->
                             val altMuscleGroup = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) {
                                 WorkoutTemplates.getMuscleGroupForExercise(altName)
                             } else {
                                 selectedMuscleGroup
                             }
-                            val isSelected = selected.any { it.first == altName }
                             val (altDesc, _) = getExerciseDetails(altName, altMuscleGroup, exercise.targetIntensity)
-                            // Irregular stagger so the card column doesn't read as a uniform grid.
-                            val stagger = listOf(0.dp, 18.dp, 8.dp, 26.dp, 4.dp, 14.dp)[index % 6]
+
+                            // Each card runs its own acknowledgement off the same animation, so
+                            // only the picked one turns its "+" into a tick and lifts its tint.
+                            val confirmProgress by animateFloatAsState(
+                                targetValue = if (pickedName == altName) 1f else 0f,
+                                animationSpec = tween(
+                                    durationMillis = REPLACE_TICK_MILLIS.toInt(),
+                                    easing = FastOutSlowInEasing
+                                ),
+                                label = "replaceConfirm"
+                            )
+
                             Card(
                                 shape = RoundedCornerShape(12.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = if (isSelected) {
-                                        MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)
-                                    } else {
-                                        MaterialTheme.colorScheme.surfaceVariant
-                                    }
+                                    containerColor = lerp(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.primaryContainer,
+                                        confirmProgress
+                                    )
                                 ),
-                                border = if (isSelected) BorderStroke(1.dp, MaterialTheme.colorScheme.primary) else null,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .padding(start = stagger, end = 6.dp)
+                                    .graphicsLayer {
+                                        val lift = 1f + 0.02f * confirmProgress
+                                        scaleX = lift
+                                        scaleY = lift
+                                    }
                                     .clickable(
                                         interactionSource = remember { MutableInteractionSource() },
                                         indication = null
                                     ) {
                                         focusManager.clearFocus()
-                                        val previous = selected.toList()
-                                        if (isSelected) {
-                                            selected.removeAll { it.first == altName }
-                                        } else {
-                                            selected.add(altName to altMuscleGroup)
-                                        }
-                                        onSelectionChange(previous, selected.toList())
+                                        pick(altName, altMuscleGroup)
                                     }
                             ) {
                                 Row(
                                     modifier = Modifier.padding(14.dp),
                                     verticalAlignment = Alignment.CenterVertically
                                 ) {
+                                    ReplaceActionMark(progress = confirmProgress)
+
+                                    Spacer(modifier = Modifier.width(12.dp))
+
                                     Column(modifier = Modifier.weight(1f)) {
                                         Text(
                                             text = translateExerciseName(altName),
@@ -3560,14 +3668,6 @@ fun ReplaceExerciseDialog(
                                             )
                                         }
                                     }
-
-                                    Spacer(modifier = Modifier.width(8.dp))
-
-                                    Icon(
-                                        imageVector = if (isSelected) Icons.Default.CheckCircle else Icons.Default.Add,
-                                        contentDescription = null,
-                                        tint = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurfaceVariant
-                                    )
                                 }
                             }
                         }
@@ -3585,4 +3685,47 @@ fun ReplaceExerciseDialog(
             }
         }
     )
+}
+
+/**
+ * The replace action on an alternative-exercise card, as a mark that leads the row: a "+"
+ * that turns into a tick as [progress] runs from 0 to 1. It exists so a tap is visible
+ * before the swap lands — the card would otherwise be replaced under the finger with no
+ * acknowledgement that anything was picked.
+ */
+@Composable
+private fun ReplaceActionMark(progress: Float) {
+    Box(
+        modifier = Modifier.size(32.dp),
+        contentAlignment = Alignment.Center
+    ) {
+        Icon(
+            imageVector = Icons.Default.Add,
+            contentDescription = getString("replace"),
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer {
+                    // Swung away to the left, as if the tick were turned over into place.
+                    alpha = 1f - progress
+                    val shrink = 1f - 0.45f * progress
+                    scaleX = shrink
+                    scaleY = shrink
+                    rotationZ = -90f * progress
+                }
+        )
+        Icon(
+            imageVector = Icons.Default.Check,
+            contentDescription = null,
+            tint = MaterialTheme.colorScheme.primary,
+            modifier = Modifier
+                .size(22.dp)
+                .graphicsLayer {
+                    alpha = progress
+                    val grow = 0.4f + 0.6f * progress
+                    scaleX = grow
+                    scaleY = grow
+                }
+        )
+    }
 }

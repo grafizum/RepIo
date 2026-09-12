@@ -61,19 +61,13 @@ object WorkoutTemplates {
         "goal_athletic"
     )
 
-    // Training style: how the program is performed, beyond which muscles are hit.
-    // Explosive = heavier, fewer reps, fast lifts; Slow = lighter, more reps,
-    // controlled tempo; Balanced = standard all-around programming.
-    const val TRAINING_STYLE_BALANCED = "balanced"
-    const val TRAINING_STYLE_EXPLOSIVE = "explosive"
-    const val TRAINING_STYLE_SLOW = "slow"
-
-    val allTrainingStyles = listOf(
-        TRAINING_STYLE_BALANCED,
-        TRAINING_STYLE_EXPLOSIVE,
-        TRAINING_STYLE_SLOW
-    )
-
+    /**
+     * The two independent knobs the build is parameterised by:
+     *  - [workoutGoal] owns the SCHEME: rep range, rest, exercise selection.
+     *  - [intensity] owns the EFFORT & VOLUME: RPE label, sets, exercises per
+     *    muscle, and the suggested starting load.
+     * Each axis is owned by exactly one control, so nothing double-dips.
+     */
     fun generateAssistedProgram(
         bodyParts: List<String>, 
         selectedDays: List<String>,
@@ -83,7 +77,7 @@ object WorkoutTemplates {
         excludedExercises: List<String> = emptyList(),
         minSets: Int = 0,
         maxSets: Int = 0,
-        trainingStyle: String = TRAINING_STYLE_BALANCED
+        equipment: List<String> = emptyList()
     ): GeneratedProgram {
         val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
         val routineDays = mutableListOf<RoutineDayEntity>()
@@ -104,18 +98,16 @@ object WorkoutTemplates {
         }
 
         // 2. VOLUME RECOMMENDATION
-        val setsBase = when(intensity) {
-            "Easy" -> 3 
-            "Hard" -> 5 
-            else -> 4   
+        // Difficulty is the ONLY control over volume: Easy 3, Medium 4, Hard 5 sets.
+        // The goal decides the rep range and rest, never the set count.
+        var setsPerExercise = when(intensity) {
+            "Easy" -> 3
+            "Hard" -> 5
+            else -> 4
         }
-        
-        var setsPerExercise = when(workoutGoal) {
-            "goal_strength", "goal_olympic" -> setsBase + 1 
-            "goal_calisthenics", "goal_crossfit" -> setsBase - 1
-            else -> setsBase
-        }
-        
+
+        // The advanced "sets allocation" setting is an explicit override, so it
+        // still wins over the difficulty default.
         if (minSets > 0) setsPerExercise = kotlin.math.max(setsPerExercise, minSets)
         if (maxSets > 0) setsPerExercise = kotlin.math.min(setsPerExercise, maxSets)
         setsPerExercise = setsPerExercise.coerceIn(1, 10)
@@ -170,7 +162,16 @@ object WorkoutTemplates {
                 
                 sortedParts.forEachIndexed { partIndex, part ->
                     var available = getExercisesForPart(part)
-                    
+
+                    // Restrict the pool to the equipment the user actually has
+                    // access to (empty = every category). Falls back to the full
+                    // pool for a body part with no matching equipment so the day
+                    // is never left empty.
+                    if (equipment.isNotEmpty()) {
+                        val allowed = available.filter { getEquipmentForExercise(it) in equipment }
+                        if (allowed.isNotEmpty()) available = allowed
+                    }
+
                     // HARD FILTERING BASED ON GOAL & INTENSITY
                     available = when(workoutGoal) {
                         "goal_calisthenics" -> {
@@ -242,7 +243,7 @@ object WorkoutTemplates {
 
                     available = available.filter { it !in excludedExercises }
 
-                    if (available.isEmpty() && includedExercises.none { getMuscleGroupForExercise(it) == part }) {
+                    if (available.isEmpty() && includedExercises.none { exerciseMatchesPart(it, part) }) {
                         unsatisfiedParts.add(part)
                     } else {
                         satisfiedPartsOnThisDay.add(part)
@@ -255,7 +256,7 @@ object WorkoutTemplates {
                         
                         var exercisesPicked = 0
                         val matchingIncluded = includedExercises.filter { 
-                            getMuscleGroupForExercise(it) == part && it !in usedIncluded &&
+                            exerciseMatchesPart(it, part) && it !in usedIncluded &&
                             available.contains(it)
                         }
                         
@@ -269,14 +270,15 @@ object WorkoutTemplates {
                                 name = exName,
                                 muscleGroup = part,
                                 targetSets = setsPerExercise,
-                                targetReps = getGoalReps(exName, workoutGoal, setsPerExercise, trainingStyle),
-                                targetIntensity = getGoalIntensity(workoutGoal, intensity, exName, trainingStyle),
+                                // Goal owns reps + rest; difficulty owns the effort label.
+                                targetReps = getGoalReps(exName, workoutGoal),
+                                targetIntensity = getGoalIntensity(workoutGoal, intensity, exName),
                                 targetWeightKg = 0.0,
-                                restSeconds = getGoalRestSeconds(workoutGoal, exName, trainingStyle),
+                                restSeconds = getGoalRestSeconds(workoutGoal, exName),
                                 transitionRestSeconds = 90, 
                                 videoUrl = "",
                                 orderIndex = (partIndex * 10) + exercisesPicked,
-                                tempo = getGoalTempo(trainingStyle)
+                                tempo = ""
                             ))
                             usedIncluded.add(exName)
                             usedOnThisDay.add(exName)
@@ -297,14 +299,15 @@ object WorkoutTemplates {
                                     name = exName,
                                     muscleGroup = part,
                                     targetSets = setsPerExercise,
-                                    targetReps = getGoalReps(exName, workoutGoal, setsPerExercise, trainingStyle),
-                                    targetIntensity = getGoalIntensity(workoutGoal, intensity, exName, trainingStyle),
+                                    // Goal owns reps + rest; difficulty owns the effort label.
+                                    targetReps = getGoalReps(exName, workoutGoal),
+                                    targetIntensity = getGoalIntensity(workoutGoal, intensity, exName),
                                     targetWeightKg = 0.0,
-                                    restSeconds = getGoalRestSeconds(workoutGoal, exName, trainingStyle),
+                                    restSeconds = getGoalRestSeconds(workoutGoal, exName),
                                     transitionRestSeconds = 90,
                                     videoUrl = "",
                                     orderIndex = (partIndex * 10) + exercisesPicked,
-                                    tempo = getGoalTempo(trainingStyle)
+                                    tempo = ""
                                 ))
                                 usedOnThisDay.add(exName)
                                 exercisesPicked++
@@ -349,11 +352,13 @@ object WorkoutTemplates {
     }
 
     /**
-     * Every exercise must span at least [MIN_REP_RANGE_SPAN] reps.
+     * Every exercise must span at least [MIN_REP_RANGE_SPAN] reps so the reps
+     * control has a usable range. 4 keeps the real schemes intact — a strength
+     * block stays "1–5" instead of being widened into something meaningless.
      * Accepts formats like "8–12", "8-12", "10 each leg", "30 sec" and single values.
      * Time-based entries ("30 sec") are returned unchanged.
      */
-    const val MIN_REP_RANGE_SPAN = 10
+    const val MIN_REP_RANGE_SPAN = 4
 
     fun parseRepRange(targetReps: String): Pair<Int, Int>? {
         if (targetReps.contains("sec", ignoreCase = true)) return null
@@ -416,13 +421,18 @@ object WorkoutTemplates {
         return (n.contains("barbell") || n.contains("military press")) && 
                (n.contains("squat") || (n.contains("deadlift") && !n.contains("romanian")) || 
                 n.contains("bench press") || n.contains("overhead press") || 
+                n.contains("military press") || n.contains("press behind the neck") ||
                 n.contains("clean") || n.contains("snatch"))
     }
 
-    fun getGoalRestSeconds(goal: String, exerciseName: String = "", trainingStyle: String = TRAINING_STYLE_BALANCED): Int {
+    /**
+     * Rest between sets, decided by the training goal alone (plus whether the
+     * movement is a heavy compound). ACSM/NSCA-style: long rest for maximal
+     * strength and power, short rest for endurance and conditioning work.
+     */
+    fun getGoalRestSeconds(goal: String, exerciseName: String = ""): Int {
         val isCompound = if (exerciseName.isNotEmpty()) isHeavyCompound(exerciseName) else true
-        
-        val base = when(goal) {
+        return when(goal) {
             "goal_strength", "goal_olympic" -> if (isCompound) 240 else 90
             "goal_powerbuilding" -> if (isCompound) 180 else 75
             "goal_bodybuilding" -> 90
@@ -430,17 +440,15 @@ object WorkoutTemplates {
             "goal_calisthenics", "goal_crossfit" -> 45
             else -> 60
         }
-        // Style tweaks: explosive sets need longer recovery, tempo sets recover faster.
-        return when(trainingStyle) {
-            TRAINING_STYLE_EXPLOSIVE -> (base * 1.5).toInt()
-            TRAINING_STYLE_SLOW -> (base * 0.75).toInt().coerceAtLeast(30)
-            else -> base
-        }
     }
 
-    fun getGoalIntensity(goal: String, intensity: String, exerciseName: String, trainingStyle: String = TRAINING_STYLE_BALANCED): String {
+    /**
+     * The effort cue shown for an exercise. Difficulty is the only input: the
+     * goal decides which words fit, but Easy / Medium / Hard decide the level.
+     */
+    fun getGoalIntensity(goal: String, intensity: String, exerciseName: String): String {
         val isCompound = isHeavyCompound(exerciseName)
-        val base = when(intensity) {
+        return when(intensity) {
             "Hard" -> {
                 if (goal == "goal_strength" || goal == "goal_olympic") {
                     if (isCompound) "Very Heavy" else "Heavy"
@@ -450,40 +458,31 @@ object WorkoutTemplates {
                     "High Intensity"
                 }
             }
-            "Easy" -> {
-                "Light"
-            }
-            else -> {
-                "Moderate"
-            }
-        }
-        // The training style overrides the effort label so the cue stays short and obvious.
-        return when(trainingStyle) {
-            TRAINING_STYLE_EXPLOSIVE -> "Explosive"
-            TRAINING_STYLE_SLOW -> "Controlled"
-            else -> base
+            "Easy" -> "Light"
+            else -> "Moderate"
         }
     }
 
-    /** Short per-exercise tempo cue derived from the training style ("" = balanced). */
-    fun getGoalTempo(trainingStyle: String): String = when(trainingStyle) {
-        TRAINING_STYLE_EXPLOSIVE -> "explosive"
-        TRAINING_STYLE_SLOW -> "slow"
-        else -> ""
-    }
-
-    fun getGoalReps(exerciseName: String, goal: String, forcedSets: Int = 0, trainingStyle: String = TRAINING_STYLE_BALANCED): String {
+    /**
+     * The rep range for an exercise, decided by the training goal alone.
+     *
+     * Difficulty does not move reps: a "Hard" strength squat and an "Easy"
+     * strength squat use the same 1–5 scheme, they differ in sets and load.
+     * That is what keeps the three axes from fighting each other.
+     */
+    fun getGoalReps(exerciseName: String, goal: String): String {
         if (isExerciseTimeBased(exerciseName)) return "30 sec"
-        
+
         val isCompound = isHeavyCompound(exerciseName)
-        val isIsolation = exerciseName.lowercase().let { 
-            it.contains("curl") || it.contains("extension") || it.contains("lateral") || 
+        val isIsolation = exerciseName.lowercase().let {
+            it.contains("curl") || it.contains("extension") || it.contains("lateral") ||
             it.contains("raise") || it.contains("pushdown") || it.contains("kickback") ||
             it.contains("fly")
         }
-        
-        // Even in strength goals, accessories shouldn't go below 8 reps
-        val baseRange = when(goal) {
+
+        // Even in a strength block, accessories stay in a hypertrophy range —
+        // low reps on single-joint work is not productive or safe.
+        val range = when(goal) {
             "goal_strength", "goal_olympic" -> if (isCompound) 1..5 else 8..12
             "goal_powerbuilding" -> if (isCompound) 3..6 else 8..12
             "goal_bodybuilding" -> if (isIsolation) 10..15 else 8..12
@@ -491,26 +490,7 @@ object WorkoutTemplates {
             "goal_calisthenics", "goal_crossfit" -> 12..20
             else -> 8..12
         }
-        
-        // Style nudges the rep range: explosive = heavier & fewer reps,
-        // slow/tempo = lighter & more reps. Clamped to stay at 1+ reps.
-        val styleRange = when(trainingStyle) {
-            TRAINING_STYLE_EXPLOSIVE -> (baseRange.first - 2).coerceAtLeast(1)..(baseRange.last - 3).coerceAtLeast(2)
-            TRAINING_STYLE_SLOW -> (baseRange.first + 3)..(baseRange.last + 5)
-            else -> baseRange
-        }
-        
-        return when {
-            forcedSets >= 6 -> {
-                enforceRepRange("${kotlin.math.max(1, styleRange.first - 2)}–${kotlin.math.max(2, styleRange.last - 2)}")
-            }
-            forcedSets <= 2 && forcedSets > 0 -> {
-                val compensatedStart = styleRange.first + 3
-                val compensatedEnd = styleRange.last + 5
-                enforceRepRange("$compensatedStart–$compensatedEnd")
-            }
-            else -> enforceRepRange("${styleRange.first}–${styleRange.last}")
-        }
+        return enforceRepRange("${range.first}–${range.last}")
     }
 
     private var _cachedExerciseNames: List<String>? = null
@@ -528,14 +508,14 @@ object WorkoutTemplates {
 
     fun getAllMuscleGroups(): List<String> {
         val categories = listOf("Arms", "Legs", "Back", "Chest", "Shoulders", "Core")
-        val detailed = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors")
+        val detailed = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Pectorals")
         return (categories + detailed).distinct().sorted()
     }
 
     fun getTopicForMuscle(muscle: String): String {
         val mg = muscle.lowercase().trim()
         return when {
-            mg.contains("chest") -> "Chest"
+            mg.contains("chest") || mg.contains("pectoral") -> "Chest"
             // "lat" must not swallow "Lateral Deltoids"
             mg.contains("back") || (mg.contains("lat") && !mg.contains("lateral")) || mg.contains("trap") || mg.contains("erector") -> "Back"
             mg.contains("leg") || mg.contains("quad") || mg.contains("hamstring") || mg.contains("glute") || mg.contains("calve") || mg.contains("adductor") || mg.contains("abductor") -> "Legs"
@@ -616,8 +596,156 @@ object WorkoutTemplates {
         "Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back",
         "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs",
         "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves",
-        "Hip Adductors", "Hip Abductors", "Chest"
+        "Hip Adductors", "Hip Abductors", "Chest", "Pectorals"
     )
+
+    /**
+     * Authoritative primary muscle for every exercise in the built-in pool.
+     *
+     * The pool lists an exercise under every muscle it works (rows appear under
+     * Lats, Upper Back *and* the deltoids), so "first pool hit" cannot separate
+     * the primary mover from a secondary one — that is exactly how Dumbbell Rows
+     * used to be labelled as a shoulder exercise. This table states the single
+     * muscle each exercise is primarily for, and is the source of truth for both
+     * the broad body part and the precise muscle shown in the UI.
+     *
+     * A test asserts that every pool exercise appears here exactly once and that
+     * no entry names an exercise outside the pool.
+     */
+    private val exercisePrimaryMuscles: Map<String, String> = listOf(
+        "Pectorals" to listOf(
+            "Barbell Bench Presses", "Barbell Floor Presses", "Cable Crossovers", "Cable Flyes",
+            "Chest Dips (Bars)", "Chest Press Machines", "Decline Barbell Presses",
+            "Decline Dumbbell Presses", "Dips (Chest Focus)", "Dumbbell Floor Presses",
+            "Dumbbell Flyes", "Floor Presses (Machine)", "Hammer Strength Chest Presses",
+            "Incline Barbell Presses", "Incline Dumbbell Presses", "Low Cable Flyes",
+            "Machine Flyes", "Pec Decks", "Push-ups", "Svend Presses (Cable)"
+        ),
+        "Lats" to listOf(
+            "Archer Pull-ups", "Assisted Pull-up Machines", "Australian Pull-ups (Lats)",
+            "Barbell Pullovers", "Barbell Rows", "Chin-ups", "Close Grip Lat Pulldowns",
+            "Dumbbell Pullovers", "Dumbbell Rows", "Hammer Strength Rows", "L-sit Pull-ups",
+            "Lat Pulldowns", "Muscle-ups (BW)", "Pull-ups", "Seated Rows",
+            "Straight Arm Pulldowns", "V-Bar Pulldowns", "Wide Grip Pull-ups"
+        ),
+        "Upper Back" to listOf(
+            "Chest Supported Machine Rows", "Inverted Rows", "Machine Rows", "Scapular Pull-ups",
+            "Scapular Push-ups", "Seated Wide Rows", "Superman Extensions", "T-Bar Rows",
+            "Wall Slides", "Y-W-T Raises"
+        ),
+        "Upper Traps" to listOf(
+            "Barbell Shrugs", "Cable Shrugs", "Dumbbell Shrugs", "Handstand Shrugs",
+            "Hise Shrugs (Machine)", "Machine Shrugs", "Smith Machine Shrugs"
+        ),
+        "Rear Deltoids" to listOf(
+            "Barbell Face Pulls", "Cable Face Pulls", "Cable Rear Delt Flyes",
+            "Cable Rows (Rear Delt Focus)", "Dumbbell Face Pulls", "Dumbbell Rear Delt Flyes",
+            "Face Pulls", "Rear Delt Decks", "Rear Delt Floor Flyes", "Reverse Pec Decks",
+            "Reverse Snow Angels", "Rope Face Pulls"
+        ),
+        "Lateral Deltoids" to listOf(
+            "Behind-the-back Cable Lateral Raises", "Cable Lateral Raises",
+            "Cross Cable Lateral Raises", "Dumbbell Lateral Raises", "Dumbbell Y-Raises",
+            "Egyptian Lateral Raises (Cable)", "Machine Lateral Raises", "Side Raises",
+            "Upright Barbell Rows", "Y-Raises (Cable)"
+        ),
+        "Front Deltoids" to listOf(
+            "Arnold Presses", "Barbell Clean & Presses", "Barbell Front Raises",
+            "Barbell Overhead Presses", "Barbell Push Presses", "Barbell Strict Presses",
+            "Cable Front Raises", "Dumbbell Clean & Presses", "Dumbbell Front Raises",
+            "Dumbbell Shoulder Presses", "Dumbbell Thrusters", "Hammer Strength Shoulder Presses",
+            "Handstand Holds", "Landmine Presses", "Military Presses", "Pike Holds",
+            "Plank-to-Down-Dogs", "Shoulder Press Machines", "Shoulder Taps", "Smith Machine Presses"
+        ),
+        "Spinal Erectors" to listOf(
+            "Back Extensions", "Barbell Back Extensions", "Barbell Deadlifts",
+            "Barbell Rack Pulls", "Bird-Dogs", "Deadlifts", "Dumbbell Back Extensions",
+            "Dumbbell Deadlifts", "Reverse Hypers", "Smith Machine Deadlifts", "Supermans"
+        ),
+        "Biceps" to listOf(
+            "Barbell Curls", "Barbell Spider Curls", "Bayesian Curls (Cable)", "Cable Curls",
+            "Concentration Curls", "Drag Curls (Cable)", "Dumbbell Curls", "Dumbbell Hammer Curls",
+            "Hammer Cable Curls", "Hammer Curls", "High Cable Curls", "Incline Dumbbell Curls",
+            "Inverted Curls", "Inverted Curls (Bodyweight)", "Machine Curls", "Preacher Curls",
+            "Spider Curls", "Underhand Inverted Rows", "Zottman Curls"
+        ),
+        "Triceps" to listOf(
+            "Barbell Overhead Extensions", "Barbell Skullcrushers", "Cable Kickbacks",
+            "Close Grip Barbell Presses", "Dips", "Dips (Bars)", "Dumbbell Kickbacks",
+            "Dumbbell Overhead Extensions", "Dumbbell Skullcrushers", "Machine Dips",
+            "Overhead Cable Extensions", "Rope Pushdowns", "Skullcrushers",
+            "Smith Machine JM Presses", "Tricep Pushdowns", "V-Bar Pushdowns", "Weighted Dips"
+        ),
+        "Forearms" to listOf(
+            "Barbell Reverse Curls", "Barbell Reverse Wrist Curls", "Barbell Wrist Curls",
+            "Cable Wrist Curls", "Dead Hangs", "Dumbbell Pinch Grips", "Dumbbell Reverse Curls",
+            "Dumbbell Wrist Curls", "False Grip Holds", "Farmer's Walks", "Finger Push-ups",
+            "Fist Squeezes", "Reverse Curls", "Towel Hangs", "Wrist Curl Machines", "Wrist Rollers"
+        ),
+        "Abs" to listOf(
+            "Ab Wheels", "Barbell Crunches", "Barbell Leg Raises", "Barbell Rollouts",
+            "Barbell Sit-ups", "Bicycle Crunches", "Cable Crunches", "Cable Knee Raises",
+            "Captain's Chair Leg Raises", "Crunches", "Decline Sit-ups (Weighted)", "Dragon Flags",
+            "Dumbbell Crunches", "Dumbbell Leg Raises", "Dumbbell V-Ups", "Garhammer Raises",
+            "Hanging Leg Raises", "Hollow Body Holds", "L-Sits", "Landmine Rainbows", "Leg Raises",
+            "Machine Crunches", "Mountain Climbers", "Planks", "Rope Crunches", "V-Ups"
+        ),
+        "Obliques" to listOf(
+            "Barbell Side Bends", "Barbell Windmills", "Cable Pallof Presses", "Cable Side Bends",
+            "Cable Woodchoppers", "Dumbbell Russian Twists", "Dumbbell Side Bends",
+            "Dumbbell Windmills", "Dumbbell Woodchoppers", "Hanging Side Raises",
+            "Landmine Twists", "Rotary Torso Machines", "Russian Twists", "Side Plank Crunches",
+            "Side Plank Rotations", "Side Planks", "Windshield Wipers"
+        ),
+        "Quadriceps" to listOf(
+            "Barbell Front Squats", "Barbell Lunges", "Barbell Squats", "Barbell Step-ups",
+            "Box Jumps", "Dumbbell Lunges", "Dumbbell Split Squats", "Dumbbell Squats",
+            "Dumbbell Step-ups", "Goblet Squats", "Hack Squats", "Leg Extensions", "Leg Presses",
+            "Lunges", "Pendulum Squats", "Sissy Squats", "Smith Machine Squats", "Split Squats",
+            "Squats", "Step-ups", "V-Squat Machines", "Wall Sits"
+        ),
+        "Hamstrings" to listOf(
+            "Barbell Good Mornings", "Barbell Romanian Deadlifts", "Cable Pull-throughs",
+            "Dumbbell Good Mornings", "Dumbbell Leg Curls", "Dumbbell Romanian Deadlifts",
+            "Glute Ham Raises", "Good Mornings", "Good Mornings (Machine)", "Leg Curls",
+            "Lying Leg Curls", "Nordic Curls", "Romanian Deadlifts", "Seated Leg Curls",
+            "Sliding Leg Curls", "Smith Machine RDLs", "Stiff Leg Barbell Deadlifts",
+            "Stiff Leg Dumbbell Deadlifts"
+        ),
+        "Glutes" to listOf(
+            "Barbell Glute Bridges", "Barbell Hip Thrusts", "Bridges", "Donkey Kicks",
+            "Dumbbell Glute Bridges", "Dumbbell Hip Thrusts", "Fire Hydrants", "Frog Pumps",
+            "Glute Bridge Machines", "Glute Bridges", "Glute Kickbacks", "Glute Presses (Machine)",
+            "Hip Thrusts", "Reverse Hypers (Glute focus)"
+        ),
+        "Calves" to listOf(
+            "Barbell Calf Raises", "Calf Press on Leg Press", "Calf Raises", "Donkey Calf Raises",
+            "Dumbbell Calf Raises", "Jumping Jacks", "Leg Press Calf Raises", "Seated Calf Raises",
+            "Smith Machine Calf Raises", "Standing Calf Raises", "Tibialis Raises", "Tip-toe Walks"
+        ),
+        "Hip Adductors" to listOf(
+            "Adductor Machines", "Cable Adductions", "Copenhagen Planks", "Cossack Squats",
+            "Seated Adduction Machines", "Sumo Squats"
+        ),
+        "Hip Abductors" to listOf(
+            "Abductor Machines", "Barbell Side Lunges", "Cable Abductions", "Clamshells",
+            "Dirty Dogs", "Dumbbell Side Lunges", "Lateral Cable Leg Raises", "Lateral Plank Walks",
+            "Seated Abduction Machines", "Side Lying Clamshells (Machine)", "Side Lying Leg Raises",
+            "Side Plank Leg Raises", "Side Steps"
+        )
+    ).flatMap { (muscle, names) -> names.map { it.trim().lowercase() to muscle } }.toMap()
+
+    /** The precise primary muscle for [name], or "" when it isn't in the pool. */
+    fun getPrimaryMuscleForExercise(name: String): String =
+        exercisePrimaryMuscles[name.trim().lowercase()] ?: ""
+
+    /**
+     * The exercise names covered by the authoritative primary-muscle table,
+     * sorted. Exposed so the pool integrity tests can prove the table has no
+     * gaps (a pool exercise with no entry), no strays (an entry for a name that
+     * isn't in the pool) and no duplicates.
+     */
+    fun getPrimaryMuscleTableNames(): List<String> = exercisePrimaryMuscles.keys.sorted()
 
     private fun isExerciseInGroup(name: String, group: String): Boolean {
         return getGymExercises(group).any { it.equals(name, ignoreCase = true) } ||
@@ -627,6 +755,10 @@ object WorkoutTemplates {
     }
 
     fun getMuscleGroupForExercise(name: String): String {
+        // The authoritative table wins: it separates the primary mover from the
+        // secondary muscles the exercise is also listed under in the pool.
+        getPrimaryMuscleForExercise(name).takeIf { it.isNotEmpty() }?.let { return it }
+
         val cleanName = name.trim().lowercase()
 
         for (g in detailedMuscleGroups) {
@@ -645,17 +777,18 @@ object WorkoutTemplates {
     }
 
     /**
-     * The best-known precise muscle for [name], preferring a muscle whose topic
-     * matches [preferredTopic] (normally the topic of the stored muscle group).
-     * This keeps the result consistent with what the user recorded (rows stay
-     * "Back"-side even though the pool also lists them under Rear Deltoids).
-     * When no same-topic muscle exists, the pool's first match is used anyway —
-     * the built-in pool is the authoritative real data for what an exercise
-     * trains (e.g. flyes stored as "Shoulders" still resolve to "Chest").
+     * The best-known precise muscle for [name]. For pool exercises this is the
+     * authoritative primary muscle from [exercisePrimaryMuscles], so the result
+     * never depends on the order the pool happens to list an exercise in
+     * (a row stays "Lats" no matter that it is also listed under the deltoids).
+     * Only names outside the pool fall back to a pool scan, which prefers a
+     * muscle whose topic matches [preferredTopic] (the topic of the stored
+     * group) and otherwise takes the first match.
      * Returns "" when the exercise is not part of the built-in pool.
      */
     fun getPrimaryMuscleGroupForExercise(name: String, preferredTopic: String): String {
         if (name.isBlank()) return ""
+        getPrimaryMuscleForExercise(name).takeIf { it.isNotEmpty() }?.let { return it }
         val preferred = mutableListOf<String>()
         val others = mutableListOf<String>()
         for (g in detailedMuscleGroups) {
@@ -666,12 +799,27 @@ object WorkoutTemplates {
         return preferred.firstOrNull() ?: others.firstOrNull() ?: ""
     }
 
+    /**
+     * Whether [exerciseName] belongs to the selected body [part]. The exercise's
+     * precise primary muscle counts as a match, and so does the same broad topic
+     * (a Chest day still accepts an exercise now labelled "Pectorals", a Legs day
+     * accepts "Quadriceps").
+     */
+    private fun exerciseMatchesPart(exerciseName: String, part: String): Boolean {
+        val precise = getMuscleGroupForExercise(exerciseName)
+        if (precise.equals(part, ignoreCase = true)) return true
+        val preciseTopic = getTopicForMuscle(precise)
+        return preciseTopic != "Other" && preciseTopic == getTopicForMuscle(part)
+    }
+
     private fun getExercisesForPart(bodyPart: String): List<String> {
         return (getBodyweightExercises(bodyPart) + getDumbbellExercises(bodyPart) + getBarbellExercises(bodyPart) + getGymExercises(bodyPart)).distinct()
     }
 
     private fun getBodyweightExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
         "chest" -> listOf("Push-ups", "Dips")
+        // Precise-chest alias: the same bodyweight pool the broad "Chest" chip uses.
+        "pectorals" -> getBodyweightExercises("chest")
         "front deltoids" -> listOf("Push-ups", "Shoulder Taps", "Handstand Holds", "Pike Holds")
         "lateral deltoids" -> listOf("Plank-to-Down-Dogs", "Side Plank Rotations", "Lateral Plank Walks", "Side Plank Leg Raises", "Wall Slides")
         "rear deltoids" -> listOf("Reverse Snow Angels", "Rear Delt Floor Flyes")
@@ -703,6 +851,7 @@ object WorkoutTemplates {
 
     private fun getDumbbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
         "chest" -> listOf("Dumbbell Floor Presses", "Dumbbell Flyes", "Incline Dumbbell Presses", "Decline Dumbbell Presses", "Dumbbell Pullovers")
+        "pectorals" -> getDumbbellExercises("chest")
         "front deltoids" -> listOf("Dumbbell Front Raises", "Dumbbell Shoulder Presses", "Arnold Presses", "Dumbbell Clean & Presses", "Dumbbell Thrusters")
         "lateral deltoids" -> listOf("Dumbbell Lateral Raises", "Dumbbell Rows", "Dumbbell Y-Raises")
         "rear deltoids" -> listOf("Dumbbell Rear Delt Flyes", "Dumbbell Face Pulls", "Dumbbell Rows")
@@ -731,6 +880,7 @@ object WorkoutTemplates {
 
     private fun getBarbellExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
         "chest" -> listOf("Barbell Bench Presses", "Barbell Floor Presses", "Incline Barbell Presses", "Decline Barbell Presses", "Close Grip Barbell Presses")
+        "pectorals" -> getBarbellExercises("chest")
         "front deltoids" -> listOf("Military Presses", "Barbell Front Raises", "Barbell Overhead Presses", "Barbell Push Presses", "Landmine Presses", "Barbell Clean & Presses", "Barbell Strict Presses")
         "lateral deltoids" -> listOf("Upright Barbell Rows", "Military Presses")
         "rear deltoids" -> listOf("Barbell Rows", "Barbell Face Pulls")
@@ -759,6 +909,7 @@ object WorkoutTemplates {
 
     private fun getGymExercises(bodyPart: String): List<String> = when(bodyPart.lowercase().trim()) {
         "chest" -> listOf("Barbell Bench Presses", "Cable Flyes", "Incline Barbell Presses", "Chest Press Machines", "Pec Decks", "Low Cable Flyes", "Dips (Chest Focus)", "Weighted Dips", "Chest Dips (Bars)", "Machine Dips", "Dips (Bars)", "Machine Flyes", "Cable Crossovers", "Hammer Strength Chest Presses", "Svend Presses (Cable)", "Floor Presses (Machine)")
+        "pectorals" -> getGymExercises("chest")
         "front deltoids" -> listOf("Military Presses", "Shoulder Press Machines", "Arnold Presses", "Cable Front Raises", "Landmine Presses", "Hammer Strength Shoulder Presses", "Smith Machine Presses")
         "lateral deltoids" -> listOf("Side Raises", "Cable Lateral Raises", "Machine Lateral Raises", "Behind-the-back Cable Lateral Raises", "Cross Cable Lateral Raises", "Y-Raises (Cable)", "Egyptian Lateral Raises (Cable)")
         "rear deltoids" -> listOf("Face Pulls", "Rear Delt Decks", "Cable Rear Delt Flyes", "Rope Face Pulls", "Reverse Pec Decks", "Cable Rows (Rear Delt Focus)")
@@ -934,6 +1085,16 @@ object WorkoutTemplates {
         return enforceRepRange(rawRange)
     }
 
+    /**
+     * The RPE value shown for each Easy/Medium/Hard difficulty level. Chosen to
+     * sit inside the same bands [classifyIntensity] uses (<=7 = Easy, 9+ = Hard).
+     */
+    fun getRpeForIntensity(intensity: String): Int = when (intensity) {
+        "Easy" -> 6
+        "Hard" -> 9
+        else -> 8
+    }
+
     /** Classifies an intensity string into "Easy", "Medium" or "Hard" based on RPE, RIR or keywords. */
     fun classifyIntensity(intensity: String): String {
         val t = intensity.lowercase()
@@ -984,6 +1145,96 @@ object WorkoutTemplates {
             else -> center
         }
         return repRangeAround(adaptedCenter)
+    }
+
+    // Starting loads by equipment class, before difficulty/style scaling. These are
+    // deliberately conservative first-session numbers: the point is a sane starting
+    // point the user adjusts, not a 1RM estimate.
+    private const val BASE_LOAD_BARBELL_COMPOUND = 40.0
+    private const val BASE_LOAD_BARBELL = 20.0
+    private const val BASE_LOAD_DUMBBELL_COMPOUND = 10.0
+    private const val BASE_LOAD_DUMBBELL_ISOLATION = 6.0
+    private const val BASE_LOAD_MACHINE = 20.0
+    private const val BASE_LOAD_DEFAULT = 10.0
+
+    /**
+     * A suggested starting weight for an exercise, adapted to the chosen difficulty
+     * (Easy / Medium / Hard). Difficulty is the only input, so the estimate can't
+     * be pulled in two directions by two different controls.
+     *
+     * Returns 0.0 when there is nothing to load — bodyweight and timed movements —
+     * which the UI already reads as "no weight".
+     *
+     * This is a fallback only: a weight the plan set explicitly, or one the user has
+     * already worked up to for this exercise, always wins over this estimate.
+     */
+    fun getStartingWeightKg(
+        exerciseName: String,
+        intensity: String
+    ): Double {
+        if (exerciseName.isBlank()) return 0.0
+        if (isBodyweightExercise(exerciseName)) return 0.0
+        if (isExerciseTimeBased(exerciseName)) return 0.0
+
+        val difficultyFactor = when (classifyIntensity(intensity)) {
+            "Easy" -> 0.75
+            "Hard" -> 1.25
+            else -> 1.0
+        }
+        return roundToPlate(baseLoadForExercise(exerciseName) * difficultyFactor)
+    }
+
+    /** Base load for an exercise, picked from the equipment it needs. */
+    private fun baseLoadForExercise(name: String): Double {
+        val n = name.lowercase().trim()
+        val isDumbbell = n.contains("dumbbell") || n.contains("db ") || n.contains("goblet")
+        val isMachine = n.contains("machine") || n.contains("cable") || n.contains("smith") ||
+            n.contains("pec deck") || n.contains("pulldown") || n.contains("pushdown") ||
+            n.contains("crossover") || n.contains("rope") || n.contains("hammer strength")
+        // Isolation = single-joint movements, loaded much lighter than compounds.
+        val isIsolation = n.contains("curl") || n.contains("extension") || n.contains("lateral") ||
+            n.contains("raise") || n.contains("pushdown") || n.contains("kickback") ||
+            n.contains("fly") || n.contains("flye") || n.contains("shrug") || n.contains("calf")
+        return when {
+            n.contains("barbell") && isHeavyCompound(n) -> BASE_LOAD_BARBELL_COMPOUND
+            n.contains("barbell") -> BASE_LOAD_BARBELL
+            isDumbbell && isIsolation -> BASE_LOAD_DUMBBELL_ISOLATION
+            isDumbbell -> BASE_LOAD_DUMBBELL_COMPOUND
+            isMachine -> BASE_LOAD_MACHINE
+            else -> BASE_LOAD_DEFAULT
+        }
+    }
+
+    /**
+     * Chip semantics for the equipment filter.
+     *
+     * [EQUIPMENT_ALL] is not a separate type — it is the empty selection, which the
+     * generator reads as "every type allowed". It is mutually exclusive with the
+     * specific chips, so the result is never a mix of All and a type:
+     *  - tapping All clears the selection (everything allowed),
+     *  - tapping a type while All is on narrows the build to just that type,
+     *  - tapping a selected type removes it, and clearing the last one falls back to All,
+     *  - ticking every type by hand is also just "no restriction", so it collapses to All.
+     */
+    fun toggleEquipmentSelection(
+        selected: List<String>,
+        tapped: String,
+        allOptions: List<String>
+    ): List<String> = when {
+        tapped == EQUIPMENT_ALL -> emptyList()
+        selected.isEmpty() -> listOf(tapped)
+        selected.contains(tapped) -> selected - tapped
+        else -> (selected + tapped).let { next ->
+            if (next.size == allOptions.size) emptyList() else next
+        }
+    }
+
+    /** Rounds to a loadable step: 1 kg on the light dumbbells, 2.5 kg on the rest. */
+    private fun roundToPlate(kg: Double): Double {
+        if (kg <= 0.0) return 0.0
+        val step = if (kg < 10.0) 1.0 else 2.5
+        val rounded = kotlin.math.round(kg / step) * step
+        return kotlin.math.max(step, kotlin.math.round(rounded * 10.0) / 10.0)
     }
 
     fun getRecommendedSetsForExercise(name: String): Int {
