@@ -11,11 +11,26 @@ package com.grafizum.repio.data
  * Matching is intentionally conservative: short queries (<= 2 chars) are never
  * fuzzily matched, and the allowed edit distance grows with query length, so the
  * result list does not fill up with unrelated exercises.
+ *
+ * An exercise can also be searched under names other than the canonical English one it is
+ * stored as — see [Candidate] — so a German or Italian user finds "Dumbbell Curls" by
+ * typing "Kurzhantel-Curls" or "Curl con manubri".
  */
 object ExerciseSearch {
 
     /** Maximum number of suggestions returned for one query. */
     const val DEFAULT_LIMIT = 40
+
+    /**
+     * One searchable exercise.
+     *
+     * @property canonical the name the database stores and the UI applies; this is what a
+     *   selection hands back to the caller, so a translated query still saves the canonical
+     *   name and cannot fork the exercise into two records.
+     * @property aliases every other name the same exercise answers to (its translations).
+     *   Matched exactly like [canonical], and the best of them ranks the exercise.
+     */
+    data class Candidate(val canonical: String, val aliases: List<String> = emptyList())
 
     /**
      * Returns the exercise names matching [query], best match first. A blank
@@ -25,21 +40,50 @@ object ExerciseSearch {
         allExercises: List<String>,
         query: String,
         limit: Int = DEFAULT_LIMIT
-    ): List<String> {
+    ): List<String> = searchCandidates(
+        allExercises.map { Candidate(it) },
+        query,
+        limit
+    ).map { it.canonical }
+
+    /**
+     * As [search], but over [Candidate]s: an exercise matches when *any* of its names does,
+     * and it is ranked by its best-matching name. Returning the candidates (rather than bare
+     * strings) lets the caller keep showing the canonical name while the user typed a
+     * translated one.
+     */
+    fun searchCandidates(
+        candidates: List<Candidate>,
+        query: String,
+        limit: Int = DEFAULT_LIMIT
+    ): List<Candidate> {
         val trimmed = query.trim().lowercase()
         if (trimmed.isEmpty()) return emptyList()
 
         val compactQuery = compact(trimmed)
         val tokens = trimmed.split(NON_ALPHANUMERIC).filter { it.isNotEmpty() }
 
-        return allExercises
-            .mapNotNull { name ->
-                score(name, trimmed, compactQuery, tokens)?.let { name to it }
+        return candidates
+            .mapNotNull { candidate ->
+                scoreCandidate(candidate, trimmed, compactQuery, tokens)
+                    ?.let { candidate to it }
             }
-            .sortedWith(compareBy({ it.second }, { it.first.lowercase() }))
+            .sortedWith(compareBy({ it.second }, { it.first.canonical.lowercase() }))
             .map { it.first }
             .take(limit)
     }
+
+    /** Best (lowest) score across the candidate's canonical name and all its aliases. */
+    private fun scoreCandidate(
+        candidate: Candidate,
+        query: String,
+        compactQuery: String,
+        tokens: List<String>
+    ): Double? = candidate.aliases
+        .asSequence()
+        .plus(candidate.canonical)
+        .mapNotNull { score(it, query, compactQuery, tokens) }
+        .minOrNull()
 
     /**
      * Lower is better; `null` means the name is not a match at all.

@@ -134,7 +134,7 @@
     <string name="alternative_exercises">Alternative Übungen</string>
     <string name="select_alternative_desc">Wähle eine andere Übung für %1$s:</string>
     <string name="replace_exercise">Übung ersetzen</string>
-    <string name="replace_exercise_desc">Ersetze %1$s. Tippe eine Alternative an, und sie wird sofort übernommen und diese Karte schließt sich. Die Filter sind auf Gerät und Muskelgruppe voreingestellt — ändere sie, um den gesamten Übungspool zu durchsuchen.</string>
+    <string name="replace_exercise_desc">%1$s ersetzen — tippe eine Alternative an, um sie zu übernehmen. Die Filter starten mit ihrem Gerät und ihrer Muskelgruppe.</string>
     <string name="x_selected">%1$d ausgewählt</string>
     <string name="equipment">Geräte</string>
     <string name="equipment_filter_hint">Wähle die Geräte, die dein Plan verwenden darf — leer lassen, um alle beizubehalten.</string>

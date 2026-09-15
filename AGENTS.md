@@ -98,6 +98,37 @@ Sizing rules that caused real bugs — do not undo them:
 - `AutoScaleText` centres its text inside its box — a `fillMaxWidth` box otherwise parks the label
   against the left edge.
 
+## Exercise localization — store canonical English, display local
+
+The database stores every pool exercise under its **canonical English name** (`Dumbbell
+Curls`). That name is the join key the equipment table (`exerciseEquipment`), the primary
+muscle table (`exercisePrimaryMuscles`), the logged sets and the built-in templates all
+agree on, so it must never change. Translating at *storage* time would orphan every set a
+German user has already logged and would split one exercise into two records.
+
+Translations are applied at **display** time instead, keyed by a slug
+(`ExerciseLocalization.slugify("Dumbbell Curls") == "dumbbell_curls"`):
+
+- `data/ExerciseLocalization.kt` — slugging, `displayName`, `description`, `allNamesFor`,
+  `canonicalFor`, and the window-facing API. Also the reverse index from every known name
+  (English *and* translated) back to the canonical one.
+- `data/ExerciseTextDe.kt` / `ExerciseTextIt.kt` — one `"slug" to ex("Name", "Method text")`
+  entry per pool exercise. **A slug typo does not crash anything** — it silently leaves one
+  exercise in English — which is why `ExerciseLocalizationTest` asserts every pool exercise
+  has exactly one non-blank entry in every table, that no entry is outside the pool, and that
+  names and descriptions are unique within a language. Add a language by adding a table and
+  registering it in `ExerciseLocalization.TABLES` (the tests pick it up automatically).
+- `translateExerciseName()` is the single display path for an exercise name; `getExerciseDetails()`
+  resolves the description the same way and falls back to English, never to blank.
+- Search matches the canonical name **and every translation** (`ExerciseSearch.searchCandidates`),
+  and always returns the canonical name, so typing `Kniebeugen` finds and stores `Squats`.
+  `canonicalFor()` normalizes whatever was typed before muscle detection and before saving.
+- Tooling: `python tools/exercise-i18n/extract.py` prints the slug table from the pool (and
+  fails if the pool ever gains an exercise with no description);
+  `python tools/exercise-i18n/check.py` reports duplicate names/descriptions per language.
+
+When the pool changes, update the tables - `ExerciseLocalizationTest` fails until you do.
+
 ## Known constraint: minSdk is pinned at 23
 
 `minSdk = 23` is the **lowest value that compiles**. Compose requires 21, and the
