@@ -5,14 +5,17 @@ import android.content.Context
 import android.content.Intent
 import android.net.ConnectivityManager
 import android.net.NetworkCapabilities
-import android.os.Build
+import android.util.Log
 import androidx.core.content.edit
 import androidx.core.net.toUri
 import com.google.android.play.core.appupdate.AppUpdateInfo
 import com.google.android.play.core.appupdate.AppUpdateManagerFactory
 import com.google.android.play.core.appupdate.AppUpdateOptions
+import com.google.android.play.core.install.InstallException
 import com.google.android.play.core.install.model.AppUpdateType
+import com.google.android.play.core.install.model.InstallErrorCode
 import com.google.android.play.core.install.model.UpdateAvailability
+import kotlinx.coroutines.CancellationException
 import kotlinx.coroutines.tasks.await
 
 /**
@@ -24,8 +27,18 @@ import kotlinx.coroutines.tasks.await
  *  - The nudge only appears when Play actually reports an update.
  *  - If the user dismisses the nudge, it stays quiet for [NUDGE_COOLDOWN_MS],
  *    then nudges again the next time they open the app while online.
+ *
+ * The install *source* is deliberately not a gate. It used to be — the check
+ * silently returned null unless the installer was the Play Store — which meant a
+ * sideloaded build could never be nudged and there was no way to tell a broken
+ * check from an up-to-date app. Play is already the authority on whether an
+ * update exists, so the answer is taken from Play alone: a build installed by adb
+ * (installerPackageName == null) is now checked like any other, and simply stays
+ * quiet while the installed version is the newest one Play publishes.
  */
 object AppUpdateChecker {
+
+    private const val TAG = "AppUpdateChecker"
 
     /** How long to stay quiet after the user taps "Not now" (3 days). */
     private const val NUDGE_COOLDOWN_MS = 3L * 24 * 60 * 60 * 1000
@@ -50,21 +63,6 @@ object AppUpdateChecker {
         }
     }
 
-    /** True when the installed app actually came from the Play Store (skips sideloaded/debug builds). */
-    private fun isInstalledFromPlayStore(context: Context): Boolean {
-        return try {
-            val installer = if (Build.VERSION.SDK_INT >= Build.VERSION_CODES.R) {
-                context.packageManager.getInstallSourceInfo(context.packageName).installingPackageName
-            } else {
-                @Suppress("DEPRECATION")
-                context.packageManager.getInstallerPackageName(context.packageName)
-            }
-            installer == "com.android.vending"
-        } catch (_: Exception) {
-            false
-        }
-    }
-
     /** True if the user dismissed the nudge more recently than the cooldown window. */
     fun isWithinCooldown(context: Context): Boolean {
         val prefs = context.getSharedPreferences(PREFS_NAME, Context.MODE_PRIVATE)
@@ -81,28 +79,63 @@ object AppUpdateChecker {
     /**
      * Asks Play whether an update exists.
      *
-     * Returns [AppUpdateInfo] only when the device is online, the app is Play-installed,
-     * the user is outside the dismissal cooldown, and Play reports a flexible update.
-     * Returns null in every other case — callers can treat null as "nothing to do".
+     * Returns [AppUpdateInfo] only when the device is online, the user is outside the
+     * dismissal cooldown, and Play reports a flexible update. Returns null in every
+     * other case — callers can treat null as "nothing to do".
+     *
+     * Every outcome is logged, because the silent variants (offline, cooling down,
+     * Play unreachable) are indistinguishable from "you are up to date" at the UI
+     * level by design.
      */
     suspend fun checkForUpdate(context: Context, ignoreCooldown: Boolean = false): AppUpdateInfo? {
         // Never force connectivity: silently skip while offline.
-        if (!isOnline(context)) return null
-        // Only bother the Play Store if the app actually came from there.
-        if (!isInstalledFromPlayStore(context)) return null
+        if (!isOnline(context)) {
+            Log.i(TAG, "Update check skipped: no active network.")
+            return null
+        }
         // Respect the user's "not now" for a while (unless they explicitly asked to update).
-        if (!ignoreCooldown && isWithinCooldown(context)) return null
+        if (!ignoreCooldown && isWithinCooldown(context)) {
+            Log.i(TAG, "Update check skipped: inside the $NUDGE_COOLDOWN_MS ms dismissal cooldown.")
+            return null
+        }
 
         return try {
             val appUpdateManager = AppUpdateManagerFactory.create(context)
             val info = appUpdateManager.appUpdateInfo.await()
 
-            val updateAvailable = info.updateAvailability() == UpdateAvailability.UPDATE_AVAILABLE
+            val availability = info.updateAvailability()
+            val updateAvailable = availability == UpdateAvailability.UPDATE_AVAILABLE
             val flexibleAllowed = info.isUpdateTypeAllowed(AppUpdateType.FLEXIBLE)
 
+            Log.i(
+                TAG,
+                "Play answered availability=$availability " +
+                    "availableVersionCode=${info.availableVersionCode()} " +
+                    "updatePriority=${info.updatePriority()} flexibleAllowed=$flexibleAllowed"
+            )
+
             if (updateAvailable && flexibleAllowed) info else null
-        } catch (_: Exception) {
-            // Play Core unavailable, network hiccup, Play Store missing, etc. — stay quiet.
+        } catch (cancellation: CancellationException) {
+            // Leaving the foreground cancels the check. Not a failure — never swallow it.
+            throw cancellation
+        } catch (exception: Exception) {
+            // Play Core unavailable, network hiccup, Play Store missing, etc. — stay quiet,
+            // but leave a trace so a check that never fires can be told apart from one that
+            // ran and found nothing.
+            val errorCode = (exception as? InstallException)?.errorCode
+            if (errorCode == InstallErrorCode.ERROR_APP_NOT_OWNED) {
+                // Play only answers for apps it installed itself. A build installed with
+                // adb is not "owned", so there is nothing for Play to offer — and no
+                // amount of checking will change that. Install the bundle from Play
+                // (internal testing counts) to exercise the nudge.
+                Log.i(
+                    TAG,
+                    "Update check skipped: this build was not acquired from Play " +
+                        "(ERROR_APP_NOT_OWNED), so Play owns no update for it."
+                )
+            } else {
+                Log.w(TAG, "Update check failed: ${exception.javaClass.simpleName}: ${exception.message}")
+            }
             null
         }
     }
