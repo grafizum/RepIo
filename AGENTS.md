@@ -41,26 +41,41 @@ count, and the gap between two version codes is allowed to span one `VERSION_NAM
 the process environment or in the git-ignored `.env`:
 
 ```
-GRAFIZUM_DASHBOARD_URL=https://...
-GRAFIZUM_DASHBOARD_TOKEN=...
+GRAFIZUM_DASHBOARD_URL=https://api.grafizum.com/v1/events
+GRAFIZUM_DASHBOARD_TOKEN=gz_live_agent_...
+GRAFIZUM_PROJECT_ID=project_4k096a683a6r0q3b700n3z5q   # optional; defaults to RepIo
 ```
+
+**The URL must be the `v1/events` route, not the API root.** The command center has no
+app-version endpoint, so a bump is recorded as a verified activity event
+(`type = "app_version"`, version fields in `meta`) on the RepIo project. `POST` to the bare
+host answers `404 Route not found: POST /`, and every state-changing call also needs an
+`Idempotency-Key` header — the task derives one from the version, so re-reporting the same
+version is a no-op.
 
 Keep these in `.env` only — **do not** add them to `.env.example`. The secrets plugin
 reads that file too, and an active key with an empty value makes it generate invalid
 Java (`public static final String X = ;`), which breaks compilation. Both keys are
 listed in the plugin's `ignoreList` so the token is never compiled into the app either.
 
-The report is a `POST` with a Bearer token and this body:
+The report is a `POST` with a Bearer token, an `Idempotency-Key`, and this body (the
+dashboard's `eventCreateSchema`):
 
 ```json
 {
-  "app": "RepIo",
-  "packageName": "com.grafizum.repio",
-  "versionName": "1.3.2",
-  "versionCode": 38,
-  "changeType": "feature",
-  "note": "What changed",
-  "reportedAt": "2026-09-15T10:30:00+02:00"
+  "type": "app_version",
+  "project_id": "project_4k096a683a6r0q3b700n3z5q",
+  "message": "RepIo 1.5.4 (version code 38) - fix: what changed",
+  "reason": "Version bump reported by the bumpVersion Gradle task on ...",
+  "meta": {
+    "app": "RepIo",
+    "packageName": "com.grafizum.repio",
+    "versionName": "1.5.4",
+    "versionCode": 38,
+    "changeType": "fix",
+    "note": "What changed",
+    "reportedAt": "2026-09-15T10:30:00+02:00"
+  }
 }
 ```
 
