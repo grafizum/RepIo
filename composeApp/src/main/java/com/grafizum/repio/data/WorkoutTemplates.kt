@@ -507,10 +507,26 @@ object WorkoutTemplates {
     }
 
     fun getAllMuscleGroups(): List<String> {
-        val categories = listOf("Arms", "Legs", "Back", "Chest", "Shoulders", "Core")
+        val categories = getBroadMuscleGroups()
         val detailed = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Pectorals")
         return (categories + detailed).distinct().sorted()
     }
+
+    /**
+     * The broad body parts a user picks a substitute exercise by.
+     *
+     * [getAllMuscleGroups] also returns 19 precise muscles (Lats, Pectorals,
+     * Rear Deltoids…). Those are the right granularity for labelling what an
+     * exercise trains, but the wrong one for filtering: someone replacing a row
+     * wants to say "another back movement", not "another Lats movement", and a
+     * 25-entry dropdown makes that choice harder, not more precise.
+     */
+    fun getBroadMuscleGroups(): List<String> =
+        listOf("Arms", "Back", "Chest", "Core", "Legs", "Shoulders")
+
+    /** Lowercase keys of [getBroadMuscleGroups], for the lookup in [exercisesForMuscleGroup]. */
+    private val broadMuscleGroupKeys =
+        listOf("arms", "back", "chest", "core", "legs", "shoulders")
 
     fun getTopicForMuscle(muscle: String): String {
         val mg = muscle.lowercase().trim()
@@ -535,10 +551,32 @@ object WorkoutTemplates {
         // table decides WHICH kit it needs. Filtering the pool through the table
         // keeps the two independent, so an exercise can no longer leak into an
         // equipment category just because a muscle list mentioned it.
-        val allForGroup = getExercisesForPart(muscleGroup)
+        val allForGroup = exercisesForMuscleGroup(muscleGroup)
         val filtered = if (equipment == EQUIPMENT_ALL) allForGroup
                        else allForGroup.filter { getEquipmentForExercise(it) == equipment }
         return filtered.distinct().sorted()
+    }
+
+    /**
+     * Every pool exercise that trains [muscleGroup].
+     *
+     * A precise group is answered by its own pool list, which lists *every*
+     * muscle an exercise works. A broad body part cannot be answered that way:
+     * the pools are deliberately liberal (the triceps list carries the dumbbell
+     * floor press, the biceps list carries chin-ups), so unioning them would
+     * offer a chest press under "Arms" and put chin-ups under both "Arms" and
+     * "Back". A body part is instead answered by the exercise's own
+     * authoritative body part — the one its badge already shows — which makes
+     * the six parts a clean partition of the pool.
+     */
+    private fun exercisesForMuscleGroup(muscleGroup: String): List<String> {
+        if (muscleGroup.trim().lowercase() !in broadMuscleGroupKeys) {
+            return getExercisesForPart(muscleGroup)
+        }
+        val topic = getTopicForMuscle(muscleGroup)
+        return getAllExerciseNames().filter {
+            getTopicForMuscle(getMuscleGroupForExercise(it)) == topic
+        }
     }
 
     /**

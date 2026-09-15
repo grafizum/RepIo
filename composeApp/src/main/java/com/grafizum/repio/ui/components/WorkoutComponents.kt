@@ -3564,7 +3564,7 @@ fun ReplaceExerciseDialog(
     onReplace: (name: String, muscleGroup: String) -> Unit
 ) {
     val focusManager = LocalFocusManager.current
-    val allMuscleGroups = remember { WorkoutTemplates.getAllMuscleGroups() }
+    val broadMuscleGroups = remember { WorkoutTemplates.getBroadMuscleGroups() }
 
     val equipmentOptions = listOf(
         WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
@@ -3583,7 +3583,15 @@ fun ReplaceExerciseDialog(
         )
     }
     var selectedMuscleGroup by remember(exercise.name) {
-        mutableStateOf(exercise.muscleGroup.ifBlank { allMuscleGroups.firstOrNull() ?: "Chest" })
+        // The filter offers broad body parts, so the exercise's own muscle group is
+        // reduced to its topic ("Lats" and "Upper Back" both start the filter on
+        // "Back") — the precise group still labels the replaced exercise itself.
+        mutableStateOf(
+            WorkoutTemplates
+                .getTopicForMuscle(resolvePreciseMuscleGroup(exercise.name, exercise.muscleGroup))
+                .takeIf { it != "Other" }
+                ?: broadMuscleGroups.first()
+        )
     }
     var muscleMenuExpanded by remember { mutableStateOf(false) }
 
@@ -3719,7 +3727,7 @@ fun ReplaceExerciseDialog(
                             }
                         )
                         HorizontalDivider()
-                        allMuscleGroups.forEach { group ->
+                        broadMuscleGroups.forEach { group ->
                             DropdownMenuItem(
                                 text = { Text(translateMuscleGroup(group)) },
                                 onClick = {
@@ -3753,11 +3761,11 @@ fun ReplaceExerciseDialog(
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(alternatives) { _, altName ->
-                            val altMuscleGroup = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) {
-                                WorkoutTemplates.getMuscleGroupForExercise(altName)
-                            } else {
-                                selectedMuscleGroup
-                            }
+                            // Always store the exercise's own precise muscle, whichever way it
+                            // was found: the filter is a broad body part, but the data behind
+                            // the label (and the Analytics split) stays precise.
+                            val altMuscleGroup = WorkoutTemplates.getMuscleGroupForExercise(altName)
+                                .ifBlank { selectedMuscleGroup }
                             val (altDesc, _) = getExerciseDetails(altName, altMuscleGroup, exercise.targetIntensity)
 
                             // Each card runs its own acknowledgement off the same animation, so
