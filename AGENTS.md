@@ -129,6 +129,28 @@ Translations are applied at **display** time instead, keyed by a slug
 
 When the pool changes, update the tables - `ExerciseLocalizationTest` fails until you do.
 
+## Muscle filters are broad, exercise data stays precise
+
+The filter a user picks a substitute exercise by offers **six broad body parts**
+(`WorkoutTemplates.getBroadMuscleGroups()`: Arms, Back, Chest, Core, Legs, Shoulders), not the
+19 precise muscles `getAllMuscleGroups()` also returns. Nineteen exact options make the choice
+harder, not more precise - someone replacing a row wants "another back movement", not "another
+Lats movement".
+
+A broad part means *every exercise whose own body part is that part* - the same body part its
+badge shows. That makes the six parts a **clean partition of the pool** (every exercise appears
+under exactly one), so nothing is unreachable and nothing is offered twice.
+
+Do not implement it by unioning the per-muscle pool lists. Those lists say which muscles an
+exercise *works*, not which it is *for*: the triceps list carries the dumbbell floor press and
+the biceps list carries chin-ups, so a union would offer a chest press under "Arms" and put
+chin-ups under both "Arms" and "Back". Precise groups keep those pool semantics
+(`getExercisesForPart`); only broad parts take the primary-muscle path.
+
+Whatever a broad filter finds, the *stored* muscle group stays precise
+(`getMuscleGroupForExercise(name)`), because the label and the Analytics split read it.
+`ExerciseMuscleFilterTest` locks all of this down.
+
 ## Known constraint: minSdk is pinned at 23
 
 `minSdk = 23` is the **lowest value that compiles**. Compose requires 21, and the
