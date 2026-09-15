@@ -31,6 +31,8 @@ import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Text
 import androidx.compose.material3.TextButton
 import androidx.compose.foundation.interaction.MutableInteractionSource
+import androidx.compose.foundation.rememberScrollState
+import androidx.compose.foundation.verticalScroll
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
@@ -48,7 +50,9 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
+import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.MuscleGroupDonutChart
+import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.StatCard
 import com.grafizum.repio.ui.components.WorkoutCalendar
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -65,7 +69,9 @@ fun AnalyticsScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowSize.current
     var showClearConfirmDialog by remember { mutableStateOf(false) }
+    val contentScrollState = rememberScrollState()
 
     // Logic for Charts
     var selectedChartDay by remember { mutableStateOf<String?>(null) }
@@ -153,62 +159,31 @@ fun AnalyticsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = window.screenPadding)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
                 })
             }
     ) {
-        Spacer(modifier = Modifier.height(8.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing / 2))
 
-        // COMPACT HEADER
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(4.dp)
-            ) {
+        // COMPACT HEADER — title and the clear-history action no longer compete for one
+        // fixed-width row, so neither gets squeezed on narrow screens or long locales.
+        ScreenHeader(
+            title = getString("analytics_reports"),
+            icon = Icons.Default.Assessment,
+            titleStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
+            leading = {
                 if (onBack != null) {
                     IconButton(onClick = onBack, modifier = Modifier.size(32.dp)) {
                         Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = getString("cancel"))
                     }
                     Spacer(modifier = Modifier.width(8.dp))
                 }
-                
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Assessment,
-                        contentDescription = null,
-                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                
-                Column {
-                    Text(
-                    text = getString("analytics_reports"),
-                    style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onBackground
-                )
-                }
-            }
-
-            if (loggedSets.isNotEmpty()) {
-                Row(verticalAlignment = Alignment.CenterVertically) {
+            },
+            trailing = {
+                if (loggedSets.isNotEmpty()) {
                     IconButton(onClick = { showClearConfirmDialog = true }, modifier = Modifier.size(36.dp)) {
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
@@ -218,25 +193,30 @@ fun AnalyticsScreen(
                     }
                 }
             }
-        }
+        )
 
         // Removed showCalendarDialog block
 
         Spacer(modifier = Modifier.height(8.dp))
 
         // Cards column: compact stat card + week metrics + muscle focus.
-        // Fills the remaining screen height so the muscle focus card can
-        // stretch down to the 10dp gap above the bottom menu bar.
+        //
+        // Scrolls, and every card carries its own height. The previous version handed the
+        // muscle-focus card whatever height was left over (`weight(1f)`), which is fine on a
+        // tall phone but collapses to ~0dp on a 360x640dp one - the stat card and the week
+        // metrics already fill that viewport, so the whole bottom card (title, donut, legend)
+        // was clipped away and the page simply looked like it ended after "Training Output".
         Column(
             modifier = Modifier
                 .fillMaxWidth()
                 .weight(1f)
+                .verticalScroll(contentScrollState)
                 .pointerInput(Unit) {
                     detectTapGestures(onTap = {
                         focusManager.clearFocus()
                     })
                 },
-            verticalArrangement = Arrangement.spacedBy(12.dp)
+            verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)
         ) {
             // 1. QUICK STAT CARD (compact so the Analytics tab fits one screen)
             StatCard(
@@ -257,13 +237,15 @@ fun AnalyticsScreen(
                 onDaySelected = { selectedChartDay = it }
             )
 
-            // 3. MUSCLE GROUP FOCUS — stretches to fill the leftover height,
-            // ending exactly 10dp above the bottom menu bar.
+            // 3. MUSCLE GROUP FOCUS — a real, bounded height instead of a slice of the
+            // leftover space. The card divides its height between the donut and the legend,
+            // which only works while the height is known; it ends 10dp above the bottom menu
+            // bar, and the column scrolls if the three cards cannot all fit at once.
             MuscleGroupDonutChart(
                 distribution = muscleGroupDistribution,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .weight(1f)
+                    .height(window.donutHeight)
                     .padding(bottom = 10.dp)
             )
         }

@@ -358,7 +358,7 @@ object DefaultData {
         ),
         RoutineExerciseEntity(
             dayOfWeek = "FRIDAY",
-            name = "Dumbbell Tricep Extensions",
+            name = "Dumbbell Overhead Extensions",
             muscleGroup = "Triceps",
             targetSets = 2,
             targetReps = "10–20",

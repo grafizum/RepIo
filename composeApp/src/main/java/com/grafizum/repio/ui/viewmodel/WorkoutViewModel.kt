@@ -810,9 +810,7 @@ class WorkoutViewModel(
     /**
      * Follows the running timer into the session state.
      *
-     * Both the countdown notification and the end-of-rest alert belong to
-     * [com.grafizum.repio.util.RestTimerService], which keeps them going while the app is
-     * closed; here we only read the same stored end time, so the screen always shows the
+     * here we only read the same stored end time, so the screen always shows the
      * identical remaining time.
      */
     fun tickTimer() {
