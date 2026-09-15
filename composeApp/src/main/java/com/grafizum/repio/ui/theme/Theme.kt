@@ -15,8 +15,12 @@ import androidx.core.view.WindowCompat
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.unit.TextUnit
+import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.rememberWindowSize
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.IndicationNodeFactory
 import androidx.compose.foundation.LocalIndication
@@ -216,6 +220,40 @@ fun getDeveloperTypography(): androidx.compose.material3.Typography {
     )
 }
 
+/**
+ * Scales a single text unit, leaving non-sp values (Unspecified, em) untouched so an
+ * unset `lineHeight` or `letterSpacing` never blows up the whole typography object.
+ */
+private fun TextUnit.scaledBy(factor: Float): TextUnit = if (isSp) this * factor else this
+
+private fun TextStyle.scaledBy(factor: Float): TextStyle = copy(
+    fontSize = fontSize.scaledBy(factor),
+    lineHeight = lineHeight.scaledBy(factor),
+    letterSpacing = letterSpacing.scaledBy(factor)
+)
+
+/**
+ * Size-aware typography.
+ *
+ * Only the structural styles (display/headline/title) are scaled: they are what makes a
+ * narrow phone feel cramped and what pushes headers into wrapping on long German/Italian
+ * labels. Body and label text keeps its authored size so nothing becomes hard to read.
+ */
+private fun androidx.compose.material3.Typography.scaledFor(scale: Float): androidx.compose.material3.Typography {
+    if (scale == 1f) return this
+    return copy(
+        displayLarge = displayLarge.scaledBy(scale),
+        displayMedium = displayMedium.scaledBy(scale),
+        displaySmall = displaySmall.scaledBy(scale),
+        headlineLarge = headlineLarge.scaledBy(scale),
+        headlineMedium = headlineMedium.scaledBy(scale),
+        headlineSmall = headlineSmall.scaledBy(scale),
+        titleLarge = titleLarge.scaledBy(scale),
+        titleMedium = titleMedium.scaledBy(scale),
+        titleSmall = titleSmall.scaledBy(scale)
+    )
+}
+
 @Composable
 fun WorkoutTrackerTheme(
     themeOption: String = "DEFAULT",
@@ -256,9 +294,16 @@ fun WorkoutTrackerTheme(
         }
     }
 
-    val typography = if (isDeveloper) getDeveloperTypography() else Typography
+    // Resolved before MaterialTheme so the type scale can be applied to the typography,
+    // and provided to every screen so they share one set of spacing tokens.
+    val windowSize = rememberWindowSize()
+    val typography = (if (isDeveloper) getDeveloperTypography() else Typography)
+        .scaledFor(windowSize.typeScale)
 
-    CompositionLocalProvider(LocalDeveloperSkin provides isDeveloper) {
+    CompositionLocalProvider(
+        LocalDeveloperSkin provides isDeveloper,
+        LocalWindowSize provides windowSize
+    ) {
         MaterialTheme(
             colorScheme = colorScheme,
             typography = typography

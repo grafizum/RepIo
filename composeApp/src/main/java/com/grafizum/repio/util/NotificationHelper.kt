@@ -1,6 +1,5 @@
 package com.grafizum.repio.util
 
-import android.app.Notification
 import android.app.NotificationChannel
 import android.app.NotificationManager
 import android.app.PendingIntent
@@ -20,15 +19,8 @@ import com.grafizum.repio.R
 
 object NotificationHelper {
     private const val CHANNEL_ID = "rest_timer_channel"
-    private const val COUNTDOWN_CHANNEL_ID = "rest_timer_countdown_channel"
     private const val NOTIFICATION_ID = 1001
 
-    /**
-     * The rest timer's ongoing countdown. Public because the background timer promotes
-     * it to its foreground notification, so the same single notification follows the
-     * rest whether or not the app is open.
-     */
-    const val COUNTDOWN_NOTIFICATION_ID = 1003
     private const val UPDATE_CHANNEL_ID = "app_update_channel"
     private const val UPDATE_NOTIFICATION_ID = 1005
     private const val MOTIVATION_CHANNEL_ID = "motivation_channel"
@@ -54,106 +46,6 @@ object NotificationHelper {
             val notificationManager: NotificationManager =
                 context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
             notificationManager.createNotificationChannel(channel)
-
-            // Silent, ongoing channel for the countdown indicator (no sound / vibration while counting down)
-            val countdownChannel = NotificationChannel(
-                COUNTDOWN_CHANNEL_ID,
-                context.getString(R.string.notification_countdown_channel_name),
-                NotificationManager.IMPORTANCE_LOW
-            ).apply {
-                description = context.getString(R.string.notification_countdown_channel_desc)
-                setSound(null, null)
-                enableVibration(false)
-                enableLights(false)
-            }
-            notificationManager.createNotificationChannel(countdownChannel)
-        }
-    }
-
-    /**
-     * Shows a silent, ongoing countdown notification: the remaining time as a big text line
-     * under the title (no small chronometer next to the app name) plus a "Skip" action that
-     * stops the timer. No sound, no vibration — it's only an indicator.
-     *
-     * Posted by [RestTimerService] once a second, so the countdown keeps ticking from the
-     * same value the in-app timer shows even when the app is gone.
-     */
-    fun showRestTimerCountdown(context: Context, remainingSeconds: Int) {
-        // Only show system notification if notifications are enabled
-        if (!NotificationManagerCompat.from(context).areNotificationsEnabled()) {
-            return
-        }
-
-        createNotificationChannel(context)
-
-        val notificationManager =
-            context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-        try {
-            notificationManager.notify(
-                COUNTDOWN_NOTIFICATION_ID,
-                restTimerCountdownNotification(context, remainingSeconds)
-            )
-        } catch (e: Exception) {
-            // Fallback gracefully
-        }
-    }
-
-    /** Builds the countdown notification, for posting and for the foreground service. */
-    fun restTimerCountdownNotification(context: Context, remainingSeconds: Int): Notification {
-        val launchIntent = context.packageManager.getLaunchIntentForPackage(context.packageName)?.apply {
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("TARGET_SCREEN", "workout")
-        } ?: Intent(context, com.grafizum.repio.MainActivity::class.java).apply {
-            action = Intent.ACTION_MAIN
-            addCategory(Intent.CATEGORY_LAUNCHER)
-            flags = Intent.FLAG_ACTIVITY_NEW_TASK or Intent.FLAG_ACTIVITY_SINGLE_TOP
-            putExtra("TARGET_SCREEN", "workout")
-            setPackage(context.packageName)
-        }
-        val pendingIntent = PendingIntent.getActivity(
-            context,
-            1001,
-            launchIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        // Skip action -> broadcast to the receiver, which clears the stored timer and stops the service
-        val skipIntent = Intent(context, RestTimerReceiver::class.java).apply {
-            action = RestTimerReceiver.ACTION_SKIP_TIMER
-        }
-        val skipPendingIntent = PendingIntent.getBroadcast(
-            context,
-            1004,
-            skipIntent,
-            PendingIntent.FLAG_UPDATE_CURRENT or PendingIntent.FLAG_IMMUTABLE
-        )
-
-        val timeLeft = formatRestTime(remainingSeconds)
-
-        val builder = NotificationCompat.Builder(context, COUNTDOWN_CHANNEL_ID)
-            .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notification_countdown_title))
-            .setContentText(timeLeft)
-            .setStyle(NotificationCompat.BigTextStyle().bigText(timeLeft))
-            .setPriority(NotificationCompat.PRIORITY_LOW)
-            .setCategory(NotificationCompat.CATEGORY_PROGRESS)
-            .setContentIntent(pendingIntent)
-            .setOngoing(true)
-            .setOnlyAlertOnce(true)
-            .setShowWhen(false)
-            .setVisibility(NotificationCompat.VISIBILITY_PUBLIC)
-            .addAction(0, context.getString(R.string.skip_timer), skipPendingIntent)
-
-        return builder.build()
-    }
-
-    fun cancelRestTimerCountdown(context: Context) {
-        try {
-            val notificationManager =
-                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
-            notificationManager.cancel(COUNTDOWN_NOTIFICATION_ID)
-        } catch (e: Exception) {
-            // Ignore
         }
     }
 
@@ -336,9 +228,6 @@ object NotificationHelper {
      * notification — the session still hears about it either way.
      */
     fun showRestTimerEndedNotification(context: Context, alert: Boolean = true) {
-        // Remove the countdown indicator once the timer has ended
-        cancelRestTimerCountdown(context)
-
         val isInForeground = AppEventBus.isAppInForeground.value
 
         // Always trigger in-app event so it's ready when user returns or is inside
@@ -424,4 +313,4 @@ object NotificationHelper {
             // Ignore if vibrator fails
         }
     }
-}
+}

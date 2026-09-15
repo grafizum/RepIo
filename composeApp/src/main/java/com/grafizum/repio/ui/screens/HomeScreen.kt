@@ -51,6 +51,8 @@ import kotlinx.coroutines.launch
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.border
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.ScreenHeader
 
 @Composable
 fun HomeScreen(
@@ -63,6 +65,7 @@ fun HomeScreen(
     val loggedSets by viewModel.allLoggedSets.collectAsState()
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowSize.current
 
     val todayStr = getTodayDayOfWeek()
     val todayRoutineDay = remember(routineDays, todayStr) { routineDays.find { it.dayOfWeek == todayStr } }
@@ -122,56 +125,24 @@ fun HomeScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = window.screenPadding)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
                 })
             }
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
-        // TOP APP HEADER
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(12.dp))
-                    .padding(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Home,
-                        contentDescription = null,
-                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = getString("smart_workout_assistant"),
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
+        // TOP APP HEADER — "Smart Workout Assistant" is one of the longest titles in the
+        // app (and longer still in DE/IT), so it goes through ScreenHeader which lets the
+        // title wrap inside its own column instead of squeezing whatever sits beside it.
+        ScreenHeader(
+            title = getString("smart_workout_assistant"),
+            icon = Icons.Default.Home
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         LazyColumn(
             state = listState,
@@ -203,7 +174,7 @@ fun HomeScreen(
                                     )
                                 }
                             )
-                            .padding(20.dp)
+                            .padding(window.cardPadding)
                     ) {
                         Column {
                             Row(
@@ -310,7 +281,7 @@ fun HomeScreen(
                                 border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
                                 modifier = Modifier
                                     .fillMaxWidth()
-                                    .height(52.dp)
+                                    .heightIn(min = 52.dp)
                                     .semantics { testTag = "workout_now_button" }
                             ) {
                                 Text(
@@ -326,7 +297,7 @@ fun HomeScreen(
                 }
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }
 
             // QUICK STATS ROW
             item {
@@ -342,7 +313,7 @@ fun HomeScreen(
                 )
             }
 
-            item { Spacer(modifier = Modifier.height(16.dp)) }
+            item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }
 
             // TODAY'S EXERCISES LIST PREVIEW
             item {
@@ -353,7 +324,12 @@ fun HomeScreen(
                 ) {
                     Text(
                         text = getString("todays_schedule"),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
+                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                        // weight only, never fill: the "expand all" chip keeps its size and a
+                        // long translated title ellipsizes rather than squeezing it.
+                        modifier = Modifier.weight(1f, fill = false),
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
                     )
                     val isAllExpanded by remember(todayExercises, expandedExerciseIds) {
                         derivedStateOf { 
@@ -568,8 +544,10 @@ fun HomeScreen(
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = formatMuscleGroup(exercise.muscleGroup, exercise.name),
-                                    style = MaterialTheme.typography.bodySmall,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                    // Same muscle-group colour as the dot, Home's chip and the
+                                    // Analytics breakdown, instead of a plain grey label.
+                                    color = muscleGroupColor(exercise.muscleGroup),
                                     modifier = Modifier.weight(1f, fill = false),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

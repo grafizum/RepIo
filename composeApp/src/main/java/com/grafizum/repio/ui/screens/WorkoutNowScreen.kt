@@ -62,7 +62,8 @@ import com.grafizum.repio.data.DayOfWeekEnum
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
-import com.grafizum.repio.ui.components.rememberIsCompactWidth
+import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -87,6 +88,7 @@ fun WorkoutNowScreen(
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowSize.current
 
     var showRestartDialog by remember { mutableStateOf(false) }
     var showCustomWeightDialog by remember { mutableStateOf(false) }
@@ -252,73 +254,33 @@ fun WorkoutNowScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = window.screenPadding)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
                 })
             }
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
-        // COMPACT HEADER (FIXED)
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp) // min only: grows if the title wraps on narrow screens
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = null,
-                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    // Don't hard-cap the day title: force-one-line in DE/IT caused
-                    // mid-glyph clipping on narrow phones (e.g. Pixel 8).
-                    Text(
-                        text = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                    val trainingType = if (currentDayExercises.isNotEmpty()) {
-                        currentDayExercises.map { it.muscleGroup }
-                            .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
-                            .distinct()
-                            .joinToString(", ")
-                    } else {
-                        getString("rest_recovery_day")
-                    }
+        // COMPACT HEADER — the day title and the "Workout" action share this row. ScreenHeader
+        // keeps the action at its intrinsic size while the title wraps inside the leftover
+        // width, so long day names (DE/IT) can no longer squeeze the button or clip mid-glyph
+        // on narrow phones (e.g. Pixel 8).
+        val trainingType = if (currentDayExercises.isNotEmpty()) {
+            currentDayExercises.map { it.muscleGroup }
+                .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
+                .distinct()
+                .joinToString(", ")
+        } else {
+            getString("rest_recovery_day")
+        }
 
-                    if (trainingType.isNotBlank()) {
-                        Text(
-                            text = trainingType,
-                            style = MaterialTheme.typography.bodySmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-
-            Row(verticalAlignment = Alignment.CenterVertically) {
+        ScreenHeader(
+            title = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
+            subtitle = trainingType,
+            icon = Icons.Default.FitnessCenter,
+            trailing = {
                 if (onChangeRoutine != null) {
                     OutlinedButton(
                         onClick = onChangeRoutine,
@@ -330,7 +292,7 @@ fun WorkoutNowScreen(
                         ),
                         contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
                         modifier = Modifier
-                            .height(36.dp)
+                            .heightIn(min = 36.dp)
                             .semantics { testTag = "change_workout_button" }
                     ) {
                         Icon(
@@ -346,18 +308,17 @@ fun WorkoutNowScreen(
                     }
                 }
             }
-        }
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         val today = remember { getTodayDayOfWeek() }
         com.grafizum.repio.ui.components.WorkoutDayWheel(
             selectedDay = workoutState.selectedDayOfWeek,
-            onDaySelected = { viewModel.selectDayForWorkoutNow(it) },
-            today = today
+            onDaySelected = { viewModel.selectDayForWorkoutNow(it) },                            today = today
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         Box(
             modifier = Modifier
@@ -541,7 +502,7 @@ fun WorkoutNowScreen(
                                         border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                                         modifier = Modifier
-                                            .height(32.dp)
+                                            .heightIn(min = 32.dp)
                                             .semantics { testTag = "restart_workout_button" }
                                     ) {
                                         Icon(
@@ -690,7 +651,13 @@ fun WorkoutNowScreen(
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically, horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
+                                            // The "Set x of y" chip on the right always keeps its width;
+                                            // the badge ellipsizes instead of being pushed off the card.
+                                            modifier = Modifier.weight(1f, fill = false)
+                                        ) {
                                             // Badge shows the broad body part + precise muscle group together.
                                             MuscleGroupBadge(
                                                 muscleGroup = currentExercise.muscleGroup,

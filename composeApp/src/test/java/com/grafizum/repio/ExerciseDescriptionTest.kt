@@ -37,7 +37,7 @@ class ExerciseDescriptionTest {
             "Dumbbell Hammer Curls", "Dumbbell Shoulder Presses", "Dumbbell Lateral Raises",
             "Crunches", "Barbell Bench Presses", "Dumbbell Bench Presses", "Barbell Curls",
             "Leg Raises", "Barbell Squats", "Barbell Romanian Deadlifts", "Dumbbell Lunges",
-            "Planks", "Dumbbell Flyes", "Dumbbell Tricep Extensions", "Concentration Curls",
+            "Planks", "Dumbbell Flyes", "Dumbbell Overhead Extensions", "Concentration Curls",
             "Hack Squats", "Sumo Squats", "Seated Rows", "Incline Dumbbell Curls"
         )
         routineNames.forEach { name ->

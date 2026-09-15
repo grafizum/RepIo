@@ -83,6 +83,8 @@ import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
+import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.TimersMergedCard
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import kotlinx.coroutines.delay
@@ -116,6 +118,7 @@ fun SettingsScreen(
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowSize.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val motivationalNudges by viewModel.motivationalNudges.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
@@ -313,7 +316,7 @@ fun SettingsScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = window.screenPadding)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
@@ -321,49 +324,19 @@ fun SettingsScreen(
             }
             .verticalScroll(scrollState)
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         // COMPACT HEADER
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.Settings,
-                        contentDescription = null,
-                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = getString("app_settings"),
-                        style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
-        }
+        ScreenHeader(
+            title = getString("app_settings"),
+            icon = Icons.Default.Settings,
+            titleStyle = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.Bold)
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         // MAIN SETTINGS CONTENT
-        Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Column(verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)) {
             
             // LANGUAGE SELECTION CARD
             Card(

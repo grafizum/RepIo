@@ -6,9 +6,6 @@
     <uses-permission android:name="android.permission.ACCESS_NETWORK_STATE" />
     <uses-permission android:name="android.permission.POST_NOTIFICATIONS" />
     <uses-permission android:name="android.permission.VIBRATE" />
-    <!-- The rest timer runs in a foreground service so it keeps counting (and alerts) with the app closed -->
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE" />
-    <uses-permission android:name="android.permission.FOREGROUND_SERVICE_SPECIAL_USE" />
     <uses-permission android:name="android.permission.SCHEDULE_EXACT_ALARM" />
     <uses-permission android:name="android.permission.RECEIVE_BOOT_COMPLETED" />
 
@@ -25,7 +22,10 @@
         android:localeConfig="@xml/locales_config"
         android:theme="@style/Theme.MyApplication">
 
-        <!-- Base MainActivity (Internal only, variants handle the launcher) -->
+        <!-- Base MainActivity (Internal only, variants handle the launcher).
+             It has no intent-filter, so enabling it adds no launcher entry, but it must
+             stay enabled: IconSwitchHelper relies on it and Android Studio launches it
+             for debugging when the icon variants are toggled. -->
         <activity
             android:name="com.grafizum.repio.MainActivity"
             android:enabled="true"
@@ -159,18 +159,6 @@
                 <category android:name="android.intent.category.LAUNCHER" />
             </intent-filter>
         </activity>
-
-        <!-- Rest timer: counts the rest down and alerts, whether or not the app is open.
-             "specialUse" is the type for work that fits no other category; the subtype
-             below is the justification Play asks for. -->
-        <service
-            android:name=".util.RestTimerService"
-            android:exported="false"
-            android:foregroundServiceType="specialUse">
-            <property
-                android:name="android.app.PROPERTY_SPECIAL_USE_FGS_SUBTYPE"
-                android:value="workout rest timer: keeps counting and alerts when a set ends while the app is closed" />
-        </service>
 
         <receiver
             android:name=".util.RestTimerReceiver"

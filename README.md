@@ -15,7 +15,7 @@ A minimalist, modern Android application designed for real-time workout logging 
 
 ## 📱 Tech Stack
 
-- **Platform:** Android (API 24+)
+- **Platform:** Android (API 23+)
 - **Language:** Kotlin / Java
 - **UI Framework:** Material Design 3
 - **Version Control:** Git / GitHub
@@ -28,4 +28,4 @@ A minimalist, modern Android application designed for real-time workout logging 
 
 - Android Studio (Ladybug / Jellyfish or newer recommended)
 - JDK 17 or higher
-- Android SDK 34+
+- Android SDK 36+ (compileSdk / targetSdk)

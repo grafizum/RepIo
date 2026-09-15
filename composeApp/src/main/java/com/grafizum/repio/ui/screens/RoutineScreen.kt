@@ -108,6 +108,8 @@ import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.WorkoutDayWheel
+import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
@@ -172,6 +174,7 @@ fun WorkoutScreen(
 
     val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
     val focusManager = LocalFocusManager.current
+    val window = LocalWindowSize.current
 
     androidx.compose.runtime.LaunchedEffect(workoutState.selectedDayOfWeek) {
         expandedExerciseId = null
@@ -267,93 +270,63 @@ fun WorkoutScreen(
     Column(
         modifier = modifier
             .fillMaxSize()
-            .padding(horizontal = 16.dp)
+            .padding(horizontal = window.screenPadding)
             .pointerInput(Unit) {
                 detectTapGestures(onTap = {
                     focusManager.clearFocus()
                 })
             }
     ) {
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
-        // COMPACT HEADER
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            horizontalArrangement = Arrangement.SpaceBetween,
-            modifier = Modifier
-                .fillMaxWidth()
-                .heightIn(min = 72.dp)
-                .padding(vertical = 4.dp)
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.padding(4.dp)
-            ) {
-                Box(
-                    modifier = Modifier
-                        .size(42.dp)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                        .background(if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.FitnessCenter,
-                        contentDescription = null,
-                        tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column {
-                    Text(
-                        text = getString("edit"),
-                        style = MaterialTheme.typography.headlineLarge.copy(fontWeight = FontWeight.ExtraBold),
-                        color = MaterialTheme.colorScheme.onBackground
-                    )
-                }
-            }
+        // COMPACT HEADER — title keeps the leftover width, the two actions keep theirs, so
+        // longer translations ("Neu", "Zurück") cannot squeeze the title or vice versa.
+        ScreenHeader(
+            title = getString("edit"),
+            icon = Icons.Default.FitnessCenter,
+            trailing = {
+                Row(verticalAlignment = Alignment.CenterVertically) {
+                    if (onCustomClick != null) {
+                        OutlinedButton(
+                            onClick = {
+                                focusManager.clearFocus()
+                                onCustomClick()
+                            },
+                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                            colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
+                            contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
+                            modifier = Modifier.heightIn(min = 32.dp)
+                        ) {
+                            Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                            Spacer(modifier = Modifier.width(4.dp))
+                            Text(getString("action_back"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        }
+                        Spacer(modifier = Modifier.width(8.dp))
+                    }
 
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                if (onCustomClick != null) {
-                    OutlinedButton(
+                    Button(
                         onClick = {
                             focusManager.clearFocus()
-                            onCustomClick()
+                            viewModel.resetFirstTimeSetup()
                         },
                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
+                        colors = ButtonDefaults.buttonColors(
+                            containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                        ),
                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                        modifier = Modifier.height(32.dp)
+                        modifier = Modifier.heightIn(min = 32.dp)
                     ) {
-                        Icon(imageVector = Icons.AutoMirrored.Filled.ArrowBack, contentDescription = null, modifier = Modifier.size(14.dp))
+                        Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
                         Spacer(modifier = Modifier.width(4.dp))
-                        Text(getString("action_back"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
+                        Text(getString("new_action"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
                     }
                 }
-
-                Spacer(modifier = Modifier.width(8.dp))
-                Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        viewModel.resetFirstTimeSetup() 
-                    },
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                        contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    ),
-                    contentPadding = PaddingValues(horizontal = 10.dp, vertical = 4.dp),
-                    modifier = Modifier.height(32.dp)
-                ) {
-                    Icon(imageVector = Icons.Default.AddCircle, contentDescription = null, modifier = Modifier.size(14.dp))
-                    Spacer(modifier = Modifier.width(4.dp))
-                    Text(getString("new_action"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                }
             }
-        }
+        )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         WorkoutDayWheel(
             selectedDay = workoutState.selectedDayOfWeek,
@@ -361,7 +334,7 @@ fun WorkoutScreen(
             today = today
         )
 
-        Spacer(modifier = Modifier.height(16.dp))
+        Spacer(modifier = Modifier.height(window.sectionSpacing))
 
         Box(
             modifier = Modifier
