@@ -136,6 +136,8 @@ secrets {
     // value makes the plugin emit invalid Java (`= ;`) and breaks compilation.
     ignoreList.add("GRAFIZUM_DASHBOARD_URL")
     ignoreList.add("GRAFIZUM_DASHBOARD_TOKEN")
+    // Optional override for the dashboard project the bump is reported against.
+    ignoreList.add("GRAFIZUM_PROJECT_ID")
 }
 
 dependencies {
