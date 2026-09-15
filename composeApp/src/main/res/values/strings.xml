@@ -25,6 +25,7 @@
     <string name="todays_schedule">Today\'s Schedule</string>
     <string name="expand_all">Expand All</string>
     <string name="collapse_all">Collapse All</string>
+    <string name="show_more">Show more</string>
     <string name="tap_for_details">Tap for details</string>
     <string name="no_exercises_today">No scheduled exercises for today. Enjoy your rest &amp; recovery day!</string>
     <plurals name="sets_x_reps_pl" tools:ignore="UnusedResources">

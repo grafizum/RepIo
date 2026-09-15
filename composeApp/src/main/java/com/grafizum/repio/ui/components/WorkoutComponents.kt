@@ -3599,6 +3599,12 @@ fun ReplaceExerciseDialog(
     // held back for [REPLACE_TICK_MILLIS]. Nothing else can be picked meanwhile, so a second
     // tap can't swap a different exercise in behind the first one.
     var pickedName by remember { mutableStateOf<String?>(null) }
+
+    // A card's method text starts clamped to two lines and can be opened in place. Kept as
+    // a set rather than one slot, so comparing two alternatives does not collapse the first
+    // the moment the second is opened.
+    var expandedAlternatives by remember { mutableStateOf(emptySet<String>()) }
+
     val scope = rememberCoroutineScope()
 
     fun pick(name: String, muscleGroup: String) {
@@ -3817,13 +3823,66 @@ fun ReplaceExerciseDialog(
                                             style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold)
                                         )
                                         if (altDesc.isNotBlank()) {
+                                            val isExpanded = altName in expandedAlternatives
+                                            var isClamped by remember(altName) { mutableStateOf(false) }
+                                            val descriptionInteraction = remember { MutableInteractionSource() }
+                                            val toggleInteraction = remember { MutableInteractionSource() }
+
+                                            // A method text short enough to fit two lines is not a
+                                            // toggle at all: every tap on it must stay the tap that
+                                            // replaces the exercise. Only text the card actually cut
+                                            // off (or one already open) takes the press, and it takes
+                                            // it before the card can, so opening a description never
+                                            // swaps the exercise by accident.
+                                            val canToggle = isExpanded || isClamped
+                                            val toggle: () -> Unit = {
+                                                expandedAlternatives =
+                                                    if (isExpanded) expandedAlternatives - altName
+                                                    else expandedAlternatives + altName
+                                            }
+
                                             Text(
                                                 text = altDesc,
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                                                maxLines = 2,
-                                                overflow = TextOverflow.Ellipsis
+                                                maxLines = if (isExpanded) Int.MAX_VALUE else 2,
+                                                overflow = TextOverflow.Ellipsis,
+                                                onTextLayout = { layout ->
+                                                    if (!isExpanded) isClamped = layout.hasVisualOverflow
+                                                },
+                                                modifier = Modifier.clickable(
+                                                    enabled = canToggle,
+                                                    interactionSource = descriptionInteraction,
+                                                    indication = null,
+                                                    onClick = toggle
+                                                )
                                             )
+
+                                            if (canToggle) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .clickable(
+                                                            interactionSource = toggleInteraction,
+                                                            indication = null,
+                                                            onClick = toggle
+                                                        )
+                                                        .padding(top = 2.dp)
+                                                ) {
+                                                    Text(
+                                                        text = getString(if (isExpanded) "show_less" else "show_more"),
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.primary
+                                                    )
+                                                    Icon(
+                                                        imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp
+                                                                      else Icons.Default.KeyboardArrowDown,
+                                                        contentDescription = null,
+                                                        tint = MaterialTheme.colorScheme.primary,
+                                                        modifier = Modifier.size(16.dp)
+                                                    )
+                                                }
+                                            }
                                         }
                                     }
                                 }

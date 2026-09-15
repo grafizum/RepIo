@@ -166,6 +166,30 @@ Whatever a broad filter finds, the *stored* muscle group stays precise
 (`getMuscleGroupForExercise(name)`), because the label and the Analytics split read it.
 `ExerciseMuscleFilterTest` locks all of this down.
 
+## In-app updates - Play is the only authority
+
+`AppUpdateChecker` asks Play Core's `appUpdateInfo` API and the app shows a dismissible snackbar
+plus a tray notification when Play reports an update. Four things about it are easy to get wrong:
+
+- **Play only answers for apps it installed itself.** A build installed with `adb install` has
+  `installerPackageName == null`, and Play refuses with `InstallException: -10
+  ERROR_APP_NOT_OWNED` ("The app is not owned by any user on this device"). No code change can
+  produce a nudge for a sideloaded build. To exercise the flow, install from Play - internal
+  testing counts - with a **higher version live on the console** than the installed one.
+  Otherwise Play answers `UPDATE_NOT_AVAILABLE`, and staying quiet is the correct behaviour.
+- The install *source* is deliberately not a gate in our code any more. It used to be, which made
+  a sideloaded build fail silently with no way to tell a broken check from an up-to-date app.
+  Play already enforces the ownership rule, so its answer is used as-is.
+- The check runs on every foreground from `repeatOnLifecycle(RESUMED)`, **not** from an `ON_RESUME`
+  observer that launches into `rememberCoroutineScope()`. That scope is cancelled when the
+  composition restarts (the splash screen hands over to the app), which silently discarded the
+  check on the very launch that mattered.
+- `checkForUpdate` rethrows `CancellationException` and logs every other outcome, so "the check
+  never ran" can be told apart from "the check ran and found nothing". Watch it with
+  `adb logcat -s AppUpdateChecker:*`.
+
+The nudge is quiet for three days after the user taps "Not now" (`NUDGE_COOLDOWN_MS`).
+
 ## Known constraint: minSdk is pinned at 23
 
 `minSdk = 23` is the **lowest value that compiles**. Compose requires 21, and the
