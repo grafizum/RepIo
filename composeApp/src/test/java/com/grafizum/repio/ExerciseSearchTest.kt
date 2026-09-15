@@ -1,5 +1,6 @@
 package com.grafizum.repio
 
+import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.WorkoutTemplates
 import org.junit.Assert.assertEquals
@@ -96,5 +97,80 @@ class ExerciseSearchTest {
         assertTrue(ExerciseSearch.search(all, "dumbell curl").any { it.contains("Curl") })
         assertTrue(ExerciseSearch.search(all, "bnech press").any { it.contains("Bench Press") })
         assertTrue(ExerciseSearch.search(all, "pullup").any { it.contains("Pull-up") })
+    }
+
+    // --- Localized search -----------------------------------------------------------------
+    //
+    // The add-exercise field searches the pool by canonical name *and* by every translated
+    // name, so a German user typing "Kurzhantel-Curls" finds the exercise stored as
+    // "Dumbbell Curls". The canonical name is what gets handed back, so picking a translated
+    // suggestion can never fork an exercise into a second record.
+
+    private fun catalog(): List<ExerciseSearch.Candidate> =
+        WorkoutTemplates.getAllExerciseNames().map { name ->
+            ExerciseSearch.Candidate(name, ExerciseLocalization.allNamesFor(name))
+        }
+
+    @Test
+    fun germanNameFindsTheExerciseAndReturnsTheCanonicalName() {
+        val results = ExerciseSearch.searchCandidates(catalog(), "Kurzhantel-Curls")
+        assertEquals("Dumbbell Curls", results.first().canonical)
+    }
+
+    @Test
+    fun italianNameFindsTheExerciseAndReturnsTheCanonicalName() {
+        val results = ExerciseSearch.searchCandidates(catalog(), "Curl con manubri")
+        assertEquals("Dumbbell Curls", results.first().canonical)
+    }
+
+    @Test
+    fun germanTypoStillFindsTheExercise() {
+        // Fuzzy matching must work on the translated name too, not just exact matches.
+        val results = ExerciseSearch.searchCandidates(catalog(), "Kurzhantel Kurles")
+        assertTrue(
+            "expected Dumbbell Curls, got ${results.take(5).map { it.canonical }}",
+            results.any { it.canonical == "Dumbbell Curls" }
+        )
+    }
+
+    @Test
+    fun englishStillWorksAlongsideTheTranslations() {
+        val results = ExerciseSearch.searchCandidates(catalog(), "Dumbbell Curls")
+        assertEquals("Dumbbell Curls", results.first().canonical)
+        val partial = ExerciseSearch.searchCandidates(catalog(), "bench press")
+        assertTrue(partial.any { it.canonical == "Barbell Bench Presses" })
+    }
+
+    @Test
+    fun translatedMatchesAreRankedAboveUnrelatedExercises() {
+        val results = ExerciseSearch.searchCandidates(catalog(), "Kniebeugen")
+        assertTrue("Kniebeugen should reach the squat family", results.isNotEmpty())
+        assertTrue(
+            "expected a squat, got ${results.take(3).map { it.canonical }}",
+            results.take(3).any { it.canonical.contains("Squats") }
+        )
+    }
+
+    @Test
+    fun blankAndUnknownQueriesBehaveTheSameWithAliases() {
+        assertTrue(ExerciseSearch.searchCandidates(catalog(), "   ").isEmpty())
+        assertTrue(ExerciseSearch.searchCandidates(catalog(), "zzzzqqq").isEmpty())
+    }
+
+    @Test
+    fun limitIsRespectedWithAliases() {
+        assertTrue(ExerciseSearch.searchCandidates(catalog(), "e", limit = 3).size <= 3)
+    }
+
+    @Test
+    fun searchWithoutAliasesIsUnchangedByTheCandidateApi() {
+        // The plain search() overload must keep behaving exactly as before it gained aliases.
+        assertEquals(
+            ExerciseSearch.search(pool, "dumbell curls").first(),
+            ExerciseSearch.searchCandidates(
+                pool.map { ExerciseSearch.Candidate(it) },
+                "dumbell curls"
+            ).first().canonical
+        )
     }
 }
