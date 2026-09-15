@@ -34,10 +34,20 @@ plugins {
 // GRAFIZUM_DASHBOARD_URL and GRAFIZUM_DASHBOARD_TOKEN are set (system env or
 // the git-ignored .env). When they are not set the report is skipped, and a
 // failed report never fails the bump.
+//
+// The report is a `POST /v1/events` on the command-center API - the version
+// bump is recorded as a verified activity event (`type = "app_version"`) with
+// the version fields in `meta`. There is no dedicated version endpoint, so
+// GRAFIZUM_DASHBOARD_URL must be the events route itself, not the API root (a
+// POST to the root answers 404), and every state-changing call needs an
+// Idempotency-Key, which is derived below from the version being reported.
 // ---------------------------------------------------------------------------
 
 val appName = "RepIo"
 val packageName = "com.grafizum.repio"
+
+/** The RepIo project on the dashboard; override with GRAFIZUM_PROJECT_ID. */
+val dashboardProjectId = "project_4k096a683a6r0q3b700n3z5q"
 val versionPropsFile = rootProject.file("version.properties")
 
 fun loadVersionProps(): Properties {
@@ -94,23 +104,39 @@ fun reportToDashboard(
 ): String {
     val url = environmentSetting("GRAFIZUM_DASHBOARD_URL")
     val token = environmentSetting("GRAFIZUM_DASHBOARD_TOKEN")
+    val projectId = environmentSetting("GRAFIZUM_PROJECT_ID") ?: dashboardProjectId
 
     if (url.isNullOrBlank() || token.isNullOrBlank()) {
         return "Grafizum dashboard not configured " +
             "(set GRAFIZUM_DASHBOARD_URL and GRAFIZUM_DASHBOARD_TOKEN) - report skipped."
     }
 
+    val reportedAt = OffsetDateTime.now()
+    val summary = "$appName $versionName (version code $versionCode) - $changeType: $note"
+
+    // Field-for-field the dashboard's eventCreateSchema: type, message, project_id,
+    // meta (free-form) and a reason (required). The version fields live in meta.
     val payload = """
         {
-          "app": "${jsonEscape(appName)}",
-          "packageName": "${jsonEscape(packageName)}",
-          "versionName": "${jsonEscape(versionName)}",
-          "versionCode": $versionCode,
-          "changeType": "${jsonEscape(changeType)}",
-          "note": "${jsonEscape(note)}",
-          "reportedAt": "${OffsetDateTime.now()}"
+          "type": "app_version",
+          "project_id": "${jsonEscape(projectId)}",
+          "message": "${jsonEscape(summary)}",
+          "reason": "Version bump reported by the bumpVersion Gradle task on ${jsonEscape(reportedAt.toString())}.",
+          "meta": {
+            "app": "${jsonEscape(appName)}",
+            "packageName": "${jsonEscape(packageName)}",
+            "versionName": "${jsonEscape(versionName)}",
+            "versionCode": $versionCode,
+            "changeType": "${jsonEscape(changeType)}",
+            "note": "${jsonEscape(note)}",
+            "reportedAt": "${jsonEscape(reportedAt.toString())}"
+          }
         }
     """.trimIndent()
+
+    // Required by the API on every state-changing request, and derived from the
+    // reported version so re-running the task for the same version is a no-op.
+    val idempotencyKey = "repio-version-$versionName-$versionCode"
 
     return try {
         val connection = (URI(url).toURL().openConnection() as HttpURLConnection).apply {
@@ -121,6 +147,7 @@ fun reportToDashboard(
             setRequestProperty("Content-Type", "application/json; charset=utf-8")
             setRequestProperty("Accept", "application/json")
             setRequestProperty("Authorization", "Bearer $token")
+            setRequestProperty("Idempotency-Key", idempotencyKey)
         }
 
         connection.outputStream.use { it.write(payload.toByteArray(Charsets.UTF_8)) }
@@ -131,7 +158,7 @@ fun reportToDashboard(
         connection.disconnect()
 
         if (status in 200..299) {
-            "Grafizum dashboard updated (HTTP $status)."
+            "Grafizum dashboard updated (HTTP $status, event $idempotencyKey)."
         } else {
             "Grafizum dashboard rejected the report (HTTP $status) $body - bump kept locally."
         }
