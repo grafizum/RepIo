@@ -137,7 +137,7 @@
     <string name="alternative_exercises">Esercizi Alternativi</string>
     <string name="select_alternative_desc">Scegli un esercizio diverso per %1$s:</string>
     <string name="replace_exercise">Sostituisci esercizio</string>
-    <string name="replace_exercise_desc">Sostituzione di %1$s. Tocca un\'alternativa e viene sostituita subito, chiudendo questa scheda. I filtri sono preimpostati su attrezzatura e gruppo muscolare — modificali per sfogliare l\'intero pool di esercizi.</string>
+    <string name="replace_exercise_desc">Sostituzione di %1$s — tocca un\'alternativa per applicarla. I filtri partono dalla sua attrezzatura e dal suo gruppo muscolare.</string>
     <string name="x_selected">%1$d selezionati</string>
     <string name="equipment">Attrezzatura</string>
     <string name="equipment_filter_hint">Seleziona l\'attrezzatura che il tuo programma può usare — lascia vuoto per includerle tutte.</string>

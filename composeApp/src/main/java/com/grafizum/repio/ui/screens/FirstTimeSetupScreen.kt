@@ -50,6 +50,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.DefaultData
+import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
@@ -1172,7 +1173,12 @@ fun FirstTimeSetupScreen(
                 }
                 customExercises.add(
                     anchorIndex,
-                    exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = knownUrl)
+                    exercise.copy(
+                        id = 0L,
+                        name = ExerciseLocalization.canonicalFor(name) ?: name,
+                        muscleGroup = muscleGroup,
+                        videoUrl = knownUrl
+                    )
                 )
             }
         )
@@ -2034,7 +2040,11 @@ fun AddExerciseDialog(
                     value = name,
                     onValueChange = { 
                         name = it
-                        val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
+                        // Resolve a name typed in another language first, so a German name still
+                        // auto-detects its muscle group instead of falling through to "Other".
+                        val detected = WorkoutTemplates.getMuscleGroupForExercise(
+                            ExerciseLocalization.canonicalFor(it) ?: it
+                        )
                         if (detected != "Other") muscleGroup = detected
                     },
                     onItemSelected = { selectedName ->
@@ -2217,7 +2227,9 @@ fun AddExerciseDialog(
                     onConfirm(RoutineExerciseEntity(
                         id = exercise?.id ?: 0, 
                         dayOfWeek = dayOfWeek, 
-                        name = name.trim(), 
+                        // Stored canonically when the name is a pool exercise, so equipment and
+                        // muscle lookups keep working whatever language it was typed in.
+                        name = ExerciseLocalization.canonicalFor(name) ?: name.trim(), 
                         muscleGroup = muscleGroup, 
                         targetSets = targetSets.toIntOrNull() ?: 3, 
                         targetReps = finalReps, 

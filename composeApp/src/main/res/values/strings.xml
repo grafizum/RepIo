@@ -134,7 +134,7 @@
     <string name="alternative_exercises">Alternative Exercises</string>
     <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
     <string name="replace_exercise">Replace Exercise</string>
-    <string name="replace_exercise_desc">Replacing %1$s. Tap an alternative and it is swapped in straight away, closing this card. Filters are pre-set to its equipment and muscle group — change them to browse the full exercise pool.</string>
+    <string name="replace_exercise_desc">Replacing %1$s — tap an alternative to swap it in. Filters start on its equipment and muscle group.</string>
     <string name="x_selected">%1$d selected</string>
     <string name="equipment">Equipment</string>
     <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>

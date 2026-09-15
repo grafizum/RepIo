@@ -85,6 +85,7 @@ import kotlinx.coroutines.delay
 import kotlinx.coroutines.launch
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.LoggedSetEntity
+import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.WorkoutTemplates
 import java.util.Calendar
@@ -97,6 +98,7 @@ import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 // Color mappings per muscle group
@@ -244,6 +246,27 @@ fun translateMuscleGroup(muscleGroup: String): String {
 
 @Composable
 fun translateExerciseName(name: String): String {
+    // Pool exercises are translated from the tables in ExerciseLocalization, which cover all
+    // 271 built-ins in German and Italian. Everything else — the generic movement names some
+    // templates still carry ("Row", "Curls") and user-created customs — falls through to the
+    // legacy mapping below.
+    val canonical = ExerciseLocalization.canonicalFor(name)
+    if (canonical != null) {
+        return ExerciseLocalization.displayName(
+            canonical,
+            ExerciseLocalization.languageOf(rememberCurrentLocale())
+        )
+    }
+    return translateGenericExerciseName(name)
+}
+
+/**
+ * Name mapping for exercises outside the built-in pool: the handful of generic movement
+ * names the built-in templates use, plus whatever a user typed for a custom exercise (which
+ * is returned unchanged).
+ */
+@Composable
+private fun translateGenericExerciseName(name: String): String {
     val lower = name.trim().lowercase()
     return when {
         lower == "row" || lower == "rows" -> getString("ex_row")
@@ -772,8 +795,17 @@ fun getRpeRirExplanation(intensity: String): String {
 @Composable
 fun getExerciseDetails(name: String, muscleGroup: String, intensity: String = ""): Pair<String, String> {
     // Every built-in exercise has its own accurate, mimic-able description
-    // (see ExerciseDescriptions.kt), so distinct movements never share text.
-    var description = getExerciseDescription(name) ?: genericExerciseDescription(name, muscleGroup)
+    // (see ExerciseDescriptions.kt), so distinct movements never share text. In German and
+    // Italian the same text comes from the translation table instead; a language without a
+    // table, or an exercise outside the pool, keeps the English one rather than showing
+    // nothing. `name` is normalized first so an exercise saved under a translated name still
+    // resolves to its table entry.
+    val canonicalName = ExerciseLocalization.canonicalFor(name) ?: name
+    val language = ExerciseLocalization.languageOf(rememberCurrentLocale())
+    var description = ExerciseLocalization.description(canonicalName, language)
+        ?: getExerciseDescription(name)
+        ?: getExerciseDescription(canonicalName)
+        ?: genericExerciseDescription(name, muscleGroup)
 
     if (intensity.contains("RPE", ignoreCase = true)) {
         description += "\n\n" + getString("intensity_label") + ": " + intensity
@@ -2090,10 +2122,20 @@ fun SearchableExerciseField(
 ) {
     var expanded by remember { mutableStateOf(false) }
 
+    // Every pool exercise is searchable under its canonical name *and* its translations, so
+    // a German user typing "Kurzhantel-Curls" finds the exercise that is stored as
+    // "Dumbbell Curls". The candidate keeps that canonical name, which is what a selection
+    // hands back — the query language can never fork an exercise into two records.
+    val candidates = remember(allExercises) {
+        allExercises.map { name ->
+            ExerciseSearch.Candidate(name, ExerciseLocalization.allNamesFor(name))
+        }
+    }
+
     // Typo-tolerant search: still finds "Dumbbell Curls" from "dumbell curls"
     // or "Bench Press" from "bnech pres". Exact/prefix matches stay on top.
-    val filteredExercises = remember(value, allExercises) {
-        ExerciseSearch.search(allExercises, value)
+    val filteredExercises = remember(value, candidates) {
+        ExerciseSearch.searchCandidates(candidates, value)
     }
 
     ExposedDropdownMenuBox(
@@ -2101,7 +2143,11 @@ fun SearchableExerciseField(
         onExpandedChange = { expanded = it }
     ) {
         OutlinedTextField(
-            value = value,
+            // Shown localized, stored canonical: picking "Kniebeugen" from the German list
+            // leaves the field reading "Kniebeugen" rather than flipping to "Squats". While
+            // typing this is a no-op, because the text only resolves once it names a known
+            // exercise - and then to its own name in the current language.
+            value = translateExerciseName(value),
             onValueChange = {
                 onValueChange(it)
                 expanded = true
@@ -2126,13 +2172,19 @@ fun SearchableExerciseField(
                     .heightIn(max = 280.dp)
             ) {
                 filteredExercises.forEach { selection ->
+                    // The row shows the localized name and description in the current language,
+                    // while `onItemSelected` still receives the canonical name.
+                    val canonical = selection.canonical
                     DropdownMenuItem(
                         text = {
                             Column {
-                                Text(selection, style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold))
+                                Text(
+                                    translateExerciseName(canonical),
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold)
+                                )
                                 // Avoid calling heavy functions inside Composable if possible, but this is a small list
-                                val muscleGroup = remember(selection) { WorkoutTemplates.getMuscleGroupForExercise(selection) }
-                                val (desc, _) = getExerciseDetails(selection, muscleGroup, "")
+                                val muscleGroup = remember(canonical) { WorkoutTemplates.getMuscleGroupForExercise(canonical) }
+                                val (desc, _) = getExerciseDetails(canonical, muscleGroup, "")
                                 if (desc.isNotBlank()) {
                                     Text(
                                         text = desc,
@@ -2145,8 +2197,8 @@ fun SearchableExerciseField(
                             }
                         },
                         onClick = {
-                            onValueChange(selection)
-                            onItemSelected(selection)
+                            onValueChange(canonical)
+                            onItemSelected(canonical)
                             expanded = false
                         },
                         contentPadding = PaddingValues(horizontal = 8.dp, vertical = 4.dp)
@@ -2683,7 +2735,11 @@ fun ExerciseEditDialog(
                             muscleGroup = ""
                         }
                         
-                        val detected = WorkoutTemplates.getMuscleGroupForExercise(it)
+                        // Resolve a name typed in another language first, so "Kniebeugen" still
+                        // auto-detects Legs instead of falling through to "Other".
+                        val detected = WorkoutTemplates.getMuscleGroupForExercise(
+                            ExerciseLocalization.canonicalFor(it) ?: it
+                        )
                         if (detected != "Other") muscleGroup = detected
                     },
                     onItemSelected = { selectedName ->
@@ -2878,7 +2934,10 @@ fun ExerciseEditDialog(
                             val digits = targetTimeValue.filter { it.isDigit() }
                             if (digits.isNotBlank()) "$digits sec" else "30 sec"
                         } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
-                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
+                        // Whatever the user typed or picked, the row is stored under the canonical
+                        // pool name when it is a pool exercise: that keeps the equipment table, the
+                        // muscle table and previously logged sets all pointing at the same exercise.
+                        onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
                     }
                 },
                 enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
@@ -3555,41 +3614,64 @@ fun ReplaceExerciseDialog(
         pool.distinct().filter { it.lowercase() != exercise.name.lowercase() }.sorted()
     }
 
-    AlertDialog(
+    val window = LocalWindowSize.current
+
+    // Deliberately not an AlertDialog: an AlertDialog sizes its text slot to its content, so
+    // on a 640dp phone the hint, the equipment chips and the muscle-group dropdown spent
+    // almost the whole height and left the alternatives list about one card tall - "you only
+    // see one at a time and have to scroll a tiny space". Here the surface is capped to a
+    // fraction of the *window*, the header above the list is compact, and the list itself is
+    // weighted, so it takes every dp the filters leave over. Nothing is measured for a
+    // particular device: the cap, the padding and the gaps all come from the window.
+    Dialog(
         onDismissRequest = onDismiss,
-        title = {
-            Box(
+        properties = DialogProperties(usePlatformDefaultWidth = false)
+    ) {
+        Box(modifier = Modifier.fillMaxSize(), contentAlignment = Alignment.Center) {
+            Surface(
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surface,
+                tonalElevation = 6.dp,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
+                    .widthIn(max = 640.dp)
+                    .padding(horizontal = window.screenPadding, vertical = window.sectionSpacing)
+                    .fillMaxHeight(0.94f)
             ) {
-                Text(getString("replace_exercise"))
-            }
-        },
-        text = {
-            Column(
-                verticalArrangement = Arrangement.spacedBy(12.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxSize()
+                        .padding(window.cardPadding)
+                ) {
+                Text(
+                    text = getString("replace_exercise"),
+                    style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+
+                // A structural branch, not a per-device number: on a window too short to give
+                // the list a decent share, the header drops to what the user actually needs —
+                // which exercise is being replaced, and the filters — and every dp it saves
+                // goes to the alternatives. On a tall window nothing is hidden.
+                val compactHeader = window.isShort
+
                 Text(
                     text = getString("replace_exercise_desc", translateExerciseName(exercise.name)),
-                    style = MaterialTheme.typography.bodyMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = if (compactHeader) 1 else 3,
+                    overflow = TextOverflow.Ellipsis
                 )
 
                 // EQUIPMENT FILTER (all options visible, no horizontal scrolling)
-                Text(
-                    text = getString("equipment"),
-                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                )
+                if (!compactHeader) {
+                    Text(
+                        text = getString("equipment"),
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                    )
+                }
                 FlowRow(
                     horizontalArrangement = Arrangement.spacedBy(8.dp),
                     verticalArrangement = Arrangement.spacedBy(8.dp)
@@ -3663,7 +3745,11 @@ fun ReplaceExerciseDialog(
                     )
                 } else {
                     LazyColumn(
-                        modifier = Modifier.heightIn(max = 280.dp),
+                        // weight(1f): the list takes whatever the compact header leaves,
+                        // instead of a fixed cap a short window cannot honour.
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .weight(1f),
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(alternatives) { _, altName ->
@@ -3737,18 +3823,22 @@ fun ReplaceExerciseDialog(
                         }
                     }
                 }
-            }
-        },
-        confirmButton = {},
-        dismissButton = {
-            TextButton(onClick = {
-                focusManager.clearFocus()
-                onDismiss()
-            }) {
-                Text(getString("cancel"))
+
+                Box(
+                    modifier = Modifier.fillMaxWidth(),
+                    contentAlignment = Alignment.CenterEnd
+                ) {
+                    TextButton(onClick = {
+                        focusManager.clearFocus()
+                        onDismiss()
+                    }) {
+                        Text(getString("cancel"))
+                    }
+                }
+                }
             }
         }
-    )
+    }
 }
 
 /**
