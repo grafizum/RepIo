@@ -26,6 +26,7 @@
     <string name="todays_schedule">Programma di Oggi</string>
     <string name="expand_all">Espandi tutto</string>
     <string name="collapse_all">Comprimi tutto</string>
+    <string name="show_more">Mostra di più</string>
     <string name="tap_for_details">Tocca per i dettagli</string>
     <string name="no_exercises_today">Nessun esercizio programmato per oggi. Goditi il tuo giorno di riposo!</string>
     <plurals name="sets_x_reps_pl">

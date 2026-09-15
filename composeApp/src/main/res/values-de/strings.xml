@@ -25,6 +25,7 @@
     <string name="todays_schedule">Heutiger Zeitplan</string>
     <string name="expand_all">Alle ausklappen</string>
     <string name="collapse_all">Alle einklappen</string>
+    <string name="show_more">Mehr anzeigen</string>
     <string name="tap_for_details">Tippen für Details</string>
     <string name="no_exercises_today">Keine Übungen für heute geplant. Genieße deinen Ruhetag!</string>
     <plurals name="sets_x_reps_pl">

@@ -82,6 +82,7 @@ import androidx.core.os.LocaleListCompat
 import androidx.core.splashscreen.SplashScreen.Companion.installSplashScreen
 import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
+import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import com.grafizum.repio.ui.screens.*
@@ -445,20 +446,18 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     // Check Play whenever the app is foregrounded (also covers returning after the
     // user backed out of the Play dialog, which Play marks as CANCELED). Skips
-    // silently when offline, sideloaded, within the cooldown, or when no update exists.
-    DisposableEffect(lifecycleOwner) {
-        val observer = LifecycleEventObserver { _, event ->
-            if (event == Lifecycle.Event.ON_RESUME) {
-                coroutineScope.launch {
-                    val info = AppUpdateChecker.checkForUpdate(context) ?: return@launch
-                    pendingUpdateInfo = info
-                    nudgeUpdate()
-                }
-            }
-        }
-        lifecycleOwner.lifecycle.addObserver(observer)
-        onDispose {
-            lifecycleOwner.lifecycle.removeObserver(observer)
+    // silently when offline, within the cooldown, or when no update exists.
+    //
+    // repeatOnLifecycle rather than an ON_RESUME observer that launches into the
+    // composition's scope: that scope is cancelled whenever the composition restarts
+    // (the splash screen hands over to the app), which silently threw the check away on
+    // the very launch that mattered. This re-runs on every resume instead, and is only
+    // cancelled when the Activity goes away.
+    LaunchedEffect(lifecycleOwner) {
+        lifecycleOwner.lifecycle.repeatOnLifecycle(Lifecycle.State.RESUMED) {
+            val info = AppUpdateChecker.checkForUpdate(context) ?: return@repeatOnLifecycle
+            pendingUpdateInfo = info
+            nudgeUpdate()
         }
     }
 
