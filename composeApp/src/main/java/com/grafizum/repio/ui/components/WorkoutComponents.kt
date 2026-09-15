@@ -53,6 +53,7 @@ import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.unit.Constraints
+import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
 import androidx.compose.ui.input.nestedscroll.NestedScrollConnection
 import androidx.compose.ui.input.nestedscroll.NestedScrollSource
@@ -248,7 +249,8 @@ fun translateExerciseName(name: String): String {
         lower == "row" || lower == "rows" -> getString("ex_row")
         lower == "pullover" || lower == "pullovers" -> getString("ex_dumbbell_pullover")
         lower == "curl" || lower == "curls" -> getString("ex_curls")
-        lower == "hammer curl" || lower == "hammer curls" -> getString("ex_hammer_curl")
+        lower == "hammer curl" || lower == "hammer curls" ||
+            lower == "dumbbell hammer curl" || lower == "dumbbell hammer curls" -> getString("ex_hammer_curl")
         lower == "shoulder press" || lower == "shoulder presses" -> getString("ex_shoulder_press")
         lower == "lateral raise" || lower == "lateral raises" -> getString("ex_lateral_raise")
         lower == "crunch" || lower == "crunches" -> getString("ex_crunches")
@@ -381,6 +383,7 @@ fun StatCard(
     compact: Boolean = false
 ) {
     val isDeveloper = LocalDeveloperSkin.current
+    val window = LocalWindowSize.current
 
     Card(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
@@ -469,10 +472,15 @@ fun StatCard(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         verticalAlignment = Alignment.Top
                     ) {
+                        // weight: a long title (or a long translation) wraps inside the leftover
+                        // width instead of squeezing the badge off the card.
                         Text(
                             text = title,
                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold, letterSpacing = 0.5.sp),
-                            color = MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                         
                         if (badgeText != null) {
@@ -508,7 +516,7 @@ fun StatCard(
                         Spacer(modifier = Modifier.width(16.dp))
                         
                         // Shrink the hero number on narrow phones so it never clips mid-glyph.
-                        val isCompact = rememberIsCompactWidth()
+                        val isCompact = window.isNarrow
                         Text(
                             text = value,
                             style = MaterialTheme.typography.displayLarge.copy(
@@ -529,11 +537,13 @@ fun StatCard(
                     horizontalArrangement = Arrangement.SpaceBetween,
                     modifier = Modifier.fillMaxWidth()
                 ) {
-                    Column {
+                    Column(modifier = Modifier.weight(1f, fill = false)) {
                         Text(
                             text = title,
                             style = MaterialTheme.typography.labelLarge,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f)
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.8f),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                         Text(
                             text = subtitle,
@@ -1487,14 +1497,21 @@ fun MuscleGroupDonutChart(
     // mapping, drawn at full strength so the arcs, dots and legend labels stay
     // light and vibrant on the card surface. Keyed by group so the arcs and
     // legend dots always stay in sync.
-    fun entryColor(key: String): Color {
+    // Colours are resolved once, in a composable context, so the Canvas, the arcs
+    // and the legend all use the exact same tone. Using the theme-aware
+    // [muscleGroupColor] keeps them identical to the muscle chips on Home and My
+    // Workout instead of a lighter, washed-out variant on a light theme.
+    val groupColors: Map<String, Color> = overviewItems.map { it.first }.distinct().associateWith { key ->
         if (isDeveloper) {
             val index = overviewItems.indexOfFirst { it.first == key }
             val grey = (0.2f + (index.coerceAtLeast(0).toFloat() / overviewItems.size.coerceAtLeast(1)) * 0.7f).coerceIn(0f, 1f)
-            return Color(grey, grey, grey)
+            Color(grey, grey, grey)
+        } else {
+            muscleGroupColor(WorkoutTemplates.getTopicForMuscle(key))
         }
-        return getMuscleGroupColor(WorkoutTemplates.getTopicForMuscle(key))
     }
+
+    fun entryColor(key: String): Color = groupColors[key] ?: Color(0xFF64748B)
 
     @Composable
     fun LegendRow(
@@ -1769,7 +1786,7 @@ private fun MuscleGroupDetailDialog(
             Column(modifier = Modifier.verticalScroll(rememberScrollState())) {
                 detailedSections.forEachIndexed { index, (_, members) ->
                     val headerKey = members.first().first
-                    val sectionColor = getMuscleGroupColor(WorkoutTemplates.getTopicForMuscle(headerKey))
+                    val sectionColor = muscleGroupColor(WorkoutTemplates.getTopicForMuscle(headerKey))
                     // Broad body-part header chip with the section's total sets.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1847,7 +1864,7 @@ private fun MuscleVolumeRow(
     rank: Int
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    val muscleColor = getMuscleGroupColor(muscleKey)
+    val muscleColor = muscleGroupColor(muscleKey)
     val barRadius = if (isDeveloper) 0.dp else 3.dp
     val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
 
@@ -2695,7 +2712,17 @@ fun ExerciseEditDialog(
                             horizontalArrangement = Arrangement.SpaceBetween,
                             modifier = Modifier.fillMaxWidth()
                         ) {
-                            Text(getString("trained_muscles") + ":", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
+                            Text(
+                                text = getString("trained_muscles") + ":",
+                                style = MaterialTheme.typography.labelMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                // "Trainierte Muskeln:" is far longer than "Trained muscles:", so give
+                                // the label its own shrinking column instead of squeezing the badge.
+                                modifier = Modifier.weight(1f, fill = false),
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            Spacer(modifier = Modifier.width(8.dp))
                             MuscleGroupBadge(muscleGroup = muscleGroup, exerciseName = name)
                         }
                         
@@ -2870,6 +2897,12 @@ fun ExerciseEditDialog(
     )
 }
 
+/**
+ * Gap between two day chips, as a fraction of one chip's slot width. A ratio rather than a number
+ * of dp, so the wheel keeps the same visual rhythm on a 320dp phone and on a tablet.
+ */
+private const val DayWheelGapRatio = 0.08f
+
 @Composable
 fun WorkoutDayWheel(
     selectedDay: String,
@@ -2879,6 +2912,7 @@ fun WorkoutDayWheel(
 ) {
     val allDays = DayOfWeekEnum.entries
     val isDeveloper = LocalDeveloperSkin.current
+    val window = LocalWindowSize.current
     var totalDrag by remember { mutableFloatStateOf(0f) }
 
     // Strict gesture lock to prevent main app tab switching while swiping on the wheel
@@ -2893,7 +2927,7 @@ fun WorkoutDayWheel(
         }
     }
 
-    Box(
+    BoxWithConstraints(
         modifier = modifier
             .fillMaxWidth()
             .nestedScroll(lockConnection)
@@ -2917,48 +2951,97 @@ fun WorkoutDayWheel(
                 )
             }
     ) {
-        Row(
-            horizontalArrangement = Arrangement.spacedBy(4.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            allDays.forEach { dayEnum ->
-                val isToday = dayEnum.name == today
-                val isSelected = dayEnum.name == selectedDay
-                
-                val backgroundColor = when {
-                    isSelected -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-                    else -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceVariant
-                }
-                
-                val contentColor = when {
-                    isSelected -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                    else -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
-                }
+        // Divide whatever width the wheel is actually given into seven slots and take the gap as
+        // a fraction of one slot. The same code therefore yields a tight wheel on a 320dp phone
+        // and a roomy one on a tablet, continuously, with no per-device table to maintain.
+        val chipSpacing = if (maxWidth.value.isFinite() && maxWidth > 0.dp) {
+            (maxWidth / allDays.size) * DayWheelGapRatio
+        } else {
+            4.dp
+        }
 
-                val borderStroke = when {
-                    isToday -> BorderStroke(2.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
-                    isDeveloper && isSelected -> BorderStroke(2.dp, Color.White)
-                    else -> null
-                }
+        // Seven equal columns cannot all keep Material's 48dp *width* minimum on a phone: 7 x 48dp
+        // fills a 336dp content column completely, erasing the gaps and turning the wheel into one
+        // solid bar. The chips below opt out of the width minimum - they keep a >= 48dp *height*,
+        // so their tap targets stay comfortable - and each one really gets its weight(1f) share.
+        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+            Row(
+                horizontalArrangement = Arrangement.spacedBy(chipSpacing),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                allDays.forEach { dayEnum ->
+                    val isToday = dayEnum.name == today
+                    val isSelected = dayEnum.name == selectedDay
 
-                Surface(
-                    onClick = { onDaySelected(dayEnum.name) },
-                    color = backgroundColor,
-                    contentColor = contentColor,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                    border = borderStroke,
-                    modifier = Modifier
-                        .weight(1f)
-                        .height(48.dp)
-                ) {
-                    Box(
-                        contentAlignment = Alignment.Center,
-                        modifier = Modifier.fillMaxSize()
+                    val backgroundColor = when {
+                        isSelected -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        else -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceVariant
+                    }
+
+                    val contentColor = when {
+                        isSelected -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                        else -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                    }
+
+                    val borderStroke = when {
+                        isToday -> BorderStroke(2.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
+                        isDeveloper && isSelected -> BorderStroke(2.dp, Color.White)
+                        else -> null
+                    }
+
+                    Surface(
+                        onClick = { onDaySelected(dayEnum.name) },
+                        color = backgroundColor,
+                        contentColor = contentColor,
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        border = borderStroke,
+                        // A *definite* height, not a minimum. Two reasons: a minimum lets each
+                        // chip wrap its own content, so the selected day (which carries the extra
+                        // "TODAY" tag) ends up taller than its neighbours and the wheel looks
+                        // ragged; and an unbounded chip let all seven stretch to every dp the
+                        // screen could spare - 388dp on a 360x640dp phone - which ate the whole
+                        // column and pushed the day's exercise list below down to zero height.
+                        // The height itself comes from the window's own height, so a short window
+                        // gets slimmer chips rather than a per-device number.
+                        modifier = Modifier
+                            .weight(1f)
+                            .height(window.dayChipHeight)
                     ) {
-                        Column(
-                            horizontalAlignment = Alignment.CenterHorizontally,
-                            verticalArrangement = Arrangement.Center
+                        // Safe to fill, unlike before: the chip's height is definite now, so this
+                        // box is exactly [WindowSize.dayChipHeight] and cannot grow to the window's.
+                        val dayLabel = when (dayEnum) {
+                            DayOfWeekEnum.MONDAY -> getString("monday_shortest")
+                            DayOfWeekEnum.TUESDAY -> getString("tuesday_shortest")
+                            DayOfWeekEnum.WEDNESDAY -> getString("wednesday_shortest")
+                            DayOfWeekEnum.THURSDAY -> getString("thursday_shortest")
+                            DayOfWeekEnum.FRIDAY -> getString("friday_shortest")
+                            DayOfWeekEnum.SATURDAY -> getString("saturday_shortest")
+                            DayOfWeekEnum.SUNDAY -> getString("sunday_shortest")
+                        }
+
+                        Box(
+                            contentAlignment = Alignment.Center,
+                            modifier = Modifier.fillMaxSize()
                         ) {
+                            // The day label is centred in the chip - both ways - on every chip, so
+                            // all seven share one baseline. AutoScaleText instead of a clipped 12sp
+                            // label keeps "Mi"/"Mer"/"Mie" fitting the same slot in every language.
+                            // Its fillMaxWidth box is wider than the text and AutoScaleText centres
+                            // the text inside it; without that the label sat against the left edge.
+                            AutoScaleText(
+                                text = dayLabel,
+                                style = MaterialTheme.typography.labelSmall.copy(
+                                    fontWeight = if (isSelected || isToday) FontWeight.Black else FontWeight.Bold,
+                                    fontSize = 12.sp
+                                ),
+                                minScale = 0.7f,
+                                modifier = Modifier.fillMaxWidth()
+                            )
+
+                            // Today's chip carries its tag pinned to the top edge instead of above
+                            // the label, so the label itself never has to leave the centre to make
+                            // room for it - which is what used to make today's label sit lower than
+                            // the other six.
                             if (isToday) {
                                 Text(
                                     text = getString("today").uppercase(),
@@ -2967,31 +3050,12 @@ fun WorkoutDayWheel(
                                         fontSize = 8.sp,
                                         letterSpacing = 0.2.sp
                                     ),
-                                    maxLines = 1
+                                    maxLines = 1,
+                                    modifier = Modifier
+                                        .align(Alignment.TopCenter)
+                                        .padding(top = 2.dp)
                                 )
-                                Spacer(modifier = Modifier.height(1.dp))
                             }
-
-                            val dayLabel = when (dayEnum) {
-                                DayOfWeekEnum.MONDAY -> getString("monday_shortest")
-                                DayOfWeekEnum.TUESDAY -> getString("tuesday_shortest")
-                                DayOfWeekEnum.WEDNESDAY -> getString("wednesday_shortest")
-                                DayOfWeekEnum.THURSDAY -> getString("thursday_shortest")
-                                DayOfWeekEnum.FRIDAY -> getString("friday_shortest")
-                                DayOfWeekEnum.SATURDAY -> getString("saturday_shortest")
-                                DayOfWeekEnum.SUNDAY -> getString("sunday_shortest")
-                            }
-
-                            Text(
-                                text = dayLabel,
-                                style = MaterialTheme.typography.labelSmall.copy(
-                                    fontWeight = if (isSelected || isToday) FontWeight.Black else FontWeight.Bold,
-                                    fontSize = 12.sp
-                                ),
-                                maxLines = 1,
-                                overflow = TextOverflow.Clip,
-                                softWrap = false
-                            )
                         }
                     }
                 }

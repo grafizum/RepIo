@@ -22,6 +22,7 @@ import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
+import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.util.getString
@@ -31,6 +32,7 @@ import com.grafizum.repio.R
 
 
 import com.grafizum.repio.BuildConfig
+import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 
@@ -41,6 +43,7 @@ fun EasterEggScreen(
 ) {
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
+    val window = LocalWindowSize.current
     val infiniteTransition = rememberInfiniteTransition(label = "EasterEgg")
 
     val scale by infiniteTransition.animateFloat(
@@ -68,7 +71,7 @@ fun EasterEggScreen(
             modifier = Modifier
                 .fillMaxSize()
                 .background(MaterialTheme.colorScheme.background)
-                .padding(horizontal = 16.dp)
+                .padding(horizontal = window.screenPadding)
                 .verticalScroll(rememberScrollState()),
             horizontalAlignment = Alignment.CenterHorizontally
         ) {
@@ -80,7 +83,7 @@ fun EasterEggScreen(
                 horizontalArrangement = Arrangement.Start,
                 modifier = Modifier
                     .fillMaxWidth()
-                    .height(64.dp)
+                    .heightIn(min = window.headerMinHeight)
                     .padding(vertical = 4.dp)
             ) {
                 Box(
@@ -191,7 +194,11 @@ fun EasterEggScreen(
                             )
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            // Keeps the switch at its tap-target size; the label wraps instead.
+                            modifier = Modifier.weight(1f, fill = false)
+                        ) {
                             Icon(
                                 imageVector = Icons.Default.ColorLens,
                                 contentDescription = null,
@@ -202,7 +209,9 @@ fun EasterEggScreen(
                             Text(
                                 text = "Unlock Developer Theme",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                                color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                                maxLines = 2,
+                                overflow = TextOverflow.Ellipsis
                             )
                         }
                         Switch(

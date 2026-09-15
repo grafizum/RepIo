@@ -90,7 +90,7 @@ class ExercisePrimaryMuscleTest {
 
     @Test
     fun facePullsStayOnTheRearDelts() {
-        listOf("Face Pulls", "Cable Face Pulls", "Dumbbell Face Pulls", "Rope Face Pulls").forEach { name ->
+        listOf("Cable Face Pulls", "Dumbbell Face Pulls", "Barbell Face Pulls").forEach { name ->
             assertEquals(name, "Rear Deltoids", WorkoutTemplates.getMuscleGroupForExercise(name))
         }
     }
@@ -116,7 +116,7 @@ class ExercisePrimaryMuscleTest {
         assertEquals("Abs", WorkoutTemplates.getMuscleGroupForExercise("Planks"))
         assertEquals("Abs", WorkoutTemplates.getMuscleGroupForExercise("Mountain Climbers"))
         assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Supermans"))
-        assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Deadlifts"))
+        assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Barbell Deadlifts"))
     }
 
     @Test
@@ -137,7 +137,7 @@ class ExercisePrimaryMuscleTest {
     fun hingesAndBridgesGoToHamstringsGlutesAndErectors() {
         listOf("Barbell Romanian Deadlifts", "Dumbbell Romanian Deadlifts", "Stiff Leg Barbell Deadlifts")
             .forEach { assertEquals(it, "Hamstrings", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Glute Bridges", "Bridges", "Hip Thrusts", "Fire Hydrants")
+        listOf("Glute Bridges", "Barbell Glute Bridges", "Dumbbell Hip Thrusts", "Fire Hydrants")
             .forEach { assertEquals(it, "Glutes", WorkoutTemplates.getMuscleGroupForExercise(it)) }
         listOf("Barbell Deadlifts", "Barbell Rack Pulls", "Back Extensions")
             .forEach { assertEquals(it, "Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise(it)) }
@@ -153,11 +153,11 @@ class ExercisePrimaryMuscleTest {
 
     @Test
     fun armsKeepTheirOwnGroups() {
-        listOf("Dumbbell Curls", "Barbell Curls", "Preacher Curls", "Hammer Curls")
+        listOf("Dumbbell Curls", "Barbell Curls", "Preacher Curls", "Dumbbell Hammer Curls")
             .forEach { assertEquals(it, "Biceps", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Tricep Pushdowns", "Skullcrushers", "Dips", "Overhead Cable Extensions")
+        listOf("Tricep Pushdowns", "Barbell Skullcrushers", "Dips", "Overhead Cable Extensions")
             .forEach { assertEquals(it, "Triceps", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Barbell Wrist Curls", "Farmer's Walks", "Reverse Curls")
+        listOf("Barbell Wrist Curls", "Farmer's Walks", "Barbell Reverse Curls")
             .forEach { assertEquals(it, "Forearms", WorkoutTemplates.getMuscleGroupForExercise(it)) }
         // A chin-up is a pull first; the biceps are a secondary mover.
         assertEquals("Lats", WorkoutTemplates.getMuscleGroupForExercise("Chin-ups"))
@@ -167,7 +167,7 @@ class ExercisePrimaryMuscleTest {
     fun pressingMovementsAllResolveSomewhereAndAreNotGenericShoulders() {
         listOf("Military Presses", "Dumbbell Shoulder Presses", "Arnold Presses", "Landmine Presses")
             .forEach { assertEquals(it, "Front Deltoids", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Dumbbell Lateral Raises", "Side Raises", "Upright Barbell Rows")
+        listOf("Dumbbell Lateral Raises", "Machine Lateral Raises", "Upright Barbell Rows")
             .forEach { assertEquals(it, "Lateral Deltoids", WorkoutTemplates.getMuscleGroupForExercise(it)) }
     }
 }

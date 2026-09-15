@@ -97,6 +97,7 @@ import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.util.AppUpdateChecker
 import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.ui.components.AdaptiveWidthContainer
+import com.grafizum.repio.ui.components.LocalWindowSize
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -277,6 +278,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
+    val window = LocalWindowSize.current
     val motivationalNudges by viewModel.motivationalNudges.collectAsState()
 
     // The skip nudge is delivered by a daily background alarm (only while the app
@@ -722,7 +724,15 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                                 text = if (labelKey != null) getString(labelKey) else screen.title,
                                                 fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal,
                                                 maxLines = 1,
-                                                overflow = TextOverflow.Ellipsis
+                                                overflow = TextOverflow.Ellipsis,
+                                                // Narrow phones only have ~90dp per tab, so the label steps
+                                                // down one size to show more of "Smart Workout Assistant"
+                                                // instead of collapsing to "Smart Wo…".
+                                                style = if (window.isNarrow) {
+                                                    MaterialTheme.typography.labelSmall
+                                                } else {
+                                                    MaterialTheme.typography.labelMedium
+                                                }
                                             )
                                         },
                                         colors = NavigationBarItemDefaults.colors(

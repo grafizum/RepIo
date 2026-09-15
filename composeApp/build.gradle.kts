@@ -13,17 +13,19 @@ plugins {
 
 // Configuration for Play Store release naming
 val appName = "RepIo"
-val appVersion = "1.2.2"
 
-// Load Version Code from version.properties
+// version.properties is the single source of truth for the app version.
+// VERSION_NAME is bumped deliberately via the root `bumpVersion` task (see AGENTS.md).
 val versionPropsFile = rootProject.file("version.properties")
 val versionProps = Properties()
 if (versionPropsFile.exists()) {
     versionPropsFile.inputStream().use { versionProps.load(it) }
 }
+val appVersion = versionProps.getProperty("VERSION_NAME") ?: "1.2.2"
 var playStoreVersion = (versionProps.getProperty("VERSION_CODE") ?: "9").toInt()
 
-// Automatic increment logic for signed builds
+// Automatic increment logic for signed builds: every Release build claims a fresh
+// version code, so each Play upload stays unique without touching VERSION_NAME.
 if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
     playStoreVersion++
     versionProps.setProperty("VERSION_CODE", playStoreVersion.toString())
@@ -32,12 +34,12 @@ if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
 
 android {
     namespace = "com.grafizum.repio"
-    compileSdk = 35
+    compileSdk = 36
 
     defaultConfig {
         applicationId = "com.grafizum.repio"
         minSdk = 23
-        targetSdk = 35
+        targetSdk = 36
         versionCode = playStoreVersion
         versionName = appVersion
 
@@ -128,6 +130,12 @@ secrets {
     propertiesFileName = ".env"
     defaultPropertiesFileName = ".env.example"
     ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
+    // Build-time only: read by the root `bumpVersion` task to report to the Grafizum
+    // dashboard. Ignored here so the token is never baked into BuildConfig / the APK.
+    // Only add these to .env, never to .env.example: an active key with an empty
+    // value makes the plugin emit invalid Java (`= ;`) and breaks compilation.
+    ignoreList.add("GRAFIZUM_DASHBOARD_URL")
+    ignoreList.add("GRAFIZUM_DASHBOARD_TOKEN")
 }
 
 dependencies {

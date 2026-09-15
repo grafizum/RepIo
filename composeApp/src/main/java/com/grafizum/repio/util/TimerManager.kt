@@ -6,16 +6,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.os.Build
-import androidx.core.content.ContextCompat
 
 interface TimerManager {
     /**
-     * Starts (or refreshes) the rest timer: the background service that owns the
-     * countdown, plus the alarm that backs it up.
+     * Starts (or refreshes) the rest timer: the alarm that reports the end of the rest.
      */
     fun scheduleTimer(endTimeMillis: Long, remainingSeconds: Int)
 
-    /** Stops the rest timer and takes its countdown notification out of the tray. */
+    /** Stops the rest timer. */
     fun cancelTimer()
 }
 
@@ -77,44 +75,25 @@ fun initTimerManager(application: Application) {
 }
 
 /**
- * Keeps a rest timer alive while the app is closed.
+ * Keeps a rest timer armed while the app is closed.
  *
- * The countdown and the end-of-rest alert are delivered by [RestTimerService], because a
- * notification that only the UI re-posts freezes the moment the process goes away. The
- * alarm stays armed behind the service for the cases a service cannot cover: a refused
- * background start, a reboot, or the OS reclaiming the process.
+ * The alarm reports the end of a rest when the app is not in the foreground.
  */
 class AndroidTimerManager : TimerManager {
     private val context: Context get() = appInstance!!
 
     override fun scheduleTimer(endTimeMillis: Long, remainingSeconds: Int) {
         scheduleAlarm(endTimeMillis)
-
-        // Post the countdown directly as well: a service start isn't instant, and this
-        // keeps the indicator visible even if the start below is refused.
-        NotificationHelper.showRestTimerCountdown(context, remainingSeconds)
-
-        try {
-            ContextCompat.startForegroundService(context, RestTimerService.intent(context))
-        } catch (_: Exception) {
-            // The alarm alone still ends the timer; the next resume re-arms the service.
-        }
     }
 
     /**
-     * Drops the timer and takes its countdown out of the tray.
-     *
-     * The service is deliberately left running: it notices the timer is gone on its next
-     * tick and shuts itself down, whereas stopping it here would mean starting a
-     * foreground service again the moment the next rest begins — a start the OS may
-     * refuse in the middle of a workout.
+     * Drops the timer.
      */
     override fun cancelTimer() {
         cancelAlarm()
-        NotificationHelper.cancelRestTimerCountdown(context)
     }
 
-    /** Backs the service up: fires the same end-of-rest report if the service is gone. */
+    /** fires the end-of-rest report. */
     private fun scheduleAlarm(endTimeMillis: Long) {
         val alarmManager = context.getSystemService(Context.ALARM_SERVICE) as AlarmManager
         val pendingIntent = alarmPendingIntent(endTimeMillis)

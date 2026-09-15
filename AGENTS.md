@@ -1,0 +1,114 @@
+# Agent Guide — RepIo
+
+## Versioning (do this after every work session)
+
+**`version.properties` at the repo root is the single source of truth** for `VERSION_NAME`
+and `VERSION_CODE`. Never hardcode a version anywhere else.
+
+Bump `VERSION_NAME` deliberately, based on what actually changed, by running:
+
+```bash
+./gradlew bumpVersion -Ptype=feature -Pnote="Short description of what changed"
+```
+
+| `-Ptype`      | Bump                                    | Example          |
+| ------------- | --------------------------------------- | ---------------- |
+| `feature`     | minor + 1, patch unchanged              | 1.2.2 → 1.3.2    |
+| `fix`         | patch + 1                               | 1.3.2 → 1.3.3    |
+| `breaking`    | major + 1, patch unchanged              | 1.3.2 → 2.0.2    |
+
+Choose the type by intent, not by diff size:
+
+- User-visible new capability or visual/UX work → `feature`
+- Correcting existing behaviour, polish, bug fixes → `fix`
+- Data migration, removed public API, anything that breaks existing users → `breaking`
+
+Apply this at the end of a work session that changed app behaviour, so the version never
+drifts behind the work. Pure chores (docs, comments, test-only, build tooling) do not
+need a bump.
+
+### VERSION_CODE
+
+`VERSION_CODE` is incremented automatically by every **Release** build (see the
+auto-increment block in `composeApp/build.gradle.kts`), which keeps every Play upload
+unique. `bumpVersion` deliberately does **not** touch it — bumping both would double
+count, and the gap between two version codes is allowed to span one `VERSION_NAME`
+(e.g. `v1.2.2` was released as codes 21 → 38).
+
+### Grafizum dashboard
+
+`bumpVersion` reports the new version to the Grafizum dashboard when these are set in
+the process environment or in the git-ignored `.env`:
+
+```
+GRAFIZUM_DASHBOARD_URL=https://...
+GRAFIZUM_DASHBOARD_TOKEN=...
+```
+
+Keep these in `.env` only — **do not** add them to `.env.example`. The secrets plugin
+reads that file too, and an active key with an empty value makes it generate invalid
+Java (`public static final String X = ;`), which breaks compilation. Both keys are
+listed in the plugin's `ignoreList` so the token is never compiled into the app either.
+
+The report is a `POST` with a Bearer token and this body:
+
+```json
+{
+  "app": "RepIo",
+  "packageName": "com.grafizum.repio",
+  "versionName": "1.3.2",
+  "versionCode": 38,
+  "changeType": "feature",
+  "note": "What changed",
+  "reportedAt": "2026-09-15T10:30:00+02:00"
+}
+```
+
+If the variables are unset, or the dashboard is unreachable, the report is skipped and the
+local bump still stands. A dashboard failure must never block a version bump.
+
+## Responsive layout — one adaptive system, never per-device numbers
+
+Every size the UI uses comes from `WindowSize` (`ui/components/Responsive.kt`), resolved from the
+window itself. Read it with `LocalWindowSize.current`; never hard-code a dp value in a screen.
+
+`windowSizeFor(widthDp, heightDp, fontScale)` **interpolates** each token between three anchors
+(320dp phone → 400dp phone → 1000dp+ window) rather than picking from a bucket, so a 360dp and a
+411dp phone each get the spacing that suits them:
+
+- Width drives spacing and typography; height drives the blocks that consume vertical space
+  (`dayChipHeight`, `donutHeight`). Do not cross the axes.
+- Continuous means continuous: `WindowSizeTest` sweeps 320→1200dp one dp at a time and fails if any
+  token moves by more than 1dp between neighbouring sizes. Adding a token means adding its anchor
+  row *and* its continuity case.
+- `WindowWidthClass`, `isNarrow` and `isShort` are for **structural** decisions only (scroll vs.
+  squeeze, one column vs. two, dense header). Never pick a dimension with them.
+- The user's `fontScale` grows the boxes that hold text, damped by half, so large fonts cannot clip
+  inside a fixed-height row.
+
+Sizing rules that caused real bugs — do not undo them:
+
+- Content with an intrinsic minimum needs a **definite** height, and its screen must scroll. A
+  `weight(1f)` slice of "whatever is left" collapses to ~0dp on a short window (this is how the
+  analytics donut card vanished), and a bare `heightIn(min = …)` lets a child grow to the window's
+  whole height (this is how the day chips reached 388dp and pushed the list below to zero).
+- In a 7-across row, Material's 48dp minimum *width* cannot win: 7 × 48dp fills a phone's content
+  column and erases every gap. Opt out for those chips only, with
+  `LocalMinimumInteractiveComponentSize provides Dp.Unspecified`, and keep their height ≥ 48dp.
+- `AutoScaleText` centres its text inside its box — a `fillMaxWidth` box otherwise parks the label
+  against the left edge.
+
+## Known constraint: minSdk is pinned at 23
+
+`minSdk = 23` is the **lowest value that compiles**. Compose requires 21, and the
+resolved dependency set requires 23 — `androidx.appcompat` 1.8.0, `androidx.room` 2.8.4,
+the Firebase line (`firestore` 26.6.0, `auth` 23.1.0, `ai` 17.17.0, `appcheck` 19.4.1),
+and `play-services-base` 18.9.0 all declare `minSdkVersion 23`.
+
+Do not attempt to lower it without also downgrading those dependencies; the manifest
+merger fails with `minSdkVersion NN cannot be smaller than version 23`. API 15 is
+impossible — Jetpack Compose has no support below 21.
+
+Code that leans on this floor already: `AppUpdateChecker.kt` (relies on
+`NetworkCapabilities` always being available) and `composeApp/lint.xml` (bitmap density
+folders).

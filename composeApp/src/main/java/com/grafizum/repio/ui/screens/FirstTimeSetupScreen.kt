@@ -54,6 +54,7 @@ import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
+import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
@@ -86,6 +87,7 @@ fun FirstTimeSetupScreen(
     val context = LocalContext.current
     val focusManager = LocalFocusManager.current
     val isDeveloper = LocalDeveloperSkin.current
+    val window = LocalWindowSize.current
 
     // Notification Permission Launcher
     val permissionLauncher = rememberLauncherForActivityResult(
@@ -331,7 +333,7 @@ fun FirstTimeSetupScreen(
         Column(
             modifier = Modifier
                 .fillMaxSize()
-                .padding(horizontal = 24.dp)
+                .padding(horizontal = window.screenPadding)
         ) {
             if (isManualReentry) {
                 IconButton(
@@ -358,7 +360,7 @@ fun FirstTimeSetupScreen(
                             focusManager.clearFocus()
                         })
                     },
-                verticalArrangement = Arrangement.spacedBy(16.dp)
+                verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)
             ) {
                 // HEADER HERO BANNER
                 item {
@@ -1448,7 +1450,12 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                 Text(
                     text = getString("select_body_parts_desc"),
                     style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    // The preset button on the right keeps its intrinsic size; a long
+                    // translated description wraps inside the leftover width instead.
+                    modifier = Modifier.weight(1f, fill = false),
+                    maxLines = 3,
+                    overflow = TextOverflow.Ellipsis
                 )
                 
                 Surface(

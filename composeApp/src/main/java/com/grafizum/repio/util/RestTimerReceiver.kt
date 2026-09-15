@@ -8,12 +8,10 @@ import androidx.core.content.edit
 /**
  * The two ways out of a rest that are driven from outside the UI:
  *
- *  - the "Skip" action on the countdown notification, and
- *  - the fallback alarm, which reports the end of a rest when [RestTimerService] could not
- *    run — a refused background start, a reboot, or the OS reclaiming the process.
+ *  - the "Skip" action on the notification (if any), and
+ *  - the fallback alarm, which reports the end of a rest.
  *
- * The service normally gets there first and clears the stored end time, which is what the
- * mismatch check below is about: it keeps the two from reporting the same rest twice.
+ * It clears the stored end time to keep from reporting the same rest twice.
  */
 class RestTimerReceiver : BroadcastReceiver() {
     override fun onReceive(context: Context, intent: Intent) {
