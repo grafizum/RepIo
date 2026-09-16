@@ -98,42 +98,70 @@ import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import com.grafizum.repio.ui.theme.LocalLightTheme
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 
 // Color mappings per muscle group
+/**
+ * One light colour per muscle group. Owner's call: the mid-tones read as "dark"
+ * next to the app's surfaces, so every hue was lifted one step lighter (the
+ * 400-step of the same hue, never a different hue) — Chest stays red, Back stays
+ * blue, only the depth changed. Keep the hue-to-body-part mapping stable: the
+ * Analytics donut, the legend and the Home dots all identify a body part by it.
+ */
 fun getMuscleGroupColor(muscleGroup: String): Color {
     return when (muscleGroup.lowercase().trim()) {
-        "chest", "pectorals" -> Color(0xFFEF4444) // Red
-        "abs", "abdominals" -> Color(0xFFF59E0B) // Amber
-        "core", "obliques" -> Color(0xFFEAB308) // Yellow
+        "chest", "pectorals" -> Color(0xFFF87171) // Red (light)
+        "abs", "abdominals" -> Color(0xFFFBBF24) // Amber (light)
+        "core", "obliques" -> Color(0xFFFACC15) // Yellow (light)
         "legs", "quadriceps", "hamstrings", "glutes", "calves",
-        "hip adductors", "hip abductors", "adductors", "abductors" -> Color(0xFF10B981) // Emerald
-        "back", "lats", "upper back", "traps", "upper traps", "spinal erectors", "erectors" -> Color(0xFF3B82F6) // Blue
-        "biceps" -> Color(0xFF8B5CF6) // Purple
-        "triceps" -> Color(0xFF06B6D4) // Cyan
-        "arms" -> Color(0xFF6366F1) // Indigo
-        "forearms" -> Color(0xFFF97316) // Orange
-        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFEC4899) // Pink
-        else -> Color(0xFF64748B) // Grey
+        "hip adductors", "hip abductors", "adductors", "abductors" -> Color(0xFF34D399) // Emerald (light)
+        "back", "lats", "upper back", "traps", "upper traps", "spinal erectors", "erectors" -> Color(0xFF60A5FA) // Blue (light)
+        "biceps" -> Color(0xFFA78BFA) // Violet (light)
+        "triceps" -> Color(0xFF22D3EE) // Cyan (light)
+        "arms" -> Color(0xFF818CF8) // Indigo (light)
+        "forearms" -> Color(0xFFFB923C) // Orange (light)
+        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFF472B6) // Pink (light)
+        else -> Color(0xFF94A3B8) // Grey (light)
     }
 }
 
 /**
- * [getMuscleGroupColor] tuned for the surface it is about to be drawn on. A mid-tone
- * hue that reads well on the dark themes is too washed out to serve as text or as a
- * small chip on the light ones (yellow most of all), so on a light surface it is
- * deepened one step. The hue — and therefore which body part it means — never
- * changes, only the depth.
+ * The palette colour read as TEXT on a light surface. Yellow-400 on white is
+ * ~1.6:1 contrast — unreadable — so text uses the deeper 600-step of the same
+ * hue on light themes; dark themes keep the light palette as-is. Fills (donut
+ * arcs, dots, badge chips) still use the light palette so the "light colours"
+ * the owner asked for are preserved.
  */
 @Composable
-fun muscleGroupColor(muscleGroup: String): Color {
-    val base = getMuscleGroupColor(muscleGroup)
-    return if (MaterialTheme.colorScheme.surface.luminance() > 0.5f) deepenForLightSurface(base) else base
+fun muscleGroupTextColor(muscleGroup: String): Color {
+    if (!LocalLightTheme.current) return getMuscleGroupColor(muscleGroup)
+    return when (muscleGroup.lowercase().trim()) {
+        "chest", "pectorals" -> Color(0xFFDC2626) // Red 600
+        "abs", "abdominals" -> Color(0xFFD97706) // Amber 600
+        "core", "obliques" -> Color(0xFFCA8A04) // Yellow 600
+        "legs", "quadriceps", "hamstrings", "glutes", "calves",
+        "hip adductors", "hip abductors", "adductors", "abductors" -> Color(0xFF059669) // Emerald 600
+        "back", "lats", "upper back", "traps", "upper traps", "spinal erectors", "erectors" -> Color(0xFF2563EB) // Blue 600
+        "biceps" -> Color(0xFF7C3AED) // Violet 600
+        "triceps" -> Color(0xFF0891B2) // Cyan 600
+        "arms" -> Color(0xFF4F46E5) // Indigo 600
+        "forearms" -> Color(0xFFEA580C) // Orange 600
+        "shoulders", "deltoids", "front deltoids", "lateral deltoids", "rear deltoids" -> Color(0xFFDB2777) // Pink 600
+        else -> Color(0xFF64748B) // Grey 500
+    }
 }
 
-/** One step deeper, for legibility on a light background. */
-private fun deepenForLightSurface(color: Color): Color = lerp(color, Color.Black, 0.3f)
+/**
+ * [getMuscleGroupColor] as-is, on every surface. It used to deepen colours one
+ * step on light themes for contrast; the owner asked for lighter muscle-group
+ * colours instead, so the palette itself is light and no surface-dependent
+ * deepening happens any more. Kept as a function (not a straight alias) so a
+ * future surface-aware tweak still has its single choke point.
+ */
+@Composable
+fun muscleGroupColor(muscleGroup: String): Color = getMuscleGroupColor(muscleGroup)
 
 /**
  * Refines a stored muscle group into the most precise well-known group for an
@@ -166,6 +194,16 @@ fun formatMuscleGroup(muscleGroup: String, exerciseName: String = ""): String {
            else "$topicLabel · $preciseLabel"
 }
 
+/**
+ * The precise muscle group an exercise is *displayed* under: the stored group
+ * refined through the built-in pool when the pool knows better. Push-ups stored
+ * under "Shoulders" by an older build resolve to "Pectorals", so everything
+ * derived from the stored value — dot colours, day focus lines, Analytics
+ * buckets — agrees with the badge that already resolves this way.
+ */
+fun effectiveMuscleGroup(exerciseName: String, storedGroup: String): String =
+    resolvePreciseMuscleGroup(exerciseName, storedGroup)
+
 @Composable
 fun MuscleGroupBadge(
     muscleGroup: String,
@@ -175,6 +213,9 @@ fun MuscleGroupBadge(
     val effective = resolvePreciseMuscleGroup(exerciseName, muscleGroup)
     val topic = WorkoutTemplates.getTopicForMuscle(effective)
     val color = muscleGroupColor(topic)
+    // Text must stay readable on light surfaces, where the light palette dips
+    // below legible contrast (yellow-400 on white is ~1.6:1).
+    val textColor = muscleGroupTextColor(topic)
     val isDeveloper = LocalDeveloperSkin.current
     val topicLabel = translateMuscleGroup(topic)
     val preciseLabel = translateMuscleGroup(effective)
@@ -185,7 +226,7 @@ fun MuscleGroupBadge(
     ) {
         Surface(
             color = if (isDeveloper) Color.Black else color.copy(alpha = 0.2f),
-            contentColor = if (isDeveloper) Color.White else color,
+            contentColor = if (isDeveloper) Color.White else textColor,
             shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
             border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
         ) {
@@ -1543,7 +1584,7 @@ fun MuscleGroupDonutChart(
         }
     }
 
-    fun entryColor(key: String): Color = groupColors[key] ?: Color(0xFF64748B)
+    fun entryColor(key: String): Color = groupColors[key] ?: getMuscleGroupColor("Other")
 
     @Composable
     fun LegendRow(
@@ -1819,6 +1860,9 @@ private fun MuscleGroupDetailDialog(
                 detailedSections.forEachIndexed { index, (_, members) ->
                     val headerKey = members.first().first
                     val sectionColor = muscleGroupColor(WorkoutTemplates.getTopicForMuscle(headerKey))
+                    // Same contrast rule as the badge: the header text sits on a
+                    // light tint, so on light themes it reads in the deeper tone.
+                    val sectionTextColor = muscleGroupTextColor(WorkoutTemplates.getTopicForMuscle(headerKey))
                     // Broad body-part header chip with the section's total sets.
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
@@ -1843,7 +1887,7 @@ private fun MuscleGroupDetailDialog(
                                 fontWeight = FontWeight.ExtraBold,
                                 letterSpacing = 1.sp
                             ),
-                            color = sectionColor,
+                            color = sectionTextColor,
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
                             modifier = Modifier.weight(1f)
@@ -1981,7 +2025,9 @@ private fun MuscleVolumeRow(
 fun getUpperCategoryKey(muscleGroup: String): String {
     val mg = muscleGroup.lowercase().trim()
     return when {
-        mg.contains("chest") -> "chest"
+        // "pectorals" is the precise group the primary-muscle table stores; it must
+        // land on the same broad key as "chest" or a chest day reads as "Other".
+        mg.contains("chest") || mg.contains("pectoral") -> "chest"
         mg.contains("back") || (mg.contains("lat") && !mg.contains("lateral")) || mg.contains("trap") || mg.contains("erector") -> "back"
         mg.contains("leg") || mg.contains("quad") || mg.contains("hamstring") || mg.contains("glute") || mg.contains("calve") || mg.contains("adductor") || mg.contains("abductor") -> "legs"
         mg.contains("shoulder") || mg.contains("delt") -> "shoulders"
@@ -2214,7 +2260,9 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
     val presentGroups = exercises.map { it.muscleGroup.lowercase().trim() }.toSet()
 
     val requiredGroups = listOf(
-        "chest" to listOf("chest"),
+        // "pectoral" covers the precise "Pectorals" group the primary-muscle
+        // table stores, so a chest day built from it is not reported missing.
+        "chest" to listOf("chest", "pectoral"),
         "back" to listOf("back", "lats", "upper back", "traps"),
         "legs" to listOf("legs", "quads", "quadriceps", "hamstrings", "calves", "glutes", "adductors", "abductors"),
         "shoulders" to listOf("shoulders", "delt", "deltoid"),
@@ -2649,6 +2697,18 @@ fun ExerciseEditDialog(
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
     var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
 
+    // Same filters the replace dialog offers: equipment chips plus a broad
+    // muscle-group dropdown. They only narrow which exercises the search field
+    // suggests — the stored muscle still comes from the exercise itself, and an
+    // existing row keeps whatever group it was saved with.
+    var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
+    var filterEquipment by remember(exercise?.id) { mutableStateOf(emptyList<String>()) }
+    val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
+        filteredExercisesForPickers(allAvailableExercises, filterMuscleGroup, filterEquipment)
+    }
+    val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
+    var showRecommendFilters by remember { mutableStateOf(false) }
+
     var activeToastMessage by remember { mutableStateOf<String?>(null) }
 
     val isRepsValid = remember(targetRepsValue, isTimeBased) {
@@ -2723,8 +2783,25 @@ fun ExerciseEditDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
+                // RECOMMENDATION FILTERS — optional and popup-only while adding
+                // (an edit keeps its own name). A user typing a known exercise
+                // manually never sees them; the picker narrows the SUGGESTIONS only.
+                if (exercise == null) {
+                    OutlinedButton(
+                        onClick = { showRecommendFilters = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (filtersActive) getString("recommend_filters_active", filteredExercises.size)
+                            else getString("recommend_filters_open")
+                        )
+                    }
+                }
+
                 SearchableExerciseField(
-                    allExercises = allAvailableExercises,
+                    allExercises = filteredExercises,
                     value = name,
                     onValueChange = { 
                         name = it
@@ -2799,8 +2876,16 @@ fun ExerciseEditDialog(
                     }
                 }
 
+                // SOFT rep guidance, never a gate: the field only flags a
+                // structurally invalid range (min > max), and even that keeps the
+                // save button enabled — the user is always free to save what they
+                // typed. If the range sits entirely outside the exercise's
+                // recommended band, an info chip says so without blocking.
                 val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
-                val showSupportingSpacer = repsError
+                val outsideRecommended = remember(targetRepsValue, name) {
+                    name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
+                        WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
+                }
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -2877,6 +2962,26 @@ fun ExerciseEditDialog(
                     }
                 }
 
+                // Attention, not enforcement: the save button stays enabled, this
+                // only explains that there is a recommended band.
+                if (outsideRecommended) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = getString("reps_outside_recommended"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2940,7 +3045,10 @@ fun ExerciseEditDialog(
                         onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
                     }
                 },
-                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
+                // Reps no longer gate saving: any digits the user typed are fine
+                // (isRepsValid is only a field-level hint). Only a blank name or a
+                // blank reps/time value blocks, since a row needs something to show.
+                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()
             ) {
                 Text(getString("save"))
             }
@@ -2954,6 +3062,26 @@ fun ExerciseEditDialog(
             }
         }
     )
+
+    // Optional recommendation popup (add mode only). Lives OUTSIDE the main
+    // AlertDialog so it stacks on top of it.
+    if (showRecommendFilters && exercise == null) {
+        ExerciseRecommendationFilterDialog(
+            filterMuscleGroup = filterMuscleGroup,
+            filterEquipment = filterEquipment,
+            filteredCount = filteredExercises.size,
+            onMuscleGroupChange = { filterMuscleGroup = it },
+            onEquipmentToggle = { key ->
+                filterEquipment = if (filterEquipment.contains(key)) filterEquipment - key
+                                  else filterEquipment + key
+            },
+            onReset = {
+                filterMuscleGroup = null
+                filterEquipment = emptyList()
+            },
+            onDismiss = { showRecommendFilters = false }
+        )
+    }
 }
 
 /**
@@ -2961,6 +3089,14 @@ fun ExerciseEditDialog(
  * of dp, so the wheel keeps the same visual rhythm on a 320dp phone and on a tablet.
  */
 private const val DayWheelGapRatio = 0.08f
+
+/**
+ * Distance from the chip's top edge to the TODAY tag. The tag overlays the
+ * headroom above the centred day label and consumes no layout space, so the
+ * label's centre - not a slot+label composite - defines the chip's optical
+ * balance on all seven chips.
+ */
+private val DayWheelTodayTagTopPadding = 3.dp
 
 @Composable
 fun WorkoutDayWheel(
@@ -3078,15 +3214,36 @@ fun WorkoutDayWheel(
                             DayOfWeekEnum.SUNDAY -> getString("sunday_shortest")
                         }
 
+                        // Every chip reserves the same fixed-height slot above its day label:
+                        // today's chip fills it with the TODAY tag, the other six leave it
+                        // empty. Because the slot exists on all seven, every label keeps
+                        // exactly the same baseline (the old overlay shoved today's label
+                        // off-centre, and pinning the tag to the top edge afterwards left it
+                        // cramped against the border - this placement fixes both).
+                        // Centering is done EXPLICITLY, not trusted to the Surface:
+                        // a bordered Surface's drawn pill can sit a few px left of the
+                        // slot on some devices (the border stroke and the tonal overlay
+                        // resolve around the measured size differently), which is exactly
+                        // the ragged look this wheel had. fillMaxSize + a column centred
+                        // in the WHOLE slot keeps label and pill dead-centre on every
+                        // screen width; the 2dp border stroke straddles the edge.
+                        // The day label is centred in the FULL chip - both axes - on every
+                        // chip, so all seven share one baseline AND sit at the pill's
+                        // optical centre. (Reserving a layout slot above the label for the
+                        // TODAY tag centred the slot+label composite instead, which left
+                        // six labels hanging below centre with dead space above - the
+                        // ragged look. The tag now overlays the top headroom and consumes
+                        // no layout space; chips keep a >= 48dp height, so the ~10dp tag
+                        // always fits in the headroom above the centred label.)
                         Box(
                             contentAlignment = Alignment.Center,
                             modifier = Modifier.fillMaxSize()
                         ) {
-                            // The day label is centred in the chip - both ways - on every chip, so
-                            // all seven share one baseline. AutoScaleText instead of a clipped 12sp
-                            // label keeps "Mi"/"Mer"/"Mie" fitting the same slot in every language.
-                            // Its fillMaxWidth box is wider than the text and AutoScaleText centres
-                            // the text inside it; without that the label sat against the left edge.
+                            // AutoScaleText instead of a clipped 12sp label keeps
+                            // "Mi"/"Mer"/"Mie" fitting the same slot in every language.
+                            // Its fillMaxWidth box is wider than the text and AutoScaleText
+                            // centres the text inside it; without that the label sat
+                            // against the left edge.
                             AutoScaleText(
                                 text = dayLabel,
                                 style = MaterialTheme.typography.labelSmall.copy(
@@ -3097,22 +3254,20 @@ fun WorkoutDayWheel(
                                 modifier = Modifier.fillMaxWidth()
                             )
 
-                            // Today's chip carries its tag pinned to the top edge instead of above
-                            // the label, so the label itself never has to leave the centre to make
-                            // room for it - which is what used to make today's label sit lower than
-                            // the other six.
                             if (isToday) {
-                                Text(
+                                AutoScaleText(
                                     text = getString("today").uppercase(),
                                     style = MaterialTheme.typography.labelSmall.copy(
                                         fontWeight = FontWeight.Black,
                                         fontSize = 8.sp,
                                         letterSpacing = 0.2.sp
                                     ),
+                                    minScale = 0.5f,
                                     maxLines = 1,
                                     modifier = Modifier
+                                        .fillMaxWidth()
                                         .align(Alignment.TopCenter)
-                                        .padding(top = 2.dp)
+                                        .padding(top = DayWheelTodayTagTopPadding)
                                 )
                             }
                         }
@@ -3556,6 +3711,182 @@ private const val REPLACE_TICK_MILLIS = 220L
  */
 private const val REPLACE_SETTLE_MILLIS = 160L
 
+/**
+ * The exercises matching an add-dialog filter selection — the same lookup the
+ * replace dialog runs: empty muscle selection = every group, empty equipment
+ * selection = every category, and the muscle filter is a broad body part that
+ * answers with the exercises whose authoritative primary muscle belongs to it
+ * (selecting "Legs" offers every leg exercise, whatever precise muscle it
+ * names). Returns the pool sorted, ready to feed [SearchableExerciseField].
+ */
+fun filteredExercisesForPickers(
+    allExercises: List<String>,
+    selectedMuscleGroup: String?,
+    selectedEquipment: List<String>
+): List<String> {
+    val equipmentFilter = selectedEquipment.ifEmpty { WorkoutTemplates.allEquipmentCategories }
+    val pool = when (selectedMuscleGroup) {
+        null, "", ANY_MUSCLE_GROUP_KEY ->
+            equipmentFilter.flatMap { WorkoutTemplates.getAllExercisesForEquipment(it) }
+        else ->
+            equipmentFilter.flatMap { WorkoutTemplates.getExercisesForEquipment(it, selectedMuscleGroup) }
+    }
+    return pool.distinct().filter { it in allExercises.toSet() || allExercises.isEmpty() }.sorted()
+}
+
+/**
+ * The equipment filter row from the replace dialog: one chip per category,
+ * none selected meaning "every category". Shared with the add dialog so both
+ * pickers narrow the list by the same keys.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun EquipmentFilterRow(
+    selectedEquipment: List<String>,
+    onToggle: (String) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val equipmentOptions = listOf(
+        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
+        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
+        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
+        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
+    )
+    FlowRow(
+        modifier = modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(8.dp),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        equipmentOptions.forEach { (key, label) ->
+            FilterChip(
+                selected = selectedEquipment.contains(key),
+                onClick = { onToggle(key) },
+                label = { Text(label, maxLines = 1) },
+                shape = RoundedCornerShape(10.dp)
+            )
+        }
+    }
+}
+
+/**
+ * The optional "recommendation" popup for the add-exercise dialogs: muscle
+ * group + equipment filters that narrow which exercises the name field
+ * suggests. Deliberately NOT inline with the form — typing a known exercise
+ * manually needs no filters, so the picker only opens on request.
+ */
+@Composable
+fun ExerciseRecommendationFilterDialog(
+    filterMuscleGroup: String?,
+    filterEquipment: List<String>,
+    filteredCount: Int,
+    onMuscleGroupChange: (String?) -> Unit,
+    onEquipmentToggle: (String) -> Unit,
+    onReset: () -> Unit,
+    onDismiss: () -> Unit
+) {
+    AlertDialog(
+        onDismissRequest = onDismiss,
+        title = { Text(getString("recommend_filters_title")) },
+        text = {
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Text(
+                    text = getString("recommend_filters_desc"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                MuscleGroupFilterField(
+                    selectedMuscleGroup = filterMuscleGroup,
+                    onSelect = onMuscleGroupChange
+                )
+                EquipmentFilterRow(
+                    selectedEquipment = filterEquipment,
+                    onToggle = onEquipmentToggle
+                )
+                if (filterMuscleGroup != null || filterEquipment.isNotEmpty()) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Text(
+                            text = getString("exercises_count", filteredCount),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            modifier = Modifier.weight(1f)
+                        )
+                        TextButton(
+                            onClick = onReset,
+                            contentPadding = PaddingValues(horizontal = 8.dp)
+                        ) {
+                            Text(getString("reset"), style = MaterialTheme.typography.labelSmall)
+                        }
+                    }
+                }
+            }
+        },
+        confirmButton = {
+            Button(onClick = onDismiss) { Text(getString("recommend_apply")) }
+        },
+        dismissButton = {
+            TextButton(onClick = onDismiss) { Text(getString("cancel")) }
+        }
+    )
+}
+
+/**
+ * The muscle-group filter dropdown from the replace dialog: "Any" plus the six
+ * broad body parts. Selecting "Legs" offers every exercise whose own body part
+ * is Legs — the same partition the replace dialog filters by.
+ */
+@OptIn(ExperimentalMaterial3Api::class)
+@Composable
+fun MuscleGroupFilterField(
+    selectedMuscleGroup: String?,
+    onSelect: (String?) -> Unit,
+    modifier: Modifier = Modifier
+) {
+    var expanded by remember { mutableStateOf(false) }
+    val anyLabel = getString("any_muscle_group")
+    val broadGroups = WorkoutTemplates.getBroadMuscleGroups()
+    ExposedDropdownMenuBox(
+        expanded = expanded,
+        onExpandedChange = { expanded = it },
+        modifier = modifier
+    ) {
+        OutlinedTextField(
+            value = if (selectedMuscleGroup == null) anyLabel else translateMuscleGroup(selectedMuscleGroup),
+            onValueChange = {},
+            readOnly = true,
+            label = { Text(getString("muscle_group")) },
+            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
+            modifier = Modifier
+                .fillMaxWidth()
+                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
+        )
+        ExposedDropdownMenu(
+            expanded = expanded,
+            onDismissRequest = { expanded = false }
+        ) {
+            DropdownMenuItem(
+                text = { Text(anyLabel, fontWeight = FontWeight.Bold) },
+                onClick = {
+                    onSelect(null)
+                    expanded = false
+                }
+            )
+            HorizontalDivider()
+            broadGroups.forEach { group ->
+                DropdownMenuItem(
+                    text = { Text(translateMuscleGroup(group)) },
+                    onClick = {
+                        onSelect(group)
+                        expanded = false
+                    }
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class, ExperimentalLayoutApi::class)
 @Composable
 fun ReplaceExerciseDialog(
@@ -3565,15 +3896,6 @@ fun ReplaceExerciseDialog(
 ) {
     val focusManager = LocalFocusManager.current
     val broadMuscleGroups = remember { WorkoutTemplates.getBroadMuscleGroups() }
-
-    val equipmentOptions = listOf(
-        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
-        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
-        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
-        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
-    )
-
-    val anyMuscleGroupLabel = getString("any_muscle_group")
 
     // Auto-select the replaced exercise's equipment & muscle group. An empty
     // equipment selection means "every category" (replaces the old "All" chip).
@@ -3593,7 +3915,6 @@ fun ReplaceExerciseDialog(
                 ?: broadMuscleGroups.first()
         )
     }
-    var muscleMenuExpanded by remember { mutableStateOf(false) }
 
     // The card whose acknowledgement is playing: its "+" turns into a tick while the swap is
     // held back for [REPLACE_TICK_MILLIS]. Nothing else can be picked meanwhile, so a second
@@ -3686,64 +4007,22 @@ fun ReplaceExerciseDialog(
                         style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
                     )
                 }
-                FlowRow(
-                    horizontalArrangement = Arrangement.spacedBy(8.dp),
-                    verticalArrangement = Arrangement.spacedBy(8.dp)
-                ) {
-                    equipmentOptions.forEach { (key, label) ->
-                        FilterChip(
-                            selected = selectedEquipment.contains(key),
-                            onClick = {
-                                selectedEquipment = if (selectedEquipment.contains(key)) {
-                                    selectedEquipment - key
-                                } else {
-                                    selectedEquipment + key
-                                }
-                            },
-                            label = { Text(label, maxLines = 1) },
-                            shape = RoundedCornerShape(10.dp)
-                        )
-                    }
-                }
-
-                // MUSCLE GROUP FILTER
-                ExposedDropdownMenuBox(
-                    expanded = muscleMenuExpanded,
-                    onExpandedChange = { muscleMenuExpanded = !muscleMenuExpanded }
-                ) {
-                    OutlinedTextField(
-                        value = if (selectedMuscleGroup == ANY_MUSCLE_GROUP_KEY) anyMuscleGroupLabel else translateMuscleGroup(selectedMuscleGroup),
-                        onValueChange = {},
-                        readOnly = true,
-                        label = { Text(getString("muscle_group")) },
-                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = muscleMenuExpanded) },
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-                    )
-                    ExposedDropdownMenu(
-                        expanded = muscleMenuExpanded,
-                        onDismissRequest = { muscleMenuExpanded = false }
-                    ) {
-                        DropdownMenuItem(
-                            text = { Text(anyMuscleGroupLabel, fontWeight = FontWeight.Bold) },
-                            onClick = {
-                                selectedMuscleGroup = ANY_MUSCLE_GROUP_KEY
-                                muscleMenuExpanded = false
-                            }
-                        )
-                        HorizontalDivider()
-                        broadMuscleGroups.forEach { group ->
-                            DropdownMenuItem(
-                                text = { Text(translateMuscleGroup(group)) },
-                                onClick = {
-                                    selectedMuscleGroup = group
-                                    muscleMenuExpanded = false
-                                }
-                            )
+                EquipmentFilterRow(
+                    selectedEquipment = selectedEquipment,
+                    onToggle = { key ->
+                        selectedEquipment = if (selectedEquipment.contains(key)) {
+                            selectedEquipment - key
+                        } else {
+                            selectedEquipment + key
                         }
                     }
-                }
+                )
+
+                // MUSCLE GROUP FILTER
+                MuscleGroupFilterField(
+                    selectedMuscleGroup = selectedMuscleGroup.takeIf { it != ANY_MUSCLE_GROUP_KEY },
+                    onSelect = { selectedMuscleGroup = it ?: ANY_MUSCLE_GROUP_KEY }
+                )
 
                 Text(
                     text = getString("exercises_count", alternatives.size),

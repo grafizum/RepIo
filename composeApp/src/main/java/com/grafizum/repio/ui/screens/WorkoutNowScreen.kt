@@ -268,7 +268,9 @@ fun WorkoutNowScreen(
         // width, so long day names (DE/IT) can no longer squeeze the button or clip mid-glyph
         // on narrow phones (e.g. Pixel 8).
         val trainingType = if (currentDayExercises.isNotEmpty()) {
-            currentDayExercises.map { it.muscleGroup }
+            // Resolve through the pool so a legacy row stored under a broad part
+            // ("Shoulders" for Push-ups) reads as the part its badge shows.
+            currentDayExercises.map { com.grafizum.repio.ui.components.effectiveMuscleGroup(it.name, it.muscleGroup) }
                 .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
                 .distinct()
                 .joinToString(", ")

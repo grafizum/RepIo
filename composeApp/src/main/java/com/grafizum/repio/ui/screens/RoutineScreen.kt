@@ -98,6 +98,7 @@ import androidx.compose.material3.ModalBottomSheet
 import androidx.compose.material3.RadioButton
 import androidx.compose.material3.rememberModalBottomSheetState
 import com.grafizum.repio.data.DayOfWeekEnum
+import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
@@ -113,6 +114,7 @@ import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
+import com.grafizum.repio.ui.components.effectiveMuscleGroup
 import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
@@ -445,7 +447,7 @@ fun WorkoutScreen(
                                 }
 
                                 val focus = if (dayExercisesList.isNotEmpty()) {
-                                    dayExercisesList.map { WorkoutTemplates.getMuscleGroupForExercise(it.name) }
+                                    dayExercisesList.map { effectiveMuscleGroup(it.name, it.muscleGroup) }
                                         .map { com.grafizum.repio.ui.components.translateMuscleGroup(it) }
                                         .distinct()
                                         .joinToString(", ")
@@ -946,12 +948,18 @@ fun WorkoutScreen(
             exercise = exercise,
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
-                // Swap the original for the picked exercise, in its slot.
+                // Swap the original for the picked exercise, in its slot. The new
+                // row is parameterized from the user's settings (goal/difficulty)
+                // instead of inheriting the old exercise's sets, reps and rest.
                 viewModel.replaceExerciseWith(
                     original = exercise,
                     previousNames = emptyList(),
                     replacements = listOf(
-                        exercise.copy(id = 0L, name = name, muscleGroup = muscleGroup, videoUrl = "")
+                        viewModel.parameterizedReplacement(
+                            original = exercise,
+                            newName = ExerciseLocalization.canonicalFor(name) ?: name,
+                            newMuscleGroup = muscleGroup
+                        )
                     )
                 )
             }

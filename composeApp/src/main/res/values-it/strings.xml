@@ -143,6 +143,12 @@
     <string name="equipment">Attrezzatura</string>
     <string name="equipment_filter_hint">Seleziona l\'attrezzatura che il tuo programma può usare — lascia vuoto per includerle tutte.</string>
     <string name="equipment_all">Tutti</string>
+    <string name="recommend_filters_open">Mostra suggerimenti…</string>
+    <string name="recommend_filters_active">Suggerimenti filtrati · %1$d risultati</string>
+    <string name="recommend_filters_title">Suggerimenti esercizi</string>
+    <string name="recommend_filters_desc">Facoltativo: restringi quali esercizi vengono suggeriti qui sotto. Puoi sempre digitare qualsiasi esercizio manualmente.</string>
+    <string name="recommend_apply">Fatto</string>
+    <string name="sets_changeable_later">Puoi modificarli più tardi in Il mio allenamento.</string>
     <string name="any_muscle_group">Qualsiasi</string>
     <string name="copy_day_title">Copia %1$s</string>
     <string name="copy_day_desc">Copia tutti gli esercizi da %1$s in un altro giorno:</string>
@@ -572,6 +578,7 @@
     <string name="invalid_char_error">Sono ammessi solo numeri e trattini</string>
     <string name="only_numbers_error">Sono ammessi solo numeri</string>
     <string name="min_greater_than_max">Il minimo non può essere superiore al massimo</string>
+    <string name="reps_outside_recommended">Nota: l\'intervallo di ripetizioni consigliato per questo esercizio è diverso — puoi comunque salvarlo, ma restare nell\'intervallo ottimale di solito funziona meglio.</string>
 
     <!-- Workout Goals -->
     <string name="workout_goal">Obiettivo Allenamento</string>
@@ -626,6 +633,12 @@
     <string name="insight_volume_easy_desc">Volume più basso focalizzato sul mantenimento della tecnica e sul recupero attivo.</string>
     <string name="insight_frequency_title">Frequenza di Allenamento</string>
     <string name="insight_frequency_desc">Distribuire i gruppi muscolari due volte a settimana spesso produce risultati superiori rispetto agli split settimanali.</string>
+    <string name="insight_fullbody_title">Frequenza Full-Body</string>
+    <string name="insight_fullbody_desc">Con pochi giorni di allenamento, ogni seduta copre i muscoli principali — allenare ogni muscolo due volte a settimana batte una sola volta, a parità di volume.</string>
+    <string name="insight_upperlower_title">Split Superiore/Inferiore</string>
+    <string name="insight_upperlower_desc">Il corpo superiore e inferiore si alternano in sedute mirate: ogni muscolo si allena circa due volte a settimana e ogni workout resta fresco e recuperabile.</string>
+    <string name="insight_ppl_title">Ciclo Push/Pull/Gambe</string>
+    <string name="insight_ppl_desc">L\'elevata frequenza di allenamento è organizzata in sedute push, pull e gambe — il volume settimanale si distribuisce senza scendere mai sotto le due volte a settimana per muscolo.</string>
     <string name="insight_goal_title">Allineamento Obiettivo</string>
     <string name="insight_rest_title">Intervalli di Riposo</string>
     <string name="insight_goal_bodybuilding_desc">Allenamento focalizzato sull\'ipertrofia utilizzando range di ripetizioni moderati per massimizzare lo stress metabolico.</string>
