@@ -968,6 +968,29 @@ class WorkoutViewModel(
         }
     }
 
+    /**
+     * A replacement row re-parameterized from the user's saved settings — goal,
+     * difficulty and sets allocation, exactly what the generator would have
+     * given the incoming exercise — instead of inheriting the old row's sets,
+     * reps and rest. The screens call this before [replaceExerciseWith] so the
+     * swap lands parameterized for the *new* exercise.
+     */
+    fun parameterizedReplacement(
+        original: RoutineExerciseEntity,
+        newName: String,
+        newMuscleGroup: String,
+        videoUrl: String = ""
+    ): RoutineExerciseEntity = WorkoutTemplates.parameterizeReplacement(
+        original = original,
+        newName = newName,
+        newMuscleGroup = newMuscleGroup,
+        workoutGoal = _workoutGoal.value,
+        intensity = (prefs.getString("setup_intensity", "") ?: "").ifBlank { "Medium" },
+        minSets = _minSets.value,
+        maxSets = _maxSets.value,
+        videoUrl = videoUrl
+    )
+
     fun deleteExercise(id: Long) {
         viewModelScope.launch {
             repository.deleteExercise(id)

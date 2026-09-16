@@ -140,6 +140,12 @@
     <string name="equipment">Geräte</string>
     <string name="equipment_filter_hint">Wähle die Geräte, die dein Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
     <string name="equipment_all">Alle</string>
+    <string name="recommend_filters_open">Übungsvorschläge anzeigen…</string>
+    <string name="recommend_filters_active">Vorschläge gefiltert · %1$d Treffer</string>
+    <string name="recommend_filters_title">Übungsvorschläge</string>
+    <string name="recommend_filters_desc">Optional: Grenze ein, welche Übungen unten vorgeschlagen werden. Du kannst jederzeit jede Übung manuell eintippen.</string>
+    <string name="recommend_apply">Fertig</string>
+    <string name="sets_changeable_later">Du kannst das später in Mein Workout ändern.</string>
     <string name="any_muscle_group">Alle</string>
     <string name="copy_day_title">%1$s kopieren</string>
     <string name="copy_day_desc">Alle Übungen von %1$s auf einen anderen Tag kopieren:</string>
@@ -564,6 +570,7 @@
     <string name="invalid_char_error">Nur Zahlen und Bindestriche erlaubt</string>
     <string name="only_numbers_error">Nur Zahlen erlaubt</string>
     <string name="min_greater_than_max">Min darf nicht größer als Max sein</string>
+    <string name="reps_outside_recommended">Hinweis: Der empfohlene Wiederholungsbereich für diese Übung ist ein anderer — du kannst das trotzdem speichern, aber im optimalen Bereich zu bleiben funktioniert erfahrungsgemäß am besten.</string>
 
     <!-- Workout Goals -->
     <string name="workout_goal">Trainingsziel</string>
@@ -618,6 +625,12 @@
     <string name="insight_volume_easy_desc">Niedrigeres Volumen mit Fokus auf Technik und aktive Erholung.</string>
     <string name="insight_frequency_title">Trainingsfrequenz</string>
     <string name="insight_frequency_desc">Zweimaliges Training pro Muskelgruppe pro Woche bringt oft bessere Ergebnisse als einmalige Splits.</string>
+    <string name="insight_fullbody_title">Ganzkörper-Frequenz</string>
+    <string name="insight_fullbody_desc">Mit nur wenigen Trainingstagen behandelt jedes Workout deine Hauptmuskeln — zweimal pro Woche Training schlägt einmal, bei gleichem Gesamtvolumen.</string>
+    <string name="insight_upperlower_title">Ober-/Unterkörper-Split</string>
+    <string name="insight_upperlower_desc">Ober- und Unterkörper wechseln sich in fokussierten Einheiten ab — jeder Muskel wird etwa zweimal pro Woche trainiert, während jedes Workout frisch und gut regenerierbar bleibt.</string>
+    <string name="insight_ppl_title">Push/Pull/Beine-Zyklus</string>
+    <string name="insight_ppl_desc">Deine hohe Trainingsfrequenz ist in Push-, Pull- und Bein-Einheiten gegliedert — das Wochenrumpfvolumen verteilt sich, ohne dass ein Muskel unter zweimal pro Woche fällt.</string>
     <string name="insight_goal_title">Ziel-Ausrichtung</string>
     <string name="insight_rest_title">Satzpausen</string>
     <string name="insight_goal_bodybuilding_desc">Hypertrophie-Fokus durch moderate Wdh.-Bereiche zur Maximierung des metabolischen Stresses.</string>

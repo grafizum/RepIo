@@ -34,6 +34,13 @@ import com.grafizum.repio.R
 
 val LocalDeveloperSkin = staticCompositionLocalOf { false }
 
+/**
+ * True when the active color scheme paints a light background. UI code that
+ * must stay readable on BOTH themes (e.g. muscle-group text tones, which the
+ * palette deliberately keeps light) reads this instead of guessing.
+ */
+val LocalLightTheme = staticCompositionLocalOf { false }
+
 private val PurpleColorScheme = darkColorScheme(
     primary = ElegantPurple,
     onPrimary = Color.White,
@@ -302,6 +309,7 @@ fun WorkoutTrackerTheme(
 
     CompositionLocalProvider(
         LocalDeveloperSkin provides isDeveloper,
+        LocalLightTheme provides isLightTheme,
         LocalWindowSize provides windowSize
     ) {
         MaterialTheme(

@@ -62,6 +62,46 @@ object WorkoutTemplates {
     )
 
     /**
+     * Week-length tiers for the program structure. Every tier keeps each muscle
+     * at ~2x/week — the frequency floor the meta-analyses support (Schoenfeld
+     * et al. 2016; Schoenfeld, Grgic & Krieger 2019) — they only change HOW the
+     * week is arranged to get there:
+     *  - <=3 days: full-body rotation (a split would push muscles to 1x/week).
+     *  - 4-5 days: upper/lower alternation (focused sessions, ~2x/week each).
+     *  - 6-7 days: dedicated push/pull/legs cycle (spreads the high weekly
+     *    volume across movement patterns without dropping any muscle's
+     *    frequency — a 1x/week body-part-per-week split at this cadence would
+     *    undo the frequency benefit the same research established).
+     */
+    private const val FULL_BODY_MAX_DAYS = 3
+    private const val UPPER_LOWER_MAX_DAYS = 5
+
+    private const val STRATEGY_FULL_BODY = 0
+    private const val STRATEGY_UPPER_LOWER = 1
+    private const val STRATEGY_PPL = 2
+
+    /**
+     * Which push/pull/legs bucket a body part trains on the split tiers. The
+     * setup picker sends precise parts; the broad aliases keep programmatic
+     * callers (and the tests) working.
+     */
+    private fun splitBucketFor(part: String): String? = when (part) {
+        "Chest", "Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Triceps", "Shoulders" -> "push"
+        "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Forearms", "Back", "Arms" -> "pull"
+        "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Legs" -> "legs"
+        "Abs", "Obliques", "Core" -> "core"
+        else -> null
+    }
+
+    /**
+     * Parts the upper/lower alternation assigns to the lower sessions (the
+     * core parts rotate with upper so ab work opens each upper day).
+     */
+    private val LOWER_BODY_PARTS = setOf(
+        "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Legs"
+    )
+
+    /**
      * The two independent knobs the build is parameterised by:
      *  - [workoutGoal] owns the SCHEME: rep range, rest, exercise selection.
      *  - [intensity] owns the EFFORT & VOLUME: RPE label, sets, exercises per
@@ -87,14 +127,100 @@ object WorkoutTemplates {
 
         if (bodyParts.isEmpty() || selectedDays.isEmpty()) return GeneratedProgram(emptyList(), emptyList(), emptyList(), emptyList())
 
-        // 1. VOLUME STRATEGY (Equal Distribution)
+        // 1. VOLUME STRATEGY (frequency-driven distribution)
         val majorMuscles = listOf("Chest", "Lats", "Upper Back", "Quadriceps", "Hamstrings", "Glutes")
         val expandedBodyParts = bodyParts.toMutableList()
-        
-        // Distribute parts across selected days
+
+        // Distribute parts across selected days, strategy chosen by training
+        // frequency (Schoenfeld et al. 2016 Sports Med; Schoenfeld, Grgic & Krieger
+        // 2019 J Sports Sci; Grgic et al. 2019): a muscle trained 2x/week grows
+        // more than 1x/week, while volume-equated higher frequencies add little —
+        // so a split is only the better tool once the week has enough days for
+        // each part to still recover and every day to stay focused.
+        //  - 4+ days: body-part split (Mon chest, Tue arms, Wed legs, …). Each
+        //    part's weekly volume lands in one fresh, concentrated session —
+        //    higher per-set quality and more total volume per part.
+        //  - 3- days: full-body rotation. The major muscles the user picked are
+        //    trained on EVERY day (2-3x/week, the evidence-backed sweet spot)
+        //    and the remaining parts rotate across days, because concentrating
+        //    them into single sessions would mean every muscle is hit only 1x/week.
+        // Distribute parts across selected days with the strategy the week's
+        // length supports (Schoenfeld et al. 2016 Sports Med; Schoenfeld, Grgic &
+        // Krieger 2019 J Sports Sci; Grgic et al. 2019): a muscle trained
+        // 2x/week grows more than 1x/week, while volume-equated higher
+        // frequencies add little — so every tier below is arranged to keep the
+        // ~2x/week floor, and they differ only in how the week is structured:
+        //  - <=3 days: full-body rotation. Concentrating parts into sessions
+        //    would drop every muscle to 1x/week, so the major muscles the user
+        //    picked are trained on EVERY day (2-3x/week each) and the rest
+        //    rotate across days.
+        //  - 4-5 days: upper/lower alternation. Enough days exist to give each
+        //    half its own fresh, focused session and still hit it twice a week
+        //    (Mon lower / Tue upper / Thu lower / Fri upper).
+        //  - 6-7 days: dedicated push/pull/legs cycle. The high weekly volume an
+        //    advanced cadence carries is spread across movement patterns while
+        //    every muscle still repeats ~2x/week — a one-part-per-week
+        //    arrangement would undo the frequency benefit the same research
+        //    established.
         val partsPerDay = List(selectedDays.size) { mutableListOf<String>() }
-        expandedBodyParts.forEachIndexed { index, part ->
-            partsPerDay[index % selectedDays.size].add(part)
+        val strategy = when {
+            selectedDays.size <= FULL_BODY_MAX_DAYS -> STRATEGY_FULL_BODY
+            selectedDays.size <= UPPER_LOWER_MAX_DAYS -> STRATEGY_UPPER_LOWER
+            else -> STRATEGY_PPL
+        }
+        when (strategy) {
+            STRATEGY_UPPER_LOWER -> {
+                // Alternation: all lower parts go to the first lower day, all
+                // other parts to the first upper day; the next days repeat the
+                // halves in pairs (Mon lower / Tue upper / Thu lower / Fri upper
+                // for the 4-day case). Core parts ride with upper so ab work
+                // still lands twice a week. A 5th training day becomes a major-
+                // muscle volume day: the biggest muscles tolerate the highest
+                // weekly frequency, so it tops them up to 3x/week instead of
+                // leaving a picked day empty.
+                expandedBodyParts.forEach { part ->
+                    val slot = if (part in LOWER_BODY_PARTS) 0 else 1
+                    partsPerDay[slot % selectedDays.size].add(part)
+                }
+                expandedBodyParts.forEach { part ->
+                    val slot = if (part in LOWER_BODY_PARTS) 2 else 3
+                    partsPerDay[slot % selectedDays.size].add(part)
+                }
+                if (selectedDays.size >= 5) {
+                    partsPerDay[4].addAll(expandedBodyParts.filter { it in majorMuscles })
+                }
+            }
+            STRATEGY_PPL -> {
+                // Push/pull/legs CYCLED: every push part trains on both push
+                // days (0 and 3), pull on 1 and 4, legs — plus core — on 2 and
+                // 5. That keeps every muscle at 2x/week while the week's high
+                // volume is spread across six focused, pattern-based sessions.
+                // A 7th day takes the core parts as an extra session.
+                expandedBodyParts
+                    .map { part -> part to (splitBucketFor(part) ?: "push") }
+                    .sortedWith(compareBy({ it.second }, { it.first }))
+                    .forEach { (part, bucket) ->
+                        val slotOffset = when (bucket) {
+                            "pull" -> 1
+                            "legs", "core" -> 2
+                            else -> 0
+                        }
+                        partsPerDay[slotOffset % selectedDays.size].add(part)
+                        partsPerDay[(slotOffset + 3) % selectedDays.size].add(part)
+                        if (bucket == "core" && selectedDays.size == 7) {
+                            partsPerDay[6].add(part)
+                        }
+                    }
+            }
+            else -> {
+                val majors = expandedBodyParts.filter { it in majorMuscles }
+                val secondaries = expandedBodyParts.filter { it !in majorMuscles }
+                secondaries.forEachIndexed { index, part ->
+                    partsPerDay[index % selectedDays.size].add(part)
+                }
+                // Majors go on every day; [sortedParts] below already orders them first.
+                partsPerDay.forEach { it.addAll(majors) }
+            }
         }
 
         // 2. VOLUME RECOMMENDATION
@@ -128,6 +254,37 @@ object WorkoutTemplates {
                 titleKey = "insight_frequency_title",
                 descriptionKey = "insight_frequency_desc",
                 citation = "Dankel et al. (2017)"
+            ))
+        }
+
+        // Short week: the full-body rotation is exactly why the muscles still get
+        // their 2x/week frequency — say so, so the day titles listing several parts
+        // read as deliberate rather than cluttered.
+        if (strategy == STRATEGY_FULL_BODY) {
+            insights.add(ScienceInsight(
+                titleKey = "insight_fullbody_title",
+                descriptionKey = "insight_fullbody_desc",
+                citation = "Schoenfeld et al. (2016)"
+            ))
+        }
+
+        // Upper/lower tier: each half is trained in its own fresh session twice
+        // a week — the same frequency floor, just arranged across more days.
+        if (strategy == STRATEGY_UPPER_LOWER) {
+            insights.add(ScienceInsight(
+                titleKey = "insight_upperlower_title",
+                descriptionKey = "insight_upperlower_desc",
+                citation = "Schoenfeld et al. (2016)"
+            ))
+        }
+
+        // Dedicated tier: spreading the week's high volume across push/pull/legs
+        // sessions keeps per-session quality high without dropping frequency.
+        if (strategy == STRATEGY_PPL) {
+            insights.add(ScienceInsight(
+                titleKey = "insight_ppl_title",
+                descriptionKey = "insight_ppl_desc",
+                citation = "Schoenfeld et al. (2017)"
             ))
         }
 
@@ -243,6 +400,20 @@ object WorkoutTemplates {
 
                     available = available.filter { it !in excludedExercises }
 
+                    // Suggest on-part exercises first: at Easy difficulty only ONE
+                    // exercise is picked per part, and the unsorted pool could offer a
+                    // cross-listed movement (Dips under Chest) whose stored PRIMARY
+                    // muscle is another group - which flipped the setup's balance
+                    // warning to "incomplete" with no user-visible cause. Ordering by
+                    // stored primary muscle matching the part keeps the default build
+                    // green at every difficulty, and changing ONLY the equipment later
+                    // re-ranks within the allowed pool the same way, so a green build
+                    // stays green (and a red one only changes for a real reason).
+                    available = available.sortedBy { name ->
+                        val primary = getMuscleGroupForExercise(name)
+                        if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1
+                    }
+
                     if (available.isEmpty() && includedExercises.none { exerciseMatchesPart(it, part) }) {
                         unsatisfiedParts.add(part)
                     } else {
@@ -268,7 +439,12 @@ object WorkoutTemplates {
                                 id = 0,
                                 dayOfWeek = dayName,
                                 name = exName,
-                                muscleGroup = part,
+                                // Store the exercise's own precise primary muscle, not the
+                                // broad part the picker chose from: Push-ups offered by the
+                                // bodyweight pool under "Front Deltoids" are still a chest
+                                // movement, and storing them as a deltoid is what made rows
+                                // display as shoulders while every resolver said Chest.
+                                muscleGroup = getMuscleGroupForExercise(exName).ifBlank { part },
                                 targetSets = setsPerExercise,
                                 // Goal owns reps + rest; difficulty owns the effort label.
                                 targetReps = getGoalReps(exName, workoutGoal),
@@ -297,7 +473,9 @@ object WorkoutTemplates {
                                     id = 0,
                                     dayOfWeek = dayName,
                                     name = exName,
-                                    muscleGroup = part,
+                                    // Same as above: the stored group is the precise primary
+                                    // muscle ("Pectorals"), never the broad picker part.
+                                    muscleGroup = getMuscleGroupForExercise(exName).ifBlank { part },
                                     targetSets = setsPerExercise,
                                     // Goal owns reps + rest; difficulty owns the effort label.
                                     targetReps = getGoalReps(exName, workoutGoal),
@@ -325,7 +503,14 @@ object WorkoutTemplates {
                 routineExercises.removeAll(dayExs)
                 routineExercises.addAll(sortedDayExs.mapIndexed { i, ex -> ex.copy(orderIndex = i + 1) })
 
-                val partsLabel = satisfiedPartsOnThisDay.distinct().joinToString(", ")
+                // A split day names its one or two parts; a full-body day works most
+                // of the picked pool, so the title is capped to keep it readable.
+                val distinctParts = satisfiedPartsOnThisDay.distinct()
+                val partsLabel = if (distinctParts.size > 4) {
+                    distinctParts.take(3).joinToString(", ") + ", …"
+                } else {
+                    distinctParts.joinToString(", ")
+                }
                 routineDays.add(RoutineDayEntity(
                     dayOfWeek = dayName,
                     title = if (satisfiedPartsOnThisDay.isNotEmpty()) "$dayName — $partsLabel" else "$dayName — Recovery",
@@ -491,6 +676,55 @@ object WorkoutTemplates {
             else -> 8..12
         }
         return enforceRepRange("${range.first}–${range.last}")
+    }
+
+    /**
+     * Re-parameterizes a replaced exercise row from the user's settings — the
+     * same defaults [generateAssistedProgram] would have given the incoming
+     * exercise — instead of letting the new row inherit the old one's sets,
+     * reps and rest. Swapping Squats for Planks used to keep "8–12" reps and
+     * a barbell's rest timer; now the swap lands the way the plan would have
+     * built the exercise in the first place: the goal owns reps and rest, the
+     * difficulty owns sets and the effort label, and the load resets (the
+     * workout screen still suggests the user's last-used weight for that
+     * exercise when it has one).
+     *
+     * Pure so the setup builder can pass the goal/difficulty it is still
+     * editing, while the routine screen passes the persisted ones.
+     * [minSets]/[maxSets] are the user's sets-allocation overrides (0 =
+     * unset), applied exactly as the generator applies them.
+     */
+    fun parameterizeReplacement(
+        original: RoutineExerciseEntity,
+        newName: String,
+        newMuscleGroup: String,
+        workoutGoal: String,
+        intensity: String,
+        minSets: Int = 0,
+        maxSets: Int = 0,
+        videoUrl: String = ""
+    ): RoutineExerciseEntity {
+        var setsPerExercise = when (classifyIntensity(intensity)) {
+            "Easy" -> 3
+            "Hard" -> 5
+            else -> 4
+        }
+        if (minSets > 0) setsPerExercise = kotlin.math.max(setsPerExercise, minSets)
+        if (maxSets > 0) setsPerExercise = kotlin.math.min(setsPerExercise, maxSets)
+
+        return original.copy(
+            id = 0L,
+            name = newName,
+            muscleGroup = newMuscleGroup,
+            targetSets = setsPerExercise.coerceIn(1, 10),
+            targetReps = getGoalReps(newName, workoutGoal),
+            targetIntensity = getGoalIntensity(workoutGoal, intensity, newName),
+            targetWeightKg = 0.0,
+            restSeconds = getGoalRestSeconds(workoutGoal, newName),
+            transitionRestSeconds = 90,
+            videoUrl = videoUrl,
+            tempo = ""
+        )
     }
 
     private var _cachedExerciseNames: List<String>? = null
@@ -1210,6 +1444,21 @@ object WorkoutTemplates {
             else -> "8–12"
         }
         return enforceRepRange(rawRange)
+    }
+
+    /**
+     * True when [reps] parses cleanly but sits entirely outside the recommended
+     * band for [exerciseName] — a soft nudge, not a validation error: the row
+     * still saves. A PARTIAL overlap (e.g. 8–20 vs the 8–12 recommendation) is
+     * fine, as is anything unparseable.
+     */
+    fun isOutsideRecommendedRepRange(exerciseName: String, reps: String): Boolean {
+        if (isExerciseTimeBased(exerciseName)) return false
+        val typed = parseRepRange(reps) ?: return false
+        val recommended = parseRepRange(getRecommendedRepsForExercise(exerciseName)) ?: return false
+        val (tMin, tMax) = typed
+        val (rMin, rMax) = recommended
+        return tMax < rMin || tMin > rMax
     }
 
     /**

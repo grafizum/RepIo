@@ -1164,7 +1164,9 @@ fun FirstTimeSetupScreen(
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Drop the original and put the pick in its slot, keeping any demo
-                // link already recorded for that exercise.
+                // link already recorded for that exercise. The new row is
+                // parameterized from the goal/difficulty this builder is still
+                // editing, not the old exercise's sets/reps/rest.
                 val knownUrl = customExercises
                     .firstOrNull { it.name == name && it.videoUrl.isNotBlank() }
                     ?.videoUrl ?: ""
@@ -1173,10 +1175,14 @@ fun FirstTimeSetupScreen(
                 }
                 customExercises.add(
                     anchorIndex,
-                    exercise.copy(
-                        id = 0L,
-                        name = ExerciseLocalization.canonicalFor(name) ?: name,
-                        muscleGroup = muscleGroup,
+                    WorkoutTemplates.parameterizeReplacement(
+                        original = exercise,
+                        newName = ExerciseLocalization.canonicalFor(name) ?: name,
+                        newMuscleGroup = muscleGroup,
+                        workoutGoal = selectedWorkoutGoal,
+                        intensity = assistedIntensity.ifBlank { "Medium" },
+                        minSets = assistedMinSets,
+                        maxSets = assistedMaxSets,
                         videoUrl = knownUrl
                     )
                 )
@@ -1306,36 +1312,40 @@ private fun EquipmentFilterBlock(
     }
 
     // The section title comes from the caller's OnboardingStepHeader.
+    // "All" leads the list big and full-width on TOP (it is the default state
+    // and the anchor of the choice); "Cable & Machine" sits like a normal
+    // half-width chip in the last row. Values stay tied to their labels: All
+    // toggles EQUIPMENT_ALL (empty selection), each chip its own category.
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        EquipmentChip(
+            label = getString("equipment_all"),
+            selected = selectedEquipment.isEmpty(),
+            modifier = Modifier.fillMaxWidth()
+        ) { toggle(WorkoutTemplates.EQUIPMENT_ALL) }
         Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            EquipmentChip(
-                label = getString("equipment_all"),
-                selected = selectedEquipment.isEmpty(),
-                modifier = Modifier.weight(1f)
-            ) { toggle(WorkoutTemplates.EQUIPMENT_ALL) }
             EquipmentChip(
                 label = equipmentOptions[0].second,
                 selected = selectedEquipment.contains(equipmentOptions[0].first),
                 modifier = Modifier.weight(1f)
             ) { toggle(equipmentOptions[0].first) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             EquipmentChip(
                 label = equipmentOptions[1].second,
                 selected = selectedEquipment.contains(equipmentOptions[1].first),
                 modifier = Modifier.weight(1f)
             ) { toggle(equipmentOptions[1].first) }
+        }
+        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
             EquipmentChip(
                 label = equipmentOptions[2].second,
                 selected = selectedEquipment.contains(equipmentOptions[2].first),
                 modifier = Modifier.weight(1f)
             ) { toggle(equipmentOptions[2].first) }
+            EquipmentChip(
+                label = equipmentOptions[3].second,
+                selected = selectedEquipment.contains(equipmentOptions[3].first),
+                modifier = Modifier.weight(1f)
+            ) { toggle(equipmentOptions[3].first) }
         }
-        EquipmentChip(
-            label = equipmentOptions[3].second,
-            selected = selectedEquipment.contains(equipmentOptions[3].first),
-            modifier = Modifier.fillMaxWidth()
-        ) { toggle(equipmentOptions[3].first) }
     }
 }
 
@@ -1972,6 +1982,19 @@ fun AddExerciseDialog(
     var expandedDay by remember { mutableStateOf(false) }
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
+    // Same filters the replace dialog offers: a broad muscle group ("Legs" finds
+    // every leg exercise) plus equipment chips. They only narrow what the search
+    // field suggests; the stored muscle still comes from the exercise itself.
+    var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
+    var filterEquipment by remember(exercise?.id) { mutableStateOf(emptyList<String>()) }
+    val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
+        com.grafizum.repio.ui.components.filteredExercisesForPickers(
+            allAvailableExercises, filterMuscleGroup, filterEquipment
+        )
+    }
+    val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
+    var showRecommendFilters by remember { mutableStateOf(false) }
+
     AlertDialog(
         onDismissRequest = onDismiss,
         title = {
@@ -2035,8 +2058,25 @@ fun AddExerciseDialog(
                     }
                 }
 
+                // RECOMMENDATION FILTERS — optional popup, add mode only. A user
+                // typing an exercise manually never sees filters; the popup only
+                // narrows what the name field suggests.
+                if (exercise == null) {
+                    OutlinedButton(
+                        onClick = { showRecommendFilters = true },
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            if (filtersActive) getString("recommend_filters_active", filteredExercises.size)
+                            else getString("recommend_filters_open")
+                        )
+                    }
+                }
+
                 SearchableExerciseField(
-                    allExercises = allAvailableExercises,
+                    allExercises = filteredExercises,
                     value = name,
                     onValueChange = { 
                         name = it
@@ -2086,8 +2126,13 @@ fun AddExerciseDialog(
                     }
                 }
 
+                // Soft guidance only — see ExerciseEditDialog. Nothing rep-related
+                // blocks saving; a min>max range just gets a field-level hint.
                 val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
-                val showSupportingSpacer = repsError
+                val outsideRecommended = remember(targetRepsValue, name) {
+                    name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
+                        WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
+                }
 
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
@@ -2169,6 +2214,24 @@ fun AddExerciseDialog(
                     }
                 }
 
+                if (outsideRecommended) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                            Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = getString("reps_outside_recommended"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                            )
+                        }
+                    }
+                }
+
                 Row(
                     horizontalArrangement = Arrangement.spacedBy(16.dp),
                     verticalAlignment = Alignment.CenterVertically,
@@ -2242,7 +2305,7 @@ fun AddExerciseDialog(
                         tempo = exercise?.tempo ?: ""
                     ))
                 },
-                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank() && (isTimeBased || isRepsValid)
+                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()
             ) { Text(getString(if (exercise == null) "add" else "save")) }
         },
         dismissButton = {
@@ -2252,6 +2315,25 @@ fun AddExerciseDialog(
             }) { Text(getString("cancel")) }
         }
     )
+
+    // Optional recommendation popup (add mode only), stacked above the dialog.
+    if (showRecommendFilters && exercise == null) {
+        com.grafizum.repio.ui.components.ExerciseRecommendationFilterDialog(
+            filterMuscleGroup = filterMuscleGroup,
+            filterEquipment = filterEquipment,
+            filteredCount = filteredExercises.size,
+            onMuscleGroupChange = { filterMuscleGroup = it },
+            onEquipmentToggle = { key ->
+                filterEquipment = if (filterEquipment.contains(key)) filterEquipment - key
+                                  else filterEquipment + key
+            },
+            onReset = {
+                filterMuscleGroup = null
+                filterEquipment = emptyList()
+            },
+            onDismiss = { showRecommendFilters = false }
+        )
+    }
 }
 
                 @Composable
@@ -2282,6 +2364,13 @@ private fun SetsAllocationBlock(
                 modifier = Modifier.weight(1f)
             )
         }
+        // Leave them blank (or wrong) with confidence: the build can be tuned
+        // again afterwards, nothing here is final.
+        Text(
+            text = getString("sets_changeable_later"),
+            style = MaterialTheme.typography.labelSmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
     }
 }
 

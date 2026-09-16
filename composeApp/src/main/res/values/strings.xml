@@ -140,6 +140,12 @@
     <string name="equipment">Equipment</string>
     <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
+    <string name="recommend_filters_open">Get exercise suggestions…</string>
+    <string name="recommend_filters_active">Suggestions filtered · %1$d matches</string>
+    <string name="recommend_filters_title">Exercise suggestions</string>
+    <string name="recommend_filters_desc">Optional: narrow which exercises are suggested below. You can always type any exercise manually.</string>
+    <string name="recommend_apply">Done</string>
+    <string name="sets_changeable_later">You can change these later in My Workout.</string>
     <string name="any_muscle_group">Any</string>
     <string name="copy_day_title">Copy %1$s</string>
     <string name="copy_day_desc">Copy all exercises from %1$s to another day:</string>
@@ -564,6 +570,7 @@
     <string name="invalid_char_error">Only numbers and dashes are allowed</string>
     <string name="only_numbers_error">Only numbers are allowed</string>
     <string name="min_greater_than_max">Min cannot be greater than max</string>
+    <string name="reps_outside_recommended">Heads up: the recommended rep range for this exercise is different — you can still save this, but staying in the optimal range usually works best.</string>
 
     <!-- Workout Goals -->
     <string name="workout_goal">Workout Goal</string>
@@ -618,6 +625,12 @@
     <string name="insight_volume_easy_desc">Lower volume focused on technique maintenance and active recovery.</string>
     <string name="insight_frequency_title">Training Frequency</string>
     <string name="insight_frequency_desc">Distributing muscle groups twice a week often yields superior results compared to once-a-week splits.</string>
+    <string name="insight_fullbody_title">Full-Body Frequency</string>
+    <string name="insight_fullbody_desc">With only a few training days, every workout covers your main muscles — training each twice a week beats hitting it once, even with the same total volume.</string>
+    <string name="insight_upperlower_title">Upper / Lower Split</string>
+    <string name="insight_upperlower_desc">Your upper and lower body alternate in focused sessions, so every muscle is trained about twice a week while each workout stays fresh and recoverable.</string>
+    <string name="insight_ppl_title">Push / Pull / Legs Cycle</string>
+    <string name="insight_ppl_desc">Your high training frequency is organized into push, pull and legs sessions — spreading the weekly volume without dropping any muscle below twice a week.</string>
     <string name="insight_goal_title">Goal Alignment</string>
     <string name="insight_rest_title">Rest Intervals</string>
     <string name="insight_goal_bodybuilding_desc">Hypertrophy-focused training using moderate rep ranges to maximize metabolic stress.</string>
