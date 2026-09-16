@@ -24,9 +24,14 @@ if (versionPropsFile.exists()) {
 val appVersion = versionProps.getProperty("VERSION_NAME") ?: "1.2.2"
 var playStoreVersion = (versionProps.getProperty("VERSION_CODE") ?: "9").toInt()
 
-// Automatic increment logic for signed builds: every Release build claims a fresh
-// version code, so each Play upload stays unique without touching VERSION_NAME.
-if (gradle.startParameter.taskNames.any { it.contains("Release") }) {
+// Automatic increment logic for signed builds: building an actual release
+// bundle/APK claims a fresh version code, so each Play upload stays unique
+// without touching VERSION_NAME. Deliberately NOT triggered by intermediate
+// tasks like compileReleaseKotlin (verification compiles must not burn codes).
+val releaseBuildRequested = gradle.startParameter.taskNames.any {
+    it.contains("bundleRelease", true) || it.contains("assembleRelease", true)
+}
+if (releaseBuildRequested) {
     playStoreVersion++
     versionProps.setProperty("VERSION_CODE", playStoreVersion.toString())
     versionPropsFile.outputStream().use { versionProps.store(it, null) }

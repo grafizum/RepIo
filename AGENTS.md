@@ -1,39 +1,31 @@
 # Agent Guide — RepIo
 
-## Versioning (do this after every work session)
+## Versioning (bump ONCE per release, not per fix)
 
 **`version.properties` at the repo root is the single source of truth** for `VERSION_NAME`
 and `VERSION_CODE`. Never hardcode a version anywhere else.
 
-Bump `VERSION_NAME` deliberately, based on what actually changed, by running:
+`VERSION_NAME` is bumped **once per release** — right before the signed bundle is built —
+not for every bug or fix made since the last release:
 
 ```bash
-./gradlew bumpVersion -Ptype=feature -Pnote="Short description of what changed"
+./gradlew bumpVersion -Ptype=feature -Pnote="Short description of the release"
 ```
 
 | `-Ptype`      | Bump                                    | Example          |
 | ------------- | --------------------------------------- | ---------------- |
-| `feature`     | minor + 1, patch unchanged              | 1.2.2 → 1.3.2    |
-| `fix`         | patch + 1                               | 1.3.2 → 1.3.3    |
-| `breaking`    | major + 1, patch unchanged              | 1.3.2 → 2.0.2    |
+| `feature`     | minor + 1, patch unchanged              | 1.6.4 → 1.7.4    |
+| `fix`         | patch + 1                               | 1.7.4 → 1.7.5    |
+| `breaking`    | major + 1, patch unchanged              | 1.7.4 → 2.0.4    |
 
-Choose the type by intent, not by diff size:
+Choose the type by the release's dominant intent, not by diff size:
 
 - User-visible new capability or visual/UX work → `feature`
 - Correcting existing behaviour, polish, bug fixes → `fix`
 - Data migration, removed public API, anything that breaks existing users → `breaking`
 
-Apply this at the end of a work session that changed app behaviour, so the version never
-drifts behind the work. Pure chores (docs, comments, test-only, build tooling) do not
-need a bump.
-
-### VERSION_CODE
-
-`VERSION_CODE` is incremented automatically by every **Release** build (see the
-auto-increment block in `composeApp/build.gradle.kts`), which keeps every Play upload
-unique. `bumpVersion` deliberately does **not** touch it — bumping both would double
-count, and the gap between two version codes is allowed to span one `VERSION_NAME`
-(e.g. `v1.2.2` was released as codes 21 → 38).
+Do **not** run `bumpVersion` per work session or per bug fix — intermediate work rides
+along under the next release's single bump. VERSION_CODE is NOT bumped by `bumpVersion`:
 
 ### Grafizum dashboard
 

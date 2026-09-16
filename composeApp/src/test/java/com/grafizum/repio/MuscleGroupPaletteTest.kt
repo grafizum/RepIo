@@ -4,6 +4,7 @@ import androidx.compose.ui.graphics.Color
 import com.grafizum.repio.ui.components.getMuscleGroupColor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertNotEquals
+import org.junit.Assert.assertTrue
 import org.junit.Test
 import kotlin.math.abs
 
@@ -12,45 +13,46 @@ import kotlin.math.abs
  * parts apart on the Analytics donut, the legend and the detailed breakdown bars,
  * so each muscle group has to keep the exact colour it is drawn with.
  *
- * The palette assigns a distinct colour per muscle (its own tone for Biceps,
- * Triceps, Forearms and the delt heads, Amber for Abs and Yellow for Core)
- * rather than one colour per broad body part.
+ * The palette assigns a distinct (light) colour per muscle — its own tone for
+ * Biceps, Triceps, Forearms and the delt heads, Amber for Abs and Yellow for
+ * Core — rather than one colour per broad body part. The tones are the light
+ * step of each hue by owner request: lighter, never a different hue.
  */
 class MuscleGroupPaletteTest {
 
     /** Broad body parts, in the order they appear across the app. */
     private val bodyParts = listOf("Chest", "Back", "Legs", "Shoulders", "Arms", "Core")
 
-    /** Every muscle group and the exact colour it must resolve to. */
+    /** Every muscle group and the exact (light) colour it must resolve to. */
     private val expectedColors = mapOf(
-        "Chest" to Color(0xFFEF4444),
-        "Pectorals" to Color(0xFFEF4444),
-        "Abs" to Color(0xFFF59E0B),
-        "Abdominals" to Color(0xFFF59E0B),
-        "Core" to Color(0xFFEAB308),
-        "Obliques" to Color(0xFFEAB308),
-        "Legs" to Color(0xFF10B981),
-        "Quadriceps" to Color(0xFF10B981),
-        "Hamstrings" to Color(0xFF10B981),
-        "Glutes" to Color(0xFF10B981),
-        "Calves" to Color(0xFF10B981),
-        "Hip Adductors" to Color(0xFF10B981),
-        "Hip Abductors" to Color(0xFF10B981),
-        "Back" to Color(0xFF3B82F6),
-        "Lats" to Color(0xFF3B82F6),
-        "Upper Back" to Color(0xFF3B82F6),
-        "Traps" to Color(0xFF3B82F6),
-        "Upper Traps" to Color(0xFF3B82F6),
-        "Spinal Erectors" to Color(0xFF3B82F6),
-        "Biceps" to Color(0xFF8B5CF6),
-        "Triceps" to Color(0xFF06B6D4),
-        "Arms" to Color(0xFF6366F1),
-        "Forearms" to Color(0xFFF97316),
-        "Shoulders" to Color(0xFFEC4899),
-        "Deltoids" to Color(0xFFEC4899),
-        "Front Deltoids" to Color(0xFFEC4899),
-        "Lateral Deltoids" to Color(0xFFEC4899),
-        "Rear Deltoids" to Color(0xFFEC4899)
+        "Chest" to Color(0xFFF87171),
+        "Pectorals" to Color(0xFFF87171),
+        "Abs" to Color(0xFFFBBF24),
+        "Abdominals" to Color(0xFFFBBF24),
+        "Core" to Color(0xFFFACC15),
+        "Obliques" to Color(0xFFFACC15),
+        "Legs" to Color(0xFF34D399),
+        "Quadriceps" to Color(0xFF34D399),
+        "Hamstrings" to Color(0xFF34D399),
+        "Glutes" to Color(0xFF34D399),
+        "Calves" to Color(0xFF34D399),
+        "Hip Adductors" to Color(0xFF34D399),
+        "Hip Abductors" to Color(0xFF34D399),
+        "Back" to Color(0xFF60A5FA),
+        "Lats" to Color(0xFF60A5FA),
+        "Upper Back" to Color(0xFF60A5FA),
+        "Traps" to Color(0xFF60A5FA),
+        "Upper Traps" to Color(0xFF60A5FA),
+        "Spinal Erectors" to Color(0xFF60A5FA),
+        "Biceps" to Color(0xFFA78BFA),
+        "Triceps" to Color(0xFF22D3EE),
+        "Arms" to Color(0xFF818CF8),
+        "Forearms" to Color(0xFFFB923C),
+        "Shoulders" to Color(0xFFF472B6),
+        "Deltoids" to Color(0xFFF472B6),
+        "Front Deltoids" to Color(0xFFF472B6),
+        "Lateral Deltoids" to Color(0xFFF472B6),
+        "Rear Deltoids" to Color(0xFFF472B6)
     )
 
     @Test
@@ -108,12 +110,32 @@ class MuscleGroupPaletteTest {
     @Test
     fun unknownGroupsFallBackToNeutralGrey() {
         val grey = getMuscleGroupColor("Something Made Up")
-        assertEquals(Color(0xFF64748B), grey)
+        assertEquals(Color(0xFF94A3B8), grey)
         bodyParts.forEach { part ->
             assertNotEquals(
                 "the fallback must not collide with a real body part colour",
                 getMuscleGroupColor(part),
                 grey
+            )
+        }
+    }
+
+    /**
+     * The palette is deliberately light (owner request). Measured as HSL
+     * lightness — (max channel + min channel) / 2 — every tone must sit above
+     * the halfway mark, which the old mid-tones (e.g. emerald 500 at 0.39)
+     * fail and every current colour passes, whatever its hue.
+     */
+    @Test
+    fun paletteStaysLight() {
+        val all = expectedColors.values + Color(0xFF94A3B8)
+        all.forEach { color ->
+            val lightness = (listOf(color.red, color.green, color.blue).max() +
+                listOf(color.red, color.green, color.blue).min()) / 2f
+            assertTrue(
+                "palette colour $color is too dark (HSL lightness $lightness) — " +
+                    "the muscle-group palette must stay light",
+                lightness > 0.5f
             )
         }
     }

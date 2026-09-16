@@ -222,7 +222,7 @@ fun HomeScreen(
                             }
 
                             val focusSubtitle = if (todayExercises.isNotEmpty()) {
-                                todayExercises.map { it.muscleGroup }
+                                todayExercises.map { effectiveMuscleGroup(it.name, it.muscleGroup) }
                                     .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
                                     .distinct()
                                     .joinToString(", ")
@@ -539,15 +539,16 @@ fun HomeScreen(
                                     modifier = Modifier
                                         .size(8.dp)
                                         .clip(CircleShape)
-                                        .background(muscleGroupColor(exercise.muscleGroup))
+                                        .background(muscleGroupColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)))
                                 )
                                 Spacer(modifier = Modifier.width(6.dp))
                                 Text(
                                     text = formatMuscleGroup(exercise.muscleGroup, exercise.name),
                                     style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                    // Same muscle-group colour as the dot, Home's chip and the
-                                    // Analytics breakdown, instead of a plain grey label.
-                                    color = muscleGroupColor(exercise.muscleGroup),
+                                    // Same hue family as the dot, Home's chip and the Analytics
+                                    // breakdown, but read as TEXT: on light themes the deep tone
+                                    // keeps yellow/amber hues legible on the near-white surface.
+                                    color = muscleGroupTextColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)),
                                     modifier = Modifier.weight(1f, fill = false),
                                     maxLines = 1,
                                     overflow = TextOverflow.Ellipsis

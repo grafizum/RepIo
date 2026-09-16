@@ -171,7 +171,8 @@ fun reportToDashboard(
 tasks.register("bumpVersion") {
     group = "versioning"
     description =
-        "Bumps VERSION_NAME per change type (-Ptype=feature|fix|breaking, optional -Pnote=\"...\")."
+        "Bumps VERSION_NAME per change type (-Ptype=feature|fix|breaking, optional -Pnote=\"...\")." +
+        " Run ONCE per release, right before the signed bundle is built — not per commit or per fix."
 
     doLast {
         val requestedType = (project.findProperty("type") as String?)?.trim()?.lowercase()
