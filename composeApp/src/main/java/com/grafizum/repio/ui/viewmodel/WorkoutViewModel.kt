@@ -7,6 +7,10 @@ import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.remainingRestSeconds
+import com.grafizum.repio.util.restTimerTick
+import com.grafizum.repio.util.RestTimerTick
+import com.grafizum.repio.util.NotificationHelper
+import com.grafizum.repio.util.appContext
 import com.grafizum.repio.util.startOfTodayMillis
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
@@ -815,19 +819,42 @@ class WorkoutViewModel(
      */
     fun tickTimer() {
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
-        if (endTime > currentTimeMillis()) {
-            _workoutNowState.update {
-                it.copy(restTimerSeconds = remainingRestSeconds(endTime), isTimerActive = true)
+        when (restTimerTick(endTime, currentTimeMillis())) {
+            is RestTimerTick.Count -> {
+                _workoutNowState.update {
+                    it.copy(restTimerSeconds = remainingRestSeconds(endTime, currentTimeMillis()), isTimerActive = true)
+                }
             }
-        } else if (endTime <= 0L && _workoutNowState.value.isTimerActive) {
-            // Cleared without a report of ours: the rest ended while the app was away, so the
-            // session is only left with a stale countdown. Drop that, but leave the
-            // timed-exercise flags alone — the report may still be on its way, and it is what
-            // decides whether the session moves on.
-            _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
+            is RestTimerTick.Finish -> {
+                // The end time has passed but the alarm backing it up has not reported (or can
+                // never report: Doze, a dropped alarm, a reboot). Waiting for that report is what
+                // used to park the countdown at "1s" forever, so the rest is finished here,
+                // through the same path the receiver takes.
+                //
+                // Clearing the stored end time first is what makes it happen exactly once: the
+                // tick runs every second, so a stored end time left in the past would report the
+                // same finished rest again and again. It also makes a late alarm a no-op, since
+                // the receiver drops a report whose end time no longer matches what is stored.
+                prefs.putLong("timer_end_time_millis", 0L)
+                try {
+                    NotificationHelper.showRestTimerEndedNotification(
+                        appContext(),
+                        alert = !prefs.getBoolean("is_silent_timer", false)
+                    )
+                } catch (e: Exception) {
+                    // An alert that cannot run (no context, no notification permission) must not
+                    // keep the session parked: finish it directly. A second finish is a no-op.
+                    onRestTimerFinished()
+                }
+            }
+            is RestTimerTick.Abandon -> {
+                // Cleared without a report of ours: the rest ended while the app was away, so the
+                // session is only left with a stale countdown. Drop that, but leave the
+                // timed-exercise flags alone — the report may still be on its way, and it is what
+                // decides whether the session moves on.
+                _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
+            }
         }
-        // An expired timer that is still stored is deliberately left alone: the service
-        // finishes it on its next tick and reports back through AppEventBus.
     }
 
     /**

@@ -13,4 +13,7 @@
 
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>
+    <!-- Dark-theme variants (purple/flame/ocean/rose): same squircle, dark ground, so the
+         icon does not glare on a dark launcher; the plate keeps its shading. -->
+    <color name="icon_bg_dark">#121212</color>
 </resources>

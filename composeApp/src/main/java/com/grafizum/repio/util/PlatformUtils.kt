@@ -33,6 +33,11 @@ fun getTodayDayOfWeek(): String {
 
 fun currentTimeMillis(): Long = System.currentTimeMillis()
 
+/** The app-wide [Application], for the few non-UI paths (notifications) that must reach the
+ *  OS. Set in [initPlatformUtils] before any ViewModel exists. */
+fun appContext(): android.content.Context =
+    appInstance ?: throw IllegalStateException("initPlatformUtils() has not run yet")
+
 /** Millis at 00:00 of the current calendar day (same basis as [currentTimeMillis]). */
 fun startOfTodayMillis(): Long {
     val calendar = Calendar.getInstance().apply {
