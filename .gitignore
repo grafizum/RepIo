@@ -21,3 +21,8 @@ my-upload-key.jks
 # Local release artifacts (AAB/APK history). Keep them out of the repo: they are
 # multi-megabyte binaries and every revision would be stored in history forever.
 /composeApp/release/
+
+# Python bytecode caches and generated pipeline output (rebuilt by tools/)
+__pycache__/
+tools/exercise-db/out/
+tools/exercise-i18n/out/
