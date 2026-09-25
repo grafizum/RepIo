@@ -375,3 +375,18 @@ Observations captured during task-oriented work.
 **Suggested improvement:** To ensure custom decoration boxes match standard fields in an `IntrinsicSize.Min` row: 1. Add `fillMaxHeight()` to the internal layout (e.g., Row) passed to `innerTextField`. 2. Use `OutlinedTextFieldDefaults.contentPadding(top = 0.dp, bottom = 0.dp)` to avoid cumulative padding that pushes the height. 3. Ensure all fields in the row share the same `supportingText` logic (even if just a placeholder space) to keep baselines aligned.
 
 **Principle:** Perfect visual alignment of mixed text field types requires strict synchronization of vertical padding and forced expansion to the maximum height permitted by the shared intrinsic layout container.
+
+### Observation 25: Dead callback parameters hide UX-changing wiring bugs
+
+**Status:** OPEN
+**Date:** 2026-09-22
+**Session context:** RepIo workout card — user reported the +/- stepper changed the level when it was supposed to change the Roman stage.
+**Skill:** New skill candidate: dead-parameter audit
+**Type:** open-source
+**Phase/Area:** UI composable refactoring
+
+**Issue:** `LevelPrescriptionCard` accepted an `onStageStep` callback that no code path in the composable ever invoked — the stepper buttons called `onLevelStep`. Because Kotlin does not warn on unused function parameters, the dead parameter sat invisible through reviews while the UI contradicted its own documented intent.
+
+**Suggested improvement:** After any refactor that changes which callbacks a composable actually calls, run a quick "who calls each parameter" audit (IDE find-usages per parameter, not just per function) — or mark intentionally-unused parameters with an underscore. A test that exercises the UI and asserts the state change (level unchanged, stage changed) catches it structurally.
+
+**Principle:** A callback parameter that compiles but is never invoked silently freezes behavior at whatever the wiring last did; audits should target parameters, not functions.

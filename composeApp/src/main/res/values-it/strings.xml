@@ -13,6 +13,70 @@
     <string name="workout_now">ALLENATI ORA</string>
     <string name="consecutive_days_title">Giorni consecutivi</string>
     <string name="skipped_days_format">Giorni di allenamento saltati: %1$d</string>
+
+    <!-- TODO(i18n): values are English placeholders so the locale files keep their key
+         parity (lint fails on a key that exists only in values/). Replace with Italian. -->
+    <string name="overall_level_label">Overall Level</string>
+    <string name="overall_level_format">L.%1$.1f</string>
+    <string name="overall_level_none">—</string>
+    <string name="overall_level_not_ready">Train 5+ exercises to unlock</string>
+    <string name="overall_level_help">Your overall level is the average of the strength exercises you train, weighted by how recently you trained them. Train at least 5 different exercises to unlock it.</string>
+    <string name="overall_level_short">This is your average exercise level across all the strength exercises you train. Higher means you are training at harder levels.</string>
+    <string name="overall_level_gpa_lead">Your overall level is like a GPA for strength training. It is worked out by:</string>
+    <string name="overall_level_gpa_step_1">Looking at every strength exercise you have trained.</string>
+    <string name="overall_level_gpa_step_2">Taking your current level for each one — a level 5 bench press, a level 3 squat.</string>
+    <string name="overall_level_gpa_step_3">Averaging them together, with the exercises you trained most recently counting for more.</string>
+    <string name="overall_level_gpa_example">The five examples below average to L.%1$.1f.</string>
+    <string name="overall_level_gpa_outro">This number shows your overall progress at a glance. As you train more exercises and move them up, it rises.</string>
+    <string name="rank_system_guide_title">Ranks (E → SS+)</string>
+    <string name="rank_system_guide_desc">Every rank in one picture</string>
+    <string name="rank_label_format">Rank %1$s</string>
+    <string name="rank_range">%1$s – %2$s</string>
+    <string name="rank_range_open">%1$s+</string>
+    <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
+    <string name="rank_tooltip_progress">%1$d%% to Rank %2$s</string>
+    <string name="rank_tooltip_top">Top rank reached</string>
+    <plurals name="overall_level_exercises_pl" tools:ignore="UnusedResources">
+        <item quantity="one">Based on %1$d strength exercise</item>
+        <item quantity="other">Based on %1$d strength exercises</item>
+    </plurals>
+    <string name="rank_e_desc">Getting started — every rep from here counts.</string>
+    <string name="rank_d_desc">Foundations are forming. Consistency is starting to show.</string>
+    <string name="rank_c_desc">Solid and steady — you are past the beginner curve.</string>
+    <string name="rank_b_desc">Noticeably strong — past the gym average.</string>
+    <string name="rank_a_desc">Advanced territory. This took months of showing up.</string>
+    <string name="rank_s_desc">Elite — stronger than most people you train next to.</string>
+    <string name="rank_ss_desc">Exceptional. Very few lifters get here.</string>
+    <string name="rank_ss_plus_desc">The top tier — sustained strength across your whole program.</string>
+
+    <!-- TODO(i18n): English placeholders, so the locale files keep their key parity
+         (lint fails on a key that exists only in values/). Replace with Italian. -->
+    <string name="overall_level_how_title">How your Overall Level works</string>
+    <string name="overall_level_guide_desc">The Overall Level in one picture</string>
+    <string name="instructions_title">Instructions</string>
+    <string name="guide_onboarding_intro">Two short pictures: how levels and stages move you up, and how your Overall Level adds them all together.</string>
+    <string name="overall_level_see_how">How it works</string>
+    <string name="overall_level_progress_format">%1$d of %2$d strength exercises</string>
+    <string name="overall_level_step_measure_title">It is your average level</string>
+    <string name="overall_level_step_measure_caption">Every strength exercise you train has its own level. Your Overall Level is where you sit on average across them.</string>
+    <string name="overall_level_step_recency_title">Recent sessions count more</string>
+    <string name="overall_level_step_recency_caption">An exercise trained today counts fully. One from 30 days ago counts half.</string>
+    <string name="overall_level_step_where_title">It appears on Home</string>
+    <string name="overall_level_step_where_caption">Once you have trained 5 different strength exercises, your Overall Level shows up on the Home screen.</string>
+    <string name="overall_level_recency_today">Today</string>
+    <string name="overall_level_recency_month">30 days ago</string>
+    <string name="overall_level_recency_two_months">60 days ago</string>
+    <string name="overall_level_weight_multiplier">%1$s&#215;</string>
+    <string name="this_set_label">QUESTA SERIE</string>
+    <string name="stage_progress_format">Stadio %1$s di %2$s</string>
+    <string name="tap_to_see_every_level">Tocca per tutti i livelli</string>
+    <string name="level_prescription_label">QUESTO LIVELLO</string>
+    <string name="edit_routine">Modifica esercizio</string>
+    <plurals name="sets_planned_pl">
+        <item quantity="one">%1$d set</item>
+        <item quantity="many">%1$d sets</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
     <string name="total_sets_short">SET</string>
     <string name="sets_logged">Serie salvate</string>
     <string name="completed_sets">Serie completate</string>
@@ -138,6 +202,7 @@
     <string name="alternative_exercises">Esercizi Alternativi</string>
     <string name="select_alternative_desc">Scegli un esercizio diverso per %1$s:</string>
     <string name="replace_exercise">Sostituisci esercizio</string>
+    <string name="replace_search_hint">Cerca esercizi…</string>
     <string name="replace_exercise_desc">Sostituzione di %1$s — tocca un\'alternativa per applicarla. I filtri partono dalla sua attrezzatura e dal suo gruppo muscolare.</string>
     <string name="x_selected">%1$d selezionati</string>
     <string name="equipment">Attrezzatura</string>
@@ -148,7 +213,6 @@
     <string name="recommend_filters_title">Suggerimenti esercizi</string>
     <string name="recommend_filters_desc">Facoltativo: restringi quali esercizi vengono suggeriti qui sotto. Puoi sempre digitare qualsiasi esercizio manualmente.</string>
     <string name="recommend_apply">Fatto</string>
-    <string name="sets_changeable_later">Puoi modificarli più tardi in Il mio allenamento.</string>
     <string name="any_muscle_group">Qualsiasi</string>
     <string name="copy_day_title">Copia %1$s</string>
     <string name="copy_day_desc">Copia tutti gli esercizi da %1$s in un altro giorno:</string>
@@ -158,6 +222,11 @@
     <string name="equipment_dumbbell">Manubri</string>
     <string name="equipment_barbell">Bilancieri</string>
     <string name="equipment_gym">Cavi e macchine</string>
+    <string name="equipment_kettlebell">Kettlebell</string>
+    <string name="equipment_cable">Cavi</string>
+    <string name="equipment_machine">Macchine</string>
+    <string name="equipment_bands">Elastici</string>
+    <string name="equipment_other">Altro</string>
     <string name="no_exercises_for_filters">Nessun esercizio corrisponde a questi filtri.</string>
     <string name="clear_history_title">Cancellare Cronologia?</string>
     <string name="clear_history_text">Questo rimuoverà permanentemente tutte le tue serie salvate.</string>
@@ -177,6 +246,7 @@
     <string name="language">Lingua</string>
     <string name="change_app_language">Cambia lingua dell\'app</string>
     <string name="system_default">Predefinita di sistema</string>
+    <string name="language_auto_short">AUTO</string>
     <string name="english">Inglese</string>
     <string name="german">Tedesco</string>
     <string name="italian">Italiano</string>
@@ -208,11 +278,10 @@
     <string name="start_workout_again">RICOMINCIA ALLENAMENTO</string>
     <string name="exercise_x_of_y">Esercizio %1$d di %2$d • Serie %3$d/%4$d</string>
     <string name="rest_timer">RIPOSO</string>
-    <string name="intensity_label">Intensità RPE</string>
+    <string name="intensity_label">Difficoltà</string>
     <string name="rest_timer_label">Tempo di Riposo</string>
     <string name="exercise_transition_label">PROSSIMO ESERCIZIO TRA</string>
     <string name="seconds_remaining">%1$ds rimanenti</string>
-    <string name="set_x_of_y">SERIE %1$d / %2$d</string>
     <string name="next_up">PROSSIMO</string>
     <string name="next_up_none">Nessuno (Fatto 🎉)</string>
     <string name="next_up_exercise" tools:ignore="PluralsCandidate">%1$s (%2$d serie)</string>
@@ -455,6 +524,14 @@
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Push (Petto, Spalle, Tricipiti)</string>
     <string name="pull_title">Pull (Schiena e Bicipiti)</string>
+    <string name="chest_title">Petto</string>
+    <string name="chest_desc">Spinte pesanti, lavoro in inclinazione e croci con aiuto per i tricipiti</string>
+    <string name="back_title">Schiena</string>
+    <string name="back_desc">Rematori pesanti, lat machine e lavoro per i bicipiti</string>
+    <string name="shoulders_title">Spalle</string>
+    <string name="shoulders_desc">Panca sopra la testa più isolamento per deltoide laterale e posteriore</string>
+    <string name="arms_title">Braccia</string>
+    <string name="arms_desc">Curl ed estensioni abbinati per colpire entrambi i lati del braccio</string>
     <string name="legs_core_title">Gambe e Core</string>
     <string name="upper_power_title">Parte Superiore Forza</string>
     <string name="lower_power_title">Parte Inferiore e Core</string>
@@ -518,19 +595,79 @@
     <string name="max_characters_reached">Massimo caratteri raggiunto (20)</string>
     <string name="confirm_new_program_title">Confermare nuovo allenamento?</string>
     <string name="confirm_new_program_message">Questo sostituirà il tuo piano attuale. Vuoi continuare?</string>
+    <string name="level_reset_warning_title">Questo azzera anche il sistema di livelli</string>
+    <string name="level_reset_warning_body">Le serie registrate restano, ma il nuovo piano cancella i livelli e le fasi costruiti finora: ogni esercizio riparte dal suo livello iniziale.</string>
     <string name="exit_app_title">Esci dall\'App?</string>
     <string name="exit_app_message">Sei sicuro di voler uscire?</string>
     <string name="exit">Esci</string>
     <string name="stay">Resta</string>
 
+    <string name="home_equipment_section">Attrezzatura per casa</string>
+    <string name="gym_equipment_section">Attrezzatura da palestra</string>
+    <string name="equipment_tag_chair">Sedia</string>
+    <string name="equipment_tag_db_bench">Bilancieri + panca</string>
+    <string name="equipment_tag_rack">Rack per squat</string>
+    <string name="equipment_tag_pullup">Sbarra</string>
+    <string name="equipment_tag_dips">Parallele</string>
+    <string name="equipment_tag_rings">Anelli</string>
+    <string name="equipment_tag_wall">Muro</string>
+    <string name="equipment_tag_stairs">Scale</string>
+    <string name="equipment_tag_bag">Zaino pesato</string>
+    <string name="equipment_tag_towel">Asciugamano</string>
+    <string name="equipment_tag_bands">Elastici</string>
+    <string name="equipment_tag_dumbbells">Manubri</string>
+    <string name="equipment_tag_bench">Panca</string>
+    <string name="equipment_tag_barbell">Bilanciere</string>
+    <string name="equipment_tag_rack_floor">Rack / pavimento</string>
+    <string name="equipment_tag_kettlebell">Kettlebell</string>
+    <string name="equipment_tag_cable">Cavi</string>
+    <string name="equipment_tag_machines">Macchinari</string>
+    <string name="home_equipment_chair">Ho una sedia robusta</string>
+    <string name="home_equipment_bench">Ho una panca per allenamento</string>
+    <string name="home_equipment_pullup_bar">Ho una sbarra per trazioni (da porta o a muro)</string>
+    <string name="home_equipment_dip_bars">Ho le parallele per dip</string>
+    <string name="home_equipment_rings">Ho gli anelli o un trainer a sospensione</string>
+    <string name="home_equipment_wall">Ho uno spazio libero sul muro</string>
+    <string name="home_equipment_stairs">Ho scale o un gradino robusto</string>
+    <string name="home_equipment_backpack">Ho uno zaino o un sacco zavorrato</string>
+    <string name="home_equipment_towel">Ho un asciugamano (per esercizi scorrevoli)</string>
+    <string name="home_equipment_bands">Ho bande di resistenza</string>
+    <string name="gym_equipment_dumbbells">Manubri</string>
+    <string name="gym_equipment_db_bench">Bilancieri + una panca su cui sdraiarti</string>
+    <string name="gym_equipment_barbell">Bilanciere</string>
+    <string name="gym_equipment_rack">Rack per squat / esercizi a terra col bilanciere</string>
+    <string name="gym_equipment_kettlebell">Kettlebell</string>
+    <string name="gym_equipment_cable">Macchina a cavi</string>
+    <string name="gym_equipment_machines">Macchine da palestra (press, leg press, lat machine…)</string>
+
+    <string name="choose_duration">Durata Sessione</string>
+    <string name="duration_quick_label">Rapida</string>
+    <string name="duration_standard_label">Standard</string>
+    <string name="duration_full_label">Completa</string>
+    <string name="duration_minutes">%1$d–%2$d min</string>
+    <string name="duration_quick_desc">Sessioni compatte di 6–8 esercizi: prima i multiarticolari, minimo isolamento. Ogni muscolo è coperto, solo più snello.</string>
+    <string name="duration_standard_desc">Sessioni equilibrate di 8–10 esercizi: esercizi fondamentali più gli accessori che completano ogni gruppo muscolare.</string>
+    <string name="duration_full_desc">Sessioni complete di 10–12 esercizi: volume massimo con multiarticolari ed isolamento per ogni muscolo.</string>
     <string name="choose_intensity">Scegli Difficoltà</string>
     <string name="choose_body_parts">Parti del Corpo Target</string>
     <string name="choose_days">Giorni di Allenamento a Settimana</string>
+    <string name="frequency_warning_1_day">1 giorno/settimana offre benefici minimi — 2–3 giorni sono il minimo consigliato.</string>
+    <string name="frequency_warning_7_day">7 giorni/settimana comportano un alto rischio di sovrallenamento — 5–6 giorni sono il massimo consigliato.</string>
+    <string name="mastery_section_title">Le Tue Opportunità di Progressione</string>
+    <string name="mastery_section_subtitle">Hai raggiunto il limite di uno o più esercizi. Scegli come continuare a progredire.</string>
+    <string name="mastery_level_line">Livello %1$d – Stadio %2$s</string>
+    <string name="mastery_ladder_complete">Il percorso di questa variazione è completo. Scegli un ramo per continuare.</string>
+    <string name="mastery_ceiling_default">Raggiunto il limite umano realistico.</string>
+    <string name="mastery_switch_later">Puoi cambiare ramo in seguito, se necessario.</string>
+    <string name="mastery_tag_new">Nuova Variazione</string>
+    <string name="mastery_tag_advanced">Variazione Avanzata</string>
+    <string name="mastery_choose_path">Scegli Questo Percorso</string>
+    <string name="mastery_keep_current">Mantieni questo esercizio al limite</string>
+    <string name="mastery_human_limit">Limite Umano Raggiunto</string>
+    <string name="mastery_human_limit_text">Hai raggiunto il massimo realistico per %1$s. I progressi migliori si ottengono con altri movimenti o obiettivi.</string>
+    <string name="mastery_focus_on">Concentrati su:</string>
+    <string name="mastery_acknowledge">Inteso – Mantieni Questo Esercizio al Limite</string>
 
-    <string name="min_sets">Min Serie Per Esercizio</string>
-    <string name="max_sets">Max Serie Per Esercizio</string>
-    <string name="sets_allocation">Allocazione Serie</string>
-    <string name="no_limit">Nessun Limite</string>
     <string name="additional_preferences">Preferenze Aggiuntive</string>
     <string name="include_exercises">Includi esercizi specifici</string>
     <string name="exclude_exercises">Escludi esercizi specifici</string>
@@ -538,10 +675,10 @@
     <string name="intensity_easy">Facile</string>
     <string name="intensity_medium">Medio</string>
     <string name="intensity_hard">Difficile</string>
-    <string name="intensity_easy_desc">Volume di mantenimento (6–10 serie/settimana). Focus su tecnica e costanza.</string>
-    <string name="intensity_medium_desc">Volume di crescita ottimale (10–15 serie/settimana). Intensità equilibrata per ipertrofia (MEV/MAV).</string>
-    <string name="intensity_hard_desc">Volume massimo recuperabile (15–20+ serie/settimana). Alta intensità vicino al limite (MRV).</string>
-    <string name="intensity_rpe_value">RPE %1$d</string>
+    <string name="intensity_easy_desc">Fa partire ogni esercizio dall’inizio della sua scala di livello (livello 1 per la maggior parte). Carichi più leggeri, con spazio per aggiungere peso a ogni sessione.</string>
+    <string name="intensity_medium_desc">La partenza equilibrata: la maggior parte degli esercizi inizia al livello 4 della propria scala, con margine per salire o scendere.</string>
+    <string name="intensity_hard_desc">Una partenza avanzata: la maggior parte degli esercizi inizia intorno al livello 7 della propria scala, quindi la prima sessione è già impegnativa.</string>
+    <string name="intensity_level_value">Livello %1$d</string>
 
     <string name="tempo_label">Tempo</string>
     <string name="tempo_none">Nessun tempo</string>
@@ -584,10 +721,11 @@
     <string name="workout_goal">Obiettivo Allenamento</string>
     <string name="choose_workout_goal">Qual è il tuo obiettivo primario?</string>
     <string name="workout_goal_desc">Definisce il range di ripetizioni, il recupero tra le serie e la scelta degli esercizi. La difficoltà resta l\'unico controllo sul numero di serie.</string>
-    <string name="goal_bodybuilding">Bodybuilding / Ipertrofia</string>
-    <string name="goal_strength">Forza / Powerlifting</string>
+    <string name="goal_bodybuilding">Ipertrofia</string>
+    <string name="goal_strength">Forza</string>
     <string name="goal_calisthenics">Calisthenics</string>
-    <string name="goal_functional">Allenamento Funzionale</string>
+    <string name="goal_endurance">Resistenza</string>
+    <string name="goal_general">Fitness Generale</string>
     <string name="goal_olympic">Pesistica Olimpica</string>
     <string name="goal_powerbuilding">Powerbuilding</string>
     <string name="goal_crossfit">CrossFit / Ibrido</string>
@@ -621,24 +759,22 @@
     <string name="exercise_x_of_y_simple">Esercizio %1$d di %2$d</string>
     <string name="bodyweight_label">Corpo libero</string>
     <string name="no_weight_needed">Nessun peso necessario</string>
-    <string name="balanced_preset">Preset Bilanciato</string>
-    <string name="select_body_parts_desc">Seleziona tutto o usa il preset:</string>
+    <string name="select_body_parts_desc">Seleziona tutto ciò che vuoi allenare:</string>
     <string name="goal_strength_desc">Focus: Alta intensità, basse ripetizioni (1–5) per il massimo adattamento neurologico.</string>
     <string name="goal_bodybuilding_desc">Focus: Ripetizioni moderate (8–12) per lo stress metabolico e la massima ipertrofia.</string>
     <string name="goal_calisthenics_desc">Focus: Ripetizioni più alte (12–20) per costruire resistenza muscolare e padronanza del corpo.</string>
-    <string name="goal_functional_desc">Focus: Movimenti dinamici con 10–15 ripetizioni per migliorare la longevità atletica e la forza del core.</string>
+    <string name="goal_endurance_desc">Focus: Ripetizioni alte (15–20) e pause brevi per costruire stamina e capacità di lavoro.</string>
+    <string name="goal_general_desc">Focus: Lavoro equilibrato (10–15 ripetizioni) su tutti i pattern di movimento per la salute.</string>
     <string name="insight_volume_title">Volume di Allenamento</string>
-    <string name="insight_volume_hard_desc">Alto volume che spinge i tuoi limiti di recupero. Ideale per massimizzare l\'ipertrofia se il recupero è gestito bene.</string>
-    <string name="insight_volume_medium_desc">Volume ottimale per una crescita muscolare costante e progressi sostenibili.</string>
-    <string name="insight_volume_easy_desc">Volume più basso focalizzato sul mantenimento della tecnica e sul recupero attivo.</string>
+    <string name="insight_volume_desc">Ogni esercizio usa 3 serie — volume sufficiente per progredire restando facile da recuperare.</string>
     <string name="insight_frequency_title">Frequenza di Allenamento</string>
     <string name="insight_frequency_desc">Distribuire i gruppi muscolari due volte a settimana spesso produce risultati superiori rispetto agli split settimanali.</string>
     <string name="insight_fullbody_title">Frequenza Full-Body</string>
     <string name="insight_fullbody_desc">Con pochi giorni di allenamento, ogni seduta copre i muscoli principali — allenare ogni muscolo due volte a settimana batte una sola volta, a parità di volume.</string>
     <string name="insight_upperlower_title">Split Superiore/Inferiore</string>
     <string name="insight_upperlower_desc">Il corpo superiore e inferiore si alternano in sedute mirate: ogni muscolo si allena circa due volte a settimana e ogni workout resta fresco e recuperabile.</string>
-    <string name="insight_ppl_title">Ciclo Push/Pull/Gambe</string>
-    <string name="insight_ppl_desc">L\'elevata frequenza di allenamento è organizzata in sedute push, pull e gambe — il volume settimanale si distribuisce senza scendere mai sotto le due volte a settimana per muscolo.</string>
+    <string name="insight_ppl_title">Split per Gruppi Muscolari</string>
+    <string name="insight_ppl_desc">Ogni muscolo ha la sua seduta concentrata — petto, schiena, una giornata gambe dedicata a metà settimana, spalle e braccia — così il volume settimanale arriva sempre fresco e ogni muscolo si allena comunque circa due volte a settimana.</string>
     <string name="insight_goal_title">Allineamento Obiettivo</string>
     <string name="insight_rest_title">Intervalli di Riposo</string>
     <string name="insight_goal_bodybuilding_desc">Allenamento focalizzato sull\'ipertrofia utilizzando range di ripetizioni moderati per massimizzare lo stress metabolico.</string>
@@ -678,5 +814,70 @@
     <string name="update_later">Non ora</string>
     <string name="notification_update_channel_name">Aggiornamenti dell\'app</string>
     <string name="notification_update_channel_desc">Ti avvisa quando è disponibile una nuova versione di RepIo</string>
+
+    <!-- Sistema di livelli (v5 progressione) — TODO: completare le traduzioni.
+         Le chiavi mancanti tornano automaticamente a values/strings.xml. -->
+    <!--
+    <string name="progression_level_stage">Livello %1$d — Stadio %2$s</string>
+    <string name="progression_stage_target">Obiettivo: %1$s</string>
+    <string name="progression_load_each">%1$s kg per manubrio</string>
+    <string name="progression_load_kg">%1$s kg</string>
+    <string name="progression_load_steps">%1$s passi</string>
+    <string name="progression_duration_value">%1$s s</string>
+    <string name="level_system_guide_title">Come funzionano livelli e stadi</string>
+    <string name="level_system_guide_desc">Il sistema di livelli in un\'immagine</string>
+    <string name="level_system_guide_intro">Ogni esercizio scala la propria scala di livelli. Alleni 3 serie — le ripetizioni mostrano quanto sei vicino al prossimo livello.</string>
+    <string name="level_example_title">Che cos\'è un livello?</string>
+    <string name="level_example_caption">Ogni esercizio ha i suoi livelli. Livelli più alti significano più resistenza o una variante più difficile.</string>
+    <string name="stage_example_title">Che cos\'è uno stadio?</string>
+    <string name="stage_example_caption">All\'interno di un livello avanzi di stadio in stadio aggiungendo ripetizioni.</string>
+    <string name="level_up_example_title">Passaggio di livello e reset delle ripetizioni</string>
+    <string name="level_up_example_arrow">più carico</string>
+    <string name="level_up_example_caption">Quando completi l\'ultimo stadio, sali di livello e ricominci con meno ripetizioni e più carico.</string>
+    <string name="large_jump_example_title">Salti grandi, meno ripetizioni</string>
+    <string name="large_jump_example_arrow">grande salto</string>
+    <string name="large_jump_example_caption">Se il prossimo carico è un grande salto, l\'app azzera le tue ripetizioni per renderlo gestibile.</string>
+    <string name="difficulty_change_example_title">Cambiare la difficoltà iniziale</string>
+    <string name="difficulty_change_example_caption">Puoi cambiare la difficoltà iniziale per ogni esercizio prima della tua prima serie.</string>
+    -->
+
+
+    <!-- Regolazione livelli + regolazione collettiva — TODO: completare le traduzioni. -->
+    <!--
+    <string name="levels_menu_title">Livelli</string>
+    <string name="guided_sets_prefix">3 serie ·</string>
+    <string name="level_word_n">Livello %1$d</string>
+    <string name="adjust_levels_n">Livello %1$d</string>
+    <string name="level_details_title">Livelli — %1$s</string>
+    <string name="level_details_intro">Tocca un livello per passare ad esso. Ogni riga mostra il carico o la variante e le ripetizioni del primo stadio.</string>
+    <string name="level_details_current">attuale</string>
+    <string name="level_lock_title">Resta su questo livello</string>
+    <string name="exercise_lock_desc">Blocca questo esercizio al suo livello e stadio attuali</string>
+    <string name="exercise_unlock_desc">Sblocca questo esercizio per poterlo spostare di nuovo</string>
+    <string name="level_details_locked_hint">Questo esercizio è bloccato: sbloccalo sulla scheda per cambiare livello.</string>
+    <string name="level_lock_desc">Mantieni lo stesso livello e le stesse ripetizioni la prossima volta, anche dopo aver completato tutte le serie.</string>
+    <string name="stage_current_format">Stadio %1$s</string>
+    <string name="stage_down_desc">Gradazione romana precedente</string>
+    <string name="stage_up_desc">Prossima gradazione romana</string>
+    <string name="set_progress_format">Serie %1$d di %2$d</string>
+    <string name="level_details_tap_hint">Tocca per passare</string>
+    <string name="level_details_extend">Mostra altri %1$d livelli</string>
+    <string name="loading">Caricamento…</string>
+    <string name="level_details_beyond_plan">fuori piano</string>
+    <string name="level_details_beyond_plan_desc">Non fa parte del programma di questo esercizio</string>
+    <string name="level_details_beyond_plan_note">Il programma di questo esercizio finisce al livello %1$d. I livelli successivi sono solo di riferimento e non si possono selezionare.</string>
+
+    <string name="level_system_toggle_title">Sistema di livelli</string>
+    <string name="level_system_toggle_desc_on">Gli esercizi seguono i loro livelli: ripetizioni e peso sono prescritti per te.</string>
+    <string name="level_system_toggle_desc_off">Modalità personalizzata: scegli tu serie, ripetizioni e peso.</string>
+    <string name="custom_mode_title">Passare a Personalizzato?</string>
+    <string name="custom_mode_body">Serie, ripetizioni, peso e intensità sono prescritti dal sistema di livelli. Passare questo esercizio alla modalità personalizzata per modificarli?</string>
+    <string name="custom_mode_confirm">Passa a Personalizzato</string>
+    <string name="level_fields_locked_hint">Gestito dal sistema di livelli. Passa al personalizzato per modificare qui.</string>
+    <string name="level_guide_onboarding_title">Novità! Sistema di livelli</string>
+    <string name="level_guide_cta_got_it">Capito</string>
+    <string name="level_guide_reassurance">I tuoi primi livelli derivano dalla scelta tra Facile / Medio / Difficile nel passaggio successivo e possono sembrare un po’ sbagliati all’inizio — regolali quando inizi ad allenarti. Dopo, ogni esercizio completato ti fa salire automaticamente.</string>
+
+    -->
 
 </resources>

@@ -16,7 +16,6 @@ import androidx.compose.foundation.background
 import androidx.compose.foundation.border
 import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
-import androidx.compose.ui.geometry.Offset
 import androidx.compose.ui.platform.LocalConfiguration
 import androidx.compose.foundation.layout.*
 import androidx.compose.foundation.lazy.LazyRow
@@ -38,6 +37,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
 import androidx.compose.ui.semantics.*
@@ -59,12 +59,15 @@ import androidx.lifecycle.Lifecycle
 import androidx.lifecycle.LifecycleEventObserver
 import androidx.lifecycle.compose.LocalLifecycleOwner
 import com.grafizum.repio.data.DayOfWeekEnum
+import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.MuscleGroupBadge
+import com.grafizum.repio.ui.components.translateExerciseName
+import com.grafizum.repio.ui.viewmodel.MasteryCardData
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
@@ -82,6 +85,7 @@ fun WorkoutNowScreen(
     modifier: Modifier = Modifier,
     onBack: (() -> Unit)? = null,
     onChangeRoutine: (() -> Unit)? = null,
+    onAdjustLevels: () -> Unit = {},
     isActive: Boolean = true
 ) {
     val workoutState by viewModel.workoutNowState.collectAsState()
@@ -91,8 +95,10 @@ fun WorkoutNowScreen(
     val window = LocalWindowSize.current
 
     var showRestartDialog by remember { mutableStateOf(false) }
-    var showCustomWeightDialog by remember { mutableStateOf(false) }
-    var customWeightInput by remember { mutableStateOf("") }
+    // Exercise whose level-details dialog is open (name, or null). Opened by
+    // tapping the level in the card's header — the full ladder plus the picker
+    // that jumps straight to a level.
+    var levelDetailsFor by remember { mutableStateOf<String?>(null) }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
     val themeKey by viewModel.themeOption.collectAsState()
@@ -125,7 +131,6 @@ fun WorkoutNowScreen(
     LaunchedEffect(isActive) {
         if (!isActive) {
             editingExercise = null
-            showCustomWeightDialog = false
             showRestartDialog = false
         }
     }
@@ -187,70 +192,6 @@ fun WorkoutNowScreen(
         )
     }
 
-    if (showCustomWeightDialog) {
-        AlertDialog(
-            onDismissRequest = { showCustomWeightDialog = false },
-            title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(getString("set_custom_weight_title"))
-                }
-            },
-            text = {
-                Column(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(getString("enter_custom_weight_text"), style = MaterialTheme.typography.bodyMedium)
-                    Spacer(modifier = Modifier.height(8.dp))
-                    OutlinedTextField(
-                        value = customWeightInput,
-                        onValueChange = { customWeightInput = it },
-                        label = { Text(getString("weight_in_kg")) },
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        singleLine = true,
-                        modifier = Modifier.fillMaxWidth()
-                    )
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        val parsed = customWeightInput.trim().toDoubleOrNull()
-                        if (parsed != null && parsed >= 0.0) {
-                            viewModel.updateWeightAndReps(parsed, workoutState.currentReps)
-                        } else if (customWeightInput.isBlank()) {
-                            // Clearing the weight marks this exercise as bodyweight (0 kg)
-                            viewModel.updateWeightAndReps(0.0, workoutState.currentReps)
-                        }
-                        showCustomWeightDialog = false
-                    }
-                ) {
-                    Text(getString("save_weight"))
-                }
-            },
-            dismissButton = {
-                TextButton(onClick = {
-                    focusManager.clearFocus()
-                    showCustomWeightDialog = false 
-                }) {
-                    Text(getString("cancel"))
-                }
-            }
-        )
-    }
-
     Column(
         modifier = modifier
             .fillMaxSize()
@@ -266,46 +207,33 @@ fun WorkoutNowScreen(
         // COMPACT HEADER — the day title and the "Workout" action share this row. ScreenHeader
         // keeps the action at its intrinsic size while the title wraps inside the leftover
         // width, so long day names (DE/IT) can no longer squeeze the button or clip mid-glyph
-        // on narrow phones (e.g. Pixel 8).
-        val trainingType = if (currentDayExercises.isNotEmpty()) {
-            // Resolve through the pool so a legacy row stored under a broad part
-            // ("Shoulders" for Push-ups) reads as the part its badge shows.
-            currentDayExercises.map { com.grafizum.repio.ui.components.effectiveMuscleGroup(it.name, it.muscleGroup) }
-                .map { getString(com.grafizum.repio.ui.components.getUpperCategoryKey(it)) }
-                .distinct()
-                .joinToString(", ")
-        } else {
-            getString("rest_recovery_day")
-        }
-
+        // on narrow phones (e.g. Pixel 8). No subtitle: the per-exercise muscle badges
+        // already say what the day trains.
         ScreenHeader(
             title = dayOfWeekDisplayName(workoutState.selectedDayOfWeek),
-            subtitle = trainingType,
             icon = Icons.Default.FitnessCenter,
             trailing = {
-                if (onChangeRoutine != null) {
-                    OutlinedButton(
-                        onClick = onChangeRoutine,
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                        border = if (isDeveloper) BorderStroke(1.dp, Color.White) else BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
-                        colors = ButtonDefaults.outlinedButtonColors(
-                            containerColor = if (isDeveloper) Color.Transparent else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
-                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-                        ),
-                        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                        modifier = Modifier
-                            .heightIn(min = 36.dp)
-                            .semantics { testTag = "change_workout_button" }
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Edit,
-                            contentDescription = null,
-                            modifier = Modifier.size(16.dp)
-                        )
-                        Spacer(modifier = Modifier.width(6.dp))
-                        Text(
-                            text = getString("workout"),
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
+                // Both header actions are siblings in one Row, so the gap between
+                // them is structural (spacedBy) rather than a start-padding bolted
+                // onto one of them — that is what keeps "Levels" clear of
+                // "Workout" in every locale and at every font scale.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(window.headerIconSpacing)
+                ) {
+                    // "Levels": re-opens the guide as a compact popup so the
+                    // system stays explainable at any time.
+                    HeaderActionPill(
+                        label = getString("levels_menu_title"),
+                        icon = Icons.Default.FormatListNumbered,
+                        onClick = onAdjustLevels
+                    )
+                    if (onChangeRoutine != null) {
+                        HeaderActionPill(
+                            label = getString("workout"),
+                            icon = Icons.Default.Edit,
+                            onClick = onChangeRoutine,
+                            modifier = Modifier.semantics { testTag = "change_workout_button" }
                         )
                     }
                 }
@@ -457,6 +385,18 @@ fun WorkoutNowScreen(
                                     }
                                 }
                             }
+
+                            // YOUR PROGRESSION OPPORTUNITIES — the Mastery &
+                            // Branch hub. Only present when at least one exercise
+                            // finished its ladder or reached its researched human
+                            // ceiling this workout.
+                            if (workoutState.masteredExercises.isNotEmpty()) {
+                                MasterySection(
+                                    cards = workoutState.masteredExercises,
+                                    onAcceptBranch = { source, target -> viewModel.acceptBranch(source, target) },
+                                    onKeepAtCap = { viewModel.keepExerciseAtCap(it) }
+                                )
+                            }
                         }
                     } else {
                         // ACTIVE WORKOUT SESSION VIEW
@@ -464,12 +404,35 @@ fun WorkoutNowScreen(
                         val currentExercise = dayExercises[exerciseIndex]
                         
                         val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
-                        val isBodyweight = WorkoutTemplates.isBodyweightExercise(currentExercise.name)
                         val totalExercises = dayExercises.size
 
                         val nextExercise = if (exerciseIndex + 1 < dayExercises.size) {
                             dayExercises[exerciseIndex + 1]
                         } else null
+
+                        // v5 level system: what to do THIS set. Everything shown
+                        // comes from WorkoutNowState — the UI never touches the
+                        // engine, and internal fields never reach it. Computed once
+                        // here because both cards below read it: the exercise card
+                        // stays clean (what to do), the LEVEL card under it carries
+                        // the prescription (which level, which weight, which reps).
+                        val progLevel = workoutState.progressionLevel
+                        val progStage = workoutState.progressionStage
+                        val prescribed = workoutState.progressionPrescribed
+                        val variationOrDuration = prescribed?.let { rx ->
+                            when (rx.kind) {
+                                ProgressionEngine.ValueKind.VARIATION -> rx.variation
+                                ProgressionEngine.ValueKind.DURATION -> prescriptionDisplayText(rx)
+                                ProgressionEngine.ValueKind.LOAD -> null
+                            }
+                        }
+                        val loadText = when {
+                            prescribed?.kind == ProgressionEngine.ValueKind.LOAD ->
+                                prescriptionDisplayText(prescribed)
+                            workoutState.currentWeightKg > 0.0 ->
+                                getString("weight_kg_intl", workoutState.currentWeightKg)
+                            else -> null
+                        }
 
                         // Pinned Top Progress
                         Column {
@@ -562,6 +525,7 @@ fun WorkoutNowScreen(
                                         containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
                                         contentColor = MaterialTheme.colorScheme.primary
                                     ),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
@@ -639,67 +603,40 @@ fun WorkoutNowScreen(
                                 }
                             }
 
-                            // CURRENT EXERCISE CARD
+                            // CURRENT EXERCISE CARD — the hero of the screen. Painted in
+                            // the same language as the level card below it: the theme's
+                            // primary tint over the surface with a hairline primary rim,
+                            // so the two cards read as one family instead of a grey box
+                            // above a tinted one. Developer skin keeps its flat look.
                             Card(
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 4.dp),
-                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                colors = CardDefaults.cardColors(
+                                    containerColor = if (isDeveloper) Color.Black
+                                                     else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                                ),
+                                elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
+                                border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                                         else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(20.dp)) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp),
-                                            // The "Set x of y" chip on the right always keeps its width;
-                                            // the badge ellipsizes instead of being pushed off the card.
-                                            modifier = Modifier.weight(1f, fill = false)
-                                        ) {
-                                            // Badge shows the broad body part + precise muscle group together.
-                                            MuscleGroupBadge(
-                                                muscleGroup = currentExercise.muscleGroup,
-                                                exerciseName = currentExercise.name
-                                            )
-                                        }
-                                        
-                                        Surface(
-                                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
-                                        ) {
-                                            Text(
-                                                text = getString("set_x_of_y", workoutState.currentSetNumber, currentExercise.targetSets),
-                                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                                            )
-                                        }
-                                    }
-
-                                    Spacer(modifier = Modifier.height(12.dp))
-
                                     var showPeek by remember { mutableStateOf(false) }
-                                    val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup, currentExercise.targetIntensity)
-
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
                                         horizontalArrangement = Arrangement.SpaceBetween,
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
-                                        Text(
-                                            text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
-                                            style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
-                                            color = MaterialTheme.colorScheme.onSurface,
-                                            modifier = Modifier.weight(1f),
-                                            maxLines = if (showPeek) 2 else 1,
-                                            overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
+                                        // Badge shows the broad body part + precise muscle group together.
+                                        MuscleGroupBadge(
+                                            muscleGroup = currentExercise.muscleGroup,
+                                            exerciseName = currentExercise.name
                                         )
+                                        
 
+                                        // Card actions: edit the exercise and peek at the
+                                        // method description, parked beside the badge so the
+                                        // name below gets the full width. The set count lives
+                                        // in the level card's banner — no duplicate up here.
                                         Row(verticalAlignment = Alignment.CenterVertically) {
                                             IconButton(
                                                 onClick = { editingExercise = currentExercise },
@@ -707,7 +644,7 @@ fun WorkoutNowScreen(
                                             ) {
                                                 Icon(
                                                     imageVector = Icons.Default.Edit,
-                                                    contentDescription = "Edit Routine",
+                                                    contentDescription = getString("edit_routine"),
                                                     tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.6f),
                                                     modifier = Modifier.size(20.dp)
                                                 )
@@ -718,19 +655,41 @@ fun WorkoutNowScreen(
                                             ) {
                                                 Icon(
                                                     imageVector = if (showPeek) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                                    contentDescription = "Quick Peek",
+                                                    contentDescription = getString("description"),
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
                                             }
                                         }
                                     }
 
+                                    Spacer(modifier = Modifier.height(12.dp))
+
+                                    val (description, _) = com.grafizum.repio.ui.components.getExerciseDetails(currentExercise.name, currentExercise.muscleGroup, currentExercise.targetIntensity)
+
+                                    // The name leads, full width now that the actions
+                                    // live beside the badge: the user has to know WHAT
+                                    // they are about to do before a level or a load
+                                    // means anything.
+                                    Text(
+                                        text = com.grafizum.repio.ui.components.translateExerciseName(currentExercise.name),
+                                        style = MaterialTheme.typography.headlineSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.onSurface,
+                                        maxLines = if (showPeek) 2 else 1,
+                                        overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis
+                                    )
+
+                                    Spacer(modifier = Modifier.height(12.dp))
+
                                     AnimatedVisibility(visible = showPeek) {
                                         Column(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
+                                            // Nested well: one shade of the primary IN — the same
+                                            // recipe as the level card's banner — so the description
+                                            // reads as recessed into the card family.
                                             Surface(
-                                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
+                                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
                                                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                                                border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                                border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                                                         else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
                                                 modifier = Modifier.fillMaxWidth()
                                             ) {
                                                 Row(modifier = Modifier.padding(12.dp)) {
@@ -751,47 +710,16 @@ fun WorkoutNowScreen(
                                         }
                                     }
 
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Row(verticalAlignment = Alignment.CenterVertically) {
-                                            Text(
-                                                text = if (isTimeBased) getQuantityString("sets_x_time_pl", currentExercise.targetSets, currentExercise.targetSets, currentExercise.targetReps)
-                                                       else getQuantityString("sets_x_reps_pl", currentExercise.targetSets, currentExercise.targetSets, currentExercise.targetReps),
-                                                style = MaterialTheme.typography.bodyMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            if (currentExercise.targetIntensity.isNotBlank()) {
-                                                val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(currentExercise.targetIntensity)
-                                                val displayIntensity = if (rpeExpl.isNotBlank()) "${currentExercise.targetIntensity} ($rpeExpl)" else currentExercise.targetIntensity
-                                                Text(
-                                                    text = " • $displayIntensity",
-                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                            if (currentExercise.tempo.isNotBlank()) {
-                                                Text(
-                                                    text = " • ${com.grafizum.repio.ui.components.getTempoLabel(currentExercise.tempo)}",
-                                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                    color = MaterialTheme.colorScheme.primary,
-                                                    modifier = Modifier.weight(1f, fill = false),
-                                                    maxLines = 1,
-                                                    overflow = TextOverflow.Ellipsis
-                                                )
-                                            }
-                                        }
-                                    }
-
                                     Spacer(modifier = Modifier.height(16.dp))
 
+                                    // Tools + context row. The demo button renders nothing
+                                    // when the exercise has no video link, so the SPACER
+                                    // carries the weight here: "next up" stays pinned to the
+                                    // trailing edge whether or not a demo button is present,
+                                    // instead of drifting to the left when there is none.
                                     Row(
                                         verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        horizontalArrangement = Arrangement.spacedBy(8.dp),
                                         modifier = Modifier.fillMaxWidth()
                                     ) {
                                         ExerciseVideoLinkButton(
@@ -802,222 +730,75 @@ fun WorkoutNowScreen(
                                             modifier = Modifier.height(44.dp)
                                         )
 
-                                        Spacer(modifier = Modifier.width(8.dp))
+                                        Spacer(modifier = Modifier.weight(1f))
 
-                                        Surface(
-                                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                        // "Next up" as a quiet right-aligned caption —
+                                        // no chip surface, so the row reads as one
+                                        // modern typographic line with the demo button.
+                                        Column(
+                                            horizontalAlignment = Alignment.End,
+                                            verticalArrangement = Arrangement.Center,
                                             modifier = Modifier
-                                                .height(44.dp)
-                                                .weight(1f, fill = false)
+                                                .padding(start = 8.dp)
                                                 .semantics { testTag = "next_up_exercise_card" }
                                         ) {
-                                            Column(
-                                                modifier = Modifier.padding(start = 16.dp, end = 12.dp),
-                                                verticalArrangement = Arrangement.Center,
-                                                horizontalAlignment = Alignment.End
-                                            ) {
-                                                Text(
-                                                    text = getString("next_up"),
-                                                    style = MaterialTheme.typography.labelSmall.copy(
-                                                        fontWeight = FontWeight.ExtraBold,
-                                                        letterSpacing = 0.5.sp
-                                                    ),
-                                                    color = MaterialTheme.colorScheme.primary
-                                                )
-                                                Spacer(modifier = Modifier.height(2.dp))
-                                                if (nextExercise != null) {
-                                                    Text(
-                                                        text = com.grafizum.repio.ui.components.translateExerciseName(nextExercise.name),
-                                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                        color = MaterialTheme.colorScheme.onSurface,
-                                                        maxLines = 1,
-                                                        overflow = TextOverflow.Ellipsis
-                                                    )
-                                                } else {
-                                                    Text(
-                                                        text = getString("next_up_none"),
-                                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                                        color = MaterialTheme.colorScheme.onSurface
-                                                    )
-                                                }
-                                            }
+                                            Text(
+                                                text = getString("next_up"),
+                                                style = MaterialTheme.typography.labelSmall.copy(
+                                                    fontWeight = FontWeight.ExtraBold,
+                                                    letterSpacing = 1.sp
+                                                ),
+                                                color = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.height(2.dp))
+                                            Text(
+                                                text = nextExercise?.let { com.grafizum.repio.ui.components.translateExerciseName(it.name) }
+                                                       ?: getString("next_up_none"),
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.SemiBold),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
                                         }
                                     }
                                 }
                             }
 
-                            // STEPPERS AND WEIGHT CUSTOMIZATION
-                            Card(
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Column(
-                                    modifier = Modifier.padding(20.dp),
-                                    verticalArrangement = Arrangement.spacedBy(16.dp)
-                                ) {
-                                    Text(
-                                        text = getString("log_current_set_parameters"),
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold)
-                                    )
+                            // LEVEL CARD — the second card under the exercise card.
+                            // The prescription lives HERE and only here: which level,
+                            // which stage, and the weight and reps to reach, with the
+                            // active set's rep bold. The exercise card above stays a
+                            // clean "what am I doing" view. Exercises outside the level
+                            // system (custom mode, non-ready rows) get the same card
+                            // without the level header, showing the routine's own reps.
+                            Spacer(modifier = Modifier.height(12.dp))
+                            LevelPrescriptionCard(
+                                exerciseName = currentExercise.name,
+                                level = progLevel,
+                                stage = progStage,
+                                lastStage = viewModel.patternStageCount(currentExercise.name),
+                                maxLevel = viewModel.progressionMaxLevel(currentExercise.name),
+                                adjustable = progLevel != null && progStage != null &&
+                                    viewModel.isLevelAdjustable(currentExercise.name) &&
+                                    !currentExercise.locked,
+                                locked = currentExercise.locked,
+                                developerLabel = if (isDeveloper && progLevel != null) viewModel.progressionLabel(currentExercise.name) else null,
+                                isFirstSession = workoutState.progressionIsFirstSession,
+                                targetSets = currentExercise.targetSets,
+                                repTargets = workoutState.progressionStageTargetReps,
+                                currentSetNumber = workoutState.currentSetNumber,
+                                fallbackReps = currentExercise.targetReps,
+                                primaryText = variationOrDuration,
+                                loadText = loadText,
+                                isTimeBased = isTimeBased,
+                                onStageStep = { delta ->
+                                    if (delta > 0) viewModel.advanceStageOrLevel(currentExercise.name)
+                                    else viewModel.retreatStageOrLevel(currentExercise.name)
+                                },
+                                onToggleLock = { viewModel.setExerciseLocked(currentExercise.name, !currentExercise.locked) },
+                                onOpenDetails = { levelDetailsFor = currentExercise.name }
+                            )
 
-                                    // WEIGHT SECTION
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = getString("weight"),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Row(
-                                                verticalAlignment = Alignment.CenterVertically,
-                                                horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                            ) {
-                                                Text(
-                                                    text = if (workoutState.currentWeightKg == 0.0) {
-                                                        getString("bodyweight_label")
-                                                    } else if (isBodyweight) {
-                                                        "+" + getString("weight_kg_intl", workoutState.currentWeightKg)
-                                                    } else getString("weight_kg_intl", workoutState.currentWeightKg),
-                                                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                                                    color = if (workoutState.currentWeightKg == 0.0) MaterialTheme.colorScheme.onSurfaceVariant else MaterialTheme.colorScheme.primary
-                                                )
-
-                                                Box(
-                                                    contentAlignment = Alignment.Center,
-                                                    modifier = Modifier
-                                                        .size(20.dp)
-                                                        .clip(CircleShape)
-                                                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                                        .clickable {
-                                                            focusManager.clearFocus()
-                                                            customWeightInput = workoutState.currentWeightKg.toString()
-                                                            showCustomWeightDialog = true
-                                                        }
-                                                        .semantics { testTag = "modify_weight_button" }
-                                                ) {
-                                                    Icon(
-                                                        imageVector = Icons.Default.Edit,
-                                                        contentDescription = "Modify Weight",
-                                                        modifier = Modifier.size(11.dp),
-                                                        tint = MaterialTheme.colorScheme.primary
-                                                    )
-                                                }
-                                            }
-                                        }
-
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            val canDecrementWeight = workoutState.currentWeightKg > 0
-                                            IconButton(
-                                                onClick = {
-                                                    focusManager.clearFocus()
-                                                    viewModel.decrementWeight()
-                                                },
-                                                enabled = canDecrementWeight,
-                                                modifier = Modifier.clip(CircleShape).background(if (canDecrementWeight) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                            ) {
-                                                Icon(imageVector = Icons.Default.Remove, contentDescription = "Decrease weight", tint = if (canDecrementWeight) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                            }
-
-                                            IconButton(
-                                                onClick = {
-                                                    focusManager.clearFocus()
-                                                    viewModel.incrementWeight()
-                                                },
-                                                modifier = Modifier.clip(CircleShape).background(MaterialTheme.colorScheme.primary.copy(alpha = 0.2f))
-                                            ) {
-                                                Icon(imageVector = Icons.Default.Add, contentDescription = "Increase weight", tint = MaterialTheme.colorScheme.primary)
-                                            }
-                                        }
-                                    }
-
-                                    // REPS or TIME (Constrained to plan range)
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.SpaceBetween,
-                                        modifier = Modifier.fillMaxWidth()
-                                    ) {
-                                        Column {
-                                            Text(
-                                                text = if (isTimeBased) getString("time_label") else getString("reps_completed"),
-                                                style = MaterialTheme.typography.labelMedium,
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                                            )
-                                            Text(
-                                                text = if (isTimeBased) "${workoutState.currentExerciseSeconds}s" else getQuantityString("reps_count", workoutState.currentReps),
-                                                style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                                            )
-                                        }
-
-                                        Row(
-                                            verticalAlignment = Alignment.CenterVertically,
-                                            horizontalArrangement = Arrangement.spacedBy(8.dp)
-                                        ) {
-                                            if (isTimeBased) {
-                                                val canDecreaseTime = workoutState.currentExerciseSeconds > workoutState.minExerciseSeconds
-                                                IconButton(
-                                                    onClick = {
-                                                        focusManager.clearFocus()
-                                                        viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds - 15)
-                                                    },
-                                                    enabled = canDecreaseTime,
-                                                    modifier = Modifier.clip(CircleShape).background(if (canDecreaseTime) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseTime) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                }
-
-                                                val canIncreaseTime = workoutState.currentExerciseSeconds < workoutState.maxExerciseSeconds
-                                                IconButton(
-                                                    onClick = {
-                                                        focusManager.clearFocus()
-                                                        viewModel.updateExerciseSeconds(workoutState.currentExerciseSeconds + 15)
-                                                    },
-                                                    enabled = canIncreaseTime,
-                                                    modifier = Modifier.clip(CircleShape).background(if (canIncreaseTime) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseTime) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                }
-                                            } else {
-                                                val canDecreaseReps = workoutState.currentReps > workoutState.minReps
-                                                IconButton(
-                                                    onClick = {
-                                                        focusManager.clearFocus()
-                                                        viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps - 1)
-                                                    },
-                                                    enabled = canDecreaseReps,
-                                                    modifier = Modifier.clip(CircleShape).background(if (canDecreaseReps) MaterialTheme.colorScheme.background else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Remove, contentDescription = null, tint = if (canDecreaseReps) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                }
-
-                                                val canIncreaseReps = workoutState.currentReps < workoutState.maxReps
-                                                IconButton(
-                                                    onClick = {
-                                                        focusManager.clearFocus()
-                                                        viewModel.updateWeightAndReps(workoutState.currentWeightKg, workoutState.currentReps + 1)
-                                                    },
-                                                    enabled = canIncreaseReps,
-                                                    modifier = Modifier.clip(CircleShape).background(if (canIncreaseReps) MaterialTheme.colorScheme.primary.copy(alpha = 0.2f) else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.05f))
-                                                ) {
-                                                    Icon(imageVector = Icons.Default.Add, contentDescription = null, tint = if (canIncreaseReps) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.onSurface.copy(alpha = 0.3f))
-                                                }
-                                            }
-                                        }
-                                    }
-                                }
-                            }
-                            Spacer(modifier = Modifier.height(8.dp))
                         }
 
                         // PRIMARY ACTION (PINNED AT BOTTOM)
@@ -1125,6 +906,7 @@ fun WorkoutNowScreen(
                                 }
                             }
                         }
+
                     }
                 }
             }
@@ -1133,19 +915,73 @@ fun WorkoutNowScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
+    // LEVEL DETAILS DIALOG — jump levels with full weight/reps overview.
+    levelDetailsFor?.let { name ->
+        LevelDetailsDialog(
+            viewModel = viewModel,
+            exerciseName = name,
+            onDismiss = { levelDetailsFor = null }
+        )
+    }
+
     // EXERCISE EDIT DIALOG
     editingExercise?.let { exercise ->
+        // Touching a level-owned field (sets/reps/weight/intensity) offers the
+        // switch to Custom — never silently switches the mode.
+        var confirmCustom by remember { mutableStateOf(false) }
         ExerciseEditDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = exercise,
             dayOfWeek = exercise.dayOfWeek,
             themeKey = themeKey,
+            levelsManaged = viewModel.isExerciseLevelManaged(exercise.name),
+            userEquipmentCategories = viewModel.userEquipmentCategories(),
+            onRequestCustomMode = { confirmCustom = true },
             onDismiss = { editingExercise = null },
             onSave = { updated ->
                 viewModel.saveExercise(updated)
                 editingExercise = null
             }
         )
+        if (confirmCustom) {
+            AlertDialog(
+                onDismissRequest = { confirmCustom = false },
+                title = { Text(getString("custom_mode_title")) },
+                text = { Text(getString("custom_mode_body")) },
+                confirmButton = {
+                    TextButton(onClick = {
+                        viewModel.setLevelSystemEnabled(false)
+                        confirmCustom = false
+                    }) { Text(getString("custom_mode_confirm")) }
+                },
+                dismissButton = {
+                    TextButton(onClick = { confirmCustom = false }) {
+                        Text(getString("cancel"))
+                    }
+                }
+            )
+        }
+    }
+}
+
+/**
+ * Renders an engine [ProgressionEngine.PrescribedValue] as localized UI text:
+ * "8 kg each", "12 kg", "4 steps", "Incline Push-Up", or "30 s".
+ */
+@Composable
+fun prescriptionDisplayText(rx: ProgressionEngine.PrescribedValue): String = when (rx.kind) {
+    ProgressionEngine.ValueKind.VARIATION -> rx.variation ?: ""
+    ProgressionEngine.ValueKind.DURATION -> getString("progression_duration_value", rx.value?.toInt() ?: 0)
+    ProgressionEngine.ValueKind.LOAD -> {
+        val v = rx.value ?: 0.0
+        val clean = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
+        when (rx.loadUnit) {
+            ProgressionEngine.LoadUnit.KG_EACH -> getString("progression_load_each", clean)
+            ProgressionEngine.LoadUnit.KG -> getString("progression_load_kg", clean)
+            ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_steps", clean)
+            ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString("progression_load_steps", clean)
+            null -> ""
+        }
     }
 }
 
@@ -1162,3 +998,706 @@ fun dayOfWeekDisplayName(dayOfWeek: String): String {
         else -> dayOfWeek
     }
 }
+
+/**
+ * One pill in the workout header. Both header actions ("Levels" and "Workout")
+ * go through this, so they always match in height, shape and colour — the gap
+ * between them belongs to the Row that holds them, not to one button.
+ */
+@Composable
+private fun HeaderActionPill(
+    label: String,
+    icon: ImageVector,
+    onClick: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    OutlinedButton(
+        onClick = onClick,
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary),
+        colors = ButtonDefaults.outlinedButtonColors(
+            containerColor = if (isDeveloper) Color.Transparent else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f),
+            contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+        ),
+        contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
+        modifier = modifier.heightIn(min = 40.dp)
+    ) {
+        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(16.dp))
+        Spacer(modifier = Modifier.width(6.dp))
+        Text(
+            text = label,
+            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+            maxLines = 1,
+            overflow = TextOverflow.Ellipsis
+        )
+    }
+}
+
+/** Where one set of the current stage sits: already logged, now, or still to come. */
+
+/**
+ * The LEVEL card — the second card under the exercise card.
+ *
+ * It carries everything the level system prescribes, and only it does: the
+ * level and stage on top, then the weight and the per-set reps to reach. The
+ * exercise card above stays a clean "what am I doing" view, so the two never
+ * repeat each other.
+ *
+ * The card is painted from the theme's own palette (a primary tint over the
+ * surface, a primary border) rather than a neutral one, so it reads as part of
+ * the app's colour system instead of a detached grey box.
+ *
+ * The level pill between the arrows is an actual raised button — tonal fill,
+ * border, chevron — so "this opens the level picker" is visible instead of a
+ * hint the user has to be told. The set the user is on renders bold (and
+ * filled); sets already saved are tinted, the rest outlined.
+ *
+ * [level]/[stage] null (exercise outside the level system: custom mode, or a
+ * row the engine cannot rate) drop the header and stage dots; the card then
+ * stands alone as the routine's own "this set" row.
+ */
+@OptIn(ExperimentalMaterial3Api::class) // Surface(onClick) for the level pill
+@Composable
+private fun LevelPrescriptionCard(
+    exerciseName: String,
+    level: Int?,
+    stage: Int?,
+    lastStage: Int,
+    maxLevel: Int,
+    adjustable: Boolean,
+    locked: Boolean,
+    developerLabel: String?,
+    isFirstSession: Boolean,
+    targetSets: Int,
+    repTargets: List<Int>,
+    currentSetNumber: Int,
+    fallbackReps: String,
+    primaryText: String?,
+    loadText: String?,
+    isTimeBased: Boolean,
+    onStageStep: (Int) -> Unit,
+    onToggleLock: () -> Unit,
+    onOpenDetails: () -> Unit
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    val inSystem = level != null && stage != null
+    // The per-set action banner is LEVEL-MODE ONLY: it narrates the system's
+    // prescription. Custom mode keeps the classic read — one big target line,
+    // plan summary beside it — so the two modes look and feel different.
+    val showChips = inSystem && !isTimeBased && primaryText == null && repTargets.size in 1..3
+
+    Surface(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        // Level mode wears the primary tint; custom mode a neutral surface so
+        // the card visually confirms which mode is driving the workout. Both
+        // get a hairline rim so they hold their edge against the background.
+        color = if (isDeveloper) Color.Black
+                else if (inSystem) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                 else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = if (inSystem) 0.35f else 0.18f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(14.dp),
+            verticalArrangement = Arrangement.spacedBy(10.dp)
+        ) {
+            // ---- Header: level pill anchored LEFT with the Roman stage as a
+            // side note OUTSIDE the pill's background; the stepper (− level +)
+            // rides at the far right. Skipped for exercises outside the level
+            // system — those get a plain "this set" strip with no level chrome.
+            if (level != null && stage != null) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                // The clickable level pill: a raised tonal button rather than bare
+                // text, so the tap target is discoverable without a caption.
+                Surface(
+                    onClick = onOpenDetails,
+                    enabled = adjustable,
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                    contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onPrimary,
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                    shadowElevation = if (isDeveloper || !adjustable) 0.dp else 2.dp,
+                    modifier = Modifier.semantics { testTag = "level_chip" }
+                ) {
+                    Text(
+                        text = getString("level_word_n", level),
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        maxLines = 1
+                    )
+                }
+
+                // Stage progress as dots between pill and stepper; the Roman
+                // numeral itself lives in the stepper now, so a second static
+                // copy would say the same thing twice.
+                if (lastStage in 2..8) {
+                    StageDots(total = lastStage, current = stage)
+                }
+
+                Spacer(modifier = Modifier.weight(1f))
+
+                // Compact stepper: − stage +. The arrows walk the Roman stages
+                // of the current level one at a time; at the LAST stage the +
+                // rolls over into the next level's stage I (and − into the
+                // previous level's last stage). A locked exercise pins the
+                // stepper completely: disabled clicks, fully grayed icons.
+                val canStepDown = adjustable && ((stage ?: 1) > 1 || (level ?: 1) > 1)
+                val canStepUp = adjustable &&
+                    ((stage ?: 1) < lastStage || (level ?: 1) < maxLevel)
+                Surface(
+                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                    color = if (isDeveloper) Color.White.copy(alpha = 0.10f)
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
+                ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .clickable(enabled = canStepDown) { onStageStep(-1) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Remove,
+                                    contentDescription = getString("stage_down_desc"),
+                                    tint = when {
+                                        !canStepDown -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                        isDeveloper -> Color.White
+                                        else -> MaterialTheme.colorScheme.primary
+                                    },
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                        Text(
+                            text = ProgressionEngine.stageName(stage ?: 1),
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                            modifier = Modifier.padding(horizontal = 2.dp)
+                                .semantics { testTag = "level_chip_value" },
+                            maxLines = 1
+                        )
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .size(32.dp)
+                                    .clip(CircleShape)
+                                    .clickable(enabled = canStepUp) { onStageStep(+1) },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Add,
+                                    contentDescription = getString("stage_up_desc"),
+                                    tint = when {
+                                        !canStepUp -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f)
+                                        isDeveloper -> Color.White
+                                        else -> MaterialTheme.colorScheme.primary
+                                    },
+                                    modifier = Modifier.size(16.dp)
+                                )
+                            }
+                        }
+                    }
+                }
+
+                // The lock rides at the row's far end, always visible and
+                // tappable — INCLUDING while locked, or there would be no way
+                // back. Locked persists per exercise in the routine table and
+                // pins this exercise's level: the stepper grays out completely.
+                if (adjustable || locked) {
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+                        Box(
+                            modifier = Modifier
+                                .size(32.dp)
+                                .clip(CircleShape)
+                                .clickable(onClick = onToggleLock),
+                            contentAlignment = Alignment.Center
+                        ) {
+                            Icon(
+                                imageVector = if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = getString(if (locked) "exercise_lock_desc" else "exercise_unlock_desc"),
+                                tint = when {
+                                    isDeveloper -> Color.White
+                                    locked -> MaterialTheme.colorScheme.primary
+                                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
+                                },
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            }
+
+            if (showChips) {
+                // ---- Action banner: the ONE thing to do right now ----
+                // "SET 2 OF 3 — do 10 reps" at display size in a tinted strip,
+                // with one progress pill per set underneath. The current target
+                // must read at arm's length mid-set; finished sets collapse to
+                // filled ticks, upcoming ones stay visible but quiet.
+                val activeSet = currentSetNumber.coerceIn(1, targetSets)
+                val activeReps = repTargets.getOrNull(activeSet - 1)
+                if (activeReps != null) {
+                    Surface(
+                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
+                        color = if (isDeveloper) Color.White.copy(alpha = 0.10f)
+                                else MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                        border = if (isDeveloper) null
+                                 else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.SpaceBetween,
+                            modifier = Modifier.padding(horizontal = 14.dp, vertical = 10.dp)
+                        ) {
+                            Column {
+                                Text(
+                                    text = getString("set_progress_format", activeSet, targetSets).uppercase(),
+                                    style = MaterialTheme.typography.labelSmall.copy(
+                                        fontWeight = FontWeight.ExtraBold,
+                                        letterSpacing = 1.sp
+                                    ),
+                                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                                Row(verticalAlignment = Alignment.Bottom) {
+                                    Text(
+                                        text = activeReps.toString(),
+                                        style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
+                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                                        maxLines = 1
+                                    )
+                                    Text(
+                                        text = " " + getString("reps"),
+                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isDeveloper) Color.White.copy(alpha = 0.7f)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(bottom = 3.dp)
+                                    )
+                                }
+                            }
+                            Column(horizontalAlignment = Alignment.End) {
+                                // One pill per set: filled = done, wide = current,
+                                // faint = upcoming. The week's shape at a glance.
+                                Row(
+                                    horizontalArrangement = Arrangement.spacedBy(5.dp),
+                                    verticalAlignment = Alignment.CenterVertically
+                                ) {
+                                    repeat(targetSets) { index ->
+                                        val done = index < currentSetNumber - 1
+                                        val current = index == currentSetNumber - 1
+                                        Box(
+                                            modifier = Modifier
+                                                .size(width = if (current) 18.dp else 8.dp, height = 8.dp)
+                                                .clip(RoundedCornerShape(4.dp))
+                                                .background(
+                                                    when {
+                                                        isDeveloper -> Color.White.copy(alpha = if (current || done) 1f else 0.35f)
+                                                        current -> MaterialTheme.colorScheme.primary
+                                                        done -> MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                                                        else -> MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                                    }
+                                                )
+                                        )
+                                    }
+                                }
+                                if (loadText != null) {
+                                    Text(
+                                        text = loadText,
+                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis,
+                                        modifier = Modifier.padding(top = 4.dp)
+                                    )
+                                }
+                                // Small label with EVERY set's target, so the stage's
+                                // whole shape ("9 / 8 / 8") reads next to the pills and
+                                // nobody has to guess what the remaining sets will ask.
+                                if (repTargets.size > 1) {
+                                    Text(
+                                        text = repTargets.joinToString(" / ") + " " + getString("reps"),
+                                        style = MaterialTheme.typography.labelSmall,
+                                        color = if (isDeveloper) Color.White.copy(alpha = 0.7f)
+                                                else MaterialTheme.colorScheme.onSurfaceVariant,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(top = 2.dp)
+                                    )
+                                }
+                            }
+                        }
+                    }
+                }
+            } else {
+                // Fallback view (time-based / mixed-rep prescriptions): the
+                // full plan summary beside the target, no banner needed.
+                Text(
+                    text = if (repTargets.isEmpty()) getQuantityString("sets_planned_pl", targetSets)
+                           else getQuantityString("sets_x_reps_pl", targetSets, targetSets, repTargets.joinToString(" / ")),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1
+                )
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    // weight(fill = false): the target can shrink (and ellipsize) so the
+                    // load beside it is never squeezed off the card.
+                    Box(modifier = Modifier.weight(1f, fill = false)) {
+                        Text(
+                            text = primaryText ?: fallbackReps,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+
+                    if (loadText != null) {
+                        Spacer(modifier = Modifier.width(8.dp))
+                        Text(
+                            text = loadText,
+                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+
+            developerLabel?.let { label ->
+                Text(
+                    text = label + if (isFirstSession) " (fresh)" else "",
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+        }
+    }
+}
+
+/** One dot per Roman stage: filled up to the current one. */
+@Composable
+private fun StageDots(total: Int, current: Int, modifier: Modifier = Modifier) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        horizontalArrangement = Arrangement.spacedBy(4.dp),
+        modifier = modifier
+    ) {
+        repeat(total) { index ->
+            Box(
+                modifier = Modifier
+                    .size(6.dp)
+                    .clip(CircleShape)
+                    .background(
+                        if (index < current) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)
+                    )
+            )
+        }
+    }
+}
+
+// ----------------------------------------------------------------------
+// Mastery & Branch — the post-workout progression hub.
+//
+// Celebratory but grounded: the exercise's track is drawn as a node road
+// (completed, current, locked), the load line names the ceiling that was
+// reached, and each branch is a real card with its own mini track — not a
+// bare button. A true ceiling (no branches) shows the acknowledgement card
+// instead. All animations are subtle fades; nothing bounces.
+// ----------------------------------------------------------------------
+
+@Composable
+private fun MasterySection(
+    cards: List<MasteryCardData>,
+    onAcceptBranch: (sourceName: String, targetName: String) -> Unit,
+    onKeepAtCap: (sourceName: String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+        Text(
+            text = getString("mastery_section_title"),
+            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+            color = MaterialTheme.colorScheme.onBackground
+        )
+        Text(
+            text = getString("mastery_section_subtitle"),
+            style = MaterialTheme.typography.bodyMedium,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        cards.forEach { card -> MasteryCard(card, onAcceptBranch, onKeepAtCap) }
+    }
+}
+
+@Composable
+private fun MasteryCard(
+    card: MasteryCardData,
+    onAcceptBranch: (String, String) -> Unit,
+    onKeepAtCap: (String) -> Unit
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    Card(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        colors = CardDefaults.cardColors(
+            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
+        ),
+        border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                 else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
+            // --- Identity + load line ---
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Box(
+                    modifier = Modifier
+                        .size(44.dp)
+                        .clip(CircleShape)
+                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.EmojiEvents,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(24.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(12.dp))
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = translateExerciseName(card.exerciseName),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface
+                    )
+                    Text(
+                        text = listOf(card.muscleGroup, card.equipment).filter { it.isNotBlank() }
+                            .joinToString(" · "),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+
+            // --- Progress track: filled bar + "MAX" pill ---
+            val loadLine = card.load?.let {
+                val clean = if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
+                getString("progression_load_kg", clean)
+            } ?: ""
+            Box(
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+            ) {
+                Box(
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(8.dp)
+                        .clip(RoundedCornerShape(4.dp))
+                        .background(MaterialTheme.colorScheme.primary)
+                )
+            }
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ) {
+                    Text(
+                        text = "MAX",
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+                Spacer(modifier = Modifier.width(8.dp))
+                Text(
+                    text = getString("mastery_level_line", card.level, card.stageRoman) +
+                        if (loadLine.isNotBlank()) " – $loadLine" else "",
+                    style = MaterialTheme.typography.labelMedium,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            }
+            Text(
+                text = when (card.reason) {
+                    ProgressionEngine.MasteryReason.CEILING_REACHED ->
+                        card.ceiling?.basis ?: getString("mastery_ceiling_default")
+                    ProgressionEngine.MasteryReason.LADDER_COMPLETE ->
+                        getString("mastery_ladder_complete")
+                },
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+
+            // --- Branches, or the true-ceiling acknowledgement ---
+            if (card.branches.isNotEmpty()) {
+                card.branches.forEach { branch ->
+                    BranchCard(card.exerciseName, branch, onAcceptBranch)
+                }
+                Text(
+                    text = getString("mastery_switch_later"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+            } else {
+                HumanLimitCard(card, onKeepAtCap)
+            }
+
+            // "Stay at cap" is available for branch exercises too (decline).
+            if (card.branches.isNotEmpty()) {
+                TextButton(onClick = { onKeepAtCap(card.exerciseName) }) {
+                    Text(getString("mastery_keep_current"), style = MaterialTheme.typography.labelMedium)
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun BranchCard(
+    sourceName: String,
+    branch: com.grafizum.repio.data.ProgressionBranch,
+    onAcceptBranch: (String, String) -> Unit
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    Surface(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
+        color = MaterialTheme.colorScheme.surface,
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
+            Row(verticalAlignment = Alignment.CenterVertically) {
+                Text(
+                    text = translateExerciseName(branch.entry),
+                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                    modifier = Modifier.weight(1f)
+                )
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = if (branch.tag == "advanced") MaterialTheme.colorScheme.errorContainer
+                            else MaterialTheme.colorScheme.secondaryContainer,
+                    contentColor = if (branch.tag == "advanced") MaterialTheme.colorScheme.onErrorContainer
+                            else MaterialTheme.colorScheme.onSecondaryContainer
+                ) {
+                    Text(
+                        text = if (branch.tag == "advanced") getString("mastery_tag_advanced")
+                               else getString("mastery_tag_new"),
+                        style = MaterialTheme.typography.labelSmall,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                    )
+                }
+            }
+            Text(
+                text = branch.note,
+                style = MaterialTheme.typography.bodySmall,
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            // Mini progress track: the branch's future nodes, next one highlighted.
+            if (branch.nodes.isNotEmpty()) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp)
+                ) {
+                    branch.nodes.take(3).forEachIndexed { index, node ->
+                        Surface(
+                            shape = RoundedCornerShape(8.dp),
+                            color = if (index == 0) MaterialTheme.colorScheme.primaryContainer
+                                    else MaterialTheme.colorScheme.surfaceVariant,
+                            contentColor = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer
+                                    else MaterialTheme.colorScheme.onSurfaceVariant
+                        ) {
+                            Text(
+                                text = translateExerciseName(node),
+                                style = MaterialTheme.typography.labelSmall,
+                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
+                            )
+                        }
+                        if (index < branch.nodes.take(3).lastIndex) {
+                            Icon(
+                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.outline,
+                                modifier = Modifier.size(12.dp)
+                            )
+                        }
+                    }
+                }
+            }
+            Button(
+                onClick = { onAcceptBranch(sourceName, branch.entry) },
+                colors = ButtonDefaults.buttonColors(
+                    containerColor = MaterialTheme.colorScheme.primary,
+                    contentColor = MaterialTheme.colorScheme.onPrimary
+                ),
+                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(getString("mastery_choose_path"), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
+            }
+        }
+    }
+}
+
+@Composable
+private fun HumanLimitCard(
+    card: MasteryCardData,
+    onKeepAtCap: (String) -> Unit
+) {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(verticalAlignment = Alignment.CenterVertically) {
+            Icon(
+                imageVector = Icons.Default.EmojiEvents,
+                contentDescription = null,
+                tint = MaterialTheme.colorScheme.primary,
+                modifier = Modifier.size(20.dp)
+            )
+            Spacer(modifier = Modifier.width(8.dp))
+            Text(
+                text = getString("mastery_human_limit"),
+                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
+            )
+        }
+        Text(
+            text = getString("mastery_human_limit_text", translateExerciseName(card.exerciseName)),
+            style = MaterialTheme.typography.bodySmall,
+            color = MaterialTheme.colorScheme.onSurfaceVariant
+        )
+        if (card.suggestions.isNotEmpty()) {
+            val suggestionList = card.suggestions.map { translateExerciseName(it) }.joinToString(", ")
+            Text(
+                text = getString("mastery_focus_on") + " " + suggestionList,
+                style = MaterialTheme.typography.bodySmall
+            )
+        }
+
+        Button(
+            onClick = { onKeepAtCap(card.exerciseName) },
+            colors = ButtonDefaults.buttonColors(
+                containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
+            ),
+            shape = RoundedCornerShape(12.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            Text(getString("mastery_acknowledge"), style = MaterialTheme.typography.labelLarge)
+        }
+    }
+}
+
+

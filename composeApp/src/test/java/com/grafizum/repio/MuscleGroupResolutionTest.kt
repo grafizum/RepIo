@@ -30,47 +30,49 @@ class MuscleGroupResolutionTest {
     }
 
     @Test
-    fun rowsResolveToLatsInsteadOfGettingStuckOnBack() {
-        // Regression: the pool lists rows under Rear Deltoids / Lateral Deltoids
-        // too, and the old first-match lookup made the resolver give up and keep
-        // the broad "Back" group.
-        assertEquals("Lats", resolvePreciseMuscleGroup("Barbell Rows", "Back"))
-        assertEquals("Lats", resolvePreciseMuscleGroup("Dumbbell Rows", "Back"))
-        assertEquals("Lats", resolvePreciseMuscleGroup("Dumbbell Pullovers", "Back"))
+    fun rowsResolveToTheirPreciseMuscleInsteadOfGettingStuckOnBack() {
+        // Regression: rows stored under the broad "Back" group stayed there when
+        // the resolver could not refine them.
+        assertEquals("Lats", resolvePreciseMuscleGroup("Bent-Over Barbell Row", "Back"))
+        assertEquals("Lats", resolvePreciseMuscleGroup("Bent-Over Dumbbell Row", "Back"))
     }
 
     @Test
     fun broadStoredGroupsResolveToTheirPreciseMuscle() {
-        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Barbell Squats", "Legs"))
-        assertEquals("Hamstrings", resolvePreciseMuscleGroup("Barbell Romanian Deadlifts", "Legs"))
-        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Dumbbell Lunges", "Legs"))
-        assertEquals("Front Deltoids", resolvePreciseMuscleGroup("Dumbbell Shoulder Presses", "Shoulders"))
-        assertEquals("Lateral Deltoids", resolvePreciseMuscleGroup("Dumbbell Lateral Raises", "Shoulders"))
-        assertEquals("Biceps", resolvePreciseMuscleGroup("Dumbbell Curls", "Biceps"))
+        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Barbell Back Squat", "Legs"))
+        assertEquals("Hamstrings", resolvePreciseMuscleGroup("Romanian Deadlift", "Legs"))
+        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Dumbbell Lunge", "Legs"))
+        assertEquals("Front Deltoids", resolvePreciseMuscleGroup("Dumbbell Shoulder Press", "Shoulders"))
+        assertEquals("Lateral Deltoids", resolvePreciseMuscleGroup("Dumbbell Lateral Raise", "Shoulders"))
+        assertEquals("Biceps", resolvePreciseMuscleGroup("Dumbbell Bicep Curl", "Biceps"))
         assertEquals("Abs", resolvePreciseMuscleGroup("Crunches", "Abs"))
     }
 
     @Test
     fun poolWinsWhenTheStoredGroupDisagrees() {
-        // Dumbbell Flyes are a chest exercise in the pool, even though the old
-        // default routine stored them under "Shoulders".
-        assertEquals("Pectorals", resolvePreciseMuscleGroup("Dumbbell Flyes", "Shoulders"))
-        assertEquals("Pectorals", resolvePreciseMuscleGroup("Dumbbell Floor Presses", "Chest"))
+        // A pull-up stored (wrongly) as a shoulder is still a back exercise;
+        // push-ups stored under "Chest" stay Pectorals.
+        assertEquals("Lats", resolvePreciseMuscleGroup("Pull-Up", "Shoulders"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Push-Up", "Chest"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Dumbbell Fly", "Shoulders"))
     }
 
     @Test
     fun preciseStoredGroupsAreKeptWhenThePoolAgrees() {
-        assertEquals("Biceps", resolvePreciseMuscleGroup("Dumbbell Curls", "Biceps"))
-        assertEquals("Triceps", resolvePreciseMuscleGroup("Dips", "Triceps"))
-        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Barbell Squats", "Quadriceps"))
-        assertEquals("Pectorals", resolvePreciseMuscleGroup("Push-ups", "Chest"))
+        assertEquals("Biceps", resolvePreciseMuscleGroup("Dumbbell Bicep Curl", "Biceps"))
+        assertEquals("Triceps", resolvePreciseMuscleGroup("Bench Dips", "Triceps"))
+        assertEquals("Quadriceps", resolvePreciseMuscleGroup("Barbell Back Squat", "Quadriceps"))
+        assertEquals("Pectorals", resolvePreciseMuscleGroup("Push-Up", "Chest"))
     }
 
     @Test
     fun unknownExercisesKeepTheirStoredGroup() {
-        // No real data exists for custom exercises -> never guess.
+        // No real data exists for custom exercises -> never guess. The resolver
+        // contract after the rebuild: names outside the pool keep the stored
+        // group (which is exactly what a log already carries).
         assertEquals("Legs", resolvePreciseMuscleGroup("My Custom Leg Machine", "Legs"))
         assertEquals("Chest", resolvePreciseMuscleGroup("", "Chest"))
         assertEquals("Back", resolvePreciseMuscleGroup("Something Made Up", "Back"))
+        assertEquals("Whatever Was Stored", resolvePreciseMuscleGroup("Totally Unknown", "Whatever Was Stored"))
     }
 }

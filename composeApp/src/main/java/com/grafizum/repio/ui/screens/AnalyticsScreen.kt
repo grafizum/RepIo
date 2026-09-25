@@ -21,9 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +64,7 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
 
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: WorkoutViewModel,
@@ -66,7 +72,8 @@ fun AnalyticsScreen(
     onBack: (() -> Unit)? = null
 ) {
     val loggedSets by viewModel.allLoggedSets.collectAsState()
-    val routineDays by viewModel.allRoutineDays.collectAsState()
+    // The Overall Level replaced the consecutive-days streak on this screen.
+    val userStats by viewModel.userStats.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
     val window = LocalWindowSize.current
@@ -93,14 +100,6 @@ fun AnalyticsScreen(
             map[group] = (map[group] ?: 0) + 1
         }
         map
-    }
-
-    // Logic for Weekly Report
-    val consecutiveWorkoutDays = remember(loggedSets) {
-        com.grafizum.repio.data.WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
-    }
-    val skippedWorkoutDays = remember(loggedSets, routineDays) {
-        com.grafizum.repio.data.WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
     }
 
     if (showClearConfirmDialog) {
@@ -219,16 +218,54 @@ fun AnalyticsScreen(
             verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)
         ) {
             // 1. QUICK STAT CARD (compact so the Analytics tab fits one screen)
-            StatCard(
-                title = getString("consecutive_days_title"),
-                value = consecutiveWorkoutDays.toString(),
-                subtitle = "",
-                icon = Icons.Default.LocalFireDepartment,
-                iconColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth(),
-                badgeText = getString("skipped_days_format", skippedWorkoutDays),
-                compact = true
-            )
+            //
+            // The Overall Level sits here now, in place of the consecutive-days
+            // streak: this screen reports what the training has produced, and the
+            // level is that answer at a glance. Consistency is still visible in the
+            // weekly calendar directly below.
+            val overallLevel = userStats?.takeIf { it.overallLevelReady }?.overallStrengthLevel
+            // Same badge and same explanation as Home: the rank is one value, so
+            // it is derived once and shown identically in both places.
+            val overallRank = com.grafizum.repio.data.OverallLevelRank.of(userStats)
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip {
+                        com.grafizum.repio.ui.components.OverallLevelTooltip(
+                            level = overallLevel,
+                            rank = overallRank,
+                            exerciseCount = userStats?.exercisesCountForLevel ?: 0
+                        )
+                    }
+                },
+                state = rememberTooltipState()
+            ) {
+                StatCard(
+                    title = getString("overall_level_label"),
+                    value = if (overallLevel != null) {
+                        getString("overall_level_format", overallLevel)
+                    } else {
+                        getString("overall_level_none")
+                    },
+                    subtitle = "",
+                    icon = Icons.Default.EmojiEvents,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    badgeText = if (overallLevel != null) null
+                                else getString("overall_level_not_ready"),
+                    compact = true,
+                    trailing = if (overallRank != null) {
+                        {
+                            com.grafizum.repio.ui.components.RankBadge(
+                                rank = overallRank.rank,
+                                contentDescription = getString("rank_badge_content_desc", overallRank.letter)
+                            )
+                        }
+                    } else {
+                        null
+                    }
+                )
+            }
 
             // 2. WEEK METRICS (TRAINING OUTPUT)
             WorkoutCalendar(

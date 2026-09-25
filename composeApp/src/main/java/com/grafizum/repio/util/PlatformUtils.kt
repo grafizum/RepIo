@@ -12,6 +12,9 @@ fun initPlatformUtils(application: Application) {
     appInstance = application
 }
 
+/** The Application context, for helpers that must work without an Activity (null before init). */
+fun getApplicationContext(): android.content.Context? = appInstance
+
 fun applyAppIconChange(themeKey: String) {
     val context = appInstance ?: return
     IconSwitchHelper.switchIcon(context, themeKey)

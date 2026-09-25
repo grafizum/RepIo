@@ -32,18 +32,18 @@ class GeneratedProgramMuscleStorageTest {
         // picked for shoulders parts and stored as a deltoid, which made rows
         // display as shoulders while every resolver said Chest). Storage must
         // always be the exercise's own precise primary muscle, Pectorals.
-        // Includes match by topic, so Push-ups are forced in under the Chest
+        // Includes match by topic, so Push-Up is forced in under the Chest
         // part — the storage rule is what this test pins.
         val program = WorkoutTemplates.generateAssistedProgram(
             bodyParts = listOf("Chest", "Shoulders"),
             selectedDays = listOf("MONDAY", "WEDNESDAY", "FRIDAY"),
             intensity = "Medium",
-            workoutGoal = "goal_functional",
-            includedExercises = listOf("Push-ups"),
+            workoutGoal = "goal_general",
+            includedExercises = listOf("Push-Up"),
             equipment = listOf(WorkoutTemplates.EQUIPMENT_BODYWEIGHT)
         )
-        val pushUpRows = program.exercises.filter { it.name == "Push-ups" }
-        assertTrue("expected Push-ups in the bodyweight build", pushUpRows.isNotEmpty())
+        val pushUpRows = program.exercises.filter { it.name == "Push-Up" }
+        assertTrue("expected Push-Up in the bodyweight build", pushUpRows.isNotEmpty())
         pushUpRows.forEach { row ->
             assertEquals(
                 "Push-ups must be stored as Pectorals wherever they are offered",
@@ -82,7 +82,8 @@ class GeneratedProgramMuscleStorageTest {
                 WorkoutTemplates.EQUIPMENT_BODYWEIGHT,
                 WorkoutTemplates.EQUIPMENT_DUMBBELL,
                 WorkoutTemplates.EQUIPMENT_BARBELL,
-                WorkoutTemplates.EQUIPMENT_GYM
+                WorkoutTemplates.EQUIPMENT_CABLE,
+                WorkoutTemplates.EQUIPMENT_MACHINE
             )
         )
         assertTrue(program.exercises.isNotEmpty())

@@ -1,0 +1,41 @@
+EXERCISE CATALOG BUILD
+final exercises          : 1470
+review actions           : 1574
+dropped rows             : 1281
+
+per broad body part (must partition the pool):
+  Arms       231
+  Back       198
+  Chest      153
+  Core       270
+  Legs       426
+  Shoulders  192
+per equipment category:
+  Bodyweight 427
+  Barbell    199
+  Dumbbell   252
+  Kettlebell 64
+  Cable      153
+  Machine    113
+  Bands      61
+  Other      201
+per precise muscle:
+  Abs              224
+  Biceps           101
+  Calves           39
+  Forearms         29
+  Front Deltoids   140
+  Glutes           38
+  Hamstrings       68
+  Hip Abductors    13
+  Hip Adductors    14
+  Lateral Deltoids 26
+  Lats             77
+  Obliques         46
+  Pectorals        153
+  Quadriceps       254
+  Rear Deltoids    26
+  Spinal Erectors  47
+  Triceps          101
+  Upper Back       54
+  Upper Traps      20

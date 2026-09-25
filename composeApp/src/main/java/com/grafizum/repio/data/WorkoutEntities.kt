@@ -50,8 +50,45 @@ data class RoutineExerciseEntity(
     val videoUrl: String = "",
     val orderIndex: Int,
     // Tempo cue from the training style ("explosive", "slow" or "" = balanced).
-    val tempo: String = ""
+    val tempo: String = "",
+    // Per-exercise level lock: when true the exercise is pinned to its current
+    // level and stage — the stepper is disabled and automatic progression skips
+    // it. Toggled from the workout card's lock icon; every row of the same
+    // exercise (across days) carries the flag, because the progression state
+    // itself is keyed by name.
+    val locked: Boolean = false
 )
+
+/**
+ * The app-wide "Overall Level" — a single row (id = 1) holding the cached
+ * result of [OverallLevelCalculator].
+ *
+ * The value is derived, but it is stored rather than recomputed by every
+ * reader: the home stat renders on the first frame from the last saved result
+ * instead of waiting for the history to load. The row is rewritten whenever
+ * the logged history or a per-exercise level changes, so it is never the
+ * source of truth — [OverallLevelCalculator] is.
+ */
+@Entity(tableName = "user_stats")
+data class UserStatsEntity(
+    @PrimaryKey val id: Int = SINGLETON_ID,
+    /**
+     * Recency-weighted average of the qualifying exercises' levels, rounded to
+     * one decimal, or null while the user has not trained enough of them.
+     */
+    val overallStrengthLevel: Double? = null,
+    /** False until [OverallLevelCalculator.MIN_EXERCISES] exercises qualify. */
+    val overallLevelReady: Boolean = false,
+    /** When the row was last recomputed (millis since epoch). */
+    val overallLevelLastComputed: Long = 0L,
+    /** How many exercises went into [overallStrengthLevel]. */
+    val exercisesCountForLevel: Int = 0
+) {
+    companion object {
+        /** There is only ever one overall-level row. */
+        const val SINGLETON_ID = 1
+    }
+}
 
 @Entity(tableName = "logged_sets")
 data class LoggedSetEntity(

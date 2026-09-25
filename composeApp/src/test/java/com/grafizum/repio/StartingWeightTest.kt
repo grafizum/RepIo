@@ -27,20 +27,20 @@ class StartingWeightTest {
 
     @Test
     fun harderDifficultyStartsHeavier() {
-        val easy = WorkoutTemplates.getStartingWeightKg("Barbell Squats", "Easy")
-        val medium = WorkoutTemplates.getStartingWeightKg("Barbell Squats", "Medium")
-        val hard = WorkoutTemplates.getStartingWeightKg("Barbell Squats", "Hard")
+        val easy = WorkoutTemplates.getStartingWeightKg("Barbell Back Squat", "Easy")
+        val medium = WorkoutTemplates.getStartingWeightKg("Barbell Back Squat", "Medium")
+        val hard = WorkoutTemplates.getStartingWeightKg("Barbell Back Squat", "Hard")
         assertTrue("easy < medium ($easy vs $medium)", easy < medium)
         assertTrue("medium < hard ($medium vs $hard)", medium < hard)
     }
 
     @Test
     fun compoundsStartHeavierThanIsolation() {
-        val compound = WorkoutTemplates.getStartingWeightKg("Dumbbell Shoulder Presses", "Medium")
-        val isolation = WorkoutTemplates.getStartingWeightKg("Dumbbell Curls", "Medium")
+        val compound = WorkoutTemplates.getStartingWeightKg("Dumbbell Shoulder Press", "Medium")
+        val isolation = WorkoutTemplates.getStartingWeightKg("Dumbbell Bicep Curl", "Medium")
         assertTrue("press > curl ($compound vs $isolation)", compound > isolation)
 
-        val barbell = WorkoutTemplates.getStartingWeightKg("Barbell Squats", "Medium")
+        val barbell = WorkoutTemplates.getStartingWeightKg("Barbell Back Squat", "Medium")
         val machine = WorkoutTemplates.getStartingWeightKg("Cable Flyes", "Medium")
         assertTrue("barbell squat > cable fly ($barbell vs $machine)", barbell > machine)
     }
@@ -48,7 +48,7 @@ class StartingWeightTest {
     @Test
     fun everySuggestionLandsOnALoadableStep() {
         val names = listOf(
-            "Barbell Squats", "Dumbbell Curls", "Dumbbell Shoulder Presses",
+            "Barbell Back Squat", "Dumbbell Bicep Curl", "Dumbbell Shoulder Press",
             "Cable Flyes", "Leg Press Machines", "Barbell Rows"
         )
         names.forEach { name ->
@@ -75,7 +75,7 @@ class StartingWeightTest {
         )
         assertTrue("expected the assisted build to create exercises", program.exercises.isNotEmpty())
         program.exercises.forEach { ex ->
-            assertEquals("Hard should build 5-set exercises", 5, ex.targetSets)
+            assertEquals("Guided mode builds 3-set exercises at every difficulty", 3, ex.targetSets)
             assertEquals(
                 "reps must match the goal scheme for ${ex.name}",
                 WorkoutTemplates.getGoalReps(ex.name, "goal_bodybuilding"),
@@ -87,15 +87,17 @@ class StartingWeightTest {
     }
 
     @Test
-    fun assistedBuildLowersVolumeOnEasy() {
-        val program = WorkoutTemplates.generateAssistedProgram(
-            bodyParts = listOf("Chest"),
-            selectedDays = listOf("MONDAY"),
-            intensity = "Easy",
-            workoutGoal = "goal_bodybuilding"
-        )
-        program.exercises.forEach { ex ->
-            assertEquals("Easy should build 3-set exercises", 3, ex.targetSets)
+    fun `assisted builds use 3 sets at every difficulty`() {
+        listOf("Easy", "Medium", "Hard").forEach { intensity ->
+            val program = WorkoutTemplates.generateAssistedProgram(
+                bodyParts = listOf("Chest"),
+                selectedDays = listOf("MONDAY"),
+                intensity = intensity,
+                workoutGoal = "goal_bodybuilding"
+            )
+            program.exercises.forEach { ex ->
+                assertEquals("$intensity must keep the universal set count", 3, ex.targetSets)
+            }
         }
     }
 }

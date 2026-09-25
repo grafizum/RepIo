@@ -49,16 +49,23 @@ class BalancedDefaultBuildTest {
 
     @Test
     fun changingOnlyEquipmentKeepsEasyBuildBalanced() {
-        listOf(
-            listOf(WorkoutTemplates.EQUIPMENT_BODYWEIGHT),
-            listOf(WorkoutTemplates.EQUIPMENT_DUMBBELL),
-            listOf(WorkoutTemplates.EQUIPMENT_BARBELL),
-            listOf(WorkoutTemplates.EQUIPMENT_GYM)
-        ).forEach { equipment ->
+        // The fine-tag layer made the equipment gate honest: scenarios whose
+        // granted kit has NO primary-biceps movement in the pool (every curl
+        // needs load, chin-ups need a bar, TRX needs rings) legitimately show
+        // a red biceps chip — the card's warning is the signal to pick more
+        // kit or drop the part, not a bug. Every kit family that owns a curl
+        // (barbell/dumbbell/kettlebell/cable/machine) stays fully green.
+        // (The "Other" category stays green: its machine-station grant covers
+        // biceps via Machine Bicep Curl.)
+        val expectedGaps = mapOf(
+            listOf(WorkoutTemplates.EQUIPMENT_BODYWEIGHT) to listOf("biceps"),
+            listOf(WorkoutTemplates.EQUIPMENT_BANDS) to listOf("biceps"),
+        )
+        WorkoutTemplates.allEquipmentCategories.map(::listOf).forEach { equipment ->
             val missing = getMissingMuscleGroups(build("Easy", equipment).exercises)
             assertEquals(
-                "Easy build with $equipment must stay balanced, was missing $missing",
-                emptyList<String>(),
+                "Easy build with $equipment must be balanced (or only miss its documented gaps)",
+                expectedGaps[equipment] ?: emptyList<String>(),
                 missing
             )
         }
