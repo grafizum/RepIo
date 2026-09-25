@@ -13,4 +13,10 @@
 
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>
+    <!-- Dark-theme icon variants (flame/ocean/rose/purple/retro): matches the
+         in-app dark background so the launcher icon no longer glows white on a
+         dark home screen. The foreground artwork keeps its baked shadow/light
+         play, which stays visible on the dark ground and preserves the 3D
+         effect the light-theme icon has. -->
+    <color name="icon_bg_dark">#121212</color>
 </resources>

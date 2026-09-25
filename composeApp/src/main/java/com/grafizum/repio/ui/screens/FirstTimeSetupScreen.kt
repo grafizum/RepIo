@@ -27,6 +27,9 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import com.grafizum.repio.ui.components.EquipmentIconImage
+import com.grafizum.repio.ui.components.equipmentTagIcon
+import com.grafizum.repio.ui.components.equipmentTagShortLabelKey
 import androidx.compose.material3.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -50,6 +53,7 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.DefaultData
+import com.grafizum.repio.data.ExerciseEquipmentTags
 import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
@@ -64,6 +68,7 @@ import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.CompactNumericField
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
+import com.grafizum.repio.ui.components.AppDialog
 import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
@@ -184,8 +189,7 @@ fun FirstTimeSetupScreen(
     ) }
     val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
     var assistedIntensity by remember { mutableStateOf("Medium") }
-    var assistedMinSets by remember { mutableIntStateOf(0) }
-    var assistedMaxSets by remember { mutableIntStateOf(0) }
+    var assistedDuration by remember { mutableStateOf(WorkoutTemplates.DURATION_STANDARD) }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
@@ -260,20 +264,18 @@ fun FirstTimeSetupScreen(
             workoutGoal = selectedWorkoutGoal,
             includedExercises = assistedIncludedExercises.toList(),
             excludedExercises = assistedExcludedExercises.toList(),
-            minSets = assistedMinSets,
-            maxSets = assistedMaxSets,
-            equipment = buildEquipment
+            equipment = buildEquipment,
+            duration = assistedDuration
         )
         viewModel.completeFirstTimeSetup(
             days = program.days,
             exercises = program.exercises,
-            setupType = "ASSISTED",
+            setupType = "ASSISTED", 
             bodyParts = assistedBodyParts.toList(),
             selectedDays = assistedSelectedDays.toList(),
             intensity = assistedIntensity,
-            minSets = assistedMinSets,
-            maxSets = assistedMaxSets,
-            equipment = buildEquipment
+            equipment = buildEquipment,
+            workoutDuration = assistedDuration
         )
     }
 
@@ -284,6 +286,7 @@ fun FirstTimeSetupScreen(
             exercise = editingExercise,
             initialDay = selectedDayInCustom,
             themeKey = themeOption,
+            userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment),
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -609,6 +612,17 @@ fun FirstTimeSetupScreen(
                                                         } else assistedSelectedDays.add(day)
                                                     }
                                                 )
+                                                // 1x/week and 7x/week carry research-backed
+                                                // warnings; the choice itself stays available.
+                                                val warningKey = WorkoutTemplates.frequencyWarningKey(assistedSelectedDays.size)
+                                                if (warningKey.isNotBlank()) {
+                                                    Text(
+                                                        text = getString(warningKey),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier.padding(top = 8.dp)
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -622,13 +636,27 @@ fun FirstTimeSetupScreen(
                                         )
                                     }
 
-                                    // 3. WHAT TO TRAIN
+                                    // 3. WHAT TO TRAIN — the goal, not body parts.
+                                    // Muscle-group picking moved under Advanced: the
+                                    // generator distributes muscle groups itself from
+                                    // the evidence-based split templates; beginners
+                                    // picking muscles produces lopsided programs.
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_body_parts"))
-                                        BodyPartsSelectionBlock(assistedBodyParts)
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_workout_goal"))
+                                        WorkoutGoalBlock(
+                                            selectedGoal = selectedWorkoutGoal,
+                                            onGoalChange = { selectedWorkoutGoal = it },
+                                            isDeveloper = isDeveloper
+                                        )
                                     }
 
-                                    // 4. HOW HARD — sets the target RPE
+                                    // 4. HOW LONG — sets the per-session exercise budget
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_duration"))
+                                        DurationSelectionBlock(assistedDuration) { assistedDuration = it }
+                                    }
+
+                                    // 5. HOW HARD — sets the target RPE
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                         OnboardingStepHeader(stepNumber = null, title = getString("choose_intensity"))
                                         IntensitySelectionBlock(assistedIntensity) { assistedIntensity = it }
@@ -645,17 +673,9 @@ fun FirstTimeSetupScreen(
                                         )
                                         AnimatedVisibility(visible = preferencesExpanded) {
                                             Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                                SetsAllocationBlock(
-                                                    minSets = assistedMinSets,
-                                                    maxSets = assistedMaxSets,
-                                                    onMinChange = { assistedMinSets = it },
-                                                    onMaxChange = { assistedMaxSets = it }
-                                                )
-                                                WorkoutGoalBlock(
-                                                    selectedGoal = selectedWorkoutGoal,
-                                                    onGoalChange = { selectedWorkoutGoal = it },
-                                                    isDeveloper = isDeveloper
-                                                )
+                                                // The spec removes muscle-group picking from the
+                                                // default flow; power users keep it here.
+                                                BodyPartsSelectionBlock(assistedBodyParts)
                                                 PreferenceSection(getString("include_exercises"), allAvailableExercises, assistedIncludedExercises, MaterialTheme.colorScheme.primaryContainer)
                                                 PreferenceSection(getString("exclude_exercises"), allAvailableExercises, assistedExcludedExercises, MaterialTheme.colorScheme.errorContainer)
                                             }
@@ -672,9 +692,8 @@ fun FirstTimeSetupScreen(
                                             workoutGoal = selectedWorkoutGoal,
                                             includedExercises = assistedIncludedExercises.toList(),
                                             excludedExercises = assistedExcludedExercises.toList(),
-                                            minSets = assistedMinSets,
-                                            maxSets = assistedMaxSets,
-                                            equipment = buildEquipment
+                                            equipment = buildEquipment,
+                                            duration = assistedDuration
                                         ).exercises
                                     )
 
@@ -933,11 +952,19 @@ fun FirstTimeSetupScreen(
 
     // DIALOGS
     if (showFinalSaveConfirmation) {
-        SaveConfirmationDialog(onDismiss = { showFinalSaveConfirmation = false }, onConfirm = {
-            saveSelectedBuild()
-            onComplete()
-            showFinalSaveConfirmation = false
-        })
+        // True only when the user came here to replace a plan they already had.
+        // On the very first launch there is no level system to lose, so the
+        // warning stays out of that confirmation entirely.
+        val replacingExistingPlan by viewModel.isManualReentry.collectAsState()
+        SaveConfirmationDialog(
+            levelResetWarning = replacingExistingPlan,
+            onDismiss = { showFinalSaveConfirmation = false },
+            onConfirm = {
+                saveSelectedBuild()
+                onComplete()
+                showFinalSaveConfirmation = false
+            }
+        )
     }
 
     if (showDeleteMultipleConfirmationCustom) {
@@ -1161,6 +1188,11 @@ fun FirstTimeSetupScreen(
         }
         ReplaceExerciseDialog(
             exercise = exercise,
+            // In the builder the chips read the selection the user is still
+            // editing; before they touch equipment it defaults to the saved
+            // build's kit so a no-barbell builder never sees barbell swaps.
+            userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment)
+                .ifEmpty { viewModel.userEquipmentCategories() },
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Drop the original and put the pick in its slot, keeping any demo
@@ -1181,8 +1213,6 @@ fun FirstTimeSetupScreen(
                         newMuscleGroup = muscleGroup,
                         workoutGoal = selectedWorkoutGoal,
                         intensity = assistedIntensity.ifBlank { "Medium" },
-                        minSets = assistedMinSets,
-                        maxSets = assistedMaxSets,
                         videoUrl = knownUrl
                     )
                 )
@@ -1199,6 +1229,17 @@ fun FirstTimeSetupScreen(
  * times and the set counts. Kept out of the main flow but still selectable —
  * without it every routine would silently be built as bodybuilding.
  */
+/** The display label for one of the five canonical goal keys. */
+@Composable
+private fun goalLabelFor(goalKey: String): String = when (goalKey) {
+    "goal_bodybuilding" -> getString("goal_bodybuilding")
+    "goal_strength" -> getString("goal_strength")
+    "goal_calisthenics" -> getString("goal_calisthenics")
+    "goal_endurance" -> getString("goal_endurance")
+    "goal_general" -> getString("goal_general")
+    else -> ""
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutGoalBlock(
@@ -1207,22 +1248,9 @@ private fun WorkoutGoalBlock(
     isDeveloper: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val goalKeys = listOf(
-        "goal_bodybuilding", "goal_strength", "goal_calisthenics",
-        "goal_functional", "goal_olympic", "goal_powerbuilding",
-        "goal_crossfit", "goal_athletic"
-    )
-    val selectedGoalLabel = when (selectedGoal) {
-        "goal_bodybuilding" -> getString("goal_bodybuilding")
-        "goal_strength" -> getString("goal_strength")
-        "goal_calisthenics" -> getString("goal_calisthenics")
-        "goal_functional" -> getString("goal_functional")
-        "goal_olympic" -> getString("goal_olympic")
-        "goal_powerbuilding" -> getString("goal_powerbuilding")
-        "goal_crossfit" -> getString("goal_crossfit")
-        "goal_athletic" -> getString("goal_athletic")
-        else -> ""
-    }
+    // The five canonical goals; legacy keys display under their canonical label.
+    val goalKeys = WorkoutTemplates.allWorkoutGoals
+    val selectedGoalLabel = goalLabelFor(WorkoutTemplates.canonicalGoal(selectedGoal))
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(
@@ -1252,17 +1280,7 @@ private fun WorkoutGoalBlock(
                 onDismissRequest = { expanded = false }
             ) {
                 goalKeys.forEach { goalKey ->
-                    val label = when (goalKey) {
-                        "goal_bodybuilding" -> getString("goal_bodybuilding")
-                        "goal_strength" -> getString("goal_strength")
-                        "goal_calisthenics" -> getString("goal_calisthenics")
-                        "goal_functional" -> getString("goal_functional")
-                        "goal_olympic" -> getString("goal_olympic")
-                        "goal_powerbuilding" -> getString("goal_powerbuilding")
-                        "goal_crossfit" -> getString("goal_crossfit")
-                        "goal_athletic" -> getString("goal_athletic")
-                        else -> ""
-                    }
+                    val label = goalLabelFor(goalKey)
                     DropdownMenuItem(
                         text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
                         onClick = {
@@ -1275,11 +1293,12 @@ private fun WorkoutGoalBlock(
             }
         }
 
-        val impact = when (selectedGoal) {
-            "goal_strength", "goal_olympic" -> getString("goal_strength_desc")
-            "goal_bodybuilding", "goal_powerbuilding" -> getString("goal_bodybuilding_desc")
-            "goal_calisthenics", "goal_crossfit" -> getString("goal_calisthenics_desc")
-            "goal_functional", "goal_athletic" -> getString("goal_functional_desc")
+        val impact = when (WorkoutTemplates.canonicalGoal(selectedGoal)) {
+            "goal_strength" -> getString("goal_strength_desc")
+            "goal_bodybuilding" -> getString("goal_bodybuilding_desc")
+            "goal_calisthenics" -> getString("goal_calisthenics_desc")
+            "goal_endurance" -> getString("goal_endurance_desc")
+            "goal_general" -> getString("goal_general_desc")
             else -> ""
         }
         if (impact.isNotBlank()) {
@@ -1292,87 +1311,162 @@ private fun WorkoutGoalBlock(
     }
 }
 
+/**
+ * The persisted build selection reduced to coarse categories ("Barbell",
+ * "Dumbbell", …) — empty when it means "every category". The replace dialog
+ * uses it to start its chips on the kit the builder is configured for.
+ */
+fun EquipmentFilterBlockCategories(selectedEquipment: List<String>): List<String> =
+    ExerciseEquipmentTags.coarseCategoriesFor(selectedEquipment)
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EquipmentFilterBlock(
     selectedEquipment: List<String>,
     onEquipmentChange: (List<String>) -> Unit
 ) {
-    val equipmentOptions = listOf(
-        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
-        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
-        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
-        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
-    )
-
-    // "All" is not a fifth equipment type — see WorkoutTemplates.toggleEquipmentSelection.
-    val optionKeys = equipmentOptions.map { it.first }
-    fun toggle(key: String) {
-        onEquipmentChange(WorkoutTemplates.toggleEquipmentSelection(selectedEquipment, key, optionKeys))
+    // State model: [presetId, fineTag, fineTag, …]. The first element is one
+    // of the ExerciseEquipmentTags presets (or PRESET_CUSTOM); everything
+    // after it are fine-grained tags. Legacy persisted values ("Dumbbell",
+    // "Bands", …) render through allowedTagsFor and normalize on first edit.
+    val activePreset = selectedEquipment.firstOrNull {
+        ExerciseEquipmentTags.isPreset(it) && it != ExerciseEquipmentTags.PRESET_CUSTOM
+    }
+    val customTags: Set<String> = if (activePreset != null) {
+        selectedEquipment.drop(1).filter { it in ExerciseEquipmentTags.ALL_TAGS }.toSet()
+    } else {
+        ExerciseEquipmentTags.allowedTagsFor(selectedEquipment)
+    }
+    // Checking a box while a preset is active carries the preset's tags into
+    // Custom; unchecking everything in Custom honestly means "no equipment".
+    fun toggleTag(tag: String) {
+        val base = (if (activePreset != null) ExerciseEquipmentTags.presetTags(activePreset) else customTags)
+            .toMutableSet()
+        if (tag in base) base.remove(tag) else base.add(tag)
+        val ordered = base.sortedBy { ExerciseEquipmentTags.ALL_TAGS.indexOf(it) }
+        onEquipmentChange(listOf(ExerciseEquipmentTags.PRESET_CUSTOM) + ordered)
     }
 
-    // The section title comes from the caller's OnboardingStepHeader.
-    // "All" leads the list big and full-width on TOP (it is the default state
-    // and the anchor of the choice); "Cable & Machine" sits like a normal
-    // half-width chip in the last row. Values stay tied to their labels: All
-    // toggles EQUIPMENT_ALL (empty selection), each chip its own category.
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // ---- Fine equipment as an ICON TILE GRID, not a checkbox list ----
+        // The old sixteen rows of sentences forced reading before acting; the
+        // grid turns the same data into a wall of equipment the user glances
+        // at. The icon carries the shape, the short label only disambiguates.
+        // A preset's tags show pre-checked (state, not just the chip), so the
+        // grid doubles as the visual summary of what the preset grants.
+        val presetGranted: Set<String> =
+            if (activePreset != null) ExerciseEquipmentTags.presetTags(activePreset)
+            else customTags
+
+        EquipmentTileSection(
+            title = getString("home_equipment_section"),
+            tags = ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS,
+            isChecked = { tag -> tag in presetGranted },
+            onToggle = { tag -> toggleTag(tag) }
+        )
+
+        EquipmentTileSection(
+            title = getString("gym_equipment_section"),
+            tags = ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS,
+            isChecked = { tag -> tag in presetGranted },
+            onToggle = { tag -> toggleTag(tag) }
+        )
+    }
+}
+
+/**
+ * One labelled section of the icon-tile grid: a small section header and the
+ * tiles flowing beneath it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EquipmentTileSection(
+    title: String,
+    tags: List<String>,
+    isChecked: (String) -> Boolean,
+    onToggle: (String) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        EquipmentChip(
-            label = getString("equipment_all"),
-            selected = selectedEquipment.isEmpty(),
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
-        ) { toggle(WorkoutTemplates.EQUIPMENT_ALL) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            EquipmentChip(
-                label = equipmentOptions[0].second,
-                selected = selectedEquipment.contains(equipmentOptions[0].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[0].first) }
-            EquipmentChip(
-                label = equipmentOptions[1].second,
-                selected = selectedEquipment.contains(equipmentOptions[1].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[1].first) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            EquipmentChip(
-                label = equipmentOptions[2].second,
-                selected = selectedEquipment.contains(equipmentOptions[2].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[2].first) }
-            EquipmentChip(
-                label = equipmentOptions[3].second,
-                selected = selectedEquipment.contains(equipmentOptions[3].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[3].first) }
+        ) {
+            tags.forEach { tag ->
+                EquipmentIconTile(
+                    tag = tag,
+                    checked = isChecked(tag),
+                    onToggle = { onToggle(tag) }
+                )
+            }
         }
     }
 }
 
-/** One equipment chip, stretched to its grid cell so the rows line up symmetrically. */
+/**
+ * One equipment tile of the grid: the tag's icon over its short label, the
+ * whole tile the tap target. Selected tiles fill with the primary tint and
+ * carry a primary rim — state reads from across the room, no checkbox needed.
+ * A tile is at least 96dp wide so the grid lands at three tiles per row on a
+ * 360dp phone and widens naturally on tablets (weight-like fill via weight on
+ * the parent is not available in a FlowRow, so the min-width does the work).
+ */
 @Composable
-private fun EquipmentChip(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+private fun EquipmentIconTile(
+    tag: String,
+    checked: Boolean,
+    onToggle: () -> Unit
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
+    val isDeveloper = LocalDeveloperSkin.current
+    Surface(
+        onClick = onToggle,
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
+        color = when {
+            isDeveloper -> if (checked) Color.White.copy(alpha = 0.2f) else Color.Black
+            checked -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            else -> MaterialTheme.colorScheme.surfaceContainerLow
         },
-        shape = RoundedCornerShape(10.dp),
-        modifier = modifier
-    )
+        border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                 else BorderStroke(
+                     1.dp,
+                     if (checked) MaterialTheme.colorScheme.primary
+                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                 ),
+        modifier = Modifier.widthIn(min = 96.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)
+        ) {
+            EquipmentIconImage(
+                icon = equipmentTagIcon(tag),
+                contentDescription = null,
+                tint = when {
+                    isDeveloper -> Color.White
+                    checked -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = getString(equipmentTagShortLabelKey(tag)),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = when {
+                    isDeveloper -> Color.White
+                    checked -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1440,13 +1534,6 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
         getString("abs") to listOf("Abs", "Obliques")
     )
 
-    val balancedPreset = listOf(
-        "Chest", "Lats", "Upper Back", 
-        "Quadriceps", "Hamstrings", "Glutes", "Calves",
-        "Front Deltoids", "Lateral Deltoids",
-        "Biceps", "Triceps", "Abs"
-    )
-
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -1467,32 +1554,9 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                     text = getString("select_body_parts_desc"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // The preset button on the right keeps its intrinsic size; a long
-                    // translated description wraps inside the leftover width instead.
-                    modifier = Modifier.weight(1f, fill = false),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                
-                Surface(
-                    onClick = {
-                        selected.clear()
-                        selected.addAll(balancedPreset)
-                    },
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.AutoFixHigh, null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(getString("balanced_preset"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                    }
-                }
             }
 
             // Category Buttons in 2 rows
@@ -1617,6 +1681,18 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
     }
 }
 
+/**
+ * The setup stores the picker's own strings as its keys ("setup_intensity"), so
+ * the bridge to the engine's enum lives next to its two callers rather than
+ * being repeated inline.
+ */
+private fun difficultyOf(intensity: String): com.grafizum.repio.data.ProgressionEngine.Difficulty =
+    when (intensity) {
+        "Easy" -> com.grafizum.repio.data.ProgressionEngine.Difficulty.EASY
+        "Hard" -> com.grafizum.repio.data.ProgressionEngine.Difficulty.HARD
+        else -> com.grafizum.repio.data.ProgressionEngine.Difficulty.MEDIUM
+    }
+
 @Composable
 private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit) {
     val levels = listOf("Easy", "Medium", "Hard")
@@ -1709,8 +1785,13 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                                 ),
                                 color = contentColor
                             )
+                            // What this choice actually sets: the rung each
+                            // exercise starts on, not an RPE target.
                             Text(
-                                text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(level)),
+                                text = getString(
+                                    "intensity_level_value",
+                                    com.grafizum.repio.data.ProgressionEngine.typicalStartingLevel(difficultyOf(level))
+                                ),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                 color = contentColor.copy(alpha = 0.85f)
                             )
@@ -1757,7 +1838,10 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(selected)),
+                            text = getString(
+                                "intensity_level_value",
+                                com.grafizum.repio.data.ProgressionEngine.typicalStartingLevel(difficultyOf(selected))
+                            ),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1773,8 +1857,122 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
     }
 }
 
+/**
+ * The session length a build is budgeted for. The choice is the per-day
+ * exercise window the generator trims/pads into: Quick = 6-8 (compound
+ * focus), Standard = 8-10 (balanced), Full = 10-12 (full volume). Mirrors
+ * the intensity block's segmented picker.
+ */
 @Composable
-private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit) {
+    val options = WorkoutTemplates.DURATION_OPTIONS
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val isDeveloper = LocalDeveloperSkin.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            options.forEach { option ->
+                val isSelected = selected == option
+                val range = WorkoutTemplates.durationRangeFor(option)
+                val contentColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                  else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "durationContentColor"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                        .border(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(option) }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = getString("duration_${option.substringAfter("_")}_label"),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = contentColor
+                        )
+                        Text(
+                            text = getString("duration_minutes", range.first, range.last),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = contentColor.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // What this choice actually sets: the per-session exercise budget.
+        val description = when(selected) {
+            WorkoutTemplates.DURATION_QUICK -> getString("duration_quick_desc")
+            WorkoutTemplates.DURATION_FULL -> getString("duration_full_desc")
+            else -> getString("duration_standard_desc")
+        }
+
+        AnimatedContent(
+            targetState = description,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            },
+            label = "durationDesc"
+        ) { desc ->
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SaveConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    levelResetWarning: Boolean = false
+) {
     val focusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1791,15 +1989,50 @@ private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit)
             }
         },
         text = {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
+                    ) { focusManager.clearFocus() },
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(getString("confirm_new_program_message"))
+                if (levelResetWarning) {
+                    // Saving replaces the routine, and replacing the routine
+                    // clears every exercise's stored level and stage (see
+                    // WorkoutViewModel.clearExerciseMemories). The logged sets
+                    // survive, so the user only has to be told the levels restart.
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = if (LocalDeveloperSkin.current) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = getString("level_reset_warning_title"),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = getString("level_reset_warning_body"),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1909,6 +2142,10 @@ fun getEnglishTitleFromKey(key: String): String {
     return when(key) {
         "pull_title" -> "Pull (Back & Biceps)"
         "push_title" -> "Push (Chest, Shoulders, Triceps)"
+        "chest_title" -> "Chest"
+        "back_title" -> "Back"
+        "shoulders_title" -> "Shoulders"
+        "arms_title" -> "Arms"
         "legs_core_title" -> "Legs & Core"
         "upper_power_title" -> "Upper Body Power"
         "lower_power_title" -> "Lower Body & Core"
@@ -1929,7 +2166,12 @@ fun AddExerciseDialog(
     initialDay: String = "MONDAY",
     themeKey: String,
     onDismiss: () -> Unit,
-    onConfirm: (RoutineExerciseEntity) -> Unit
+    onConfirm: (RoutineExerciseEntity) -> Unit,
+    /**
+     * The saved kit as coarse categories; the recommendation filters start on
+     * it so a no-barbell setup never sees barbell suggestions by default.
+     */
+    userEquipmentCategories: List<String> = emptyList()
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
@@ -1986,30 +2228,60 @@ fun AddExerciseDialog(
     // every leg exercise) plus equipment chips. They only narrow what the search
     // field suggests; the stored muscle still comes from the exercise itself.
     var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
-    var filterEquipment by remember(exercise?.id) { mutableStateOf(emptyList<String>()) }
+    // Chips start on the user's own kit, matching ExerciseEditDialog — the
+    // "unrestricted" default is what made the equipment setup look ignored.
+    var filterEquipment by remember(exercise?.id) {
+        mutableStateOf(userEquipmentCategories)
+    }
     val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
         com.grafizum.repio.ui.components.filteredExercisesForPickers(
-            allAvailableExercises, filterMuscleGroup, filterEquipment
+            allAvailableExercises, filterMuscleGroup, filterEquipment,
+            // Fine-tag gate matching ExerciseEditDialog: the coarse Bodyweight
+            // chip alone offered bar-less moves to a dumbbells+chair setup.
+            ExerciseEquipmentTags.allowedTagsFor(userEquipmentCategories)
+                .takeIf { userEquipmentCategories.isNotEmpty() }
         )
     }
     val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
     var showRecommendFilters by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    AppDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
-                Text(getString(if (exercise == null) "add_custom_exercise" else "edit_exercise"))
-            }
+        title = getString(if (exercise == null) "add_custom_exercise" else "edit_exercise"),
+        onTitleTap = { focusManager.clearFocus() },
+        confirmLabel = getString(if (exercise == null) "add" else "save"),
+        confirmEnabled = name.isNotBlank() &&
+            (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank(),
+        onConfirm = {
+            focusManager.clearFocus()
+            val finalReps = if (isTimeBased) {
+                val digits = targetTimeValue.filter { it.isDigit() }
+                if (digits.isNotBlank()) "$digits sec" else "30 sec"
+            } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+            onConfirm(RoutineExerciseEntity(
+                id = exercise?.id ?: 0, 
+                dayOfWeek = dayOfWeek, 
+                // Stored canonically when the name is a pool exercise, so equipment and
+                // muscle lookups keep working whatever language it was typed in.
+                name = ExerciseLocalization.canonicalFor(name) ?: name.trim(), 
+                muscleGroup = muscleGroup, 
+                targetSets = targetSets.toIntOrNull() ?: 3, 
+                targetReps = finalReps, 
+                targetIntensity = targetIntensityStr, 
+                targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0,
+                restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
+                videoUrl = videoUrl, 
+                orderIndex = exercise?.orderIndex ?: 99,
+                // Kept from the generated build; tempo is not typed in by hand.
+                tempo = exercise?.tempo ?: ""
+            ))
         },
-        text = {
+        dismissLabel = getString("cancel"),
+        onDismiss = {
+            focusManager.clearFocus()
+            onDismiss()
+        }
+    ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
@@ -2278,43 +2550,7 @@ fun AddExerciseDialog(
 
                 ThemedToast(message = getString("invalid_char_error"), themeKey = themeKey, visible = showInvalidCharToast, onDismiss = { showInvalidCharToast = false })
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    val finalReps = if (isTimeBased) {
-                        val digits = targetTimeValue.filter { it.isDigit() }
-                        if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                    } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
-                    onConfirm(RoutineExerciseEntity(
-                        id = exercise?.id ?: 0, 
-                        dayOfWeek = dayOfWeek, 
-                        // Stored canonically when the name is a pool exercise, so equipment and
-                        // muscle lookups keep working whatever language it was typed in.
-                        name = ExerciseLocalization.canonicalFor(name) ?: name.trim(), 
-                        muscleGroup = muscleGroup, 
-                        targetSets = targetSets.toIntOrNull() ?: 3, 
-                        targetReps = finalReps, 
-                        targetIntensity = targetIntensityStr, 
-                        targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0,
-                        restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
-                        videoUrl = videoUrl, 
-                        orderIndex = exercise?.orderIndex ?: 99,
-                        // Kept from the generated build; tempo is not typed in by hand.
-                        tempo = exercise?.tempo ?: ""
-                    ))
-                },
-                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()
-            ) { Text(getString(if (exercise == null) "add" else "save")) }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                focusManager.clearFocus()
-                onDismiss()
-            }) { Text(getString("cancel")) }
-        }
-    )
+    }
 
     // Optional recommendation popup (add mode only), stacked above the dialog.
     if (showRecommendFilters && exercise == null) {
@@ -2334,77 +2570,6 @@ fun AddExerciseDialog(
             onDismiss = { showRecommendFilters = false }
         )
     }
-}
-
-                @Composable
-private fun SetsAllocationBlock(
-    minSets: Int,
-    maxSets: Int,
-    onMinChange: (Int) -> Unit,
-    onMaxChange: (Int) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = getString("sets_allocation"),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SetsInput(
-                label = getString("min_sets"),
-                value = minSets,
-                onValueChange = onMinChange,
-                modifier = Modifier.weight(1f)
-            )
-            SetsInput(
-                label = getString("max_sets"),
-                value = maxSets,
-                onValueChange = onMaxChange,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        // Leave them blank (or wrong) with confidence: the build can be tuned
-        // again afterwards, nothing here is final.
-        Text(
-            text = getString("sets_changeable_later"),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-    }
-}
-
-@Composable
-private fun SetsInput(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var textValue by remember(value) { mutableStateOf(if (value == 0) "" else value.toString()) }
-
-    OutlinedTextField(
-        value = textValue,
-        onValueChange = { newValue ->
-            if (newValue.isEmpty()) {
-                textValue = ""
-                onValueChange(0)
-            } else if (newValue.all { it.isDigit() }) {
-                textValue = newValue
-                newValue.toIntOrNull()?.let { onValueChange(it) }
-            }
-        },
-        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-        placeholder = { Text(getString("no_limit"), style = MaterialTheme.typography.labelSmall) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        ),
-        modifier = modifier
-    )
 }
 
 @Composable

@@ -1,5 +1,6 @@
 package com.grafizum.repio
 
+import com.grafizum.repio.data.ExercisePopularity
 import com.grafizum.repio.data.WorkoutTemplates
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -42,9 +43,12 @@ class ExerciseMuscleFilterTest {
     @Test
     fun aBodyPartIsExactlyTheExercisesWhosePrimaryMuscleIsInIt() {
         WorkoutTemplates.getBroadMuscleGroups().forEach { part ->
-            val expected = WorkoutTemplates.getAllExerciseNames()
-                .filter { WorkoutTemplates.getTopicForMuscle(WorkoutTemplates.getMuscleGroupForExercise(it)) == part }
-                .sorted()
+            // Same MEMBERSHIP as the primary-muscle definition; the order is
+            // the shared popularity ranking, not alphabetical.
+            val expected = ExercisePopularity.sortedByPopularity(
+                WorkoutTemplates.getAllExerciseNames()
+                    .filter { WorkoutTemplates.getTopicForMuscle(WorkoutTemplates.getMuscleGroupForExercise(it)) == part }
+            )
             assertEquals(
                 "Filtering by '$part' does not match its own primary muscles",
                 expected,
@@ -74,17 +78,18 @@ class ExerciseMuscleFilterTest {
         // The badge beside an exercise comes from its own body part, so the filter
         // has to agree with it: nothing the app labels "Legs" may be unreachable by
         // filtering "Legs". Checked per equipment category, so the muscle filter
-        // and the equipment filter stay independent.
+        // and the equipment filter stay independent. Order is the popularity
+        // ranking both surfaces share.
         WorkoutTemplates.allEquipmentCategories.forEach { category ->
             val categoryPool = WorkoutTemplates.getAllExercisesForEquipment(category)
             WorkoutTemplates.getBroadMuscleGroups().forEach { part ->
-                val expected = categoryPool
-                    .filter {
+                val expected = ExercisePopularity.sortedByPopularity(
+                    categoryPool.filter {
                         WorkoutTemplates.getTopicForMuscle(
                             WorkoutTemplates.getMuscleGroupForExercise(it)
                         ) == part
                     }
-                    .sorted()
+                )
                 assertEquals(
                     "Filtering '$part' under '$category' disagrees with the body part the app labels those exercises with",
                     expected,
@@ -97,13 +102,14 @@ class ExerciseMuscleFilterTest {
     @Test
     fun aPreciseGroupStillAnswersWithItsOwnPool() {
         // The precise groups are still addressable (templates and the primary-muscle
-        // tests rely on them) and keep their long-standing pool semantics.
+        // tests rely on them) and keep their pool semantics: a precise group lists
+        // the exercises whose primary muscle it is.
         assertTrue(
-            "Lats should still offer Reverse Snow Angels through the raw pool",
-            WorkoutTemplates.getExercisesForEquipment(all, "Lats").contains("Reverse Snow Angels")
+            "Lats should still offer Chin-Up through the raw pool",
+            WorkoutTemplates.getExercisesForEquipment(all, "Lats").contains("Chin-Ups")
         )
         assertTrue(
-            WorkoutTemplates.getExercisesForEquipment(all, "Triceps").contains("Dumbbell Floor Presses")
+            WorkoutTemplates.getExercisesForEquipment(all, "Triceps").contains("Dumbbell Skull Crusher")
         )
     }
 }

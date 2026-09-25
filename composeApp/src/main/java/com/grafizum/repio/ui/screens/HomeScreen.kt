@@ -54,6 +54,7 @@ import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: WorkoutViewModel,
@@ -63,6 +64,7 @@ fun HomeScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
+    val userStats by viewModel.userStats.collectAsState()
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
     val window = LocalWindowSize.current
@@ -114,12 +116,12 @@ fun HomeScreen(
         }
     }
 
-    val consecutiveWorkoutDays = remember(loggedSets) {
-        WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
-    }
-    val skippedWorkoutDays = remember(loggedSets, routineDays) {
-        WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
-    }
+    // The consecutive-days streak no longer lives on this screen: the slot below
+    // the hero reports the overall level instead. The streak itself is unchanged
+    // and still shown on the Analytics screen ("Consecutive Days").
+    // Non-null exactly when the calculator had enough exercises to report a
+    // level, so one null check drives both the value and the "locked" hint.
+    val overallLevel = userStats?.takeIf { it.overallLevelReady }?.overallStrengthLevel
     val isDeveloper = LocalDeveloperSkin.current
 
     Column(
@@ -299,18 +301,59 @@ fun HomeScreen(
 
             item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }
 
-            // QUICK STATS ROW
+            // OVERALL LEVEL — the app-wide strength stat, replacing the streak
+            // that used to sit here. It is derived (see OverallLevelCalculator),
+            // so it is read straight from user_stats and never computed in the UI.
             item {
-                StatCard(
-                    title = getString("consecutive_days_title"),
-                    value = consecutiveWorkoutDays.toString(),
-                    subtitle = "",
-                    icon = Icons.Default.LocalFireDepartment,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                    badgeText = getString("skipped_days_format", skippedWorkoutDays),
-                    compact = true
-                )
+                val level = overallLevel
+                // Null until the calculator has enough exercises, so an unrated
+                // user shows no badge rather than a bottom-tier one.
+                val rank = OverallLevelRank.of(userStats)
+                // Long-press (or hover) explains where the number comes from — the
+                // five-exercise requirement is not self-evident from a bare "—",
+                // and the letter alone does not say what the next rank is.
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip {
+                            OverallLevelTooltip(
+                                level = level,
+                                rank = rank,
+                                exerciseCount = userStats?.exercisesCountForLevel ?: 0
+                            )
+                        }
+                    },
+                    state = rememberTooltipState()
+                ) {
+                    StatCard(
+                        title = getString("overall_level_label"),
+                        value = if (level != null) {
+                            getString("overall_level_format", level)
+                        } else {
+                            getString("overall_level_none")
+                        },
+                        subtitle = "",
+                        icon = Icons.Default.EmojiEvents,
+                        iconColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.fillMaxWidth(),
+                        badgeText = if (level != null) {
+                            null
+                        } else {
+                            getString("overall_level_not_ready")
+                        },
+                        compact = true,
+                        trailing = if (rank != null) {
+                            {
+                                RankBadge(
+                                    rank = rank.rank,
+                                    contentDescription = getString("rank_badge_content_desc", rank.letter)
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
             }
 
             item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }

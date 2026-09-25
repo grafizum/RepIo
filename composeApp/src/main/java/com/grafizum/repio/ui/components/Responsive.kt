@@ -173,6 +173,11 @@ private val TypeScale = Ramp(atMin = 0.92f, atReference = 1f, atMax = 1.12f)
 // hands space back to the content instead of spending it on chrome.
 private val DayChipHeight = Ramp(atMin = 48f, atReference = 52f, atMax = 56f)
 private val DonutHeight = Ramp(atMin = 190f, atReference = 240f, atMax = 340f)
+// Popup surface: one shell for every dialog, so the three ramps below are what keeps a form
+// dialog and a filter popup the same object on a given window.
+private val DialogMaxWidth = Ramp(atMin = 480f, atReference = 560f, atMax = 680f)
+private val DialogCorner = Ramp(atMin = 20f, atReference = 24f, atMax = 28f)
+private val DialogGap = Ramp(atMin = 12f, atReference = 16f, atMax = 20f)
 
 /**
  * Every size-dependent dimension the UI is allowed to care about.
@@ -225,7 +230,16 @@ data class WindowSize(
      * [dayChipHeight] - the donut and its legend divide this height between them, which only
      * works while the height is bounded.
      */
-    val donutHeight: Dp = 240.dp
+    val donutHeight: Dp = 240.dp,
+    /**
+     * Widest any popup surface may get. Every dialog in the app renders through one shell, so a
+     * form dialog and a filter popup cannot end up different sizes on the same phone.
+     */
+    val dialogMaxWidth: Dp = 560.dp,
+    /** Corner radius of the popup surface. */
+    val dialogCorner: Dp = 24.dp,
+    /** Gap between a dialog's title, its scrolling body and its button row. */
+    val dialogGap: Dp = 16.dp
 )
 
 /** Widest a screen's content column should ever get on a regular phone. */
@@ -283,7 +297,10 @@ fun windowSizeFor(widthDp: Int, heightDp: Int = 800, fontScale: Float = 1f): Win
         // Height-driven, and never below Material's tap-target floor, so a short window gets
         // slimmer chips instead of a per-device number.
         dayChipHeight = DayChipHeight.dpAtLeast(height, MinimumTouchTarget) * containerRoom,
-        donutHeight = DonutHeight.dp(height) * containerRoom
+        donutHeight = DonutHeight.dp(height) * containerRoom,
+        dialogMaxWidth = DialogMaxWidth.dp(width),
+        dialogCorner = DialogCorner.dp(width),
+        dialogGap = DialogGap.dp(width) * textRoom
     )
 }
 

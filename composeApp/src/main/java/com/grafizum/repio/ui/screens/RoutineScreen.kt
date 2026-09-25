@@ -63,6 +63,7 @@ import androidx.compose.runtime.Composable
 import androidx.compose.runtime.collectAsState
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateListOf
+import kotlinx.coroutines.isActive
 import androidx.compose.runtime.mutableFloatStateOf
 import androidx.compose.runtime.mutableStateOf
 import androidx.compose.runtime.remember
@@ -368,12 +369,37 @@ fun WorkoutScreen(
                     draggingItemId = exerciseId
                 }
 
+                // Edge auto-scroll: while the dragged card is held past the
+                // scroll margin at the top or bottom of the viewport, the list
+                // glides in that direction so an item can travel the whole day
+                // without lifting the finger (the move-into-view the owner asked
+                // for). moveExerciseByDrag records the finger's distance past
+                // each edge as the scroll speed; the loop below applies it —
+                // the scroll must come from here rather than from the gesture,
+                // or the drag deltas and the viewport would fight each other.
+                val dragScrollMargin = with(density) { 56.dp.toPx() }
+                var autoScrollDelta by remember { mutableFloatStateOf(0f) }
+
                 fun moveExerciseByDrag(exerciseId: Long, dragDelta: Float) {
                     dragOffsetY += dragDelta
 
                     val currentIndex = reorderedList.indexOfFirst { it.id == exerciseId }
                     if (currentIndex == -1) return
                     val spacing = with(density) { 16.dp.toPx() }
+
+                    // Edge auto-scroll speed: how far the finger is held past
+                    // the top/bottom scroll margin (0 while inside the list).
+                    // Capped so a fling to the edge cannot outrun the user.
+                    val viewportHeight = listState.layoutInfo
+                        .let { (it.viewportEndOffset - it.viewportStartOffset).toFloat() }
+                        .takeIf { it > 0f } ?: 1000f
+                    autoScrollDelta = when {
+                        dragOffsetY > dragScrollMargin && listState.canScrollForward ->
+                            (dragOffsetY - dragScrollMargin).coerceIn(0f, viewportHeight / 10f)
+                        dragOffsetY < -dragScrollMargin && listState.canScrollBackward ->
+                            (dragOffsetY + dragScrollMargin).coerceIn(-viewportHeight / 10f, 0f)
+                        else -> 0f
+                    }
 
                     // Move DOWN
                     if (dragOffsetY > 0 && currentIndex < reorderedList.size - 1) {
@@ -408,11 +434,27 @@ fun WorkoutScreen(
                 fun endExerciseDrag() {
                     draggingItemId = null
                     dragOffsetY = 0f
+                    autoScrollDelta = 0f
                     // Persist orderIndex
                     val finalOrderedList = reorderedList.mapIndexed { index, ex ->
                         ex.copy(orderIndex = index)
                     }
                     viewModel.reorderExercises(finalOrderedList)
+                }
+
+                LaunchedEffect(draggingItemId) {
+                    if (draggingItemId == null) return@LaunchedEffect
+                    while (isActive) {
+                        val delta = autoScrollDelta
+                        if (delta != 0f) {
+                            // Non-suspending raw delta: right for a 16ms loop, and
+                            // the consumed amount tells us when the end is reached.
+                            val moved = listState.dispatchRawDelta(delta)
+                            // Parked against the end of the list: stop asking.
+                            if (moved == 0f) autoScrollDelta = 0f
+                        }
+                        kotlinx.coroutines.delay(16)
+                    }
                 }
                 
                 LazyColumn(
@@ -619,6 +661,7 @@ fun WorkoutScreen(
                                         onDragCancel = {
                                             draggingItemId = null
                                             dragOffsetY = 0f
+                                            autoScrollDelta = 0f
                                         }
                                     )
                                 }
@@ -637,6 +680,7 @@ fun WorkoutScreen(
                                         onDragCancel = {
                                             draggingItemId = null
                                             dragOffsetY = 0f
+                                            autoScrollDelta = 0f
                                         }
                                     )
                                 }
@@ -723,6 +767,8 @@ fun WorkoutScreen(
             exercise = editingExercise,
             dayOfWeek = workoutState.selectedDayOfWeek,
             themeKey = themeOption,
+            levelsManaged = editingExercise?.let { viewModel.isExerciseLevelManaged(it.name) } ?: false,
+            userEquipmentCategories = viewModel.userEquipmentCategories(),
             onDismiss = {
                 showAddDialog = false
                 editingExercise = null
@@ -946,6 +992,7 @@ fun WorkoutScreen(
     replacingExercise?.let { exercise ->
         ReplaceExerciseDialog(
             exercise = exercise,
+            userEquipmentCategories = viewModel.userEquipmentCategories(),
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Swap the original for the picked exercise, in its slot. The new

@@ -3,7 +3,7 @@ package com.grafizum.repio.ui.theme
 import androidx.compose.ui.graphics.Color
 
 // Purple Theme (Darker lavender/violet for better contrast)
-val ElegantPurple = Color(0xFF9E7AFF) 
+val ElegantPurple = Color(0xFF9E7AFF)
 val ElegantPurpleLight = Color(0xFFD7C7FF)
 
 // Warm Beige Theme (Elegant Light/Warm Sand)
@@ -24,14 +24,32 @@ val EmeraldPrimary = Color(0xFF00E676)
 val EmeraldDark = Color(0xFF004D40)
 val EmeraldLight = Color(0xFFA7F3D0)
 
-// Common Dark palette
-val DarkBackground = Color(0xFF121212) // Dark grey (less black)
-val DarkSurface = Color(0xFF121212) // Dark grey
-val DarkSurfaceVariant = Color(0xFF1E1E1E) // Lighter grey
-val DarkBorder = Color(0xFF2C2C2C) // Border color
+/*
+ * Dark palette — a real shade ramp, not one grey.
+ *
+ * Every dark theme previously painted background AND surface the same
+ * 0xFF121212, and the container ramp was collapsed onto them, so cards sat on
+ * a canvas of literally their own colour: nothing could read as elevated, and
+ * the UI looked flat regardless of how much spacing or corner rounding it got.
+ * "Expensive" dark surfaces are built from MANY closely-stepped layers of a
+ * warm-neutral grey — the eye reads the delta between adjacent layers as
+ * depth. The steps below (7 → 10 → 14 → 19 → 25 % lightness) are narrow on
+ * purpose: adjacent tones must whisper, not shout.
+ *
+ * The ramp is slightly warm (equal R>B, green the highest channel) so it
+ * harmonises with the bronze/gold primary of the light themes and never reads
+ * as the blue-cold grey of stock Material dark.
+ */
+val DarkBackground = Color(0xFF0D0D0F) // canvas — deepest tone, owns the stage
+val DarkSurface = Color(0xFF141416) // first layer above the canvas: cards
+val DarkSurfaceVariant = Color(0xFF1B1B1F) // second layer: nested blocks, wells
+val DarkSurfaceHigh = Color(0xFF232327) // third layer: chips, inputs, thumbs
+val DarkSurfaceHighest = Color(0xFF2B2B30) // fourth layer: pressed/dragged states
+val DarkHairline = Color(0xFF2E2E33) // 1dp edge on cards — cheap "glass" rim
+val DarkBorder = Color(0xFF2C2C2C) // structural separators (kept, was the old border)
 
 val TextPrimary = Color(0xFFFFFFFF) // Pure white
-val TextSecondary = Color(0xFFE0E0E0) // Light gray for secondary text
+val TextSecondary = Color(0xFFE6E6E9) // Light gray for secondary text
 val TextMuted = Color(0xFF9E9E9E) // Muted text
 
 // Theme accents mapping

@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Barbell: shaft with a plate pair each side. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M2.5,12 H21.5" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="2.6"
+        android:strokeLineCap="round"
+        android:pathData="M6.2,8.2 V15.8 M17.8,8.2 V15.8" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M9.4,9.6 V14.4 M14.6,9.6 V14.4" />
+</vector>

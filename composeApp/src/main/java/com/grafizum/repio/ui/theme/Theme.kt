@@ -246,6 +246,46 @@ private fun TextStyle.scaledBy(factor: Float): TextStyle = copy(
  * narrow phone feel cramped and what pushes headers into wrapping on long German/Italian
  * labels. Body and label text keeps its authored size so nothing becomes hard to read.
  */
+/**
+ * Points the M3 surface-container ramp at this scheme's own surfaces.
+ *
+ * Every palette below stops at `surface` and `surfaceVariant`. The container ramp in
+ * between was therefore left at the Material BASELINE palette — and the baseline is
+ * purple. Anything that draws its container from that ramp walks straight past the
+ * selected theme and paints lavender: `AlertDialog` ("Levels", every delete and
+ * confirm prompt, the level picker), `Menu`, and the sheets.
+ *
+ * On DARK schemes the ramp is now a real four-step shade ladder (surface →
+ * variant → high → highest): layered surfaces are what make a dark UI read as
+ * elevated and premium instead of one flat grey. On LIGHT schemes the old
+ * mapping is kept — their surfaces already differ enough from the background
+ * that a further ramp adds noise, not depth.
+ *
+ * Applied where the scheme is chosen, so a new palette cannot forget it.
+ */
+private fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark: Boolean) =
+    if (!isDark) copy(
+        surfaceContainerLowest = surface,
+        surfaceContainerLow = surface,
+        surfaceContainer = surface,
+        surfaceContainerHigh = surface,
+        surfaceContainerHighest = surfaceVariant
+    ) else copy(
+        surfaceContainerLowest = background,
+        surfaceContainerLow = surface,
+        surfaceContainer = surfaceVariant,
+        surfaceContainerHigh = surfaceContainerHighFallback,
+        surfaceContainerHighest = surfaceContainerHighestFallback
+    )
+
+/**
+ * The two extra dark ramp steps come from the dark palette directly. They are
+ * derived, not stored on each ColorScheme (M3 has no slots for them above
+ * surfaceVariant), so the dark palettes can't drift out of step with each other.
+ */
+private val surfaceContainerHighFallback = DarkSurfaceHigh
+private val surfaceContainerHighestFallback = DarkSurfaceHighest
+
 private fun androidx.compose.material3.Typography.scaledFor(scale: Float): androidx.compose.material3.Typography {
     if (scale == 1f) return this
     return copy(
@@ -270,11 +310,15 @@ fun WorkoutTrackerTheme(
     val isDark = isSystemInDarkTheme()
     val isDeveloper = themeOption.uppercase() == "DEVELOPER"
 
-    val isLightTheme = when (themeOption.uppercase()) {
-        "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> true
-        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER", "RAINBOW" -> false
-        else -> !isDark
+    // A dark scheme is one whose palette was authored for dark surfaces — used
+    // both for the container ramp and the status-bar appearance below.
+    val isDarkThemeUsed = when (themeOption.uppercase()) {
+        "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> false
+        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER", "RAINBOW" -> true
+        else -> isDark
     }
+
+    val isLightTheme = !isDarkThemeUsed
 
     val colorScheme = when (themeOption.uppercase()) {
         "BEIGE" -> BeigeColorScheme
@@ -287,7 +331,7 @@ fun WorkoutTrackerTheme(
         "PURPLE" -> PurpleColorScheme
         "DEVELOPER" -> DeveloperColorScheme
         else -> if (isDark) FlameColorScheme else BeigeColorScheme
-    }
+    }.withThemedContainers(isDarkThemeUsed)
 
     val view = LocalView.current
     if (!view.isInEditMode) {

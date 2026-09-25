@@ -52,6 +52,9 @@ class WindowSizeTest {
                 assertSmallStep("headerMinHeight", prev, size) { it.headerMinHeight.value }
                 assertSmallStep("headerIconSize", prev, size) { it.headerIconSize.value }
                 assertSmallStep("contentMaxWidth", prev, size) { it.contentMaxWidth.value }
+                assertSmallStep("dialogMaxWidth", prev, size) { it.dialogMaxWidth.value }
+                assertSmallStep("dialogCorner", prev, size) { it.dialogCorner.value }
+                assertSmallStep("dialogGap", prev, size) { it.dialogGap.value }
                 assertSmallStep("typeScale", prev, size) { it.typeScale }
             }
             previous = size
@@ -148,6 +151,34 @@ class WindowSizeTest {
     }
 
     @Test
+    fun everyPopupGetsTheSameSurfaceOnAGivenWindow() {
+        // The owner asked for the popup cards to stop mixing designs, so the
+        // dialog tokens have to be a function of the window alone: two popups on
+        // one window are the same size and radius, and a phone never gets a
+        // popup wider than the screen it is on.
+        val widths = listOf(320, 360, 393, 411, 430, 600, 700, 840, 1000, 1280)
+        widths.forEach { w ->
+            val size = token(w, 640)
+            // The popup is the smaller of its cap and the room the screen padding
+            // leaves, so a 320dp phone gets a full-width sheet and a tablet gets the
+            // capped card - never one wider than the window, never a sliver.
+            val effective = minOf(size.dialogMaxWidth.value, w - 2 * size.screenPadding.value)
+            assertTrue(
+                "popup would be ${effective}dp wide at ${w}dp",
+                effective >= 240f && effective <= w
+            )
+            assertTrue(
+                "dialog corner ${size.dialogCorner} at ${w}dp is not a rounded card",
+                size.dialogCorner.value in 16f..32f
+            )
+            assertTrue(
+                "dialog gap ${size.dialogGap} at ${w}dp is unusable",
+                size.dialogGap.value >= 8f
+            )
+        }
+    }
+
+    @Test
     fun typeScaleStaysInsideAReadableRange() {
         (320..1400 step 7).forEach { width ->
             val scale = token(width, 900).typeScale
@@ -170,6 +201,14 @@ class WindowSizeTest {
         assertEquals(48f, smallest.dayChipHeight.value, 0.001f)
         assertEquals(52f, phone.dayChipHeight.value, 0.001f)
         assertEquals(56f, large.dayChipHeight.value, 0.001f)
+
+        assertEquals(480f, smallest.dialogMaxWidth.value, 0.001f)
+        assertEquals(560f, phone.dialogMaxWidth.value, 0.001f)
+        assertEquals(680f, large.dialogMaxWidth.value, 0.001f)
+
+        assertEquals(20f, smallest.dialogCorner.value, 0.001f)
+        assertEquals(24f, phone.dialogCorner.value, 0.001f)
+        assertEquals(28f, large.dialogCorner.value, 0.001f)
 
         assertEquals(190f, smallest.donutHeight.value, 0.001f)
         assertEquals(240f, phone.donutHeight.value, 0.001f)

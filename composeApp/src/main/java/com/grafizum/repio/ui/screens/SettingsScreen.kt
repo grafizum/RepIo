@@ -33,9 +33,11 @@ import androidx.compose.material.icons.filled.Bolt
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.ColorLens
 import androidx.compose.material.icons.filled.Email
+import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Language
+import androidx.compose.material.icons.filled.MenuBook
 import androidx.compose.material.icons.filled.PhoneAndroid
 import androidx.compose.material.icons.filled.Settings
 import androidx.compose.material.icons.filled.Timer
@@ -85,6 +87,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
+import com.grafizum.repio.ui.components.appLanguageOptions
 import com.grafizum.repio.ui.components.TimersMergedCard
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import kotlinx.coroutines.delay
@@ -121,6 +124,8 @@ fun SettingsScreen(
     val window = LocalWindowSize.current
     val keepScreenOn by viewModel.keepScreenOn.collectAsState()
     val motivationalNudges by viewModel.motivationalNudges.collectAsState()
+    val levelSystemEnabled by viewModel.levelSystemEnabled.collectAsState()
+    val levelSystemConfirmation by viewModel.levelSystemConfirmation.collectAsState()
     val selectedTheme by viewModel.themeOption.collectAsState()
     val developerThemeEnabled by viewModel.developerThemeEnabled.collectAsState()
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
@@ -131,6 +136,11 @@ fun SettingsScreen(
     var expandedLanguage by remember { mutableStateOf(false) }
     var showSupportCard by remember { mutableStateOf(false) }
     var showFAQ by remember { mutableStateOf(false) }
+    var showLevelGuide by remember { mutableStateOf(false) }
+    // The Overall Level explainer, in the same Instructions category as the
+    // level guide. Kept as its own flag so the two open independently.
+    var showOverallLevelGuide by remember { mutableStateOf(false) }
+    var showRankGuide by remember { mutableStateOf(false) }
     var showRestTimerConfirmation by remember { mutableStateOf(false) }
     var showTransitionTimerConfirmation by remember { mutableStateOf(false) }
     var pendingRestTimer by remember { mutableIntStateOf(defaultRestTimerSeconds) }
@@ -156,6 +166,46 @@ fun SettingsScreen(
                 delay(20) 
             }
         }
+    }
+
+    // LEVEL SYSTEM TOGGLE CONFIRMATIONS — one dialog per direction. Disabling
+    // warns the prescriptions disappear; enabling warns every level will be
+    // re-derived from the weights last used.
+    if (levelSystemConfirmation == com.grafizum.repio.ui.viewmodel.LevelSystemConfirmation.DISABLE) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissLevelSystemConfirmation() },
+            title = { Text(getString("level_system_off_title")) },
+            text = { Text(getString("level_system_off_msg")) },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmLevelSystemChange() }) {
+                    Text(getString("level_system_off_confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissLevelSystemConfirmation() }) {
+                    Text(getString("cancel"))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
+    }
+    if (levelSystemConfirmation == com.grafizum.repio.ui.viewmodel.LevelSystemConfirmation.ENABLE) {
+        AlertDialog(
+            onDismissRequest = { viewModel.dismissLevelSystemConfirmation() },
+            title = { Text(getString("level_system_on_title")) },
+            text = { Text(getString("level_system_on_msg")) },
+            confirmButton = {
+                Button(onClick = { viewModel.confirmLevelSystemChange() }) {
+                    Text(getString("level_system_on_confirm"))
+                }
+            },
+            dismissButton = {
+                TextButton(onClick = { viewModel.dismissLevelSystemConfirmation() }) {
+                    Text(getString("cancel"))
+                }
+            },
+            shape = RoundedCornerShape(24.dp)
+        )
     }
 
     if (showRestTimerConfirmation) {
@@ -372,12 +422,9 @@ fun SettingsScreen(
 
                     Spacer(modifier = Modifier.height(12.dp))
 
-                    val languageOptions = listOf(
-                        "system" to getString("system_default"),
-                        "en" to getString("english"),
-                        "de" to getString("german"),
-                        "it" to getString("italian")
-                    )
+                    // Shared with the first-run walkthrough's language button, so
+                    // the two pickers can never offer different sets.
+                    val languageOptions = appLanguageOptions()
 
                     val selectedLanguageLabel = languageOptions.find { it.first == appLanguage }?.second ?: getString("system_default")
 
@@ -491,6 +538,65 @@ fun SettingsScreen(
                                 checkedTrackColor = MaterialTheme.colorScheme.primary
                             ),
                             modifier = Modifier.semantics { testTag = "keep_screen_on_switch" }
+                        )
+                    }
+                }
+            }
+
+            // LEVEL SYSTEM ON/OFF — the master switch between prescribed levels and
+            // full custom control. When off, every exercise's level display is hidden
+            // and the routine editor's sets/reps/weight/intensity fields unlock.
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            modifier = Modifier.weight(0.75f)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.FormatListNumbered,
+                                contentDescription = null,
+                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(22.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column {
+                                Text(
+                                    text = getString("level_system_toggle_title"),
+                                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                                )
+                                Text(
+                                    text = getString(
+                                        if (levelSystemEnabled) "level_system_toggle_desc_on"
+                                        else "level_system_toggle_desc_off"
+                                    ),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                                )
+                            }
+                        }
+                        
+                        Spacer(modifier = Modifier.width(16.dp))
+
+                        Switch(
+                            checked = levelSystemEnabled,
+                            // Both directions confirm first: OFF drops the prescriptions,
+                            // ON re-derives every level from the last-used weights.
+                            onCheckedChange = { viewModel.requestLevelSystemChange(it) },
+                            colors = SwitchDefaults.colors(
+                                checkedThumbColor = MaterialTheme.colorScheme.onPrimary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primary
+                            ),
+                            modifier = Modifier.semantics { testTag = "level_system_switch" }
                         )
                     }
                 }
@@ -634,6 +740,93 @@ fun SettingsScreen(
                 }
             }
 
+            // INSTRUCTIONS — every guided walkthrough sits in one category, so
+            // "how does this work?" has a single answer in Settings instead of one
+            // card per concept scattered down the page.
+            Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.fillMaxWidth()
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.MenuBook,
+                        contentDescription = null,
+                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(10.dp))
+                    Text(
+                        text = getString("instructions_title"),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                    )
+                }
+
+                // LEVELS & STAGES — the v5 progression explainer with graphical
+                // examples, following the expandable-FAQ pattern.
+                GuideSectionCard(
+                    title = getString("level_system_guide_title"),
+                    description = getString("level_system_guide_desc"),
+                    expanded = showLevelGuide,
+                    onToggle = {
+                        showLevelGuide = !showLevelGuide
+                        if (showLevelGuide) {
+                            showFAQ = false
+                            showSupportCard = false
+                            showOverallLevelGuide = false
+                            showRankGuide = false
+                        }
+                    }
+                ) {
+                    LevelSystemGuideContent()
+                }
+
+                // OVERALL LEVEL — the app-wide average. It lives here rather than
+                // on the live workout tab, which is for logging the set at hand.
+                GuideSectionCard(
+                    title = getString("overall_level_label"),
+                    description = getString("overall_level_guide_desc"),
+                    expanded = showOverallLevelGuide,
+                    onToggle = {
+                        showOverallLevelGuide = !showOverallLevelGuide
+                        if (showOverallLevelGuide) {
+                            showFAQ = false
+                            showSupportCard = false
+                            showLevelGuide = false
+                            showRankGuide = false
+                        }
+                    }
+                ) {
+                    // The long form: the reader who opened this card asked what the
+                    // number is, so they get the words first and the picture after.
+                    OverallLevelExplainer(detailed = true)
+                }
+
+                // RANKS — the letter tiers that sit on top of the overall level.
+                // Its own card rather than a fourth panel inside the Overall Level
+                // guide: the table is eight rows of its own content, and someone
+                // who wants "what does S mean" should not have to open the
+                // explanation of the number first.
+                GuideSectionCard(
+                    title = getString("rank_system_guide_title"),
+                    description = getString("rank_system_guide_desc"),
+                    expanded = showRankGuide,
+                    onToggle = {
+                        showRankGuide = !showRankGuide
+                        if (showRankGuide) {
+                            showFAQ = false
+                            showSupportCard = false
+                            showLevelGuide = false
+                            showOverallLevelGuide = false
+                        }
+                    }
+                ) {
+                    RankTableContent()
+                }
+            }
+
+            Spacer(modifier = Modifier.height(12.dp))
+
             // FAQ SECTION
             Card(
                 shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
@@ -648,7 +841,10 @@ fun SettingsScreen(
                     .fillMaxWidth()
                     .clickable { 
                         showFAQ = !showFAQ 
-                        if (showFAQ) showSupportCard = false
+                        if (showFAQ) {
+                            showSupportCard = false
+                            showLevelGuide = false
+                        }
                     }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -672,7 +868,10 @@ fun SettingsScreen(
 
                         IconButton(onClick = { 
                             showFAQ = !showFAQ 
-                            if (showFAQ) showSupportCard = false
+                            if (showFAQ) {
+                                showSupportCard = false
+                                showLevelGuide = false
+                            }
                         }) {
                             Icon(
                                 imageVector = if (showFAQ) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
@@ -703,6 +902,7 @@ fun SettingsScreen(
                     .clickable { 
                         showSupportCard = true 
                         showFAQ = false
+                        showLevelGuide = false
                     }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
@@ -728,6 +928,7 @@ fun SettingsScreen(
                             onClick = { 
                                 showSupportCard = true 
                                 showFAQ = false
+                                showLevelGuide = false
                             },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
@@ -1023,6 +1224,72 @@ private fun FAQContent() {
             Text(text = getString("rir_0"), style = MaterialTheme.typography.bodySmall)
             Text(text = getString("rir_1"), style = MaterialTheme.typography.bodySmall)
             Text(text = getString("rir_2"), style = MaterialTheme.typography.bodySmall)
+        }
+    }
+}
+
+/**
+ * One expandable walkthrough under the Instructions category: a title, a
+ * one-line description and a chevron that reveals the graphic content.
+ *
+ * Both guides share this, so opening one looks exactly like opening the other —
+ * same shape, same border highlight, same padding.
+ */
+@Composable
+private fun GuideSectionCard(
+    title: String,
+    description: String,
+    expanded: Boolean,
+    onToggle: () -> Unit,
+    content: @Composable () -> Unit
+) {
+    val isDeveloper = LocalDeveloperSkin.current
+    Card(
+        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+        border = BorderStroke(
+            width = if (isDeveloper) 2.dp else 1.dp,
+            color = if (expanded) MaterialTheme.colorScheme.primary
+                    else if (isDeveloper) Color.White
+                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+        ),
+        modifier = Modifier
+            .fillMaxWidth()
+            .clickable(onClick = onToggle)
+    ) {
+        Column(modifier = Modifier.padding(16.dp)) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.SpaceBetween,
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.weight(1f)) {
+                    Text(
+                        text = title,
+                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                    Text(
+                        text = description,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                    )
+                }
+
+                IconButton(onClick = onToggle) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            }
+
+            AnimatedVisibility(visible = expanded) {
+                Column(modifier = Modifier.padding(top = 16.dp)) {
+                    content()
+                }
+            }
         }
     }
 }

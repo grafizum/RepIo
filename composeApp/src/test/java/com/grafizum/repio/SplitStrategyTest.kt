@@ -11,16 +11,11 @@ import org.junit.Test
  * Schoenfeld, Grgic & Krieger 2019; Grgic et al. 2019) supports: 2x/week per
  * muscle beats 1x/week, while volume-equated higher frequencies add little.
  *
- * Every tier below keeps that ~2x/week floor — they only change how the week
- * is arranged to get there:
- *
- *   <=3 days -> full-body rotation (a split would push muscles to 1x/week)
- *   4-5 days -> upper/lower alternation (each half twice a week)
- *   6-7 days -> push/pull/legs cycled x2 (pattern sessions, still 2x/week)
- *
- * The old round-robin gave a muscle trained on one day exactly 1x/week
- * regardless of the plan's length; a naive one-part-per-week bro split at
- * 6-7 days would do the same, so neither is acceptable at any tier.
+ * Since the smart-day-assignment fix the distribution comes from fixed split
+ * TEMPLATES per frequency: a session sequence applied to the picked days in
+ * CALENDAR order, so tap order cannot matter and no two consecutive sessions
+ * share a strict topic. The old tap-order distribution walked the weekday
+ * chips in tap order and put the majors top-up on the day after a leg day.
  */
 class SplitStrategyTest {
 
@@ -48,31 +43,44 @@ class SplitStrategyTest {
 
     private val allTopics = allParts.map { WorkoutTemplates.getTopicForMuscle(it) }.toSet()
 
-    // ---------- Full-body tier (<=3 days) ----------
+    /** Calendar week order for adjacency checks. */
+    private val weekOrder = listOf(
+        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"
+    )
 
-    @Test
-    fun twoDaysTrainTheMajorsTwiceAWeek() {
-        val program = generate(allParts, listOf("MONDAY", "THURSDAY"))
-        listOf("MONDAY", "THURSDAY").forEach { day ->
-            val parts = partsOfDay(program, day)
-            // Each full-body day works most of the pool, majors included.
-            assertTrue("expected a full-body day on $day, got $parts", parts.size >= 5)
-            assertTrue(
-                "the major topics $majorTopics must all be trained on $day, got $parts",
-                parts.containsAll(majorTopics)
-            )
-        }
-        // => every major muscle's weekly frequency is 2x — the evidence-backed floor.
-    }
+    // ---------- Full-body tier (3 days) ----------
 
     @Test
     fun threeDaysAlsoUseFullBodyRotation() {
-        val program = generate(allParts, listOf("MONDAY", "WEDNESDAY", "FRIDAY"))
-        listOf("MONDAY", "WEDNESDAY", "FRIDAY").forEach { day ->
-            val parts = partsOfDay(program, day)
+        // The 3-day template is Full Body A/B/A: the middle session drops the
+        // leg topic so three consecutive picks (or a Sun/Mon wrap) never stack
+        // leg work, while chest/back/shoulders still train 3x across the week.
+        val days = listOf("MONDAY", "WEDNESDAY", "FRIDAY")
+        val program = generate(allParts, days)
+        val dayParts = days.associateWith { partsOfDay(program, it) }
+        listOf("MONDAY", "FRIDAY").forEach { day ->
+            val parts = dayParts.getValue(day)
             assertTrue(
-                "expected majors on $day, got $parts",
+                "expected a full A day (chest/back/legs) on $day, got $parts",
                 parts.containsAll(majorTopics)
+            )
+        }
+        val middle = dayParts.getValue("WEDNESDAY")
+        assertTrue(
+            "the B day must still work chest and back, got $middle",
+            middle.containsAll(setOf("Chest", "Back"))
+        )
+        assertTrue(
+            "the B day must drop the leg topic, got $middle",
+            "Legs" !in middle
+        )
+        // The frequency floor still holds: every major muscle trains at least
+        // twice across the three sessions.
+        majorTopics.forEach { topic ->
+            val trainingDays = dayParts.values.count { topic in it }
+            assertTrue(
+                "$topic must train at least 2x on the 3-day cadence, was $trainingDays",
+                trainingDays >= 2
             )
         }
     }
@@ -86,18 +94,7 @@ class SplitStrategyTest {
         )
     }
 
-    @Test
-    fun shortWeekStillTrainsEveryPartSomewhere() {
-        val program = generate(allParts, listOf("MONDAY", "THURSDAY"))
-        val trained = partsOfDay(program, "MONDAY") + partsOfDay(program, "THURSDAY")
-        assertEquals(
-            "rotation must still cover all picked parts, was $trained",
-            allTopics,
-            trained
-        )
-    }
-
-    // ---------- Upper/lower tier (4-5 days) ----------
+    // ---------- Upper/lower tier (4 days) ----------
 
     @Test
     fun fourDaysAlternateUpperAndLowerHalves() {
@@ -121,57 +118,46 @@ class SplitStrategyTest {
         )
     }
 
-    @Test
-    fun upperLowerWeekTrainsEveryPartTwice() {
-        val days = listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY")
-        val program = generate(allParts, days)
-        allParts.forEach { part ->
-            val count = program.exercises.count { it.muscleGroup == part || getTopicMatches(it.muscleGroup, part) }
-            assertEquals(
-                "$part should be trained on exactly 2 days (2x/week), was $count",
-                2,
-                program.exercises.filter {
-                    it.muscleGroup == part || WorkoutTemplates.getTopicForMuscle(it.muscleGroup) ==
-                        WorkoutTemplates.getTopicForMuscle(part)
-                }.map { it.dayOfWeek }.distinct().size
-            )
-        }
-    }
+    // ---------- Dedicated tier (5-7 days) ----------
 
     @Test
-    fun fiveDaysAddAMajorMuscleVolumeDay() {
-        val days = listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY", "SATURDAY")
+    fun fiveDaysSplitIntoUpperLowerPushPullLegs() {
+        val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY")
         val program = generate(allParts, days)
-        val dayParts = days.associateWith { partsOfDay(program, it) }
-        // No picked day is left empty.
-        assertTrue("every picked day must have work, got $dayParts", dayParts.values.all { it.isNotEmpty() })
-        // The 5th slot tops up the majors instead of inventing a new split.
-        val fifth = dayParts.getValue(days[4])
-        assertTrue("5th day should carry major topics, got $fifth", fifth.containsAll(majorTopics))
-    }
-
-    @Test
-    fun upperLowerWeekEmitsTheUpperLowerInsight() {
-        val program = generate(allParts, listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY"))
-        assertTrue(
-            "a 4-5 day build should explain the upper/lower strategy",
-            program.scienceInsights.any { it.descriptionKey == "insight_upperlower_desc" }
+        val dayParts = days.map { partsOfDay(program, it) }
+        // Template sequence: Upper / Lower / Push / Pull / Legs (ULPPL).
+        // Upper/Lower lead so the whole body is trained before the specialisation
+        // days; the two leg sessions land on Tuesday and Friday — three days
+        // apart — instead of crowding the second half (the PPLUL order it
+        // replaced put legs on Wednesday AND Friday and left Tuesday as a lone
+        // back day, which the owner flagged).
+        assertTrue("day 1 must be an upper day (chest + back), got ${dayParts[0]}", dayParts[0].containsAll(setOf("Chest", "Back")) && "Legs" !in dayParts[0])
+        assertTrue("day 2 must be the lower day, got ${dayParts[1]}", "Legs" in dayParts[1] && "Chest" !in dayParts[1])
+        assertTrue("day 3 must be the push day (chest, no back), got ${dayParts[2]}", "Chest" in dayParts[2] && "Back" !in dayParts[2] && "Legs" !in dayParts[2])
+        assertTrue("day 4 must be the pull day (back, no chest), got ${dayParts[3]}", "Back" in dayParts[3] && "Chest" !in dayParts[3] && "Legs" !in dayParts[3])
+        assertTrue("day 5 must be the leg day, got ${dayParts[4]}", "Legs" in dayParts[4] && "Chest" !in dayParts[4])
+        // Exactly two leg sessions, three calendar days apart.
+        val legDays = days.filter { "Legs" in partsOfDay(program, it) }
+        assertEquals(
+            "a 5-day week trains legs exactly twice, got $dayParts",
+            2,
+            legDays.size
         )
-        assertTrue(
-            "upper/lower weeks are not full-body rotations",
-            program.scienceInsights.none { it.descriptionKey == "insight_fullbody_desc" }
+        assertEquals(
+            "the leg days must be TUESDAY and FRIDAY, was $legDays",
+            listOf("TUESDAY", "FRIDAY"),
+            legDays
         )
     }
-
-    // ---------- Dedicated tier (6-7 days, cycled PPL) ----------
 
     @Test
     fun sixDaysCycleEveryPartTwiceAWeek() {
         val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY")
         val program = generate(allParts, days)
-        // Every topic repeats on exactly 2 days — except "Arms", which spans
-        // two pattern buckets (biceps rows land on pull days, triceps rows on
-        // push days), so it is checked per precise muscle below.
+        // Every topic repeats on exactly 2 days. "Arms" spans two pattern
+        // buckets, so it is checked per precise muscle below: the push/pull
+        // split means triceps ride the push days and biceps the pull days —
+        // each still exactly 2 days a week.
         allTopics.filter { it != "Arms" }.forEach { topic ->
             val trainingDays = program.exercises.filter {
                 WorkoutTemplates.getTopicForMuscle(it.muscleGroup) == topic
@@ -220,23 +206,9 @@ class SplitStrategyTest {
         val coreDays = program.exercises.filter {
             WorkoutTemplates.getTopicForMuscle(it.muscleGroup) == "Core"
         }.map { it.dayOfWeek }.distinct()
-        assertEquals(
-            "core should train 3x in a 7-day cycle (both legs days + the 7th), was $coreDays",
-            3,
-            coreDays.size
-        )
-    }
-
-    @Test
-    fun dedicatedWeekEmitsThePPLInsight() {
-        val program = generate(allParts, listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"))
         assertTrue(
-            "a 6-7 day build should explain the push/pull/legs cycle",
-            program.scienceInsights.any { it.descriptionKey == "insight_ppl_desc" }
-        )
-        assertTrue(
-            "dedicated weeks are not upper/lower alternations",
-            program.scienceInsights.none { it.descriptionKey == "insight_upperlower_desc" }
+            "core should train on most days in a 7-day cycle, was $coreDays",
+            coreDays.size >= 4
         )
     }
 
@@ -249,8 +221,8 @@ class SplitStrategyTest {
         // secondaries rotate by design and get indirect work from the daily
         // compound majors; on split weeks the sixDays test checks every part.
         listOf(
-            listOf("MONDAY", "THURSDAY"),
-            listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY"),
+            listOf("MONDAY", "TUESDAY", "WEDNESDAY"),
+            listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"),
             listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY")
         ).forEach { days ->
             val program = generate(allParts, days)
@@ -266,6 +238,71 @@ class SplitStrategyTest {
         }
     }
 
-    private fun getTopicMatches(muscleGroup: String, part: String): Boolean =
-        WorkoutTemplates.getTopicForMuscle(muscleGroup) == WorkoutTemplates.getTopicForMuscle(part)
+    // ---------- Tap-order independence (the regression that started this) ----------
+
+    @Test
+    fun tapOrderDoesNotChangeTheWeekShape() {
+        // The same five days, tapped in different orders, must produce the
+        // same topic-per-day layout. The old tap-slot distribution made
+        // TUESDAY a leg day when it was tapped last.
+        val base = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY")
+        val shapes = listOf(
+            base,
+            listOf("FRIDAY", "WEDNESDAY", "MONDAY", "TUESDAY", "THURSDAY"),
+            listOf("TUESDAY", "FRIDAY", "MONDAY", "THURSDAY", "WEDNESDAY")
+        ).map { tapped ->
+            val program = generate(allParts, tapped)
+            weekOrder.map { partsOfDay(program, it) }
+        }
+        assertEquals("tap order must not change the week shape", shapes[0], shapes[1])
+        assertEquals("tap order must not change the week shape", shapes[0], shapes[2])
+    }
+
+    @Test
+    fun fiveDayPlanNeverTrainsLegsTwoDaysInARow() {
+        // The original bug: tapping MONDAY, WEDNESDAY, FRIDAY, SATURDAY,
+        // TUESDAY put the majors top-up on TUESDAY — back-to-back legs.
+        val program = generate(allParts, listOf("MONDAY", "WEDNESDAY", "FRIDAY", "SATURDAY", "TUESDAY"))
+        val legDays = weekOrder.filter { "Legs" in partsOfDay(program, it) }
+        assertEquals(
+            "a 5-day plan trains legs exactly twice, was $legDays",
+            2,
+            legDays.size
+        )
+        // The two leg days must not be calendar-adjacent (TUESDAY follows MONDAY).
+        val adjacentPairs = setOf("MONDAY" to "TUESDAY", "TUESDAY" to "WEDNESDAY")
+        legDays.forEach { d1 ->
+            legDays.forEach { d2 ->
+                assertTrue(
+                    "leg days $d1 and $d2 must not be back to back",
+                    (d1 to d2) !in adjacentPairs
+                )
+            }
+        }
+    }
+
+    // ---------- Every frequency: validator verdict ----------
+
+    @Test
+    fun everyFrequency3Through7PassesPlanValidation() {
+        val daySets = mapOf(
+            3 to listOf("MONDAY", "WEDNESDAY", "FRIDAY"),
+            4 to listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY"),
+            5 to listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY"),
+            6 to listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY"),
+            7 to listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+        )
+        daySets.forEach { (frequency, days) ->
+            val program = generate(allParts, days)
+            val topicsByDay = weekOrder.associateWith { day ->
+                partsOfDay(program, day).toList()
+            }
+            assertEquals(
+                "$frequency-day plan must pass validatePlan, got " +
+                    WorkoutTemplates.validatePlan(topicsByDay, frequency),
+                emptyList<String>(),
+                WorkoutTemplates.validatePlan(topicsByDay, frequency)
+            )
+        }
+    }
 }

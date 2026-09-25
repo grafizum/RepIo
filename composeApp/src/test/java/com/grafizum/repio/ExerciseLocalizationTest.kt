@@ -10,37 +10,29 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Guards the exercise localization tables: every built-in exercise must be translated in
- * every supported language, and the tables must not drift from the pool.
+ * Guards the exercise localization machinery: whatever a language table contains must be
+ * correct — keys that match pool exercises, unique names and descriptions, no shadowing —
+ * and the canonical-name resolution must keep working.
  *
- * This is the test that makes the translation tables safe to generate by hand. A typo in a
- * slug key does not crash the app — it just quietly leaves that one exercise in English — so
- * without these assertions the mistake would only be visible by reading German screenshots.
+ * CLEAN SLATE (branch `experiment/csv-exercise-db`): the pool was rebuilt from the
+ * exercise-database CSV, so every canonical name changed and the German/Italian tables
+ * were retired (the full translated history is on `main`). While the tables regrow, these
+ * tests hold for a *partial* table and keep every guarantee except coverage; re-add a
+ * `coverageLockedIn` test per language once a table covers the whole pool again.
  */
 class ExerciseLocalizationTest {
 
     private val pool = WorkoutTemplates.getAllExerciseNames()
-
-    /** Exercises in the pool that legitimately keep their English name worldwide. */
+    private val poolBySlug = pool.associateBy { ExerciseLocalization.slugify(it) }
     private val languages = ExerciseLocalization.translatedLanguages
 
     @Test
-    fun everyPoolExerciseIsTranslatedInEveryLanguage() {
-        assertTrue("the pool should not be empty", pool.isNotEmpty())
-        assertTrue("expected at least one translated language", languages.isNotEmpty())
-
-        for (language in languages) {
-            val missing = pool.filter { ExerciseLocalization.textFor(it, language) == null }
-            assertEquals(
-                "[$language] every pool exercise needs a translation",
-                emptyList<String>(),
-                missing
-            )
-        }
+    fun thePoolIsNotEmpty() {
+        assertTrue("the rebuilt pool should not be empty", pool.isNotEmpty())
     }
 
     @Test
-    fun noTranslationBelongsToAnExerciseOutsideThePool() {
+    fun noTableEntryBelongsToAnExerciseOutsideThePool() {
         val poolSlugs = pool.map { ExerciseLocalization.slugify(it) }.toSet()
         for (language in languages) {
             val orphans = ExerciseLocalization.translatedSlugs(language) - poolSlugs
@@ -53,16 +45,13 @@ class ExerciseLocalizationTest {
     }
 
     @Test
-    fun everyTranslationHasANameAndADescription() {
+    fun everyTableEntryHasANameAndADescription() {
         for (language in languages) {
-            for (name in pool) {
-                val text = ExerciseLocalization.textFor(name, language)
-                assertNotNull("[$language] no entry for '$name'", text)
-                assertTrue("[$language] blank name for '$name'", text!!.name.isNotBlank())
-                assertTrue(
-                    "[$language] blank description for '$name'",
-                    text.description.isNotBlank()
-                )
+            for (slug in ExerciseLocalization.translatedSlugs(language)) {
+                val text = ExerciseLocalization.textForSlug(slug, language)
+                assertNotNull("[$language] no entry for slug '$slug'", text)
+                assertTrue("[$language] blank name for '$slug'", text!!.name.isNotBlank())
+                assertTrue("[$language] blank description for '$slug'", text.description.isNotBlank())
             }
         }
     }
@@ -70,7 +59,8 @@ class ExerciseLocalizationTest {
     @Test
     fun translatedNamesAreUniqueWithinALanguage() {
         for (language in languages) {
-            val names = pool.map { ExerciseLocalization.textFor(it, language)!!.name }
+            val names = ExerciseLocalization.translatedSlugs(language)
+                .map { ExerciseLocalization.textForSlug(it, language)!!.name }
             val duplicates = names.groupingBy { it.lowercase() }.eachCount().filter { it.value > 1 }
             assertEquals(
                 "[$language] two exercises must not share a display name: $duplicates",
@@ -82,10 +72,10 @@ class ExerciseLocalizationTest {
 
     @Test
     fun translatedDescriptionsAreUniqueWithinALanguage() {
-        // The English pool already guarantees one description per movement; the translations
-        // must keep that property, otherwise two exercises read as the same movement again.
+        // Distinct exercises must not read as the same movement in any language.
         for (language in languages) {
-            val descriptions = pool.map { ExerciseLocalization.textFor(it, language)!!.description }
+            val descriptions = ExerciseLocalization.translatedSlugs(language)
+                .map { ExerciseLocalization.textForSlug(it, language)!!.description }
             assertEquals(
                 "[$language] distinct exercises must not share a description",
                 descriptions.size,
@@ -97,42 +87,41 @@ class ExerciseLocalizationTest {
     @Test
     fun translationsAreActuallyTranslated() {
         // A copy-paste of the English name would silently pass every check above.
+        // An empty table is legitimate on the clean-slate branch; a non-empty one
+        // must actually be translated.
         for (language in languages) {
-            val identical = pool.filter { name ->
-                ExerciseLocalization.textFor(name, language)!!.name == name
-            }
-            // Internationalisms ("Planks", "Dips", "Squats") are legitimate, but a whole
-            // table of them means the translation never happened.
+            val entries = ExerciseLocalization.translatedSlugs(language)
+                .map { slug -> slug to ExerciseLocalization.textForSlug(slug, language)!! }
+            if (entries.isEmpty()) continue
+            val identical = entries.count { (slug, text) -> poolBySlug[slug] == text.name }
             assertTrue(
-                "[$language] only ${identical.size}/${pool.size} names differ from English; " +
+                "[$language] only $identical/${entries.size} names differ from English; " +
                     "the table looks untranslated",
-                identical.size < pool.size / 4
+                identical < entries.size / 4
             )
         }
     }
 
     @Test
     fun slugifyIsStableAndIgnoresPunctuation() {
-        assertEquals("dumbbell_curls", ExerciseLocalization.slugify("Dumbbell Curls"))
-        assertEquals("barbell_bench_presses", ExerciseLocalization.slugify("Barbell Bench Presses"))
-        // Apostrophe disappears rather than becoming its own separator, matching the tooling
-        // that generated tools/exercise-i18n.
-        assertEquals("farmer_s_walks", ExerciseLocalization.slugify("Farmer's Walks"))
-        assertEquals("dips_chest_focus", ExerciseLocalization.slugify("Dips (Chest Focus)"))
-        assertEquals("l_sit_pull_ups", ExerciseLocalization.slugify("L-sit Pull-ups"))
+        assertEquals("dumbbell_bicep_curl", ExerciseLocalization.slugify("Dumbbell Bicep Curl"))
+        assertEquals("push_up", ExerciseLocalization.slugify("Push-Up"))
+        // Apostrophe disappears rather than becoming its own separator, matching the tooling.
+        assertEquals("farmer_s_walk", ExerciseLocalization.slugify("Farmer's Walk"))
+        assertEquals("3_4_sit_up", ExerciseLocalization.slugify("3/4 Sit-Up"))
         assertEquals("", ExerciseLocalization.slugify("   "))
         // A name it cannot represent yields no translation rather than a wrong one.
         assertNull(ExerciseLocalization.textFor("Kniebeugen ü", "de"))
     }
 
     @Test
-    fun canonicalForResolvesEveryNameOfEveryExercise() {
+    fun canonicalForResolvesEveryTranslatedName() {
         for (language in languages) {
-            for (name in pool) {
-                val localized = ExerciseLocalization.textFor(name, language)!!.name
+            for (slug in ExerciseLocalization.translatedSlugs(language)) {
+                val localized = ExerciseLocalization.textForSlug(slug, language)!!.name
                 assertEquals(
-                    "[$language] '$localized' must resolve back to '$name'",
-                    name,
+                    "[$language] '$localized' must resolve back to '${poolBySlug[slug]}'",
+                    poolBySlug[slug],
                     ExerciseLocalization.canonicalFor(localized)
                 )
             }
@@ -141,26 +130,25 @@ class ExerciseLocalizationTest {
 
     @Test
     fun canonicalForResolvesCanonicalNamesAndRejectsUnknownOnes() {
-        assertEquals("Dumbbell Curls", ExerciseLocalization.canonicalFor("Dumbbell Curls"))
-        assertEquals("Dumbbell Curls", ExerciseLocalization.canonicalFor("dumbbell curls"))
+        assertEquals("Dumbbell Bicep Curl", ExerciseLocalization.canonicalFor("Dumbbell Bicep Curl"))
+        assertEquals("Dumbbell Bicep Curl", ExerciseLocalization.canonicalFor("dumbbell bicep curl"))
         assertNull(ExerciseLocalization.canonicalFor("My Custom Exercise"))
         assertNull(ExerciseLocalization.canonicalFor(""))
     }
 
     @Test
     fun noTranslatedNameShadowsADifferentExercise() {
-        // A translated name that happens to slugify to another exercise's canonical slug would
-        // make [canonicalFor] resolve it to the wrong exercise. Canonical names win by
-        // construction in ExerciseLocalization; this proves no translation hits that case.
-        val canonicalSlugs = pool.associateBy { ExerciseLocalization.slugify(it) }
+        // A translated name that happens to slugify to another exercise's canonical slug
+        // would make [canonicalFor] resolve it to the wrong exercise. Canonical names win
+        // by construction in ExerciseLocalization; this proves no translation hits that case.
         for (language in languages) {
-            for (canonical in pool) {
-                val localized = ExerciseLocalization.textFor(canonical, language)!!.name
-                val collides = canonicalSlugs[ExerciseLocalization.slugify(localized)]
+            for (slug in ExerciseLocalization.translatedSlugs(language)) {
+                val localized = ExerciseLocalization.textForSlug(slug, language)!!.name
+                val collides = poolBySlug[ExerciseLocalization.slugify(localized)]
                 if (collides != null) {
                     assertEquals(
                         "[$language] translated name '$localized' collides with '$collides'",
-                        canonical,
+                        poolBySlug[slug],
                         collides
                     )
                 }
@@ -170,12 +158,12 @@ class ExerciseLocalizationTest {
 
     @Test
     fun displayNameFallsBackToEnglishForUnsupportedLanguages() {
-        // No table -> the canonical name, unchanged, so nothing can render blank.
+        // No table entry -> the canonical name, unchanged, so nothing can render blank.
         assertEquals(
-            "Dumbbell Curls",
-            ExerciseLocalization.displayName("Dumbbell Curls", ExerciseLocalization.ENGLISH)
+            "Dumbbell Bicep Curl",
+            ExerciseLocalization.displayName("Dumbbell Bicep Curl", ExerciseLocalization.ENGLISH)
         )
-        assertNull(ExerciseLocalization.description("Dumbbell Curls", ExerciseLocalization.ENGLISH))
+        assertNull(ExerciseLocalization.description("Dumbbell Bicep Curl", ExerciseLocalization.ENGLISH))
         // A custom exercise is not in the tables and keeps its own text.
         assertEquals(
             "My Custom Exercise",
@@ -184,16 +172,10 @@ class ExerciseLocalizationTest {
     }
 
     @Test
-    fun allNamesForIncludesEveryLanguage() {
-        val names = ExerciseLocalization.allNamesFor("Dumbbell Curls")
-        assertEquals("canonical name first", "Dumbbell Curls", names.first())
-        assertEquals(
-            "canonical + one name per translated language",
-            1 + languages.size,
-            names.size
-        )
-        assertTrue(names.contains("Kurzhantel-Curls"))
-        assertTrue(names.contains("Curl con manubri"))
+    fun allNamesForStartsWithTheCanonicalName() {
+        val names = ExerciseLocalization.allNamesFor("Dumbbell Bicep Curl")
+        assertEquals("canonical name first", "Dumbbell Bicep Curl", names.first())
+        assertTrue("canonical name always present", names.contains("Dumbbell Bicep Curl"))
     }
 
     @Test
@@ -204,23 +186,5 @@ class ExerciseLocalizationTest {
         assertEquals("de", ExerciseLocalization.languageOf(Locale.forLanguageTag("de-AT")))
         assertEquals("en", ExerciseLocalization.languageOf(Locale.ENGLISH))
         assertEquals("en", ExerciseLocalization.languageOf(Locale.forLanguageTag("fr-FR")))
-    }
-
-    @Test
-    fun spotChecksTheGermanAndItalianCopy() {
-        assertEquals(
-            "Kurzhantel-Bankdrücken",
-            ExerciseLocalization.textFor("Dumbbell Bench Presses", "de")!!.name
-        )
-        assertEquals(
-            "Panca piana con manubri",
-            ExerciseLocalization.textFor("Dumbbell Bench Presses", "it")!!.name
-        )
-        // The description must be the localized method text, not the English one.
-        val german = ExerciseLocalization.textFor("Barbell Squats", "de")!!.description
-        assertTrue(
-            "German description should read as German: $german",
-            german.contains("Hocke") || german.contains("Stange")
-        )
     }
 }

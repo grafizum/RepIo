@@ -34,7 +34,9 @@ class PluralsFormatTest {
         R.plurals.sets_x_reps_pl to { count -> arrayOf(count, "8-12") },
         R.plurals.sets_x_time_pl to { count -> arrayOf(count, "45s") },
         R.plurals.kg_x_reps_pl to { count -> arrayOf("12.5", count) },
-        R.plurals.workout_completed_text to { count -> arrayOf(count, "Monday") }
+        R.plurals.workout_completed_text to { count -> arrayOf(count, "Monday") },
+        // OverallLevelTooltip passes the exercise count once (see RankBadge.kt).
+        R.plurals.overall_level_exercises_pl to { count -> arrayOf(count) }
     )
 
     @Test

@@ -274,6 +274,10 @@ open class MainActivity : AppCompatActivity() {
 @Composable
 fun MainAppStructure(viewModel: WorkoutViewModel) {
     val isFirstTimeUser by viewModel.isFirstTimeUser.collectAsState()
+    // Collected here as well as in the composition root, which owns the
+    // setApplicationLocales effect: this one only feeds the walkthrough's language
+    // button, so the button's label follows the choice immediately.
+    val appLanguage by viewModel.appLanguage.collectAsState()
     val themeOption by viewModel.themeOption.collectAsState()
     val isDeveloper = themeOption.uppercase() == "DEVELOPER"
     val navController = rememberNavController()
@@ -615,16 +619,37 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     // Force Onboarding screen if it's the first time
     WorkoutTrackerTheme(themeOption = themeOption, pageIndex = if (isFirstTimeUser) -1 else pagerState.currentPage) {
         var showAppSplash by remember { mutableStateOf(true) }
+        // Observed as state rather than read once through a plain accessor: the
+        // dismissal has to recompose this branch away, which only happens when
+        // the flag is collected. Reading it as a value left the walkthrough on
+        // screen forever, because nothing else changed after the tap.
+        val showLevelGuide by viewModel.shouldShowLevelGuide.collectAsState()
 
         if (showAppSplash) {
             AppSplashScreen(onComplete = { showAppSplash = false })
+        } else if (showLevelGuide) {
+            // One-time level-guide gate, shown once per install and before the
+            // welcome setup: it announces the level system, then dismissing it
+            // hands the user straight to the workout chooser. Its description
+            // of the Easy/Medium/Hard choice is written in the future tense,
+            // since that choice is still ahead of them on a fresh install.
+            LevelGuideOnboardingScreen(
+                onDismiss = { viewModel.markLevelGuideSeen() },
+                // Wired to the same preference as Settings ▸ Language. The
+                // setApplicationLocales effect above reacts to it, so a pick here
+                // re-renders this very screen in the chosen language.
+                appLanguage = appLanguage,
+                onLanguageSelected = { viewModel.setAppLanguage(it) }
+            )
         } else if (isFirstTimeUser) {
             // Adaptive shell: caps content width and centers it on tablets/foldables.
             AdaptiveWidthContainer {
                 FirstTimeSetupScreen(
                     viewModel = viewModel,
                     onComplete = {
-                        // ViewModel updates isFirstTimeUser, which triggers recomposition
+                        // ViewModel updates isFirstTimeUser, which triggers recomposition.
+                        // The level guide then appears on the next recomposition with
+                        // the chosen intensity already baked into every start level.
                     },
                     onCancel = {
                         viewModel.cancelFirstTimeSetup()

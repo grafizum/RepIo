@@ -9,9 +9,9 @@ import org.junit.Test
 
 /**
  * Replacing an exercise must hand the incoming one the defaults the generator
- * would have given it — goal owns reps and rest, difficulty owns sets and the
- * effort label — not the old row's sets/reps/rest, which made "Squats → Planks"
- * keep 8–12 reps and a barbell rest timer.
+ * would have given it — goal owns reps and rest, set count is the universal
+ * Guided-mode constant (3) — not the old row's sets/reps/rest, which made
+ * "Squats → Planks" keep 8–12 reps and a barbell rest timer.
  */
 class ParameterizeReplacementTest {
 
@@ -44,7 +44,7 @@ class ParameterizeReplacementTest {
     @Test
     fun `time-based replacement does not keep the old rep scheme`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps", reps = "1–5", rest = 240),
+            original = row("Barbell Back Squat", "Quadriceps", reps = "1–5", rest = 240),
             newName = "Planks",
             newMuscleGroup = "Abs",
             workoutGoal = "goal_strength",
@@ -63,7 +63,7 @@ class ParameterizeReplacementTest {
     fun `goal owns reps and rest for the new exercise`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
             original = row("Crunches", "Abs", sets = 2, reps = "15–20", rest = 45),
-            newName = "Barbell Squats",
+            newName = "Barbell Back Squat",
             newMuscleGroup = "Quadriceps",
             workoutGoal = "goal_strength",
             intensity = "Medium"
@@ -75,36 +75,26 @@ class ParameterizeReplacementTest {
     }
 
     @Test
-    fun `difficulty owns sets`() {
-        val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Crunches", "Abs", sets = 2),
-            newName = "Barbell Curls",
-            newMuscleGroup = "Biceps",
-            workoutGoal = "goal_bodybuilding",
-            intensity = "Hard"
-        )
-        assertEquals(5, replacement.targetSets)
-    }
-
-    @Test
-    fun `sets allocation overrides still apply`() {
-        val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Crunches", "Abs", sets = 2),
-            newName = "Barbell Curls",
-            newMuscleGroup = "Biceps",
-            workoutGoal = "goal_bodybuilding",
-            intensity = "Easy", // would be 3 sets
-            minSets = 4,
-            maxSets = 4
-        )
-        assertEquals(4, replacement.targetSets)
+    fun `sets are the universal Guided-mode constant`() {
+        // 3 sets everywhere: regardless of goal, difficulty label, or what the
+        // replaced row used to carry.
+        listOf("Easy", "Medium", "Hard").forEach { intensity ->
+            val replacement = WorkoutTemplates.parameterizeReplacement(
+                original = row("Crunches", "Abs", sets = 2),
+                newName = "Barbell Curls",
+                newMuscleGroup = "Biceps",
+                workoutGoal = "goal_bodybuilding",
+                intensity = intensity
+            )
+            assertEquals("intensity $intensity must keep the universal set count", 3, replacement.targetSets)
+        }
     }
 
     @Test
     fun `weight and tempo reset with the swap`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps", weight = 80.0, tempo = "explosive"),
-            newName = "Dumbbell Curls",
+            original = row("Barbell Back Squat", "Quadriceps", weight = 80.0, tempo = "explosive"),
+            newName = "Dumbbell Bicep Curl",
             newMuscleGroup = "Biceps",
             workoutGoal = "goal_bodybuilding",
             intensity = "Medium"
@@ -116,8 +106,8 @@ class ParameterizeReplacementTest {
     @Test
     fun `slot, day and order are kept`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps"),
-            newName = "Dumbbell Curls",
+            original = row("Barbell Back Squat", "Quadriceps"),
+            newName = "Dumbbell Bicep Curl",
             newMuscleGroup = "Biceps",
             workoutGoal = "goal_bodybuilding",
             intensity = "Medium"
