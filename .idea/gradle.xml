@@ -6,6 +6,10 @@
       <GradleProjectSettings>
         <option name="testRunner" value="CHOOSE_PER_TEST" />
         <option name="externalProjectPath" value="$PROJECT_DIR$" />
+        <!-- Gradle 8.10.2 supports JVM 8..23. The bundled `jbr` on this
+             Android Studio install is JDK 25 whatever it is named, so
+             `jbr-17`/`jbr-25` both mean 25 and fail the import. Point at the
+             registered `17` instead, matching project-jdk-name in misc.xml. -->
         <option name="gradleJvm" value="17" />
         <option name="modules">
           <set>
