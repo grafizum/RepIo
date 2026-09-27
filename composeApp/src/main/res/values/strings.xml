@@ -41,6 +41,7 @@
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
+    <string name="rank_badge_content_desc">Overall rank %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
     <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
@@ -198,6 +199,8 @@
     <string name="balanced_workout_routine">Balanced Workout Routine</string>
     <string name="balanced_workout_desc">All major muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) are covered!</string>
     <string name="missing_body_parts_warning">Missing Body Parts Warning</string>
+    <string name="incomplete_workout_routine">Unbalanced Workout Routine</string>
+    <string name="incomplete_workout_desc">No exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
     <string name="tip">Tip</string>
     <string name="missing_parts_desc">Your custom workout has no exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
     <string name="notification_channel_name">Rest Timer Notifications</string>
