@@ -419,9 +419,22 @@ fun WorkoutNowScreen(
                         val progLevel = workoutState.progressionLevel
                         val progStage = workoutState.progressionStage
                         val prescribed = workoutState.progressionPrescribed
-                        val variationOrDuration = prescribed?.let { rx ->
+                        // A VARIATION prescription names a substitution movement
+                        // ("Bicycle Crunch" standing in for "Crunches"). The level
+                        // card does NOT name it: the exercise card directly above
+                        // already says which exercise this is, so the line only
+                        // repeated it -- and because `rx.variation` is the raw
+                        // canonical pool name, it was the one line on the card
+                        // that never went through translateExerciseName and so
+                        // stayed English on a German phone. Passing null for a
+                        // variation also un-suppresses the per-set action banner
+                        // (showChips needs primaryText == null), which is the
+                        // layout the card is designed around. DURATION still
+                        // has to reach the card: "30 sec" is the prescription
+                        // for a time-based exercise, not a name.
+                        val durationLabel = prescribed?.let { rx ->
                             when (rx.kind) {
-                                ProgressionEngine.ValueKind.VARIATION -> rx.variation
+                                ProgressionEngine.ValueKind.VARIATION -> null
                                 ProgressionEngine.ValueKind.DURATION -> prescriptionDisplayText(rx)
                                 ProgressionEngine.ValueKind.LOAD -> null
                             }
@@ -788,7 +801,7 @@ fun WorkoutNowScreen(
                                 repTargets = workoutState.progressionStageTargetReps,
                                 currentSetNumber = workoutState.currentSetNumber,
                                 fallbackReps = currentExercise.targetReps,
-                                primaryText = variationOrDuration,
+                                primaryText = durationLabel,
                                 loadText = loadText,
                                 isTimeBased = isTimeBased,
                                 onStageStep = { delta ->
