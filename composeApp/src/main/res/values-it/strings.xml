@@ -28,6 +28,14 @@
     <string name="overall_level_gpa_step_3">Averaging them together, with the exercises you trained most recently counting for more.</string>
     <string name="overall_level_gpa_example">The five examples below average to L.%1$.1f.</string>
     <string name="overall_level_gpa_outro">This number shows your overall progress at a glance. As you train more exercises and move them up, it rises.</string>
+
+    <!-- Level system on/off dialogs. -->
+    <string name="level_system_off_title">Disattivare il sistema di livelli?</string>
+    <string name="level_system_off_msg">Tutte le prescrizioni di livello verranno nascoste e serie, ripetizioni e pesi diventeranno completamente manuali. I tuoi livelli attuali vengono mantenuti e ti aspettano se riattivi il sistema.</string>
+    <string name="level_system_off_confirm">Disattiva</string>
+    <string name="level_system_on_title">Riattivare il sistema di livelli?</string>
+    <string name="level_system_on_msg">Il livello di ogni esercizio verrà reimpostato sul peso che hai effettivamente usato l\'ultima volta, così le prescrizioni riprendono da dove si era interrotto l\'allenamento.</string>
+    <string name="level_system_on_confirm">Attiva e sincronizza i livelli</string>
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
@@ -507,6 +515,7 @@
     <string name="ex_chin_up">Chin-up</string>
     <string name="ex_bench_press">Panca piana</string>
     <string name="ex_military_press">Military press</string>
+    <string name="ex_shoulder_press">Spalle</string>
     <string name="ex_lat_pulldown">Lat machine</string>
     <string name="ex_seated_row">Rematore seduto</string>
     <string name="ex_leg_press">Leg press</string>
@@ -518,6 +527,8 @@
     <string name="ex_tricep_pushdown">Pushdown tricipiti</string>
     <string name="ex_face_pull">Facepull</string>
     <string name="ex_side_raise">Alzate laterali</string>
+    <string name="ex_lateral_raise">Alzate laterali</string>
+    <string name="ex_shrugs">Shrug</string>
     <string name="ex_dips">Dip</string>
     <string name="ex_back_extension">Back extension</string>
 
@@ -817,7 +828,6 @@
 
     <!-- Sistema di livelli (v5 progressione) — TODO: completare le traduzioni.
          Le chiavi mancanti tornano automaticamente a values/strings.xml. -->
-    <!--
     <string name="progression_level_stage">Livello %1$d — Stadio %2$s</string>
     <string name="progression_stage_target">Obiettivo: %1$s</string>
     <string name="progression_load_each">%1$s kg per manubrio</string>
@@ -839,12 +849,10 @@
     <string name="large_jump_example_caption">Se il prossimo carico è un grande salto, l\'app azzera le tue ripetizioni per renderlo gestibile.</string>
     <string name="difficulty_change_example_title">Cambiare la difficoltà iniziale</string>
     <string name="difficulty_change_example_caption">Puoi cambiare la difficoltà iniziale per ogni esercizio prima della tua prima serie.</string>
-    -->
 
 
-    <!-- Regolazione livelli + regolazione collettiva — TODO: completare le traduzioni. -->
-    <!--
-    <string name="levels_menu_title">Livelli</string>
+    <!-- Regolazione livelli + regolazione collettiva — TODO:. -->
+        <string name="levels_menu_title">Livelli</string>
     <string name="guided_sets_prefix">3 serie ·</string>
     <string name="level_word_n">Livello %1$d</string>
     <string name="adjust_levels_n">Livello %1$d</string>
@@ -866,7 +874,6 @@
     <string name="level_details_beyond_plan">fuori piano</string>
     <string name="level_details_beyond_plan_desc">Non fa parte del programma di questo esercizio</string>
     <string name="level_details_beyond_plan_note">Il programma di questo esercizio finisce al livello %1$d. I livelli successivi sono solo di riferimento e non si possono selezionare.</string>
-
     <string name="level_system_toggle_title">Sistema di livelli</string>
     <string name="level_system_toggle_desc_on">Gli esercizi seguono i loro livelli: ripetizioni e peso sono prescritti per te.</string>
     <string name="level_system_toggle_desc_off">Modalità personalizzata: scegli tu serie, ripetizioni e peso.</string>
@@ -878,6 +885,5 @@
     <string name="level_guide_cta_got_it">Capito</string>
     <string name="level_guide_reassurance">I tuoi primi livelli derivano dalla scelta tra Facile / Medio / Difficile nel passaggio successivo e possono sembrare un po’ sbagliati all’inizio — regolali quando inizi ad allenarti. Dopo, ogni esercizio completato ti fa salire automaticamente.</string>
 
-    -->
 
 </resources>

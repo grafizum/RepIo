@@ -18,6 +18,12 @@ local.properties
 debug.keystore
 my-upload-key.jks
 
+# The Grafizum sync config names every repo on this machine and is passed the
+# GRAFIZUM_SYNC_KEY on the command line, so it stays out of git. Recovered from
+# C:\Temp\sync.config.json on the old Windows SSD; upstream it lived outside the
+# repo entirely, in the Windows Temp folder.
+sync.config.json
+
 # Local release artifacts (AAB/APK history). Keep them out of the repo: they are
 # multi-megabyte binaries and every revision would be stored in history forever.
 /composeApp/release/
@@ -26,3 +32,6 @@ my-upload-key.jks
 __pycache__/
 tools/exercise-db/out/
 tools/exercise-i18n/out/
+
+# Written by tools/exercise-i18n/extract.py on every run.
+tools/exercise-i18n/extract.tsv

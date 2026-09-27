@@ -120,21 +120,33 @@ Translations are applied at **display** time instead, keyed by a slug
   `canonicalFor`, and the window-facing API. Also the reverse index from every known name
   (English *and* translated) back to the canonical one.
 - `data/ExerciseTextDe.kt` / `ExerciseTextIt.kt` — one `"slug" to ex("Name", "Method text")`
-  entry per pool exercise. **A slug typo does not crash anything** — it silently leaves one
-  exercise in English — which is why `ExerciseLocalizationTest` asserts every pool exercise
-  has exactly one non-blank entry in every table, that no entry is outside the pool, and that
-  names and descriptions are unique within a language. Add a language by adding a table and
-  registering it in `ExerciseLocalization.TABLES` (the tests pick it up automatically).
+  entry per pool exercise, **written on a single line**. **A slug typo does not crash anything**
+  — it silently leaves one exercise in English — which is why `ExerciseLocalizationTest`
+  asserts that no entry is outside the pool, that every entry has a name and a description,
+  and that names and descriptions are unique within a language. Add a language by adding a
+  table and registering it in `ExerciseLocalization.TABLES` (the tests pick it up
+  automatically).
+- **Coverage is deliberately NOT asserted.** The pool was rebuilt from the exercise-database
+  CSV (601 exercises, hyphenated catalog slugs like `bicycle-crunch`, underscored resource
+  slugs like `bicycle_crunch`) and the translated history was retired with the old pool. The
+  tables are being regrown — currently ~121 of 601 per language — so the test holds for a
+  *partial* table and keeps every guarantee except coverage. Roughly 480 exercises per
+  language still fall back to English. When a table is grown back to the whole pool, re-add a
+  coverage test per language, as the clean-slate note in `ExerciseLocalizationTest` says.
 - `translateExerciseName()` is the single display path for an exercise name; `getExerciseDetails()`
   resolves the description the same way and falls back to English, never to blank.
 - Search matches the canonical name **and every translation** (`ExerciseSearch.searchCandidates`),
   and always returns the canonical name, so typing `Kniebeugen` finds and stores `Squats`.
   `canonicalFor()` normalizes whatever was typed before muscle detection and before saving.
-- Tooling: `python tools/exercise-i18n/extract.py` prints the slug table from the pool (and
-  fails if the pool ever gains an exercise with no description);
+- Tooling: `python tools/exercise-i18n/extract.py` prints the slug table from the generated
+  `data/ExerciseCatalog.kt` (and fails if the pool ever gains an exercise with no description);
   `python tools/exercise-i18n/check.py` reports duplicate names/descriptions per language.
+  Both read the current sources — `ExerciseDescriptions.kt` is only a delegate now, so neither
+  script parses it.
 
-When the pool changes, update the tables - `ExerciseLocalizationTest` fails until you do.
+When the pool changes, extend the tables too. `ExerciseLocalizationTest` will not fail you
+for a *missing* entry (see the coverage note above), so run `extract.py` to see how far the
+tables have fallen behind the pool.
 
 ## Muscle filters are broad, exercise data stays precise
 
