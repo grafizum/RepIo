@@ -166,14 +166,27 @@ state); `overview.md` regenerates from it automatically.
 
 ## What was done (2026-09-27, later session)
 
-The open dashboard task ("Exercise names like bycicle crunches shows in the level card") was traced
-end to end and the code path is **correct**: `MasteryCard` and `LevelDetailsDialog` both render
-through `translateExerciseName`, and `bicycle_crunch` → `Fahrrad-Crunch` is in the German table. The
-report was almost certainly filed while the translations were still trapped in XML comments, which
-is fixed in `eb9398e`. It still needs one device check on an Abs day to close.
+The open dashboard task ("Exercise names like bycicle crunches shows in the level card") is
+**resolved and closed**. It was reproduced on the S22 Ultra in German and the cause was *not* the
+exercise's own name:
 
-Chasing it turned up a *different* bug of the same shape — visible raw text the user would have
-reported the same way:
+- `MasteryCard` and `LevelDetailsDialog` both render through `translateExerciseName` correctly.
+- The untranslated line on the level card was the **VARIATION prescription** — the substitution
+  movement the ladder offers at the current stage (`rx.variation`, e.g. "Bicycle Crunch" standing
+  in for "Crunches"). That is the canonical pool name and it was passed to the card as
+  `primaryText` (`WorkoutNowScreen.kt`), never through the translation helper. On the device the
+  card read `Fahrrad-Crunch` directly above a raw English `Bicycle Crunch`.
+- The line also only repeated the exercise card above it, and because `primaryText != null` it
+  suppressed the per-set action banner (`showChips` requires `primaryText == null`) — so it was
+  overriding the layout the card is designed around.
+- `fcafdf2` returns null for `VARIATION`. `DURATION` still passes through, because for a
+  time-based exercise the duration is the prescription rather than a name. Verified on the device:
+  the card now reads `Level 1` / `SATZ 1 VON 3` / `8 Wdh.`, no English name anywhere.
+- `LevelDetailsDialog` renders the same variation through `prescriptionDisplayText` and was
+  **left unchanged by owner choice** — it will still show a raw variation name.
+
+Chasing the same trail also turned up a different bug of the same shape — visible raw text the
+user would have reported identically:
 
 1. **Three string keys were never defined.** `util/Resources.kt` returns the key itself on a
    `getIdentifier` miss, so these rendered literally instead of crashing:
@@ -193,21 +206,34 @@ reported the same way:
    resource) and keys built by interpolation (`getString("intensity_${…}")`).
 
 The 471 resource keys reached through the helper are all defined, and all three locales are at
-786 keys — parity holds.
+786 keys — parity holds. Dashboard `status.md` was refreshed with all of the above.
+
+### Driving the app from adb (for whoever does this next)
+
+- `adb` is not on `PATH`: `export PATH=$PATH:$HOME/.local/share/android-sdk/platform-tools`.
+- The app forces its own stored language on launch (`MainActivity` reacts to the `app_language`
+  pref in `app_settings`), so `cmd locale set-app-locales` alone is overwritten on next start.
+  To test German, set the pref to `de` and relaunch. **Restore it to unset afterwards** — it was
+  unset before, so the app followed the device locale (`en-GB`).
+- `uiautomator dump` + parsing `text=` attributes is the only way to *read* the screen; the raw
+  variation name was invisible in the source and only showed up in a dump.
+- The soft keyboard covers the dialog buttons and silently swallows taps at the old coordinates.
+  Check `dumpsys input_method | grep mInputShown` and send `keyevent 4` before tapping
+  Speichern, or the tap lands on the IME. This cost several wasted round trips.
 
 ## Still open
 
-- **Push `level-system`** — local only, and the string-resource fix above is uncommitted on top of it.
-- **Commit `.idea/runConfigurations/`** — currently untracked.
-- **The open dashboard task**: *"Exercise names like bycicle crunches shows in the level
-  card."* The code path looks right (`translateExerciseName` in `LevelDetailsDialog.kt:155`
-  and `WorkoutNowScreen.kt:1483`; `bicycle_crunch` → `Fahrrad-Crunch` is in the German
-  table) but it was **never verified on a device** — the routine on the phone was Legs. Do
-  not close it without seeing an Abs day.
+- **Push `level-system`** — local only, and this machine has **no Git credentials at all**
+  (no credential helper, `gh` not authenticated, no SSH keys), so the push has to happen
+  from an authenticated machine. 4 commits ahead: `eb9398e`, `e06e93c`, `29fc336`, `fcafdf2`.
+- **The old SSD is still mounted** at `/run/media/matrix/SSD-475GB`. `udisksctl` is not
+  installed and `umount` needs root, so this needs `sudo` from the desktop.
+- **The device's `app_language` pref was set to `de`** to verify the level card. Restore it to
+  unset (or `system`) to go back to following the device locale. A `Fahrrad-Crunch` exercise
+  was also added to Sunday's routine to have something to test with.
 - **Translation coverage**: 121 of 601 per language; 481 fall back to English.
 - **AGP 8.7.3 vs compileSdk 36** is suppressed, not fixed.
 - **17 `.aab` files / 194 MB `.git`** still tracked. Untracking rewrites history — owner
   decision.
-- **Unmount the old SSD** when finished with it.
-- `status.md` on the dashboard predates the Linux migration and the commented-translation
-  fix.
+- **Unmount the old SSD** — see above; needs `sudo`.
+- `status.md` on the dashboard was refreshed this session; it is current as of 2026-09-27.
