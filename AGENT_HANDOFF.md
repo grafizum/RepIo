@@ -8,27 +8,39 @@ session that closed the string-resource gap (see "What was done (2026-09-27, lat
 
 ---
 
-## ⚠️ Read this first: Android Studio clobbers the JDK fix
+## ⚠️ Read this first: the Gradle JVM must be the registered `17`, never `jbr-*`
 
-The Gradle JDK the project needs is registered in Android Studio's **global** config:
+Two places decide which JVM Gradle runs on, and only one of them is in git:
+
+| Where | File | Holds |
+|---|---|---|
+| **Repo, tracked** | `.idea/gradle.xml` | `<option name="gradleJvm" .../>` — this is the one that caused the notice |
+| Local, per machine | `~/.config/Google/AndroidStudio2026.1.4/options/jdk.table.xml` | the JDK registry (name → homePath) |
+
+`.idea/gradle.xml` **is tracked in git** (it is not in `.gitignore`), so a wrong `gradleJvm`
+there reproduces on every machine and every fresh clone. It carried `jbr-25` until `0d67495`.
+
+**The names are a trap.** This Android Studio install has exactly one bundled runtime directory
+(`$APPLICATION_HOME_DIR$/jbr`) and it is **JDK 25.0.3**. Both registry entries below point at
+that same directory, so picking either one gives you 25 no matter what it is called:
 
 ```
-~/.config/Google/AndroidStudio2026.1.4/options/jdk.table.xml
+name=jbr-17   home=$APPLICATION_HOME_DIR$/jbr    -> JDK 25.0.3
+name=jbr-25   home=$APPLICATION_HOME_DIR$/jbr    -> JDK 25.0.3
+name=17       home=/usr/lib/jvm/java-17-openjdk  -> JDK 17.0.19   <-- use this
 ```
 
-`misc.xml` and `gradle.xml` both ask for a JDK **named `17`**. That name is registered, but
-it pointed at the Windows/WSL path `$USER_HOME$/.jdks/openjdk-17`, which does not exist on
-Linux — so Gradle sync failed and Run stayed disabled.
+Gradle 8.10.2 supports JVM 8..23, so 25 is rejected at import with *"Please Select Gradle JVM
+to Import Project"*. `jbr-17` being the correct major version in name only is exactly what
+produced `gradleJvm = jbr-25` in the first place.
 
-It is now repointed at the real JDK:
+**If the notice comes back**, check the tracked file first — it is the thing that travels:
 
+```bash
+grep gradleJvm .idea/gradle.xml     # want value="17"
 ```
-<name value="17" />
-<homePath value="/usr/lib/jvm/java-17-openjdk" />     openjdk 17.0.19
-```
 
-**IntelliJ rewrites `jdk.table.xml` from memory when it exits.** If Android Studio was open
-when this was written, the fix is lost and Gradle sync breaks again. Check first:
+then the registry:
 
 ```bash
 python3 - <<'EOF'
@@ -39,14 +51,15 @@ print('OK' if m and 'openjdk-17' in m.group(1) else 'BROKEN -> ' + (m.group(1) i
 EOF
 ```
 
-To repair, replace every `$USER_HOME$/.jdks/openjdk-17` with `/usr/lib/jvm/java-17-openjdk`
-(a backup of the pre-repair file sits next to it as `jdk.table.xml.bak-2026-09-27`), or do it
-in the UI: **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**.
+To repair the registry, replace every `$USER_HOME$/.jdks/openjdk-17` with
+`/usr/lib/jvm/java-17-openjdk` (a backup sits next to it as `jdk.table.xml.bak-2026-09-27`),
+or use the UI: **Settings → Build, Execution, Deployment → Build Tools → Gradle → Gradle JDK**.
 
-**Do not** point the Gradle JDK at `jbr-17` or `jbr-25`. Both resolve to
-`$APPLICATION_HOME_DIR$/jbr`, which on this install is **JDK 25.0.3** — too new for
-AGP 8.7.3 + Kotlin 2.1.0. The misleading name is what produced `gradleJvm = jbr-25` in the
-first place.
+**Caveat worth knowing:** IntelliJ rewrites *both* files from its in-memory model when it
+saves or exits. A running Studio still holding the old value will overwrite a good
+`.idea/gradle.xml` — so when the notice is on screen, click **Use JVM 17** (or set Gradle JDK
+to `17` in the settings above) rather than just dismissing it. Editing the file underneath a
+running Studio only sticks if Studio's own model agrees.
 
 ---
 
@@ -225,7 +238,8 @@ The 471 resource keys reached through the helper are all defined, and all three 
 
 - **Push `level-system`** — local only, and this machine has **no Git credentials at all**
   (no credential helper, `gh` not authenticated, no SSH keys), so the push has to happen
-  from an authenticated machine. 4 commits ahead: `eb9398e`, `e06e93c`, `29fc336`, `fcafdf2`.
+  from an authenticated machine. 7 commits ahead: `eb9398e`, `e06e93c`, `29fc336`,
+  `fcafdf2`, `3a3e35a`, `0d67495`.
 - **The old SSD is still mounted** at `/run/media/matrix/SSD-475GB`. `udisksctl` is not
   installed and `umount` needs root, so this needs `sudo` from the desktop.
 - **The device's `app_language` pref was set to `de`** to verify the level card. Restore it to
