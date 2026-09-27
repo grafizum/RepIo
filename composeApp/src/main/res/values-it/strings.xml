@@ -39,6 +39,7 @@
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
+    <string name="rank_badge_content_desc">Rangolo complessivo %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
     <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
@@ -195,6 +196,8 @@
     <string name="balanced_workout_routine">Routine Equilibrata</string>
     <string name="balanced_workout_desc">Tutti i principali gruppi muscolari (Petto, Schiena, Gambe, Spalle, Braccia, Core) sono coperti!</string>
     <string name="missing_body_parts_warning">Avviso Gruppi Muscolari Mancanti</string>
+    <string name="incomplete_workout_routine">Routine Non Equilibrata</string>
+    <string name="incomplete_workout_desc">Nessun esercizio per: %1$s. Aggiungere esercizi per questi gruppi muscolari assicurerà uno sviluppo equilibrato della forza.</string>
     <string name="tip">Suggerimento</string>
     <string name="missing_parts_desc">Il tuo allenamento personalizzato non ha esercizi per: %1$s. Aggiungere esercizi per questi gruppi assicurerà uno sviluppo equilibrato della forza.</string>
     <string name="notification_channel_name">Notifiche Timer Riposo</string>

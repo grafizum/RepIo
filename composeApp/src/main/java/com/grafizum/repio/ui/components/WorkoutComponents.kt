@@ -289,10 +289,11 @@ fun translateMuscleGroup(muscleGroup: String): String {
 
 @Composable
 fun translateExerciseName(name: String): String {
-    // Pool exercises are translated from the tables in ExerciseLocalization, which cover all
-    // 271 built-ins in German and Italian. Everything else — the generic movement names some
-    // templates still carry ("Row", "Curls") and user-created customs — falls through to the
-    // legacy mapping below.
+    // Pool exercises are translated from the tables in ExerciseLocalization. Those tables
+    // cover 121 of the 601 pool exercises per language so far — anything they miss falls back
+    // to its canonical English name, which is correct, just untranslated. Everything outside
+    // the pool — the generic movement names some templates still carry ("Row", "Curls") and
+    // user-created customs — falls through to the legacy mapping below.
     val canonical = ExerciseLocalization.canonicalFor(name)
     if (canonical != null) {
         return ExerciseLocalization.displayName(

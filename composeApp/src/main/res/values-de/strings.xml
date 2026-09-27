@@ -38,6 +38,7 @@
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
+    <string name="rank_badge_content_desc">Gesamtrang %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
     <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
@@ -191,6 +192,8 @@
     <string name="balanced_workout_routine">Ausgewogene Routine</string>
     <string name="balanced_workout_desc">Alle großen Muskelgruppen (Brust, Rücken, Beine, Schultern, Arme, Core) sind abgedeckt!</string>
     <string name="missing_body_parts_warning">Warnung: Fehlende Muskelgruppen</string>
+    <string name="incomplete_workout_routine">Unausgewogene Routine</string>
+    <string name="incomplete_workout_desc">Keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Gruppen sorgt für eine ausgewogene Kraftentwicklung.</string>
     <string name="tip">Tipp</string>
     <string name="missing_parts_desc">Dein benutzerdefiniertes Workout enthält keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Gruppen sorgt für eine ausgewogene Kraftentwicklung.</string>
     <string name="notification_channel_name">Satzpausen-Benachrichtigungen</string>
