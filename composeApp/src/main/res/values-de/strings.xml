@@ -27,6 +27,14 @@
     <string name="overall_level_gpa_step_3">Averaging them together, with the exercises you trained most recently counting for more.</string>
     <string name="overall_level_gpa_example">The five examples below average to L.%1$.1f.</string>
     <string name="overall_level_gpa_outro">This number shows your overall progress at a glance. As you train more exercises and move them up, it rises.</string>
+
+    <!-- Level system on/off dialogs. -->
+    <string name="level_system_off_title">Level-System ausschalten?</string>
+    <string name="level_system_off_msg">Alle Levelvorgaben werden ausgeblendet und Sätze, Wiederholungen und Gewichte werden vollständig manuell. Deine aktuellen Level bleiben gespeichert und warten auf dich, wenn du das System wieder einschaltest.</string>
+    <string name="level_system_off_confirm">Ausschalten</string>
+    <string name="level_system_on_title">Level-System wieder einschalten?</string>
+    <string name="level_system_on_msg">Das Level jeder Übung wird an das Gewicht angepasst, das du zuletzt tatsächlich dafür verwendet hast, damit die Vorgaben dort weitermachen, wo dein Training aufgehört hat.</string>
+    <string name="level_system_on_confirm">Einschalten &amp; Level synchronisieren</string>
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
@@ -498,6 +506,7 @@
     <string name="ex_chin_up">Chin-ups</string>
     <string name="ex_bench_press">Bankdrücken</string>
     <string name="ex_military_press">Military Press</string>
+    <string name="ex_shoulder_press">Schulterdrücken</string>
     <string name="ex_lat_pulldown">Latzug</string>
     <string name="ex_seated_row">Sitzendes Rudern</string>
     <string name="ex_leg_press">Beinpresse</string>
@@ -509,6 +518,8 @@
     <string name="ex_tricep_pushdown">Trizepsdrücken</string>
     <string name="ex_face_pull">Facepulls</string>
     <string name="ex_side_raise">Seitheben</string>
+    <string name="ex_lateral_raise">Seitheben</string>
+    <string name="ex_shrugs">Shrugs</string>
     <string name="ex_dips">Dips</string>
     <string name="ex_back_extension">Rückenstrecken</string>
 
@@ -808,7 +819,6 @@
 
     <!-- Level-System (v5 Progression) — TODO: Übersetzungen ergänzen.
          Fehlende Keys fallen automatisch auf values/strings.xml zurück. -->
-    <!--
     <string name="progression_level_stage">Level %1$d — Stufe %2$s</string>
     <string name="progression_stage_target">Ziel: %1$s</string>
     <string name="progression_load_each">%1$s kg pro Hantel</string>
@@ -830,12 +840,10 @@
     <string name="large_jump_example_caption">Wenn das nächste Gewicht ein großer Sprung ist, setzt die App deine Wiederholungen zurück, damit es machbar bleibt.</string>
     <string name="difficulty_change_example_title">Startschwierigkeit ändern</string>
     <string name="difficulty_change_example_caption">Du kannst die Startschwierigkeit für jede Ügebung vor deinem ersten Satz ändern.</string>
-    -->
 
 
-    <!-- Level-Anpassung + Sammel-Anpassung — TODO: Übersetzungen ergänzen. -->
-    <!--
-    <string name="levels_menu_title">Level</string>
+    <!-- Level-Anpassung + Sammel-Anpassung — TODO:. -->
+        <string name="levels_menu_title">Level</string>
     <string name="guided_sets_prefix">3 Sätze ·</string>
     <string name="level_word_n">Level %1$d</string>
     <string name="adjust_levels_n">Level %1$d</string>
@@ -857,7 +865,6 @@
     <string name="level_details_beyond_plan">außerhalb des Plans</string>
     <string name="level_details_beyond_plan_desc">Nicht Teil des Programms dieser Übung</string>
     <string name="level_details_beyond_plan_note">Das Programm dieser Übung endet bei Level %1$d. Die Level darunter sind nur zur Information und lassen sich nicht auswählen.</string>
-
     <string name="level_system_toggle_title">Level-System</string>
     <string name="level_system_toggle_desc_on">Übungen folgen ihren Leveln: Wiederholungen und Gewicht werden vorgegeben.</string>
     <string name="level_system_toggle_desc_off">Eigener Modus: Du bestimmst Sätze, Wiederholungen und Gewicht selbst.</string>
@@ -869,6 +876,5 @@
     <string name="level_guide_cta_got_it">Verstanden</string>
     <string name="level_guide_reassurance">Deine ersten Level stammen aus der Entscheidung für Leicht / Mittel / Schwer im nächsten Schritt und können sich anfangs etwas falsch anfühlen — passe sie an, sobald du trainierst. Danach bringt dich jede abgeschlossene Übung automatisch nach oben.</string>
 
-    -->
 
 </resources>

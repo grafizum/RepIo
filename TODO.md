@@ -9,9 +9,11 @@ Owner rule (2026-09-13): every task a user prompt creates lives here first.
    Write it as a checkbox line; on the following indented lines give it metadata: a status
    line (planned / in-progress / done), a priority line (low / medium / high / urgent), and a
    notes line with the user's request in short form.
-2. Run the sync CLI after editing (config: C:/Temp/sync.config.json, run from WSL — see
-   grafizum-dashboard/apps/sync-cli). The sync run is what puts the task on the dashboard.
-   Do NOT also create it via POST /v1/tasks — that would duplicate it.
+2. Run the sync CLI after editing (config: `sync.config.json` in the repo root, git-ignored;
+   see grafizum-dashboard/apps/sync-cli). It was recovered from `C:\Temp\sync.config.json` on
+   the old Windows SSD and its WSL paths were rewritten for this machine. The sync run is what
+   puts the task on the dashboard. Do NOT also create it via POST /v1/tasks — that would
+   duplicate it.
 3. Work is finished when the task is done AND the owner's next message is not a
    correction or error about it. Then: flip the checkbox, set the status line to review,
    sync again, and tell the owner in ONE short line ("✅ Ready for review: <title>").

@@ -518,6 +518,7 @@
     <string name="ex_chin_up">Chin-ups</string>
     <string name="ex_bench_press">Bench Presses</string>
     <string name="ex_military_press">Military Presses</string>
+    <string name="ex_shoulder_press">Shoulder Presses</string>
     <string name="ex_lat_pulldown">Lat Pulldowns</string>
     <string name="ex_seated_row">Seated Rows</string>
     <string name="ex_leg_press">Leg Presses</string>
@@ -529,6 +530,8 @@
     <string name="ex_tricep_pushdown">Tricep Pushdowns</string>
     <string name="ex_face_pull">Face Pulls</string>
     <string name="ex_side_raise">Side Raises</string>
+    <string name="ex_lateral_raise">Lateral Raises</string>
+    <string name="ex_shrugs">Shrugs</string>
     <string name="ex_dips">Dips</string>
     <string name="ex_back_extension">Back Extensions</string>
 
