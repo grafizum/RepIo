@@ -2,6 +2,7 @@ package com.grafizum.repio.ui.theme
 
 import android.app.Activity
 import androidx.compose.foundation.isSystemInDarkTheme
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.darkColorScheme
 import androidx.compose.material3.lightColorScheme
@@ -43,7 +44,7 @@ val LocalLightTheme = staticCompositionLocalOf { false }
 
 private val PurpleColorScheme = darkColorScheme(
     primary = ElegantPurple,
-    onPrimary = Color.White,
+    onPrimary = DarkOnPrimary,
     primaryContainer = Color(0xFF3B2F63), // Slightly lighter for dark background
     onPrimaryContainer = Color.White,
     secondary = ElegantPurpleLight,
@@ -75,7 +76,7 @@ private val BeigeColorScheme = lightColorScheme(
 
 private val FlameColorScheme = darkColorScheme(
     primary = FlameOrange,
-    onPrimary = Color.White,
+    onPrimary = DarkOnPrimary,
     primaryContainer = Color(0xFF4E342E), // Slightly lighter for dark background
     onPrimaryContainer = Color.White,
     secondary = FlameOrangeLight,
@@ -139,7 +140,7 @@ private val AzureSkyColorScheme = lightColorScheme(
 
 private val OceanColorScheme = darkColorScheme(
     primary = OceanPrimary,
-    onPrimary = Color.White,
+    onPrimary = DarkOnPrimary,
     primaryContainer = Color(0xFF243B42), // Slightly lighter for dark background
     onPrimaryContainer = OceanLight,
     secondary = OceanLight,
@@ -155,7 +156,7 @@ private val OceanColorScheme = darkColorScheme(
 
 private val RoseColorScheme = darkColorScheme(
     primary = RosePrimary,
-    onPrimary = Color.White,
+    onPrimary = DarkOnPrimary,
     primaryContainer = Color(0xFF422230), // Slightly lighter for dark background
     onPrimaryContainer = RoseLight,
     secondary = RoseLight,
@@ -171,7 +172,7 @@ private val RoseColorScheme = darkColorScheme(
 
 private val RainbowColorScheme = darkColorScheme(
     primary = Color(0xFFFF00FF), // Magenta
-    onPrimary = Color.White,
+    onPrimary = DarkOnPrimary,
     primaryContainer = Color(0xFF5E005E), // Slightly lighter for dark background
     onPrimaryContainer = Color.White,
     secondary = Color(0xFF00FFFF), // Cyan
@@ -263,7 +264,7 @@ private fun TextStyle.scaledBy(factor: Float): TextStyle = copy(
  *
  * Applied where the scheme is chosen, so a new palette cannot forget it.
  */
-private fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark: Boolean) =
+internal fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark: Boolean) =
     if (!isDark) copy(
         surfaceContainerLowest = surface,
         surfaceContainerLow = surface,
@@ -301,6 +302,30 @@ private fun androidx.compose.material3.Typography.scaledFor(scale: Float): andro
     )
 }
 
+/**
+ * Resolves the colour scheme for a theme option under a given system appearance.
+ *
+ * Extracted from the composable so the routing is TESTABLE. "The orange dark
+ * theme" is not a name in this file - orange has no scheme, and the `else`
+ * branch below is what makes it. Asserting contrast against literals instead of
+ * this function would pass forever no matter what changed here, which is the
+ * opposite of what a contrast test is for.
+ */
+internal fun resolveColorScheme(themeOption: String, isDark: Boolean): ColorScheme {
+    return when (themeOption.uppercase()) {
+        "BEIGE" -> BeigeColorScheme
+        "FLAME" -> FlameColorScheme
+        "EMERALD" -> EmeraldColorScheme
+        "CRIMSON" -> CrimsonColorScheme
+        "AZURE" -> AzureSkyColorScheme
+        "OCEAN" -> OceanColorScheme
+        "ROSE" -> RoseColorScheme
+        "PURPLE" -> PurpleColorScheme
+        "DEVELOPER" -> DeveloperColorScheme
+        else -> if (isDark) FlameColorScheme else BeigeColorScheme
+    }
+}
+
 @Composable
 fun WorkoutTrackerTheme(
     themeOption: String = "DEFAULT",
@@ -320,18 +345,7 @@ fun WorkoutTrackerTheme(
 
     val isLightTheme = !isDarkThemeUsed
 
-    val colorScheme = when (themeOption.uppercase()) {
-        "BEIGE" -> BeigeColorScheme
-        "FLAME" -> FlameColorScheme
-        "EMERALD" -> EmeraldColorScheme
-        "CRIMSON" -> CrimsonColorScheme
-        "AZURE" -> AzureSkyColorScheme
-        "OCEAN" -> OceanColorScheme
-        "ROSE" -> RoseColorScheme
-        "PURPLE" -> PurpleColorScheme
-        "DEVELOPER" -> DeveloperColorScheme
-        else -> if (isDark) FlameColorScheme else BeigeColorScheme
-    }.withThemedContainers(isDarkThemeUsed)
+    val colorScheme = resolveColorScheme(themeOption, isDark).withThemedContainers(isDarkThemeUsed)
 
     val view = LocalView.current
     if (!view.isInEditMode) {

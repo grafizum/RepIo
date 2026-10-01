@@ -46,7 +46,30 @@ val DarkSurfaceVariant = Color(0xFF1B1B1F) // second layer: nested blocks, wells
 val DarkSurfaceHigh = Color(0xFF232327) // third layer: chips, inputs, thumbs
 val DarkSurfaceHighest = Color(0xFF2B2B30) // fourth layer: pressed/dragged states
 val DarkHairline = Color(0xFF2E2E33) // 1dp edge on cards — cheap "glass" rim
-val DarkBorder = Color(0xFF2C2C2C) // structural separators (kept, was the old border)
+
+/**
+ * Structural separators. Was #2C2C2C, which measured 1.32:1 on a card and
+ * 1.39:1 on the canvas - the borders, dividers and card rims that carry most of
+ * the "graphical information" in a dark UI were all but invisible. 1.5:1 is the
+ * floor below which a divider is not doing its job; this sits just above it
+ * (1.63 / 1.72 / 1.52 against surface / background / surfaceVariant) so it still
+ * reads as a quiet rim rather than a drawn line.
+ */
+val DarkBorder = Color(0xFF3A3A40)
+
+/**
+ * The label colour for a filled primary button, across EVERY dark theme.
+ *
+ * White was the value everywhere, and on a saturated primary it is the worst
+ * pair on the screen: 2.82:1 on flame, 3.14:1 on purple, 2.38:1 on ocean,
+ * 3.06:1 on rose, 3.14:1 on rainbow. A warm near-black clears all of them
+ * (6.0-8.0:1) and stays in the same warm family as the surfaces, where flat
+ * black would read as a hole punched through the button.
+ *
+ * Developer is the one dark theme this does not apply to: its primary is white,
+ * so its label is already black at 21:1.
+ */
+val DarkOnPrimary = Color(0xFF1A0E00)
 
 val TextPrimary = Color(0xFFFFFFFF) // Pure white
 val TextSecondary = Color(0xFFE6E6E9) // Light gray for secondary text

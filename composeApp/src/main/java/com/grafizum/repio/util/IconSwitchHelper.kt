@@ -21,6 +21,32 @@ object IconSwitchHelper {
     private const val DEVELOPER_ICON_FQN = "com.grafizum.repio.MainActivityRetro"
     private const val BASE_ICON_FQN = "com.grafizum.repio.MainActivity"
 
+    /**
+     * The theme whose launcher activity the MANIFEST enables. A manifest can only
+     * enable one of them, and this is the one it does, so this is also the theme
+     * a fresh install shows before RepIoApplication has run.
+     *
+     * It is deliberately NOT orange, even though `<application android:icon>` is
+     * `@mipmap/ic_launcher_orange`: the application icon is what a launcher shows
+     * before any launcher-enabled activity exists, while the enabled activity's
+     * own icon wins afterwards. Keeping the two different is how the manifest ends
+     * up disagreeing with itself, so the enabled activity is the one that counts.
+     */
+    const val MANIFEST_DEFAULT_THEME = "BEIGE"
+
+    /**
+     * The theme a fresh install should start on: Flame on a dark system, Beige on
+     * a light one.
+     *
+     * This only decides the APP THEME. It does not decide whether the icon has a
+     * dark or a light plate - Android does that, from the system night setting,
+     * by resolving `mipmap-night-anydpi-v26/` over `mipmap-anydpi-v26/`. On a
+     * dark phone EVERY theme shows its dark-plate icon, which is correct and is
+     * not something a theme choice can override.
+     */
+    fun defaultThemeFor(isSystemDark: Boolean): String =
+        if (isSystemDark) "FLAME" else MANIFEST_DEFAULT_THEME
+
     fun switchIcon(context: Context, themeKey: String, killApp: Boolean = true) {
         val packageManager = context.packageManager
         val packageName = context.packageName

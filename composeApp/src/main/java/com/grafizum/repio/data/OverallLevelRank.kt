@@ -36,18 +36,16 @@ object OverallLevelRank {
     enum class Letter(
         val label: String,
         val minLevel: Double,
-        val descriptionKey: String,
-        /** The skill-tier word the rank table shows beside the letter. */
-        val tier: String
+        val descriptionKey: String
     ) {
-        E("E", 1.0, "rank_e_desc", "Novice"),
-        D("D", 2.0, "rank_d_desc", "Beginner"),
-        C("C", 3.0, "rank_c_desc", "Intermediate"),
-        B("B", 4.0, "rank_b_desc", "Advanced"),
-        A("A", 5.0, "rank_a_desc", "Proficient"),
-        S("S", 6.0, "rank_s_desc", "Elite"),
-        SS("SS", 7.0, "rank_ss_desc", "Master"),
-        SS_PLUS("SS+", 8.0, "rank_ss_plus_desc", "Legend");
+        E("E", 1.0, "rank_e_desc"),
+        D("D", 2.0, "rank_d_desc"),
+        C("C", 3.0, "rank_c_desc"),
+        B("B", 4.0, "rank_b_desc"),
+        A("A", 5.0, "rank_a_desc"),
+        S("S", 6.0, "rank_s_desc"),
+        SS("SS", 7.0, "rank_ss_desc"),
+        SS_PLUS("SS+", 8.0, "rank_ss_plus_desc");
 
         /** The next rank up, or null for the open-ended top tier. */
         fun next(): Letter? = entries.getOrNull(ordinal + 1)
@@ -72,7 +70,6 @@ object OverallLevelRank {
         val progressToNext: Double
     ) {
         val letter: String get() = rank.label
-        val tier: String get() = rank.tier
         val minLevel: Double get() = rank.minLevel
         val nextLevel: Double? get() = rank.next()?.minLevel
 

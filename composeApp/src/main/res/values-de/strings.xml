@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">RepIo</string>
     <string name="smart_workout_assistant">Startseite</string>
-    <string name="settings">Einstellungen</string>
+<string name="settings">Einstellungen</string>
     <string name="todays_workout">HEUTIGES TRAINING</string>
     <string name="workout_routine">Trainingsplan</string>
     <string name="rest_day_active">Ruhetag. Aktive Erholung &amp; Mobilität.</string>
@@ -15,18 +15,18 @@
 
     <!-- TODO(i18n): values are English placeholders so the locale files keep their key
          parity (lint fails on a key that exists only in values/). Replace with German. -->
-    <string name="overall_level_label">Overall Level</string>
+    <string name="overall_level_label">Gesamtniveau</string>
     <string name="overall_level_format">L.%1$.1f</string>
     <string name="overall_level_none">—</string>
-    <string name="overall_level_not_ready">Train 5+ exercises to unlock</string>
-    <string name="overall_level_help">Your overall level is the average of the strength exercises you train, weighted by how recently you trained them. Train at least 5 different exercises to unlock it.</string>
-    <string name="overall_level_short">This is your average exercise level across all the strength exercises you train. Higher means you are training at harder levels.</string>
-    <string name="overall_level_gpa_lead">Your overall level is like a GPA for strength training. It is worked out by:</string>
-    <string name="overall_level_gpa_step_1">Looking at every strength exercise you have trained.</string>
-    <string name="overall_level_gpa_step_2">Taking your current level for each one — a level 5 bench press, a level 3 squat.</string>
-    <string name="overall_level_gpa_step_3">Averaging them together, with the exercises you trained most recently counting for more.</string>
-    <string name="overall_level_gpa_example">The five examples below average to L.%1$.1f.</string>
-    <string name="overall_level_gpa_outro">This number shows your overall progress at a glance. As you train more exercises and move them up, it rises.</string>
+    <string name="overall_level_not_ready">Train 5+ Übungen zum Freischalten</string>
+    <string name="overall_level_help">Dein Gesamtniveau ist der Durchschnitt der Kraftübungen, die du trainierst, gewichtet danach, wie kürzlich du sie trainiert hast. Trainiere mindestens 5 verschiedene Übungen, um es freizuschalten.</string>
+    <string name="overall_level_short">Dies ist dein durchschnittliches Übungsniveau über alle Kraftübungen, die du trainierst. Höher bedeutet, dass du auf anspruchsvolleren Stufen trainierst.</string>
+    <string name="overall_level_gpa_lead">Dein Gesamtniveau ist wie ein GPA für das Krafttraining. Es wird so berechnet:</string>
+    <string name="overall_level_gpa_step_1">Man schaut sich jede Kraftübung an, die du trainiert hast.</string>
+    <string name="overall_level_gpa_step_2">Man nimmt deine aktuelle Stufe jeder Übung — ein Bankdrücken auf Stufe 5, ein Kniebeugen auf Stufe 3.</string>
+    <string name="overall_level_gpa_step_3">Man bildet den Durchschnitt, wobei die zuletzt trainierten Übungen stärker zählen.</string>
+    <string name="overall_level_gpa_example">Die fünf Beispiele unten ergeben im Durchschnitt L.%1$.1f.</string>
+    <string name="overall_level_gpa_outro">Diese Zahl zeigt deinen Gesamtfortschritt auf einen Blick. Sie steigt, je mehr Übungen du trainierst und je höher ihre Stufe wird.</string>
 
     <!-- Level system on/off dialogs. -->
     <string name="level_system_off_title">Level-System ausschalten?</string>
@@ -35,45 +35,45 @@
     <string name="level_system_on_title">Level-System wieder einschalten?</string>
     <string name="level_system_on_msg">Das Level jeder Übung wird an das Gewicht angepasst, das du zuletzt tatsächlich dafür verwendet hast, damit die Vorgaben dort weitermachen, wo dein Training aufgehört hat.</string>
     <string name="level_system_on_confirm">Einschalten &amp; Level synchronisieren</string>
-    <string name="rank_system_guide_title">Ranks (E → SS+)</string>
-    <string name="rank_system_guide_desc">Every rank in one picture</string>
-    <string name="rank_label_format">Rank %1$s</string>
+    <string name="rank_system_guide_title">Ränge (E → SS+)</string>
+    <string name="rank_system_guide_desc">Alle Ränge auf einen Blick</string>
+    <string name="rank_label_format">Rang %1$s</string>
     <string name="rank_badge_content_desc">Gesamtrang %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
-    <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
-    <string name="rank_tooltip_progress">%1$d%% to Rank %2$s</string>
-    <string name="rank_tooltip_top">Top rank reached</string>
+    <string name="rank_tooltip_level">Gesamtniveau: %1$.1f (Rang %2$s)</string>
+    <string name="rank_tooltip_progress">%1$d%% bis Rang %2$s</string>
+    <string name="rank_tooltip_top">Höchster Rang erreicht</string>
     <plurals name="overall_level_exercises_pl" tools:ignore="UnusedResources">
-        <item quantity="one">Based on %1$d strength exercise</item>
-        <item quantity="other">Based on %1$d strength exercises</item>
+        <item quantity="one">Basierend auf %1$d Kraftübung</item>
+        <item quantity="other">Basierend auf %1$d Kraftübungen</item>
     </plurals>
-    <string name="rank_e_desc">Getting started — every rep from here counts.</string>
-    <string name="rank_d_desc">Foundations are forming. Consistency is starting to show.</string>
-    <string name="rank_c_desc">Solid and steady — you are past the beginner curve.</string>
-    <string name="rank_b_desc">Noticeably strong — past the gym average.</string>
-    <string name="rank_a_desc">Advanced territory. This took months of showing up.</string>
-    <string name="rank_s_desc">Elite — stronger than most people you train next to.</string>
-    <string name="rank_ss_desc">Exceptional. Very few lifters get here.</string>
-    <string name="rank_ss_plus_desc">The top tier — sustained strength across your whole program.</string>
+    <string name="rank_e_desc">Am Anfang — jede Wiederholung hier zählt.</string>
+    <string name="rank_d_desc">Die Grundlagen entstehen. Regelmäßigkeit zeigt sich.</string>
+    <string name="rank_c_desc">Solide und beständig — du bist hinter der Anfängerkurve.</string>
+    <string name="rank_b_desc">Deutlich stark — über dem Durchschnitt im Studio.</string>
+    <string name="rank_a_desc">Fortgeschrittenes Niveau. Das hat Monate regelmäßigen Trainings gekostet.</string>
+    <string name="rank_s_desc">Elite — stärker als die meisten, mit denen du trainierst.</string>
+    <string name="rank_ss_desc">Außergewöhnlich. Sehr wenige trainieren bis hierher.</string>
+    <string name="rank_ss_plus_desc">Die höchste Stufe — gehaltene Stärke im ganzen Programm.</string>
 
     <!-- TODO(i18n): English placeholders, so the locale files keep their key parity
          (lint fails on a key that exists only in values/). Replace with German. -->
-    <string name="overall_level_how_title">How your Overall Level works</string>
-    <string name="overall_level_guide_desc">The Overall Level in one picture</string>
-    <string name="instructions_title">Instructions</string>
-    <string name="guide_onboarding_intro">Two short pictures: how levels and stages move you up, and how your Overall Level adds them all together.</string>
-    <string name="overall_level_see_how">How it works</string>
-    <string name="overall_level_progress_format">%1$d of %2$d strength exercises</string>
-    <string name="overall_level_step_measure_title">It is your average level</string>
-    <string name="overall_level_step_measure_caption">Every strength exercise you train has its own level. Your Overall Level is where you sit on average across them.</string>
-    <string name="overall_level_step_recency_title">Recent sessions count more</string>
-    <string name="overall_level_step_recency_caption">An exercise trained today counts fully. One from 30 days ago counts half.</string>
-    <string name="overall_level_step_where_title">It appears on Home</string>
-    <string name="overall_level_step_where_caption">Once you have trained 5 different strength exercises, your Overall Level shows up on the Home screen.</string>
-    <string name="overall_level_recency_today">Today</string>
-    <string name="overall_level_recency_month">30 days ago</string>
-    <string name="overall_level_recency_two_months">60 days ago</string>
+    <string name="overall_level_how_title">So funktioniert dein Gesamtniveau</string>
+    <string name="overall_level_guide_desc">Das Gesamtniveau auf einen Blick</string>
+    <string name="instructions_title">Anleitung</string>
+    <string name="guide_onboarding_intro">Zwei kurze Bilder: wie dich Stufen und Etappen nach oben bringen und wie dein Gesamtniveau alles zusammenzählt.</string>
+    <string name="overall_level_see_how">So funktioniert es</string>
+    <string name="overall_level_progress_format">%1$d von %2$d Kraftübungen</string>
+    <string name="overall_level_step_measure_title">Es ist deine Durchschnittsstufe</string>
+    <string name="overall_level_step_measure_caption">Jede Kraftübung, die du trainierst, hat ihre eigene Stufe. Dein Gesamtniveau ist dein Durchschnitt über alle davon.</string>
+    <string name="overall_level_step_recency_title">Zuletzt trainierte Einheiten zählen mehr</string>
+    <string name="overall_level_step_recency_caption">Eine heute trainierte Übung zählt voll. Eine von vor 30 Tagen zählt zur Hälfte.</string>
+    <string name="overall_level_step_where_title">Es erscheint auf der Startseite</string>
+    <string name="overall_level_step_where_caption">Sobald du 5 verschiedene Kraftübungen trainiert hast, erscheint dein Gesamtniveau auf der Startseite.</string>
+    <string name="overall_level_recency_today">Heute</string>
+    <string name="overall_level_recency_month">vor 30 Tagen</string>
+    <string name="overall_level_recency_two_months">vor 60 Tagen</string>
     <string name="overall_level_weight_multiplier">%1$s&#215;</string>
     <string name="this_set_label">DIESER SATZ</string>
     <string name="stage_progress_format">Stufe %1$s von %2$s</string>
@@ -81,8 +81,8 @@
     <string name="level_prescription_label">DIESES LEVEL</string>
     <string name="edit_routine">Übung bearbeiten</string>
     <plurals name="sets_planned_pl">
-        <item quantity="one">%1$d set</item>
-        <item quantity="other">%1$d sets</item>
+        <item quantity="one">%1$d Satz</item>
+        <item quantity="other">%1$d Sätze</item>
     </plurals>
     <string name="total_sets_short">SÄTZE</string>
     <string name="sets_logged">Sätze gespeichert</string>
@@ -139,7 +139,7 @@
     <string name="confirm_timer_change_msg">Das Ändern dieser Einstellung aktualisiert den Standard-Timer für zukünftige Workouts.</string>
     <string name="timer_override_warning">Warnung: Dies wird auch die Timer für alle Übungen in deinem aktuell erstellten Workout überschreiben!</string>
 
-    <string name="support">Support</string>
+    <string name="support">Unterstützung</string>
     <string name="today">Heute</string>
     <string name="skip">Überspringen</string>
     <string name="skip_timer">Timer überspringen</string>
@@ -215,11 +215,6 @@
     <string name="equipment">Geräte</string>
     <string name="equipment_filter_hint">Wähle die Geräte, die dein Plan verwenden darf — leer lassen, um alle beizubehalten.</string>
     <string name="equipment_all">Alle</string>
-    <string name="recommend_filters_open">Übungsvorschläge anzeigen…</string>
-    <string name="recommend_filters_active">Vorschläge gefiltert · %1$d Treffer</string>
-    <string name="recommend_filters_title">Übungsvorschläge</string>
-    <string name="recommend_filters_desc">Optional: Grenze ein, welche Übungen unten vorgeschlagen werden. Du kannst jederzeit jede Übung manuell eintippen.</string>
-    <string name="recommend_apply">Fertig</string>
     <string name="any_muscle_group">Alle</string>
     <string name="copy_day_title">%1$s kopieren</string>
     <string name="copy_day_desc">Alle Übungen von %1$s auf einen anderen Tag kopieren:</string>
@@ -272,7 +267,7 @@
     <string name="save_weight">Gewicht speichern</string>
     <string name="custom">Eigene</string>
     <string name="editor">Editor</string>
-    <string name="workout">Edit</string>
+    <string name="workout">Bearbeiten</string>
     <string name="trained_muscles">Muskelgruppe</string>
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein Krafttraining für %1$s geplant. Aktives Gehen oder leichte Mobilität empfohlen!</string>
@@ -293,6 +288,15 @@
     <string name="next_up_exercise" tools:ignore="PluralsCandidate">%1$s (%2$d Sätze)</string>
     <string name="log_current_set_parameters">Satz-Parameter speichern</string>
     <string name="weight">Gewicht</string>
+    <string name="load_unit_pin">Stift</string>
+    <string name="load_unit_band">Band</string>
+    <string name="band_tension_very_light">Sehr leicht</string>
+    <string name="band_tension_light">Leicht</string>
+    <string name="band_tension_medium">Mittel</string>
+    <string name="band_tension_heavy">Schwer</string>
+    <string name="band_tension_very_heavy">Sehr schwer</string>
+    <string name="progression_load_pin">Stift %1$s</string>
+    <string name="progression_load_band">%1$s-Band</string>
     <string name="reps_completed">Wdh. geschafft</string>
     <plurals name="reps_count">
         <item quantity="one">%1$d Wdh.</item>
@@ -300,7 +304,7 @@
     </plurals>
     <string name="log_set_x_next">SATZ %1$d SPEICHERN &amp; WEITER ➔</string>
     <string name="start_timer_x_and_log">START %1$ds TIMER &amp; SPEICHERN</string>
-    <string name="start_timer_x">START %1$ds TIMER</string>
+    <string name="start_timer_x">TIMER %1$d s STARTEN</string>
     <string name="program_name">Mein Training</string>
     <string name="description">Beschreibung</string>
     <string name="ex_description_generic">Konzentriere dich auf die Mind-Muscle-Connection. Führe die Bewegung kontrolliert und über den vollen Bewegungsradius aus, während du gezielt den %1$s anspannst.</string>
@@ -385,7 +389,7 @@
     <string name="demo_link_optional">Demo-Link (optional)</string>
     <string name="reset_program_title">Programm zurücksetzen?</string>
     <string name="reset_program_text">Dies stellt das ursprüngliche Trainingsprogramm wieder her.</string>
-    <string name="reset">Reset</string>
+    <string name="reset">Zurücksetzen</string>
     <string name="welcome_title">Willkommen zu deiner Fitness-Reise!</string>
     <string name="welcome_text">Richte deinen Trainingsplan ein. Wähle eine strukturierte Vorlage oder erstelle einen eigenen Split.</string>
     <string name="select_routine_type">Wähle Trainingsplan-Typ</string>
@@ -506,7 +510,7 @@
     <string name="ex_legs_generic">Beine</string>
     <string name="ex_flyes">Flys</string>
     <string name="ex_push_up">Liegestütze</string>
-    <string name="ex_chin_up">Chin-ups</string>
+    <string name="ex_chin_up">Klimmzüge</string>
     <string name="ex_bench_press">Bankdrücken</string>
     <string name="ex_military_press">Military Press</string>
     <string name="ex_shoulder_press">Schulterdrücken</string>
@@ -627,6 +631,14 @@
     <string name="equipment_tag_kettlebell">Kettlebell</string>
     <string name="equipment_tag_cable">Kabel</string>
     <string name="equipment_tag_machines">Maschinen</string>
+    <string name="equipment_tag_leg_press">Beinpresse</string>
+    <string name="equipment_tag_lat_pulldown">Latzugmaschine</string>
+    <string name="equipment_tag_smith">Smith-Maschine</string>
+    <string name="equipment_tag_leg_extension">Beinextensionsmaschine</string>
+    <string name="equipment_tag_leg_curl">Beincurler</string>
+    <string name="equipment_tag_chest_press_machine">Brustpressmaschine</string>
+    <string name="equipment_tag_seated_row">Rudergerät</string>
+    <string name="equipment_tag_none_required">Kein Equipment nötig</string>
     <string name="home_equipment_chair">Ich habe einen stabilen Stuhl</string>
     <string name="home_equipment_bench">Ich habe eine Trainingsbank</string>
     <string name="home_equipment_pullup_bar">Ich habe eine Klimmzugstange (Tür- oder Wandmontage)</string>
@@ -658,20 +670,23 @@
     <string name="choose_days">Trainingstage pro Woche</string>
     <string name="frequency_warning_1_day">1 Tag/Woche bringt minimale Vorteile — 2–3 Tage sind das empfohlene Minimum.</string>
     <string name="frequency_warning_7_day">7 Tage/Woche bergen ein hohes Übertraining-Risiko — 5–6 Tage sind das empfohlene Maximum.</string>
-    <string name="mastery_section_title">Deine Progressions-Möglichkeiten</string>
-    <string name="mastery_section_subtitle">Du hast das Limit einer oder mehrerer Übungen erreicht. Entscheide, wie es weitergeht.</string>
-    <string name="mastery_level_line">Level %1$d – Stufe %2$s</string>
-    <string name="mastery_ladder_complete">Der Progressionsweg dieser Variation ist komplett. Wähle einen Zweig, um weiterzukommen.</string>
     <string name="mastery_ceiling_default">Realistisches Leistungsmaximum erreicht.</string>
-    <string name="mastery_switch_later">Du kannst später jederzeit den Zweig wechseln.</string>
-    <string name="mastery_tag_new">Neue Variation</string>
-    <string name="mastery_tag_advanced">Fortgeschrittene Variation</string>
-    <string name="mastery_choose_path">Diesen Weg wählen</string>
-    <string name="mastery_keep_current">Diese Übung am Limit behalten</string>
     <string name="mastery_human_limit">Menschliches Limit erreicht</string>
-    <string name="mastery_human_limit_text">Du hast das realistische Maximum für %1$s erreicht. Weiterer Fortschritt gelingt am besten über andere Bewegungen oder Ziele.</string>
     <string name="mastery_focus_on">Fokus auf:</string>
     <string name="mastery_acknowledge">Verstanden – Übung am Limit behalten</string>
+
+    <string name="evolution_title">Diese Übung hat sich weiterentwickelt</string>
+    <string name="evolution_subtitle">Diese Übung ist durch. Hier bist du, und hier kann sie als Nächstes hingehen.</string>
+    <string name="evolution_heading_before">Du bist hier</string>
+    <string name="evolution_heading_after">Sie wird zu</string>
+    <string name="evolution_level_of_max">Level %1$d von %2$d</string>
+    <string name="evolution_path_ahead">Weiterer Weg:</string>
+    <string name="evolution_accept">Weiterentwickeln</string>
+    <string name="evolution_not_now">Später</string>
+    <string name="evolution_decline">Diese Übung behalten und hier sperren</string>
+    <string name="evolution_decline_warns">Die Sperre hält diese Übung auf deinem höchsten Level. Du kannst sie später beim Bearbeiten dieser Übung trotzdem aufrüsten.</string>
+    <string name="evolution_locked_badge">Gesperrt am Limit – Aufrüsten</string>
+        <string name="evolution_locked_upgrade">Aufrüsten</string>
 
     <string name="additional_preferences">Weitere Vorlieben</string>
     <string name="include_exercises">Spezifische Übungen einschließen</string>
@@ -826,7 +841,6 @@
     <string name="progression_stage_target">Ziel: %1$s</string>
     <string name="progression_load_each">%1$s kg pro Hantel</string>
     <string name="progression_load_kg">%1$s kg</string>
-    <string name="progression_load_steps">%1$s Schritte</string>
     <string name="progression_duration_value">%1$s s</string>
     <string name="level_system_guide_title">Wie Level &amp; Stufen funktionieren</string>
     <string name="level_system_guide_desc">Das Level-System in einem Bild</string>
@@ -854,6 +868,8 @@
     <string name="level_details_intro">Tippe auf ein Level, um dorthin zu wechseln. Jede Zeile zeigt das Gewicht bzw. die Variante und die Wiederholungen der ersten Stufe.</string>
     <string name="level_details_current">aktuell</string>
     <string name="level_lock_title">Auf diesem Level bleiben</string>
+    <string name="exercise_edit_desc">Übungslevel bearbeiten</string>
+    <string name="exercise_commit_desc">Level speichern und fixieren</string>
     <string name="exercise_lock_desc">Übung auf dem aktuellen Level und der aktuellen Stufe sperren</string>
     <string name="exercise_unlock_desc">Übung entsperren, um sie wieder zu bewegen</string>
     <string name="level_details_locked_hint">Diese Übung ist gesperrt — entsperre sie auf der Karte, um das Level zu wechseln.</string>
@@ -875,9 +891,30 @@
     <string name="custom_mode_body">Sätze, Wiederholungen, Gewicht und Intensität sind Teil des Levelsystems. Diese Übung auf benutzerdefiniert umstellen, um sie selbst zu bearbeiten?</string>
     <string name="custom_mode_confirm">Zu Benutzerdefiniert wechseln</string>
     <string name="level_fields_locked_hint">Vom Level-System verwaltet. Wechsle zu „Eigene“, um hier Änderungen zu machen.</string>
+    <string name="level_fields_locked_toast">Wechsle zu „Eigene“, um das zu ändern.</string>
+    <string name="level_pencil_hint">Tippe zuerst auf den Stift, um dieses Level zu bearbeiten.</string>
     <string name="level_guide_onboarding_title">Neu! Level-System</string>
     <string name="level_guide_cta_got_it">Verstanden</string>
     <string name="level_guide_reassurance">Deine ersten Level stammen aus der Entscheidung für Leicht / Mittel / Schwer im nächsten Schritt und können sich anfangs etwas falsch anfühlen — passe sie an, sobald du trainierst. Danach bringt dich jede abgeschlossene Übung automatisch nach oben.</string>
 
 
+    <string name="split_style_title">Wie du deine Woche aufbaust</string>
+    <string name="split_style_a_title">Option A — Ausgewogene Frequenz</string>
+    <string name="split_style_a_desc">Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.</string>
+    <string name="split_style_a_best_for">Am besten für: Einsteiger</string>
+    <string name="split_style_b_title">Option B — Oberkörper im Fokus</string>
+    <string name="split_style_b_desc">Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.</string>
+    <string name="split_style_b_best_for">Am besten für: Oberkörper-Hypertrophie</string>
+    <string name="split_style_c_title">Option C — Hybrid</string>
+    <string name="split_style_c_desc">Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.</string>
+    <string name="split_style_c_best_for">Am besten für: Fortgeschrittene</string>
+    <string name="split_style_leg_days">Beintage: %1$d</string>
+    <string name="split_style_week_of">%1$d Tage pro Woche: %2$s</string>
+    <string name="session_full_body">Ganzkörper</string>
+    <string name="session_upper">Oben</string>
+    <string name="session_push">Drücken</string>
+    <string name="session_pull">Ziehen</string>
+    <string name="session_lower">Unten</string>
+    <string name="session_arms_core">Arme &amp; Core</string>
+    <string name="session_weak_point">Schwachstellen</string>
 </resources>

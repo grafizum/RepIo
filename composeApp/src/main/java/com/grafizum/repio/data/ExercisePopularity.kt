@@ -38,7 +38,7 @@ object ExercisePopularity {
         "Barbell Curl", "Barbell Hip Thrust", "Barbell Shrug",
         "Barbell Lunge", "Barbell Reverse Lunge", "Front Squat",
         "Close-Grip Bench Press", "Barbell Calf Raise",
-        "Barbell Front Raise", "Barbell Rear Delt Row", "Barbell Upright Row",
+        "Barbell Front Raise", "Rear Delt Row (Barbell)", "Barbell Upright Row",
         "Good Morning", "Clean and Jerk", "Hang Clean",
         // --- Dumbbell ---
         "Bent-Over Dumbbell Row", "Dumbbell Hammer Curl", "Dumbbell Fly",
@@ -59,7 +59,7 @@ object ExercisePopularity {
         "Dead Bug", "Decline Push-Up", "Incline Push-Up",
         "Bodyweight Overhead Press",
         // --- Kettlebell ---
-        "Goblet Squat", "Kettlebell Swing", "Kettlebell Bulgarian Split Squat",
+        "Goblet Squat", "Kettlebell Swing", "Bulgarian Split Squat (Kettlebell)",
         "Kettlebell Reverse Lunge",
         // --- Bands (the category's real staples) ---
         "Band Pull Apart", "Banded Squat",

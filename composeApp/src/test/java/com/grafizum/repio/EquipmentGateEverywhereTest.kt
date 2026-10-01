@@ -110,9 +110,14 @@ class EquipmentGateEverywhereTest {
         // Bent-Over Barbell Row must survive as a row, not vanish.
         val sub = WorkoutTemplates.substituteExercise("Bent-Over Barbell Row", noBarbellKit)
         assertTrue("expected a row substitution, got null", sub != null)
+        // The intent is "the MOVEMENT survives", not one specific row: the
+        // chain walks Bent-Over Barbell Row -> Chest-Supported Dumbbell Row ->
+        // Bent-Over Dumbbell Row -> Seated Cable Row, and the first rung the kit
+        // can actually do is the answer. Pinning one row name here broke
+        // whenever the chain or the pool changed, without any behaviour change.
         assertTrue(
             "expected the substitution to stay a row, got $sub",
-            sub!!.contains("Row")
+            sub!!.contains("Row", ignoreCase = true)
         )
         assertTrue(
             ExerciseEquipmentTags.isAvailable(sub, granted(noBarbellKit))

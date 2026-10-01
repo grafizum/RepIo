@@ -113,8 +113,24 @@ object ExerciseLocalization {
      */
     fun allNamesFor(canonicalName: String): List<String> {
         val slug = slugify(canonicalName)
-        if (slug.isEmpty()) return listOf(canonicalName)
-        return listOf(canonicalName) + TABLES.values.mapNotNull { it[slug]?.name }
+        val base = if (slug.isEmpty()) listOf(canonicalName)
+        else listOf(canonicalName) + TABLES.values.mapNotNull { it[slug]?.name }
+        // The name the exercise had before the generalization answers here too.
+        // "Smith Machine Squat" no longer appears in the pool, but that is how
+        // people - and the muscle memory of every user who built a routine
+        // before the update - still ask for it, and a search that stopped
+        // finding it would look like the exercise had been deleted.
+        return base + previousNamesFor(canonicalName)
+    }
+
+    /**
+     * The pre-generalization names of [canonicalName], if it was renamed.
+     */
+    fun previousNamesFor(canonicalName: String): List<String> =
+        previousNames[canonicalName] ?: emptyList()
+
+    private val previousNames: Map<String, List<String>> by lazy {
+        ExerciseCatalog.RENAMED.entries.groupBy({ it.value }, { it.key })
     }
 
     /**
@@ -134,6 +150,11 @@ object ExerciseLocalization {
      * Canonical names are inserted first and translations only fill the gaps, so a
      * translated name that happens to share a slug with *some* pool exercise can never
      * re-point that slug at a different exercise.
+     *
+     * The pre-generalization names come in last, for the same reason plus one more:
+     * a routine logged before the rename stores "Smith Machine Squat", and that row
+     * has to keep resolving to the same exercise - its equipment, its muscle and its
+     * history - instead of falling out of the pool.
      */
     private val index: Map<String, String> by lazy {
         val pool = WorkoutTemplates.getAllExerciseNames()
@@ -141,6 +162,11 @@ object ExerciseLocalization {
         for (canonical in pool) {
             val slug = slugify(canonical)
             if (slug.isNotEmpty()) map[slug] = canonical
+        }
+        for ((oldName, newName) in ExerciseCatalog.RENAMED) {
+            val target = map[slugify(newName)] ?: continue
+            val oldSlug = slugify(oldName)
+            if (oldSlug.isNotEmpty() && oldSlug !in map) map[oldSlug] = target
         }
         for (canonical in pool) {
             val slug = slugify(canonical)

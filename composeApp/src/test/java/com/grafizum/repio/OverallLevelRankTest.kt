@@ -81,12 +81,12 @@ class OverallLevelRankTest {
 
     @Test
     fun everyTierIsVisuallyDistinct() {
-        // Two ranks sharing a metal would make the badge ambiguous — the whole
-        // point of the letter is that it is readable at a glance.
-        val tiers = OverallLevelRank.ORDERED.map { it.tier }
-        assertEquals("tiers must be one per rank, got $tiers", tiers.distinct().size, tiers.size)
-
+        // The badge is the LETTER in the theme's primary colour — there is no
+        // colour ramp behind it any more (the owner had the drawn crest removed),
+        // so the letters themselves are the only thing telling two ranks apart,
+        // and that has to hold for all eight.
         val letters = OverallLevelRank.ORDERED.map { it.label }
+        assertEquals("letters must be one per rank, got $letters", letters.distinct().size, letters.size)
         assertEquals(listOf("E", "D", "C", "B", "A", "S", "SS", "SS+"), letters)
     }
 

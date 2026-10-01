@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">RepIo</string>
     <string name="smart_workout_assistant">Home</string>
-    <string name="settings">Settings</string>
+<string name="settings">Settings</string>
     <string name="todays_workout">TODAY\'S WORKOUT</string>
     <string name="workout_routine">Workout Routine</string>
     <string name="rest_day_active">Rest day active. Active recovery &amp; mobility.</string>
@@ -222,11 +222,6 @@
     <string name="equipment">Equipment</string>
     <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
-    <string name="recommend_filters_open">Get exercise suggestions…</string>
-    <string name="recommend_filters_active">Suggestions filtered · %1$d matches</string>
-    <string name="recommend_filters_title">Exercise suggestions</string>
-    <string name="recommend_filters_desc">Optional: narrow which exercises are suggested below. You can always type any exercise manually.</string>
-    <string name="recommend_apply">Done</string>
     <string name="any_muscle_group">Any</string>
     <string name="copy_day_title">Copy %1$s</string>
     <string name="copy_day_desc">Copy all exercises from %1$s to another day:</string>
@@ -303,6 +298,17 @@
     <string name="log_current_set_parameters">Save Current Set Parameters</string>
     <string name="guided_sets_prefix">3 sets ·</string>
     <string name="weight">Weight</string>
+    <!-- Load unit labels: not every exercise is loaded with weight. A selectorized
+         stack is counted in pins and a band in tension, and neither converts to kg. -->
+    <string name="load_unit_pin">Pin</string>
+    <string name="load_unit_band">Band</string>
+    <string name="band_tension_very_light">Very light</string>
+    <string name="band_tension_light">Light</string>
+    <string name="band_tension_medium">Medium</string>
+    <string name="band_tension_heavy">Heavy</string>
+    <string name="band_tension_very_heavy">Very heavy</string>
+    <string name="progression_load_pin">Pin %1$s</string>
+    <string name="progression_load_band">%1$s band</string>
     <string name="reps_completed">Reps Completed</string>
     <plurals name="reps_count" tools:ignore="UnusedResources">
         <item quantity="one">%1$d rep</item>
@@ -637,6 +643,17 @@
     <string name="equipment_tag_kettlebell">Kettlebell</string>
     <string name="equipment_tag_cable">Cables</string>
     <string name="equipment_tag_machines">Machines</string>
+    <!-- Selectorized stations. They are not selectable tiles (only "Machines"
+         is), but a full-gym kit stores every one of them, so they each need a
+         readable label wherever a stored tag is shown back to the user. -->
+    <string name="equipment_tag_leg_press">Leg press machine</string>
+    <string name="equipment_tag_lat_pulldown">Lat pulldown machine</string>
+    <string name="equipment_tag_smith">Smith machine</string>
+    <string name="equipment_tag_leg_extension">Leg extension machine</string>
+    <string name="equipment_tag_leg_curl">Leg curl machine</string>
+    <string name="equipment_tag_chest_press_machine">Chest press machine</string>
+    <string name="equipment_tag_seated_row">Seated row machine</string>
+    <string name="equipment_tag_none_required">No equipment needed</string>
     <string name="home_equipment_chair">I have a sturdy chair</string>
     <string name="home_equipment_bench">I have a weight bench</string>
     <string name="home_equipment_pullup_bar">I have a pull-up bar (doorway or wall-mounted)</string>
@@ -668,20 +685,25 @@
     <string name="choose_days">Training Days Per Week</string>
     <string name="frequency_warning_1_day">1 day/week gives minimal benefits — 2–3 days is the recommended minimum.</string>
     <string name="frequency_warning_7_day">7 days/week carries a high overtraining risk — 5–6 days is the recommended maximum.</string>
-    <string name="mastery_section_title">Your Progression Opportunities</string>
-    <string name="mastery_section_subtitle">You\'ve reached the limit of one or more exercises. Choose how to continue progressing.</string>
-    <string name="mastery_level_line">Level %1$d – Stage %2$s</string>
-    <string name="mastery_ladder_complete">This variation\'s progression path is complete. Pick a branch to keep climbing.</string>
     <string name="mastery_ceiling_default">Realistic human ceiling reached.</string>
-    <string name="mastery_switch_later">You can switch branches later if needed.</string>
-    <string name="mastery_tag_new">New Variation</string>
-    <string name="mastery_tag_advanced">Advanced Variation</string>
-    <string name="mastery_choose_path">Choose This Path</string>
-    <string name="mastery_keep_current">Keep this exercise at cap</string>
     <string name="mastery_human_limit">Human Limit Reached</string>
-    <string name="mastery_human_limit_text">You\'ve reached the realistic maximum for %1$s. Further progress is best pursued through other movements or goals.</string>
     <string name="mastery_focus_on">Focus on:</string>
     <string name="mastery_acknowledge">Understood – Keep This Exercise at Cap</string>
+
+    <!-- The evolution offer: "what it was" and "what it can become", both
+         drawn from the ladder the engine actually prescribes from. -->
+    <string name="evolution_title">This Exercise Has Evolved</string>
+    <string name="evolution_subtitle">You have finished this one. Here is where you are, and where it can go next.</string>
+    <string name="evolution_heading_before">You are here</string>
+    <string name="evolution_heading_after">It becomes</string>
+    <string name="evolution_level_of_max">Level %1$d of %2$d</string>
+    <string name="evolution_path_ahead">Path ahead:</string>
+    <string name="evolution_accept">Evolve</string>
+    <string name="evolution_not_now">Not now</string>
+    <string name="evolution_decline">Keep this exercise, lock it here</string>
+    <string name="evolution_decline_warns">Locking keeps this exercise at your top level. You can still upgrade it later from this exercise in the editor.</string>
+    <string name="evolution_locked_badge">Locked at max – Upgrade</string>
+        <string name="evolution_locked_upgrade">Upgrade</string>
 
     <string name="additional_preferences">Additional Preferences</string>
     <string name="include_exercises">Include specific exercises</string>
@@ -835,7 +857,6 @@
     <string name="progression_stage_target">Target: %1$s</string>
     <string name="progression_load_each">%1$s kg each</string>
     <string name="progression_load_kg">%1$s kg</string>
-    <string name="progression_load_steps">%1$s steps</string>
     <string name="progression_duration_value">%1$s s</string>
 
     <!-- Level system guide — Settings -->
@@ -863,6 +884,8 @@
     <string name="level_details_intro">Tap a level to switch to it. Each row shows the load or variation and the reps of its first stage.</string>
     <string name="level_details_current">current</string>
     <string name="level_lock_title">Stay on this level</string>
+    <string name="exercise_edit_desc">Edit this exercise level</string>
+    <string name="exercise_commit_desc">Save and lock in this level</string>
     <string name="exercise_lock_desc">Lock this exercise at its current level and stage</string>
     <string name="exercise_unlock_desc">Unlock this exercise to move it again</string>
     <string name="level_details_locked_hint">This exercise is locked — unlock it on the card to jump levels.</string>
@@ -886,10 +909,31 @@
     <string name="custom_mode_body">Sets, reps, weight and intensity are prescribed by the level system. Switch this exercise to Custom mode to edit them yourself?</string>
     <string name="custom_mode_confirm">Switch to Custom</string>
     <string name="level_fields_locked_hint">Managed by the level system. Switch to custom to make changes here.</string>
+    <string name="level_fields_locked_toast">Switch to custom to change this.</string>
+    <string name="level_pencil_hint">Tap the pencil first to edit this level.</string>
 
     <!-- Level guide onboarding -->
     <string name="level_guide_onboarding_title">New! Level System</string>
     <string name="level_guide_cta_got_it">Got it</string>
     <string name="level_guide_reassurance">Your first levels come from the Easy / Medium / Hard choice in the next step, and can feel a little off — adjust them once you are training. After that, every completed exercise moves you up automatically.</string>
 
+    <string name="split_style_title">How to organise your week</string>
+    <string name="split_style_a_title">Option A — Balanced frequency</string>
+    <string name="split_style_a_desc">Trains every major muscle the same number of times a week. Recommended.</string>
+    <string name="split_style_a_best_for">Best for: beginners</string>
+    <string name="split_style_b_title">Option B — Upper-body focus</string>
+    <string name="split_style_b_desc">Prioritises upper-body volume and isolation work. One dedicated leg day a week, whatever the day count.</string>
+    <string name="split_style_b_best_for">Best for: upper-body hypertrophy</string>
+    <string name="split_style_c_title">Option C — Hybrid</string>
+    <string name="split_style_c_desc">Full-body days mixed into a specialised week, for a different balance again.</string>
+    <string name="split_style_c_best_for">Best for: experienced lifters</string>
+    <string name="split_style_leg_days">Leg days: %1$d</string>
+    <string name="split_style_week_of">%1$d days a week: %2$s</string>
+    <string name="session_full_body">Full body</string>
+    <string name="session_upper">Upper</string>
+    <string name="session_push">Push</string>
+    <string name="session_pull">Pull</string>
+    <string name="session_lower">Lower</string>
+    <string name="session_arms_core">Arms &amp; core</string>
+    <string name="session_weak_point">Weak points</string>
 </resources>

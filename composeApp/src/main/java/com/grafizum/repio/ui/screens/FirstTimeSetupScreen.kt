@@ -64,6 +64,7 @@ import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.RepsTimeToggle
+import com.grafizum.repio.ui.components.SplitStyleSelector
 import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.CompactNumericField
 import com.grafizum.repio.ui.components.SearchableExerciseField
@@ -71,6 +72,10 @@ import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.AppDialog
 import com.grafizum.repio.ui.components.getExerciseDetails
 import com.grafizum.repio.ui.components.getMissingMuscleGroups
+import com.grafizum.repio.ui.components.loadFieldLabel
+import com.grafizum.repio.ui.components.loadFieldPlaceholder
+import com.grafizum.repio.ui.components.loadFieldSuffix
+import com.grafizum.repio.ui.components.loadFieldValueText
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -188,14 +193,30 @@ fun FirstTimeSetupScreen(
         "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"
     ) }
     val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
+    // What each of those days IS. Separate from how many there are: a 5-day
+    // week can be an upper/lower alternation or a push/pull/legs cycle, and the
+    // day picker alone never said which one you were getting.
+    var assistedSplitStyle by remember { mutableStateOf(WorkoutTemplates.SplitStyle.DEFAULT) }
     var assistedIntensity by remember { mutableStateOf("Medium") }
     var assistedDuration by remember { mutableStateOf(WorkoutTemplates.DURATION_STANDARD) }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
 
-    // Equipment types the build may use (empty = all)
-    var buildEquipment by remember { mutableStateOf(listOf<String>()) }
+    // Equipment types the build may use (empty = all).
+    //
+    // SEEDED FROM THE SAVED KIT. This started empty, so every time the user
+    // reopened the build screen it showed a blank equipment picker and Save
+    // wrote that blank back over `setup_equipment` — the user's kit was
+    // invisible and one routine rebuild could wipe it. An empty list is still
+    // a meaningful value ("no restriction"), so it is only used when nothing
+    // has ever been saved.
+    var buildEquipment by remember {
+        mutableStateOf(viewModel.savedEquipmentSelection().ifEmpty { listOf<String>() })
+    }
+    // What the picker showed on open. Save compares against this so an
+    // UNTOUCHED picker cannot overwrite the stored selection with a blank.
+    val buildEquipmentOnOpen = remember { buildEquipment }
 
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
 
@@ -249,11 +270,31 @@ fun FirstTimeSetupScreen(
     //   1 = custom: save the day-by-day routine built by hand.
     fun saveSelectedBuild() {
         viewModel.setWorkoutGoal(selectedWorkoutGoal)
+        // Never write a selection the user did not make. The equipment picker
+        // is seeded from storage now, so an UNCHANGED picker means "keep what I
+        // have" — passing it through anyway is what used to silently blank the
+        // kit on a routine rebuild.
+        val equipmentToSave =
+            if (buildEquipment == buildEquipmentOnOpen) viewModel.savedEquipmentSelection()
+            else buildEquipment
         if (selectedTab == 1) {
+            // The hand-built routine is gated by the SAME kit the assisted tab
+            // uses, and the selection is persisted with it. Saving a custom
+            // build without `equipment` was the last remaining way the week
+            // ignored the tiles: the prefill carries barbell staples, they were
+            // written through unfiltered, AND `setup_equipment` was overwritten
+            // with "" - so every later consumer (goal-change regeneration,
+            // template application, the pickers) read "no restriction" for the
+            // rest of the install.
             viewModel.completeFirstTimeSetup(
                 days = customDays.toList(),
                 exercises = customExercises.toList(),
-                setupType = "CUSTOM"
+                setupType = "CUSTOM",
+                bodyParts = assistedBodyParts.toList(),
+                selectedDays = assistedSelectedDays.toList(),
+                intensity = assistedIntensity,
+                equipment = equipmentToSave,
+                workoutDuration = assistedDuration
             )
             return
         }
@@ -264,8 +305,9 @@ fun FirstTimeSetupScreen(
             workoutGoal = selectedWorkoutGoal,
             includedExercises = assistedIncludedExercises.toList(),
             excludedExercises = assistedExcludedExercises.toList(),
-            equipment = buildEquipment,
-            duration = assistedDuration
+            equipment = equipmentToSave,
+            duration = assistedDuration,
+            splitStyle = assistedSplitStyle
         )
         viewModel.completeFirstTimeSetup(
             days = program.days,
@@ -274,8 +316,9 @@ fun FirstTimeSetupScreen(
             bodyParts = assistedBodyParts.toList(),
             selectedDays = assistedSelectedDays.toList(),
             intensity = assistedIntensity,
-            equipment = buildEquipment,
-            workoutDuration = assistedDuration
+            equipment = equipmentToSave,
+            workoutDuration = assistedDuration,
+            splitStyle = assistedSplitStyle.id
         )
     }
 
@@ -287,6 +330,7 @@ fun FirstTimeSetupScreen(
             initialDay = selectedDayInCustom,
             themeKey = themeOption,
             userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment),
+            userGrantedTags = equipmentFilterBlockGrantedTags(buildEquipment, viewModel),
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -619,8 +663,40 @@ fun FirstTimeSetupScreen(
                                                     Text(
                                                         text = getString(warningKey),
                                                         style = MaterialTheme.typography.labelSmall,
-                                                        color = MaterialTheme.colorScheme.error,
-                                                        modifier = Modifier.padding(top = 8.dp)
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                                    )
+                                                }
+                                                // 1b. WHAT EACH DAY IS - the other half of the
+                                                // week. Sits right under the day picker
+                                                // because it only makes sense against the
+                                                // day count just chosen, and each option
+                                                // spells out the run of days it produces so
+                                                // the week can be counted against the days
+                                                // picked above it.
+                                                HorizontalDivider(
+                                                    modifier = Modifier.padding(
+                                                        vertical = window.sectionSpacing
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.outlineVariant
+                                                )
+                                                // The title needs room to breathe before the
+                                                // first card: it is a label for the block
+                                                // below, not a caption on the divider.
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(
+                                                        window.sectionSpacing / 2
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        text = getString("split_style_title"),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    SplitStyleSelector(
+                                                        selected = assistedSplitStyle,
+                                                        daysPerWeek = assistedSelectedDays.size,
+                                                        onSelect = { assistedSplitStyle = it }
                                                     )
                                                 }
                                             }
@@ -693,7 +769,8 @@ fun FirstTimeSetupScreen(
                                             includedExercises = assistedIncludedExercises.toList(),
                                             excludedExercises = assistedExcludedExercises.toList(),
                                             equipment = buildEquipment,
-                                            duration = assistedDuration
+                                            duration = assistedDuration,
+                                            splitStyle = assistedSplitStyle
                                         ).exercises
                                     )
 
@@ -1193,6 +1270,7 @@ fun FirstTimeSetupScreen(
             // build's kit so a no-barbell builder never sees barbell swaps.
             userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment)
                 .ifEmpty { viewModel.userEquipmentCategories() },
+            userGrantedTags = equipmentFilterBlockGrantedTags(buildEquipment, viewModel),
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Drop the original and put the pick in its slot, keeping any demo
@@ -1319,6 +1397,23 @@ private fun WorkoutGoalBlock(
 fun EquipmentFilterBlockCategories(selectedEquipment: List<String>): List<String> =
     ExerciseEquipmentTags.coarseCategoriesFor(selectedEquipment)
 
+/**
+ * The builder's selection as the pickers' equipment gate should read it.
+ *
+ * The builder owns the fine tags, so this is a direct expansion — no coarse
+ * round trip, which would drop the chair/bench/bar grants the coarse chip
+ * vocabulary cannot express. Null = the user has not picked anything yet, which
+ * the gate reads as unrestricted.
+ */
+@Composable
+private fun equipmentFilterBlockGrantedTags(
+    selectedEquipment: List<String>,
+    viewModel: com.grafizum.repio.ui.viewmodel.WorkoutViewModel
+): Set<String>? =
+    ExerciseEquipmentTags.allowedTagsFor(selectedEquipment)
+        .takeIf { selectedEquipment.isNotEmpty() }
+        ?: viewModel.userGrantedEquipmentTags()
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EquipmentFilterBlock(
@@ -1332,6 +1427,10 @@ private fun EquipmentFilterBlock(
     val activePreset = selectedEquipment.firstOrNull {
         ExerciseEquipmentTags.isPreset(it) && it != ExerciseEquipmentTags.PRESET_CUSTOM
     }
+    // The stored vocabulary is FINER than the tile grid: eight selectorized
+    // stations sit behind the single "Machines" tile. They must NOT be folded
+    // away (the stations gate different exercises from MACHINE_OTHER), but
+    // they must not survive a tap either - see [ExerciseEquipmentTags.tagsCoveredByTile].
     val customTags: Set<String> = if (activePreset != null) {
         selectedEquipment.drop(1).filter { it in ExerciseEquipmentTags.ALL_TAGS }.toSet()
     } else {
@@ -1342,7 +1441,26 @@ private fun EquipmentFilterBlock(
     fun toggleTag(tag: String) {
         val base = (if (activePreset != null) ExerciseEquipmentTags.presetTags(activePreset) else customTags)
             .toMutableSet()
-        if (tag in base) base.remove(tag) else base.add(tag)
+        // Unticking a tile removes everything it stands for, not just the tile's
+        // own tag: the eight stations have no tile of their own, so "remove the
+        // tag the user can see" is the only way a machine the user no longer
+        // owns ever leaves the kit. This is what stopped the owner removing the
+        // machines he had never meant to grant.
+        if (tag in base) {
+            // Unticking removes the WHOLE family, not just the tile's own tag:
+            // the eight stations have no tile of their own, so "remove the tag
+            // the user can see" is the only way a machine the user no longer
+            // owns ever leaves the kit. This is what stopped the owner removing
+            // machines he had never meant to grant in the first place.
+            base.removeAll(ExerciseEquipmentTags.tagsCoveredByTile(tag))
+        } else {
+            // Ticking ADDS what the tile stands for - and for a rack that is the
+            // barbell tags too, because a rack is built around a barbell. This
+            // is the only tick that implies another tag: ticking "Machines" must
+            // not grant a leg press the user never ticked, which is why this
+            // goes through tagsGrantedByTicking rather than the family.
+            base.addAll(ExerciseEquipmentTags.tagsGrantedByTicking(tag))
+        }
         val ordered = base.sortedBy { ExerciseEquipmentTags.ALL_TAGS.indexOf(it) }
         onEquipmentChange(listOf(ExerciseEquipmentTags.PRESET_CUSTOM) + ordered)
     }
@@ -1361,14 +1479,14 @@ private fun EquipmentFilterBlock(
         EquipmentTileSection(
             title = getString("home_equipment_section"),
             tags = ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS,
-            isChecked = { tag -> tag in presetGranted },
+            isChecked = { tag -> presetGranted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tag) } },
             onToggle = { tag -> toggleTag(tag) }
         )
 
         EquipmentTileSection(
             title = getString("gym_equipment_section"),
             tags = ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS,
-            isChecked = { tag -> tag in presetGranted },
+            isChecked = { tag -> presetGranted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tag) } },
             onToggle = { tag -> toggleTag(tag) }
         )
     }
@@ -2171,13 +2289,23 @@ fun AddExerciseDialog(
      * The saved kit as coarse categories; the recommendation filters start on
      * it so a no-barbell setup never sees barbell suggestions by default.
      */
-    userEquipmentCategories: List<String> = emptyList()
+    userEquipmentCategories: List<String> = emptyList(),
+    /**
+     * The user's granted FINE tags when the host has them. The coarse list above
+     * has no category for a chair, a bench or a pull-up bar, so re-expanding it
+     * would silently drop grants the user actually ticked.
+     */
+    userGrantedTags: Set<String>? = null
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
-    var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
+    // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
+    // count, so it must not open the sheet as "20.0" (see the function's note).
+    var targetWeightValue by remember {
+        mutableStateOf(exercise?.targetWeightKg?.let { loadFieldValueText(name, it) } ?: "")
+    }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
     var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
@@ -2224,26 +2352,22 @@ fun AddExerciseDialog(
     var expandedDay by remember { mutableStateOf(false) }
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
-    // Same filters the replace dialog offers: a broad muscle group ("Legs" finds
-    // every leg exercise) plus equipment chips. They only narrow what the search
-    // field suggests; the stored muscle still comes from the exercise itself.
-    var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
-    // Chips start on the user's own kit, matching ExerciseEditDialog — the
-    // "unrestricted" default is what made the equipment setup look ignored.
-    var filterEquipment by remember(exercise?.id) {
-        mutableStateOf(userEquipmentCategories)
-    }
-    val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
+    // The suggestion filter popup was removed (dashboard task "The exercise
+    // suggestions tab is still broken. Remove it completely"). What remains is
+    // the one gate that is not a convenience: the user's own kit, matching
+    // ExerciseEditDialog. Suggestions must never offer bar-less moves to a
+    // dumbbells+chair setup, so the equipment restriction starts ON and there
+    // is no UI left to change it.
+    val filteredExercises = remember(allAvailableExercises, userEquipmentCategories, userGrantedTags) {
         com.grafizum.repio.ui.components.filteredExercisesForPickers(
-            allAvailableExercises, filterMuscleGroup, filterEquipment,
+            allAvailableExercises, null, userEquipmentCategories,
             // Fine-tag gate matching ExerciseEditDialog: the coarse Bodyweight
             // chip alone offered bar-less moves to a dumbbells+chair setup.
-            ExerciseEquipmentTags.allowedTagsFor(userEquipmentCategories)
-                .takeIf { userEquipmentCategories.isNotEmpty() }
+            // Preferred over re-expanding the coarse list, which drops the
+            // furniture and bar grants the chip vocabulary cannot express.
+            WorkoutTemplates.pickerGrantedTags(userGrantedTags, userEquipmentCategories)
         )
     }
-    val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
-    var showRecommendFilters by remember { mutableStateOf(false) }
 
     AppDialog(
         onDismissRequest = onDismiss,
@@ -2327,23 +2451,6 @@ fun AddExerciseDialog(
                                 }
                             )
                         }
-                    }
-                }
-
-                // RECOMMENDATION FILTERS — optional popup, add mode only. A user
-                // typing an exercise manually never sees filters; the popup only
-                // narrows what the name field suggests.
-                if (exercise == null) {
-                    OutlinedButton(
-                        onClick = { showRecommendFilters = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (filtersActive) getString("recommend_filters_active", filteredExercises.size)
-                            else getString("recommend_filters_open")
-                        )
                     }
                 }
 
@@ -2512,9 +2619,13 @@ fun AddExerciseDialog(
                     CompactNumericField(
                         value = targetWeightValue,
                         onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
-                        label = getString("target_weight"),
-                        placeholder = "20.0",
-                        suffix = { Text("kg", fontSize = 12.sp) },
+                        // The same three answers the routine editor gives, and
+                        // for the same reason: a selectorized stack counts pins
+                        // and a band counts tension, so "kg" here would ask the
+                        // user for a number that does not exist on their machine.
+                        label = loadFieldLabel(name),
+                        placeholder = loadFieldPlaceholder(name),
+                        suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) },
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
                     )
@@ -2552,25 +2663,7 @@ fun AddExerciseDialog(
             }
     }
 
-    // Optional recommendation popup (add mode only), stacked above the dialog.
-    if (showRecommendFilters && exercise == null) {
-        com.grafizum.repio.ui.components.ExerciseRecommendationFilterDialog(
-            filterMuscleGroup = filterMuscleGroup,
-            filterEquipment = filterEquipment,
-            filteredCount = filteredExercises.size,
-            onMuscleGroupChange = { filterMuscleGroup = it },
-            onEquipmentToggle = { key ->
-                filterEquipment = if (filterEquipment.contains(key)) filterEquipment - key
-                                  else filterEquipment + key
-            },
-            onReset = {
-                filterMuscleGroup = null
-                filterEquipment = emptyList()
-            },
-            onDismiss = { showRecommendFilters = false }
-        )
     }
-}
 
 @Composable
 fun OnboardingStepHeader(

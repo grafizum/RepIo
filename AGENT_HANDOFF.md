@@ -134,8 +134,13 @@ Recovered from the NTFS side (Windows user is `guido`):
 
 Project `project_4k096a683a6r0q3b700n3z5q` (`repio`), 49 tasks (48 done, 1 open).
 
-Agent token is **not** in the repo — read it from `~/.config/grafizum/agent.env`
-(`GRAFIZUM_DASHBOARD_TOKEN`, mode 600). Do not commit it.
+Agent token is **not** in the repo — read it from `.env` in the repo root
+(`GRAFIZUM_DASHBOARD_TOKEN`). **Use the `.env` copy, not `~/.config/grafizum/agent.env`** — the
+latter is revoked and, because the tools `setdefault` over `os.environ`, exporting it silently
+breaks every call with a 401 (2026-10-01). `.env` is gitignored; do not commit it.
+
+`GET /v1/tasks` paginates: `?project_id=...&limit=50&offset=N`, and the project holds **70**
+tasks, so one unpaginated read is 20 short. See "What was done (2026-10-01…)" below.
 
 ```
 GET    /v1/projects/{id}                 project record
@@ -234,17 +239,160 @@ The 471 resource keys reached through the helper are all defined, and all three 
   Check `dumpsys input_method | grep mInputShown` and send `keyevent 4` before tapping
   Speichern, or the tap lands on the IME. This cost several wasted round trips.
 
+## What was done (2026-09-30)
+
+Two things, one finished and one explicitly not.
+
+**1. Exercise translations, 195 -> 233 per language.** de and it are at exact parity
+(233 each, no slug in one and missing in the other), 401 unit tests green, and
+`tools/exercise-i18n/check.py` reports no duplicate names or descriptions. The batch
+took the whole remaining head of the app's own `POPULARITY` ranking, so the top ~100
+movements a user meets in their first weeks all carry German and Italian names and
+method text: push-up, pull-up, lat pulldown, inverted row, leg press, plank, side
+plank, both leg raises, mountain climber, jumping jack, sit-up, jump rope, incline
+press and fly, dumbbell fly and pullover, tricep extension, skull crusher, hammer
+curl, shoulder press, lateral and front raise, upright row, shrug, face pull, front
+squat, squat, lunge, split squat, hip thrust, glute bridge, good morning, hang clean,
+Nordic curl, goblet squat, swing. 369 remain per language, now the obscure tail.
+
+These were written as **coaching text, not literal glosses**. The English source
+descriptions are encyclopedia entries and a literal translation fills the app with
+English prose wearing a German accent; each new entry says what the movement is
+actually for. Coverage stays deliberately unasserted (see `AGENTS.md`), so a partial
+table is legitimate while the tail is written.
+
+**2. The push-up animation FAILED and is parked.** The owner asked for a short loop,
+watched it twice, and rejected it twice: first a quadruped, then a deformed figure.
+The owner then said to stop. **Do not pick this up by re-running the same approach.**
+
+The root cause is worth carrying forward: *an OpenPose skeleton contains no body* -
+no head size, no torso width, no limb thickness, no neck. Both attempts asked SDXL to
+invent a torso around a stick figure while prone, which is its worst case, and all
+601 approved library renders are upright, so nothing here is evidence the prone case
+was ever solved. Chaining each frame from the previous one (body inherited from the
+approved `goblet_squat` render, 0.55 img2img strength) did fix the drift -
+frame-to-frame change fell from ~7.6 to ~4.6 - but it cannot fix the first invention,
+and the first invention is the deformed one.
+
+Two process lessons, both of which the owner had to point out:
+
+- **A number that cannot come out the other way is not evidence.** The first clip was
+  reported as verified because the aspect ratio "reads as a plank" (1.60 vs 1.16). A dog
+  has that silhouette. The measurement that mattered - floor contacts, 2 vs 4 - was not
+  run until after the owner had already watched the gif.
+- **A partially-unread result must be reported as unread**, not as the part of it that
+  happens to support the conclusion.
+
+Zero bytes were downloaded for the animation: SDXL and ControlNet OpenPose were
+already cached (11.4 GB, from the Sep 14 probe in `~/sdgen`). The cache is still 12 GB
+with the same two repos. AnimateDiff was never installed, per the owner's explicit
+"i dont want to keep installing sht on my pc".
+
+What survives and is reusable: `enable_model_cpu_offload` **cannot** work on this
+machine - SDXL's UNet (5.1 GB fp16) and the SDXL ControlNet (2.5 GB) are both resident
+for the whole denoising loop, 7.6 GB of weights on a 7.7 GB card, so it dies around
+step 11 of 30 however the allocator is tuned. `enable_sequential_cpu_offload` streams
+the layers and fixes it. And in diffusers 0.40 `enable_vae_slicing` / `enable_vae_tiling`
+have moved onto the VAE itself, so the pipeline-level call raises `AttributeError`.
+
+---
+
+## What was done (2026-10-01, after the PC restart)
+
+The session's work was all uncommitted at the restart (43 modified + ~40 untracked files, HEAD
+still `ce01b6c`); the owner said **do not commit**, so it is still exactly that. Gradle's state
+survived the reboot — the suite re-ran as `UP-TO-DATE`, last full run 445 tests / 0 failures.
+
+**The phone came back, so today's unit-tested work was finally looked at.** It holds up:
+
+| Surface | Result |
+| --- | --- |
+| Home level card | `Overall rank C` renders at x=127, **left** of `L.3.5` — the reverted-crest placement works |
+| Analytics level card | same leading rank at x=127, so the two cards agree |
+| Level picker | opens at **Level 2** with Level 4 tagged `current` — `levelPickerInitialIndex`'s 2-row lead-in, i.e. the owner's "exercises below level 4 are not even shown" is fixed on hardware |
+| Active-set banner | `SET 1 OF 3` / `8 Reps` / `5 kg each` / `8 / 8 / 8 Reps` |
+| Locked fields | "Managed by the level system. Switch to custom to make changes here." |
+
+No crash in any logcat buffer across the sweep.
+
+**One real defect found by looking, not by reading: a pin count rendered as a decimal.** The edit
+sheet for Machine Chest Fly (a `stack_step` row) showed label `Pin`, no suffix — and value
+**`20.0`**, because the field was seeded with `Double.toString()`. Fixed with
+`loadFieldValueText` / `loadFieldPlaceholder`, and the **first-time-setup editor was still
+hardcoding `target_weight` / `"kg"` / `"0.0"`** — the second of the two editors, left behind
+when the first was fixed. Both now read the unit through the same helpers. 5 new cases in
+`LoadUnitTest` (451 total, green), verified non-vacuous by sabotaging `isCount` and watching two
+fail, and re-verified on the phone: the field now reads `20` under `Pin`.
+
+**Still NOT verified on hardware, deliberately:**
+
+- **`SplitStyleSelector`** — never seen on a device. Reaching the first-time-setup screen means
+  `is_first_time=false` → clearing app data, which would destroy the owner's real routine and two
+  completed workouts. Not done unilaterally. Backing the data up with `run-as` + tar and
+  restoring it afterwards is possible if the owner wants this checked.
+- **`EvolutionDialog`** — needs a finished progression to appear; logging sets would mutate the
+  owner's history.
+- **The night launcher icon** — needs the launcher, not the app.
+
+**Two threads that need the owner, not an agent:**
+
+- **The weak-point day.** `AGENTS.md` has called it "a genuine follow-up" since 2026-09-29, and it
+  is still open — but it is now an OWNER decision, not a cleanup: `styleTemplates` is a static
+  table that `theWeeksMatchTheSpecifiedTable` pins verbatim, the weak-point day's topics are
+  exactly what that table leaves unnamed, and "lagging" has no agreed definition in the data
+  (level depth vs. weekly volume vs. staleness all answer differently). Recorded in `AGENTS.md`.
+- **THE DASHBOARD STATUS ENUM IS EXACTLY SEVEN VALUES** — `backlog | planned | in-progress |
+  blocked | review | done | cancelled` — and the API rejects anything else with a 400 that lists
+  them. On 2026-10-01 the owner asked for `pending` and `idle`; neither exists, and both requests
+  were mapped to **`planned`** with the owner's own wording kept in the reason string. Do not
+  invent a status: a ledger-only value like `pending` cannot be stored on the board, so the two
+  sides drift by construction. `TODO.md`'s vocabulary is now pinned to this enum.
+- **SIX BOARD WRITES APPLIED 2026-10-01 with the owner's new key**, each verified by a fresh
+  paginated re-read rather than by the 200: 2D animation `cancelled`->`planned`; SDXL renders
+  `review`->`planned`; push-up animation `backlog`->`planned`; rank badge `review`->`done`;
+  pencil and chest-supported `backlog`->`review`. Board is now 70 tasks / 65 done / 5 open /
+  0 cancelled, and every one of the 5 is open deliberately.
+- **THE TOKEN CHURNED TWICE IN ONE SESSION, so keep this trap in mind.** The first token was
+  already revoked; the second worked (read 70 tasks, took the project PATCH at 14:29) and died
+  minutes later; the third arrived from the owner at 16:2x. Anything cached about "the token"
+  goes stale within the hour, so **probe before concluding**. Always run with
+  `env -u GRAFIZUM_DASHBOARD_TOKEN`: `tools/dashboard_*.py` seed from `os.environ` and then apply
+  `.env` with `setdefault`, so an exported stale token WINS over the good one. `dashboard_set_status.py`
+  also GETs `/agent/instructions` first to open a 24h write gate, and that grant is PER-PROCESS.
+  The live key lives in `.env` only (gitignored, mode 600); it is deliberately absent from
+  `.env.example`.
+
+- **THE PHONE'S INPUT IS CURRENTLY STUCK.** It dozed mid-session, woke to the lock screen (where
+  `screencap` is pure black), and later the NotificationShade window took input focus and would not
+  release it — `uiautomator` and every `input tap` go to the shade while `screencap` still works,
+  which is how the pencil's colour fixes were measured from screenshots anyway. Not fixed: an
+  `adb` restart of SystemUI would clear it and is the owner's call on their own phone. The pencil
+  flow is therefore still **unit-tested but never watched running**.
+- **`GET /v1/tasks` PAGINATES AT 50 and the project has 70.** `?project_id=` returns
+  `meta.total: 70, limit: 50, offset: 0` and a single read silently drops 20 tasks - which is how
+  "5 open tasks" looked plausible while a sixth open item existed. Always loop `offset += len(data)`
+  until `offset >= meta.total`. The project's own counters (`total_tasks`, `open_tasks`,
+  `done_tasks`) come from the project record and are the cheap cross-check: they said 70/5/64 and
+  the paginated read agreed.
+- **The project record was stale and contained FALSE statements** until the 2026-10-01 sync:
+  "121 of 601 translated per language, the remaining 481 fall back to English" (it is 601/601),
+  "version code 47" (it is 48), "working tree clean" (93 changed paths), "HEAD eb9398e"
+  (it is ce01b6c). Descriptions rot silently - re-derive every number, never edit one in place.
+
+Good news on the handoff's own open list: `app_language` on the device is already back to
+`system`, so the German-pinning left over from the level-card investigation is gone.
+
 ## Still open
 
+- **Commit the whole uncommitted tree** — the owner was asked on 2026-10-01 and said not yet.
 - **Push `level-system`** — local only, and this machine has **no Git credentials at all**
   (no credential helper, `gh` not authenticated, no SSH keys), so the push has to happen
   from an authenticated machine. 7 commits ahead: `eb9398e`, `e06e93c`, `29fc336`,
   `fcafdf2`, `3a3e35a`, `0d67495`.
 - **The old SSD is still mounted** at `/run/media/matrix/SSD-475GB`. `udisksctl` is not
   installed and `umount` needs root, so this needs `sudo` from the desktop.
-- **The device's `app_language` pref was set to `de`** to verify the level card. Restore it to
-  unset (or `system`) to go back to following the device locale. A `Fahrrad-Crunch` exercise
-  was also added to Sunday's routine to have something to test with.
+- **The device's `app_language` pref was set to `de`** to verify the level card — DONE, it reads
+  `system` again (checked 2026-10-01). A `Fahrrad-Crunch` exercise is still in Sunday's routine.
 - **Translation coverage**: 121 of 601 per language; 481 fall back to English.
 - **AGP 8.7.3 vs compileSdk 36** is suppressed, not fixed.
 - **17 `.aab` files / 194 MB `.git`** still tracked. Untracking rewrites history — owner

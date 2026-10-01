@@ -58,10 +58,28 @@ class ChairBenchSplitTest {
             "a bench lies you down, so bench dips are available",
             ExerciseEquipmentTags.isAvailable("Bench Dips", granted)
         )
+        // The pressing work is the two tiles the user actually sees: the Bench
+        // tile and the Dumbbells tile. The retired "Dumbbell + Bench" tile no
+        // longer exists, so the grant comes from the pair.
         val withDumbbells = ExerciseEquipmentTags.allowedTagsFor(
-            benchOnly + ExerciseEquipmentTags.DUMBBELLS_AND_BENCH
+            benchOnly + ExerciseEquipmentTags.DUMBBELLS_ONLY
         )
         assertTrue(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", withDumbbells))
+    }
+
+    @Test
+    fun aChairStandsInForTheBenchOnSeatedWork() {
+        // "Chair" and "Bench" stay separate tiles so nobody claims furniture
+        // they do not own, but a chair really is a seat: with dumbbells in hand
+        // the pressing and rowing patterns must not disappear.
+        val chairAndDumbbells = ExerciseEquipmentTags.allowedTagsFor(
+            listOf(ExerciseEquipmentTags.PRESET_CUSTOM, ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY)
+        )
+        assertTrue(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", chairAndDumbbells))
+        assertTrue(ExerciseEquipmentTags.isAvailable("Incline Dumbbell Press", chairAndDumbbells))
+        // ...and the same movements are NOT handed to a user with no weights.
+        val chairOnly2 = ExerciseEquipmentTags.allowedTagsFor(chairOnly)
+        assertFalse(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", chairOnly2))
     }
 
     @Test
