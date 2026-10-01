@@ -15,6 +15,22 @@ fun initPlatformUtils(application: Application) {
 /** The Application context, for helpers that must work without an Activity (null before init). */
 fun getApplicationContext(): android.content.Context? = appInstance
 
+/**
+ * The Application context, for callers that cannot proceed without one.
+ *
+ * `getApplicationContext()` is nullable because helpers may legitimately be asked
+ * before init. A caller that genuinely needs the context (Firebase, which binds to
+ * the app's process) should fail loudly instead of silently receiving null and
+ * producing a null-pointer somewhere further away - which is the failure mode that
+ * is hardest to trace back to its cause.
+ */
+fun requireApplicationContext(): android.content.Context =
+    appInstance ?: error(
+        "Application context requested before initPlatformUtils() ran. " +
+            "If this is at startup, the caller must not need the context yet - " +
+            "defer the work rather than reaching for it during onCreate."
+    )
+
 fun applyAppIconChange(themeKey: String) {
     val context = appInstance ?: return
     IconSwitchHelper.switchIcon(context, themeKey)

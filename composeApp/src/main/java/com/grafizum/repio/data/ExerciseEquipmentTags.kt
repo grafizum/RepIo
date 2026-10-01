@@ -104,9 +104,20 @@ object ExerciseEquipmentTags {
         WALL, STAIRS, BACKPACK_OR_WEIGHTED_BAG, TOWEL, RESISTANCE_BANDS,
     )
 
-    /** Tags the welcome screen's "Gym equipment" checkboxes grant. */
+    /**
+     * Tags the welcome screen's "Gym equipment" checkboxes grant.
+     *
+     * [DUMBBELLS_AND_BENCH] is deliberately NOT here. "Dumbbell + Bench" was a
+     * second, redundant button for a combination the grid already expresses as
+     * two tiles (Dumbbells and Bench), and it was the tile that read as
+     * nonsense next to the real Bench tile. The requirements it used to carry
+     * now ask for the two tiles directly, so nothing is lost by dropping it.
+     * The tag itself stays in [ALL_TAGS] so a selection persisted under it
+     * still parses after an update, and [allowedTagsFor] expands it to the two
+     * tiles that replaced it.
+     */
     val GYM_EQUIPMENT_TAGS = listOf(
-        DUMBBELLS_ONLY, DUMBBELLS_AND_BENCH, BARBELL_AND_RACK, BARBELL_AND_FLOOR,
+        DUMBBELLS_ONLY, BARBELL_AND_RACK, BARBELL_AND_FLOOR,
         KETTLEBELL_ONLY, CABLE_MACHINE, MACHINE_OTHER,
     )
 
@@ -139,8 +150,8 @@ object ExerciseEquipmentTags {
         PRESET_DUMBBELLS -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR)
         // The bench presets grant the home BENCH tile too: the user said they
         // own a bench, so the grid shows it checked instead of hiding it.
-        PRESET_DB_BENCH -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, DUMBBELLS_AND_BENCH, BENCH)
-        PRESET_DB_BENCH_BAR -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, DUMBBELLS_AND_BENCH, BENCH, PULL_UP_BAR)
+        PRESET_DB_BENCH -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, BENCH)
+        PRESET_DB_BENCH_BAR -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, BENCH, PULL_UP_BAR)
         PRESET_BARBELL_RACK -> setOf(BARBELL_AND_RACK, BARBELL_AND_FLOOR, BARBELL_ONLY)
         PRESET_FULL_GYM -> ALL_TAGS.toSet()
         else -> emptySet()
@@ -199,8 +210,11 @@ object ExerciseEquipmentTags {
     private val EXACT_OVERRIDES: Map<String, List<Set<String>>> = mapOf(
         // The spec's worked examples.
         "push-up" to req(emptySet()),
-        "decline bench press" to req(s(BARBELL_AND_RACK), s(DUMBBELLS_AND_BENCH)),
-        "dumbbell bench press" to req(s(DUMBBELLS_AND_BENCH)),
+        // The seat is TWO alternatives, so a kitchen chair is not a dead end for
+        // a user who also owns dumbbells. DUMBBELLS_AND_BENCH was retired as a
+        // tile and nothing may ask for it any more.
+        "decline bench press" to req(s(BARBELL_AND_RACK)) + chairOrBenchWith(DUMBBELLS_ONLY),
+        "dumbbell bench press" to chairOrBenchWith(DUMBBELLS_ONLY),
         "dumbbell floor press" to req(s(DUMBBELLS_AND_FLOOR)),
         "goblet squat" to req(s(DUMBBELLS_ONLY)),
         "bench dips" to chairOrBench(),
@@ -247,14 +261,14 @@ object ExerciseEquipmentTags {
 
     private val SMITH_SET = setOf(
         "chest-supported smith machine row", "seated smith machine shoulder press",
-        "smith machine bench press", "smith machine bent over row",
-        "smith machine bulgarian split squat", "smith machine calf raise",
-        "smith machine decline bench press", "smith machine front squat",
-        "smith machine good morning", "smith machine hip thrust",
-        "smith machine incline bench press", "smith machine reverse grip bent over row",
-        "smith machine reverse lunge", "smith machine romanian deadlift",
-        "smith machine shoulder press", "smith machine shrug",
-        "smith machine split squat", "smith machine squat", "smith machine upright row",
+        "bench press (smith machine)", "bent over row (smith machine)",
+        "bulgarian split squat (smith machine)", "calf raise (smith machine)",
+        "decline bench press (smith machine)", "front squat (smith machine)",
+        "good morning (smith machine)", "hip thrust (smith machine)",
+        "incline bench press (smith machine)", "reverse grip bent over row (smith machine)",
+        "reverse lunge (smith machine)", "romanian deadlift (smith machine)",
+        "shoulder press (smith machine)", "smith machine shrug",
+        "split squat (smith machine)", "smith machine squat", "upright row (smith machine)",
     )
 
     private val LEG_PRESS_SET = setOf(
@@ -275,7 +289,7 @@ object ExerciseEquipmentTags {
         "plate-loaded lateral raise", "single-arm plate-loaded lateral raise",
     )
 
-    private val SEATED_ROW_SET = setOf("machine seated row", "seated row machine")
+    private val SEATED_ROW_SET = setOf<String>()
 
     private val MACHINE_OTHER_SET = setOf(
         "machine bicep curl", "machine preacher curl", "machine triceps extension",
@@ -298,10 +312,10 @@ object ExerciseEquipmentTags {
     private val BARBELL_ONLY_SET = setOf(
         "barbell curl", "barbell preacher curl", "barbell wrist curl",
         "barbell shrug", "behind the back barbell shrug", "ez-bar shrug",
-        "barbell upright row", "barbell rear delt row",
+        "barbell upright row", "rear delt row (barbell)",
         "cheat curl", "drag curl", "ez-bar curl", "ez-bar reverse curl",
-        "reverse-grip ez-bar curl", "wide-grip ez-bar curl", "close-grip ez-bar curl",
-        "ez-bar upright row", "behind-the-back wrist curl", "barbell reverse wrist curl",
+          "close-grip ez-bar curl",
+        "ez-bar upright row",  
     )
 
     private val KETTLEBELL_BENCH_SET = setOf(
@@ -327,6 +341,14 @@ object ExerciseEquipmentTags {
             ?: return req(emptySet())
 
         val n = entry.name.lowercase()
+        // A hyphen and a space are the same word to a human, and this gate is
+        // ABOUT what the exercise needs, so the spelling must not decide it.
+        // One row was catalogued as "Chest Supported Dumbbell Shrug" while its
+        // four siblings are hyphenated, and the rule below matches
+        // "chest-supported" - so that shrug fell through to dumbbells-only and
+        // was offered to users who own no bench. That is the equipment-leak
+        // class this file exists to prevent, caused by punctuation.
+        val gateName = n.replace("chest supported", "chest-supported")
         when (entry.equipment) {
             "Cable" -> return req(s(CABLE_MACHINE))
             "Bands" -> return req(s(RESISTANCE_BANDS))
@@ -351,11 +373,12 @@ object ExerciseEquipmentTags {
             }
             "Dumbbell" -> {
                 if (n.contains("bulgarian")) return chairOrBenchWith(DUMBBELLS_ONLY)
-                if (n in DUMBBELL_BENCH_SET || n.contains("bench") ||
-                    n.contains("incline") || n.contains("decline") ||
-                    n.contains("chest-supported")
-                ) return req(s(DUMBBELLS_AND_BENCH))
-                if (n in DUMBBELL_FLOOR_SET || n.contains("floor") || n.contains("pullover"))
+                if (n in DUMBBELL_BENCH_SET || gateName.contains("bench") ||
+                    gateName.contains("incline") || gateName.contains("decline") ||
+                    gateName.contains("chest-supported")
+                ) return chairOrBenchWith(DUMBBELLS_ONLY)
+                if (n in DUMBBELL_FLOOR_SET || gateName.contains("floor") ||
+                    gateName.contains("pullover"))
                     return req(s(DUMBBELLS_AND_FLOOR))
                 return req(s(DUMBBELLS_ONLY))
             }
@@ -446,6 +469,102 @@ object ExerciseEquipmentTags {
     }
 
     /**
+     * The name-based lookup sets, exposed so a test can assert they stay
+     * truthful.
+     *
+     * Two properties are load-bearing and neither is visible from the outside:
+     * every entry must name an exercise that still EXISTS, and every entry must
+     * be lower case. The second one is not a style preference - `requirementsFor`
+     * tests membership with `n in SOME_SET` where `n` is the lowercased name, and
+     * `in` on a Set is case-sensitive, so one capital letter makes the lookup miss
+     * and the exercise silently loses its gate.
+     */
+    internal fun nameLookupSets(): Map<String, Set<String>> = mapOf(
+        "SMITH_SET" to SMITH_SET,
+        "LEG_PRESS_SET" to LEG_PRESS_SET,
+        "LEG_CURL_SET" to LEG_CURL_SET,
+        "LEG_EXTENSION_SET" to LEG_EXTENSION_SET,
+        "CHEST_PRESS_SET" to CHEST_PRESS_SET,
+        "SEATED_ROW_SET" to SEATED_ROW_SET,
+        "MACHINE_OTHER_SET" to MACHINE_OTHER_SET,
+        "DUMBBELL_BENCH_SET" to DUMBBELL_BENCH_SET,
+        "DUMBBELL_FLOOR_SET" to DUMBBELL_FLOOR_SET,
+        "BARBELL_ONLY_SET" to BARBELL_ONLY_SET,
+        "KETTLEBELL_BENCH_SET" to KETTLEBELL_BENCH_SET,
+    )
+
+    /** Every tag the equipment tile grid can render, in grid order. */
+    val SELECTABLE_TAGS: List<String> = HOME_EQUIPMENT_TAGS + GYM_EQUIPMENT_TAGS
+
+    /**
+     * Everything a tile stands for, tile included.
+     *
+     * The stored vocabulary is FINER than the tile grid: eight selectorized
+     * stations sit behind the single "Machines" tile, and `barbell_only` behind
+     * the "Barbell" tile. A full-gym kit persists fifteen tags of which the grid
+     * renders six. The owner saw a bodyweight+dumbbell week containing a
+     * Plate-Loaded Lateral Raise, opened the grid, and found nothing ticked that
+     * explained it - and the tags survived every tap, because unticking removed
+     * only the tag it could see. State the user cannot see is state the user
+     * cannot remove.
+     *
+     * The families must NOT be folded together on the way IN, though: the eight
+     * stations gate different exercises from MACHINE_OTHER, so collapsing them
+     * into it would take the leg press and the Smith machine away. That is
+     * exactly why they are separate tags. This is only about removal.
+     *
+     * NO TWO TILES MAY COVER THE SAME SET. They used to: Barbell and Rack both
+     * mapped to {barbell_and_rack, barbell_and_floor, barbell_only}, and Chair
+     * and Bench both mapped to {bench, chair, chair_or_bench}. Identical families
+     * make two tiles the same control twice - both read as ticked from any tag in
+     * the family, and unticking either cleared both. The owner reported "barbell
+     * and squat rack are both selecting and deselecting at the same time, it has
+     * some weird link".
+     *
+     * The barbell pair is NESTED, not equal, because a rack implies a barbell:
+     * Rack covers all three tags and Barbell covers the two that need no rack.
+     * That is the wildcard the owner asked for, and it survives because the sets
+     * differ - ticking Rack shows Barbell ticked, which is true, while unticking
+     * Barbell leaves a Rack the user still owns alone.
+     */
+    fun tagsCoveredByTile(tile: String): Set<String> = when (tile) {
+        MACHINE_OTHER -> setOf(
+            MACHINE_OTHER, LEG_PRESS_MACHINE, LAT_PULLDOWN_MACHINE, SMITH_MACHINE,
+            LEG_EXTENSION_MACHINE, LEG_CURL_MACHINE, CHEST_PRESS_MACHINE, SEATED_ROW_MACHINE,
+        )
+        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK, BARBELL_AND_FLOOR, BARBELL_ONLY)
+        BARBELL_AND_FLOOR -> setOf(BARBELL_AND_FLOOR, BARBELL_ONLY)
+        // A chair and a bench are two separate pieces of furniture, and a user
+        // may own one without the other. CHAIR_OR_BENCH is the retired union;
+        // [allowedTagsFor] expands it into the two, so it is kept here only so a
+        // raw persisted value is still removable.
+        CHAIR -> setOf(CHAIR, CHAIR_OR_BENCH)
+        BENCH -> setOf(BENCH, CHAIR_OR_BENCH)
+        KETTLEBELL_ONLY -> setOf(KETTLEBELL_ONLY, KETTLEBELL_AND_BENCH)
+        DUMBBELLS_ONLY -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, DUMBBELLS_AND_BENCH)
+        else -> setOf(tile)
+    }
+
+    /**
+     * What ticking a tile GRANTS, which is a different question from what
+     * unticking it removes.
+     *
+     * Unticking removes the whole [tagsCoveredByTile] family, because a tag with
+     * no tile of its own - the eight stations behind "Machines" - would otherwise
+     * be impossible to remove. Ticking must NOT do the same: ticking "Machines"
+     * must not grant a leg press the user never ticked.
+     *
+     * The one place a tick legitimately implies another tag is a squat rack,
+     * which is a fixture built around a barbell. That is the whole of the
+     * wildcard, and it lives here rather than in equal families because equal
+     * families is what made the two tiles inseparable in the first place.
+     */
+    fun tagsGrantedByTicking(tile: String): Set<String> = when (tile) {
+        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK, BARBELL_AND_FLOOR, BARBELL_ONLY)
+        else -> setOf(tile)
+    }
+
+    /**
      * Normalizes whatever the persistence layer holds — fine tags, preset ids,
      * legacy categories, or "All" — into the granted tag set. An empty input
      * list means "unrestricted" and grants everything (the legacy no-filter
@@ -463,6 +582,12 @@ object ExerciseEquipmentTags {
                 // The pre-split selection ("chair or bench") is one tile's worth
                 // of intent, so it grants the two tiles that replaced it.
                 item == CHAIR_OR_BENCH -> granted += setOf(CHAIR, BENCH)
+                // A selection persisted under the retired "Dumbbell + Bench"
+                // tile meant dumbbells plus a bench; grant the two tiles that
+                // replaced it, or the user would silently keep a grant they
+                // can no longer see or untick.
+                item == DUMBBELLS_AND_BENCH ->
+                    granted += setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR, BENCH)
                 item in ALL_TAGS -> granted += item
                 // Legacy catalog categories stay permissive (category-wide) so
                 // previously persisted selections keep their old reach.

@@ -176,11 +176,23 @@ object WorkoutTemplates {
     data class WorkoutSplitTemplate(
         val frequency: Int,
         val sequence: List<List<String>>,
-        val restSlots: Set<Int> = emptySet()
+        val restSlots: Set<Int> = emptySet(),
+        /**
+         * Session indices whose name is given rather than derived, for the one
+         * session that shares its topics with another on purpose: the weak-point
+         * day trains exactly what an upper day trains, and calling it "Upper" on
+         * screen would hide what it is FOR. Every other session is named by
+         * [sessionLabelId] from the topics it trains, so no name can drift away
+         * from the work.
+         */
+        val namedSessions: Map<Int, String> = emptyMap()
     ) {
         init {
             require(frequency == sequence.size) {
                 "template frequency $frequency does not match ${sequence.size} sessions"
+            }
+            require(namedSessions.keys.all { it in sequence.indices }) {
+                "named sessions ${namedSessions.keys} fall outside a $frequency-session week"
             }
         }
 
@@ -261,6 +273,17 @@ object WorkoutTemplates {
     /** An accessory-only session carries no strict topic, so it can sit anywhere. */
     private val CORE_ARMS_TOPICS = listOf("Core", "Arms")
 
+    /**
+     * Option B's extra day: the upper body again, on purpose. It is named for
+     * what it is FOR - the muscle the app's progression data says is lagging -
+     * and it carries every upper group because the app has no per-user lagging
+     * muscle to narrow it to yet. Making it dynamic is a real follow-up, not a
+     * comment: the day must not start picking a different muscle group, or the
+     * name becomes a lie. Until then it is an honest "go again over everything
+     * above the waist" day, and the legs still get exactly one session.
+     */
+    private val WEAK_POINT_TOPICS = listOf("Chest", "Back", "Shoulders", "Arms", "Core")
+
     // Dedicated body-part sessions (the classic Arnold-style split for high
     // frequencies). Legs + core stay fused: the research-backed leg-day layout
     // always pairs squat/hinge/press patterns with core stability work, and a
@@ -291,60 +314,325 @@ object WorkoutTemplates {
      */
     private val STRICT_ADJACENCY_TOPICS = setOf("Chest", "Back", "Legs", "Shoulders")
 
+
     /**
-     * The canonical splits for every frequency the setup picker offers.
+     * How the user's training days are organised.
      *
-     * Each template is a session sequence applied to the picked days in
-     * calendar order; recovery comes from the sequence itself (no two
-     * consecutive sessions share a strict topic) and, when the picked days
-     * leave room, from the rest days between them.
+     * The frequency (how many days) and the style (what each day is) are two
+     * different choices, and a lot of people only ever see the first one. The
+     * three options are the ones the evidence and the published programs
+     * actually divide into, and each one is a different answer to "what are you
+     * training this week for", not a different name for the same week:
+     *
+     *  - [OPTION_A] is the default: it lands every major muscle on the SAME
+     *    weekly frequency at every day count, which is what the training-load
+     *    literature asks for - about twice a week per muscle, and let the split
+     *    decide how (Schoenfeld et al. 2016; Grgic et al. 2019).
+     *  - [OPTION_B] buys upper-body volume and isolation work with exactly ONE
+     *    leg day at every frequency from 2 up. The trade-off is the point and
+     *    is named in the UI rather than hidden: the legs are trained once a
+     *    week whatever else the week does, and the extra days go to the upper
+     *    body and to the user's weak points. It is the only option that cannot
+     *    give 2x/week to the legs - that is what the user is choosing.
+     *  - [OPTION_C] is the hybrid: a different balance again - more leg days
+     *    than B, fewer than a pure body-part rotation, and the only option that
+     *    mixes full-body days into a specialised week.
+     *
+     * Key principle behind all three, and the reason [validatePlan] is written
+     * the way it is: total weekly VOLUME per muscle (roughly 10-20 hard sets)
+     * and progressive overload matter more than the split itself. Any of these
+     * works if volume and intensity are managed, so no option is a trap.
+     *
+     * The ids are the owner's own option letters so the stored preference
+     * survives a rename. Anything unrecognised (including the ids of the
+     * pre-option styles) falls back to [DEFAULT], which is the option that
+     * gives every muscle the most even week.
      */
-    val splitTemplates: Map<Int, WorkoutSplitTemplate> = mapOf(
-        // 1 day/week: one full-body session. Explicitly suboptimal (every
-        // muscle trains only 1x/week) — the setup screen shows a warning but
-        // does not block the choice.
-        1 to WorkoutSplitTemplate(1, listOf(FULL_BODY_TOPICS)),
-        // 2 days/week: Full Body A / Full Body B — the classic twice-a-week
-        // touch for every major muscle, the research-backed minimum effective
-        // frequency. B drops the leg topic to A's same-week recovery.
-        2 to WorkoutSplitTemplate(2, listOf(FULL_BODY_TOPICS, FULL_BODY_TOPICS_NO_LEGS)),
-        // Full Body A/B/A — the middle session drops the leg topic so three
-        // consecutive picks (or a Sun/Mon wrap) never stack leg work, while
-        // chest/back/shoulders still train 3x across spread-out days.
-        3 to WorkoutSplitTemplate(3, listOf(FULL_BODY_TOPICS, FULL_BODY_TOPICS_NO_LEGS, FULL_BODY_TOPICS)),
-        // Upper/Lower/Upper/Lower.
-        4 to WorkoutSplitTemplate(4, listOf(UPPER_TOPICS, LOWER_TOPICS, UPPER_TOPICS, LOWER_TOPICS)),
-        // Upper / Lower / Push / Pull / Legs (ULPPL) — the layout that keeps
-        // every major muscle at the research-backed 2x/week floor (Schoenfeld
-        // et al. 2016) WITHOUT doubling session count: press and row patterns
-        // repeat on the upper day, squat/hinge patterns on the lower day.
-        // Upper/Lower lead the week so the first half trains everything and
-        // the PPL back half specialises; the two leg sessions (Lower day 2,
-        // Legs day 5) sit three calendar days apart instead of crowding the
-        // week's end, and no single-topic day appears before the user has
-        // seen every major. The PPLUL order it replaced opened with three
-        // one-topic days (a lone back day on Tuesday) and packed both leg
-        // days into the second half (Wednesday + Friday legs).
-        5 to WorkoutSplitTemplate(5, listOf(UPPER_TOPICS, LOWER_TOPICS, PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS)),
-        // Push / Pull / Legs twice through — the classic PPL cycle. Day i and
-        // day i+3 work the same pattern, every strict topic lands on exactly
-        // two days, and the legs regain their second dedicated day at a
-        // cadence that can afford it.
-        6 to WorkoutSplitTemplate(6, listOf(PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS)),
-        // 7 days: the PPL cycle plus an accessory day (core + arms). The
-        // Tuesday pull session carries core work so abs still train on 4 of
-        // the 7 days; the accessory day itself carries no strict topic, so it
-        // never violates recovery no matter where the week wraps.
-        7 to WorkoutSplitTemplate(
-            7, listOf(
-                PUSH_TOPICS, PULL_CORE_TOPICS, LEGS_TOPICS,
-                PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, CORE_ARMS_TOPICS
-            )
-        )
+    enum class SplitStyle(val id: String) {
+        OPTION_A("a"),
+        OPTION_B("b"),
+        OPTION_C("c");
+
+        companion object {
+            val DEFAULT = OPTION_A
+
+            /** The stored id, falling back to the default for anything unknown. */
+            fun fromId(id: String?): SplitStyle =
+                entries.firstOrNull { it.id.equals(id?.trim(), ignoreCase = true) } ?: DEFAULT
+        }
+    }
+
+    /**
+     * Every option's week, keyed by days per week - the three options the owner
+     * specified, one row per day count, exactly as laid out:
+     *
+     * ```
+         * Days  Option A                Option B (1 leg day)   Option C
+     * 2     Full Body / Full Body    Upper / Lower          Full Body / Full Body
+     * 3     Full Body x3             Upper / Lower / Upper  Full Body / Upper / Lower
+     * 4     Upper / Lower / U / L    Push / Pull / Legs / Upper
+     *                                                 Full Body / Push / Pull / Legs
+     * 5     Push / Pull / Legs / U / L
+     *                                   Push / Pull / Legs / Upper / Arms & Core
+     *                                                 Upper / Lower / Push / Pull / Legs
+     * 6     Push / Pull / Legs x2    ... / Weak Point      Upper / Lower / Push / Pull / Legs / Full Body
+     * ```
+     *
+     * Option B's 5- and 6-day rows are the owner's REVISION of the first
+     * table, which read "Chest / Back / Legs / Shoulders / Arms": a week of
+     * one-part days is not a mix, and a whole day of only shoulders is not what
+     * "upper-body volume" means to the person reading it. The one leg day is
+     * unchanged - that is still the promise - and what replaces the single-part
+     * days is upper-body work that is not a body part.
+     *
+     * The two day counts the spec does not name (1 and 7) are filled in from
+     * the option's own logic rather than left broken, and the gaps are called
+     * out in the notes on the weeks themselves. Every week is run through
+     * [validatePlan] by SplitStyleLayoutTest for EVERY way of picking the days,
+     * because the validator treats Monday as following Sunday.
+     */
+    private val styleTemplates: Map<SplitStyle, Map<Int, WorkoutSplitTemplate>> = mapOf(
+        // -------------------------------------------------------------------
+        // OPTION A - balanced muscle-group frequency: every major muscle on the
+        // same weekly frequency, ~2x/week wherever the week has the days for it.
+        // -------------------------------------------------------------------
+        SplitStyle.OPTION_A to mapOf(
+            // One day a week leaves nothing to balance: the only week that trains
+            // the whole body once is the only week there is.
+            1 to WorkoutSplitTemplate(1, listOf(FULL_BODY_TOPICS)),
+            // Full Body / Full Body, not Full Body / Upper: a second day that
+            // skipped the legs would drop them to 1x/week while everything else
+            // hit 2x, which is the lopsidedness this option exists to avoid.
+            2 to WorkoutSplitTemplate(2, listOf(FULL_BODY_TOPICS, FULL_BODY_TOPICS)),
+            3 to WorkoutSplitTemplate(
+                3, listOf(FULL_BODY_TOPICS, FULL_BODY_TOPICS, FULL_BODY_TOPICS)
+            ),
+            4 to WorkoutSplitTemplate(
+                4, listOf(UPPER_TOPICS, LOWER_TOPICS, UPPER_TOPICS, LOWER_TOPICS)
+            ),
+            // Push / Pull / Legs / Upper / Lower - 2x everywhere: chest and
+            // shoulders get the push day and the upper day, the legs get the legs
+            // day and the lower day.
+            5 to WorkoutSplitTemplate(
+                5, listOf(PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, UPPER_TOPICS, LOWER_TOPICS)
+            ),
+            6 to WorkoutSplitTemplate(
+                6, listOf(PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS)
+            ),
+            // 7 days is past the spec's table. This keeps A's promise at the top
+            // end: two of every pattern, one pull of which carries core, and the
+            // accessory day last so it can sit anywhere without stacking.
+            7 to WorkoutSplitTemplate(
+                7, listOf(
+                    PUSH_TOPICS, PULL_CORE_TOPICS, LEGS_TOPICS,
+                    PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, CORE_ARMS_TOPICS
+                )
+            ),
+        ),
+        // -------------------------------------------------------------------
+        // OPTION B - upper-body volume and isolation work, exactly ONE dedicated
+        // leg day at every frequency. Every extra day goes to the upper body or
+        // to the weak points; the legs never get a second session.
+        // -------------------------------------------------------------------
+        SplitStyle.OPTION_B to mapOf(
+            1 to WorkoutSplitTemplate(1, listOf(FULL_BODY_TOPICS)),
+            2 to WorkoutSplitTemplate(2, listOf(UPPER_TOPICS, LOWER_TOPICS)),
+            3 to WorkoutSplitTemplate(3, listOf(UPPER_TOPICS, LOWER_TOPICS, UPPER_TOPICS)),
+            // Push / Pull / Legs / Upper. The upper day cannot be moved: it
+            // shares chest and shoulders with the push day, so wherever the user
+            // puts the rest day, one of the two lands next to the other. That is
+            // what "upper-body volume" means - the upper body is trained on both
+            // days - and [validatePlan] exempts a broad day for exactly this
+            // reason. Legs: one.
+            4 to WorkoutSplitTemplate(
+                4, listOf(PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, UPPER_TOPICS)
+            ),
+            // Push / Pull / Legs / Upper / Arms & Core: the owner's revision of
+            // the table, which first asked for "Chest / Back / Legs /
+            // Shoulders / Arms" here. One leg day stays exactly as promised, but
+            // no day is a single body part any more - a whole day of only
+            // shoulders is not a mix, and the fifth day was the difference
+            // between the two readings of "upper-body volume": a leg day again
+            // (which is Option A) or upper-body work that is not a body part
+            // (which is this). Legs: one, upper body: four days.
+            5 to WorkoutSplitTemplate(
+                5, listOf(PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, UPPER_TOPICS, CORE_ARMS_TOPICS)
+            ),
+            6 to WorkoutSplitTemplate(
+                6,
+                listOf(
+                    PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, UPPER_TOPICS,
+                    CORE_ARMS_TOPICS, WEAK_POINT_TOPICS
+                ),
+                // The weak-point day is the upper body again, deliberately: it is
+                // the day that goes after whatever is lagging, and the option's
+                // promise is that the extra day never becomes a second leg day.
+                namedSessions = mapOf(5 to SESSION_WEAK_POINT)
+            ),
+            // 7 is past the spec's table too, and the promise gets tightest
+            // here: the seventh session cannot be a leg day, so it goes to the
+            // weak points as well - which is the whole thesis of the option.
+            7 to WorkoutSplitTemplate(
+                7,
+                listOf(
+                    PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS, UPPER_TOPICS,
+                    CORE_ARMS_TOPICS, WEAK_POINT_TOPICS, WEAK_POINT_TOPICS
+                ),
+                namedSessions = mapOf(5 to SESSION_WEAK_POINT, 6 to SESSION_WEAK_POINT)
+            ),
+        ),
+        // -------------------------------------------------------------------
+        // OPTION C - the hybrid: a deliberately different balance, with
+        // full-body days mixed into specialised weeks and more leg work than B.
+        // -------------------------------------------------------------------
+        SplitStyle.OPTION_C to mapOf(
+            1 to WorkoutSplitTemplate(1, listOf(FULL_BODY_TOPICS)),
+            // The spec's table starts at 2 days, and at 2 days there is only one
+            // sensible hybrid: two full-body days, the same week as A.
+            2 to WorkoutSplitTemplate(2, listOf(FULL_BODY_TOPICS, FULL_BODY_TOPICS)),
+            // Also unnamed in the spec. The hybrid reading is one full-body day
+            // plus one upper/lower pair: every muscle gets 2x except the legs,
+            // which get the full-body day and the lower day.
+            3 to WorkoutSplitTemplate(
+                3, listOf(FULL_BODY_TOPICS, UPPER_TOPICS, LOWER_TOPICS)
+            ),
+            // The full-body day opens the week on purpose: it is the strength
+            // day, the heavy compounds, and the push day that follows it is
+            // where the volume goes.
+            4 to WorkoutSplitTemplate(
+                4, listOf(FULL_BODY_TOPICS, PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS)
+            ),
+            5 to WorkoutSplitTemplate(
+                5, listOf(UPPER_TOPICS, LOWER_TOPICS, PUSH_TOPICS, PULL_TOPICS, LEGS_TOPICS)
+            ),
+            6 to WorkoutSplitTemplate(
+                6,
+                listOf(
+                    UPPER_TOPICS, LOWER_TOPICS, PUSH_TOPICS, PULL_TOPICS,
+                    LEGS_TOPICS, FULL_BODY_TOPICS
+                )
+            ),
+            7 to WorkoutSplitTemplate(
+                7,
+                listOf(
+                    UPPER_TOPICS, LOWER_TOPICS, PUSH_TOPICS, PULL_TOPICS,
+                    LEGS_TOPICS, FULL_BODY_TOPICS, CORE_ARMS_TOPICS
+                )
+            ),
+        ),
     )
 
-    /** The split template for [frequency] days/week, or null outside 1-7. */
-    fun splitTemplateFor(frequency: Int): WorkoutSplitTemplate? = splitTemplates[frequency]
+    /** Every style's week for [frequency] days/week. */
+    fun splitTemplatesFor(style: SplitStyle): Map<Int, WorkoutSplitTemplate> =
+        styleTemplates[style] ?: styleTemplates.getValue(SplitStyle.DEFAULT)
+
+    /**
+     * The split template for [frequency] days/week in [style], or null outside
+     * 1-7. Callers that predate the style picker get [SplitStyle.DEFAULT].
+     */
+    fun splitTemplateFor(frequency: Int, style: SplitStyle = SplitStyle.DEFAULT): WorkoutSplitTemplate? =
+        splitTemplatesFor(style)[frequency]
+
+    /** The topics the style picker reports, in the order it reports them. */
+    val MAJOR_TOPICS = listOf("Chest", "Back", "Shoulders", "Legs")
+
+    /**
+     * The week as the list of days it is - "Upper, Lower, Upper, Lower, Arms &
+     * Core" - one label per day, in order.
+     *
+     * This is what the style picker shows, because it is the only line a user
+     * can count against the day picker sitting right above it. The per-muscle
+     * frequency it replaced ("Chest 2x, Back 2x, Shoulders 2x, Legs 2x") said
+     * what the week achieves but not what the week IS, and a wall of four
+     * identical numbers reads as one number repeated.
+     *
+     * The labels are derived from the topics each session trains, never typed
+     * next to the layout, so a week edited in [styleTemplates] cannot show a
+     * day it does not build. One label per day, always: a mismatch in length
+     * would be a picker disagreeing with the day count above it.
+     */
+    fun dayLabelIds(
+        style: SplitStyle = SplitStyle.DEFAULT,
+        frequency: Int
+    ): List<String> {
+        val template = splitTemplateFor(frequency, style) ?: return emptyList()
+        return template.sequence.mapIndexed { index, topics ->
+            template.namedSessions[index] ?: sessionLabelId(topics)
+        }
+    }
+
+    /**
+     * How many sessions a week [style] puts the legs in, at [frequency]
+     * days/week. This is the number the picker states next to every option,
+     * because it is the difference between them: Option B's whole promise is
+     * that this stays at 1 while the week grows.
+     *
+     * Counted off the layout rather than typed, so it cannot claim one leg day
+     * and build two.
+     */
+    fun legSessionsPerWeek(
+        style: SplitStyle = SplitStyle.DEFAULT,
+        frequency: Int
+    ): Int {
+        val sequence = splitTemplateFor(frequency, style)?.sequence ?: return 0
+        return sequence.count { "Legs" in it }
+    }
+
+    /**
+     * The short name of a single session, from the topics it trains.
+     *
+     * Ordered widest-first so a session claims its biggest job: a legs session
+     * that also carries core is a leg day, and core is the accessory riding
+     * along rather than the reason the day exists. "Full body" is reserved for
+     * a session that covers the legs AND two other major groups — an upper
+     * session reaches three major groups too (chest, back, shoulders) and is
+     * still an upper day in every week that contains it. The one session that
+     * trains no major group at all is named for what it does train, because
+     * there is nothing bigger to call it.
+     *
+     * The two leg days are deliberately different names for near-identical
+     * sessions: a plain legs session is the lower half of an upper/lower week
+     * and reads "Lower", while the push/pull/legs leg day carries core and
+     * reads "Legs", so a card never says "Lower" under the heading
+     * "Push / Pull / Legs". No week mixes the two, so no card shows both.
+     *
+     * A one-part session is named after the part (Option B's chest / back /
+     * shoulders / arms days), which is the whole point of those days.
+     */
+    fun sessionLabelId(topics: List<String>): String {
+        val trains = { topic: String -> topic in topics }
+        val majorGroups = MAJOR_TOPICS.count(trains)
+        return when {
+            trains("Legs") && majorGroups >= 3 -> SESSION_FULL_BODY
+            trains("Chest") && trains("Back") && trains("Shoulders") -> SESSION_UPPER
+            trains("Chest") && trains("Shoulders") -> SESSION_PUSH
+            trains("Back") -> SESSION_PULL
+            trains("Legs") && trains("Core") -> SESSION_LEGS
+            trains("Legs") -> SESSION_LOWER
+            // No major group at all: an accessory-only session, named for what
+            // it does train. Core is the difference between "Arms" and
+            // "Arms & core", not a day of its own.
+            majorGroups == 0 -> if (trains("Core")) SESSION_ARMS_CORE else SESSION_ARMS
+            else -> SESSION_LEGS
+        }
+    }
+
+    const val SESSION_FULL_BODY = "full_body"
+    const val SESSION_UPPER = "upper"
+    const val SESSION_PUSH = "push"
+    const val SESSION_PULL = "pull"
+    const val SESSION_LOWER = "lower"
+    const val SESSION_LEGS = "legs"
+    const val SESSION_ARMS = "arms"
+    const val SESSION_ARMS_CORE = "arms_core"
+    const val SESSION_WEAK_POINT = "weak_point"
+
+    /**
+     * The legacy 5-day default map, now the [SplitStyle.BALANCED] week.
+     * Kept as its own name because several callers (and the tests that lock the
+     * layout) read it directly.
+     */
+    val splitTemplates: Map<Int, WorkoutSplitTemplate> get() = splitTemplatesFor(SplitStyle.DEFAULT)
 
     /** True for the two frequencies the spec asks to warn about (but allow). */
     fun frequencyNeedsWarning(frequency: Int): Boolean = frequency == 1 || frequency == 7
@@ -427,12 +715,23 @@ object WorkoutTemplates {
         val failures = mutableListOf<String>()
 
         // 1. No strict muscle group two days in a row — Monday follows Sunday too.
-        // Two FULL-BODY sessions (>= 3 strict topics) adjacent by the user's own
-        // day choice overlap by definition — that is what full-body training IS,
-        // and the 3-day A/B/A template must survive consecutive picks. Focused
-        // sessions (push, pull, upper, lower) are still checked: a chest topic
-        // shared by an upper day and the push day after it IS a violation.
-        val isFullBodySession: (List<String>) -> Boolean = { topics ->
+        //
+        // A BROAD session (3+ strict topics: a full-body day, or an upper day
+        // covering chest, back and shoulders) is exempt ON ITS OWN. The reason is
+        // the same reason the specified weeks look the way they do: a broad day
+        // spreads its volume thinly across several muscles, so a focused day
+        // next to it trains a muscle that had a light dose ~24h earlier rather
+        // than a hard one. Full Body / Push / Pull / Legs and
+        // Push / Pull / Legs / Upper are standard published weeks, and the
+        // literature behind them is blunt that weekly volume per muscle and
+        // progressive overload matter more than the split itself.
+        //
+        // Two FOCUSED sessions sharing a strict muscle is still a violation, and
+        // that is the rule doing its real work: no two consecutive days both hit
+        // the same small set of muscles hard. Note that two full-body days
+        // adjacent by the user's own day choice overlap by definition - that is
+        // what full-body training IS.
+        val isBroadSession: (List<String>) -> Boolean = { topics ->
             topics.count { it in STRICT_ADJACENCY_TOPICS } >= 3
         }
         weekDays.indices.forEach { i ->
@@ -442,8 +741,8 @@ object WorkoutTemplates {
             val nextTopics = topicsByDay[next].orEmpty()
             val overlap = todayTopics.filter { it in STRICT_ADJACENCY_TOPICS }
                 .toSet() intersect nextTopics.filter { it in STRICT_ADJACENCY_TOPICS }.toSet()
-            val bothFullBody = isFullBodySession(todayTopics) && isFullBodySession(nextTopics)
-            if (overlap.isNotEmpty() && !bothFullBody) {
+            val eitherIsBroad = isBroadSession(todayTopics) || isBroadSession(nextTopics)
+            if (overlap.isNotEmpty() && !eitherIsBroad) {
                 failures.add("$day and $next train the same muscle groups: $overlap")
             }
         }
@@ -532,7 +831,8 @@ object WorkoutTemplates {
         includedExercises: List<String> = emptyList(),
         excludedExercises: List<String> = emptyList(),
         equipment: List<String> = emptyList(),
-        duration: String = DURATION_STANDARD
+        duration: String = DURATION_STANDARD,
+        splitStyle: SplitStyle = SplitStyle.DEFAULT
     ): GeneratedProgram {
         val goal = canonicalGoal(workoutGoal)
         val days = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
@@ -600,7 +900,7 @@ object WorkoutTemplates {
         val weekDaysAll = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
         // Calendar order — the tap order is deliberately discarded here.
         val orderedDays = weekDaysAll.filter { it in selectedDays }
-        val template = splitTemplateFor(selectedDays.size)
+        val template = splitTemplateFor(selectedDays.size, splitStyle)
         // Template topics per calendar day (empty on rest days). The template
         // is a SESSION SEQUENCE applied to the picked days in calendar order,
         // so a Mon/Tue/Thu/Fri/Sat pick and a Mon/Wed/Thu/Fri/Sat pick both
@@ -934,7 +1234,7 @@ object WorkoutTemplates {
                             val cond = available.filter {
                                 it.contains("Lunge", true) || it.contains("Step-up", true) ||
                                     it.contains("Single-leg", true) || it.contains("Thruster", true) ||
-                                    it.contains("Kettlebell", true) || it.contains("Swing", true) ||
+                                    it.contains("Kettlebell", true) || it.contains("Kettlebell Swing", true) ||
                                     it.contains("Burpee", true) || it.contains("Jump", true) ||
                                     it.contains("Carry", true) || it.contains("Rower", true) ||
                                     it.contains("Bike", true) || it.contains("Jump Rope", true)
@@ -950,7 +1250,7 @@ object WorkoutTemplates {
                                     it.contains("Single-leg", true) || it.contains("Kettlebell", true) ||
                                     it.contains("Plank", true) || it.contains("Bridge", true) ||
                                     it.contains("Carry", true) || it.contains("Deadlift", true) ||
-                                    it.contains("Row", true) || it.contains("Press", true)
+                                    it.contains("TRX Row", true) || it.contains("Press", true)
                             }
                             if (general.isNotEmpty()) general else available
                         }
@@ -1182,7 +1482,12 @@ object WorkoutTemplates {
                 var dayExs = routineExercises.filter { it.dayOfWeek == dayName }
                 val overBy = dayExs.size - durationRange.last
                 if (overBy > 0) {
+                    // Trimmed from the END of the session, which is the same
+                    // order the day is built in, so the least important work
+                    // goes first and core — now last — is what a too-long day
+                    // loses before anything else.
                     val trimmed = dayExs.sortedWith(compareBy(
+                        { if (isCoreExercise(it.name)) 1 else 0 },
                         { getExercisePriority(it.name) },
                         { it.orderIndex }
                     )).takeLast(overBy).map { it.name }.toSet()
@@ -1232,6 +1537,11 @@ object WorkoutTemplates {
 
                 val dayExsFinal = routineExercises.filter { it.dayOfWeek == dayName }
                 val sortedDayExs = dayExsFinal.sortedWith(compareBy(
+                    // Core closes the session, always. This key comes FIRST so
+                    // it outranks everything below, including the compound rule:
+                    // a "compound" core movement (a loaded carry, a cable chop)
+                    // must not be promoted to the top of the session to lead it.
+                    { if (isCoreExercise(it.name)) 1 else 0 },
                     // Compound movements open the session (rule: "select 2-3
                     // compound movements first"), regardless of equipment tier —
                     // a bodyweight squat must still lead a machine accessory.
@@ -1336,26 +1646,67 @@ object WorkoutTemplates {
         return "$minVal–${minVal + MIN_REP_RANGE_SPAN}"
     }
 
+    /**
+     * True when [name] is a core exercise, by the catalog's own primary muscle.
+     *
+     * The core is a prerequisite rather than a target: it transfers to the rest
+     * of the session by bracing the spine, not by being fatigued. Training it
+     * first would spend the freshest part of the session on the muscle with the
+     * least to gain from freshness, so the app trains core LAST, when the spine
+     * is no longer loaded.
+     *
+     * Read through [getMuscleGroupForExercise] rather than from the name, for
+     * the same reason the rest of the app does: a name is not data. "Plank" and
+     * "Dead Bug" say nothing about the primary mover; the catalog does.
+     */
+    private fun isCoreExercise(name: String): Boolean =
+        getTopicForMuscle(getMuscleGroupForExercise(name)) == "Core"
+
     private fun getExercisePriority(name: String): Int {
         val n = name.lowercase()
+        // The apparatus is read from the catalog, not from the name. After the
+        // generalization "Barbell Back Squat" IS the barbell squat and its name no
+        // longer says so, while the catalog's equipment field still does.
+        val gear = equipmentClassFor(name)
         return when {
-            n.contains("barbell squat") || (n.contains("deadlift") && !n.contains("romanian") && !n.contains("stiff")) || 
+            (gear == EQUIPMENT_BARBELL && n.contains("squat")) ||
+            (n.contains("deadlift") && !n.contains("romanian") && !n.contains("stiff")) ||
             n.contains("clean") || n.contains("snatch") || n.contains("thruster") -> 1
-            n.contains("barbell bench press") || n.contains("military press") || n.contains("overhead press") -> 2
-            n.contains("barbell") -> 3
+            (gear == EQUIPMENT_BARBELL && n.contains("bench press")) ||
+            n.contains("military press") || n.contains("overhead press") -> 2
+            gear == EQUIPMENT_BARBELL -> 3
             n.contains("row") || n.contains("pull-up") || n.contains("chin-up") -> 4
-            n.contains("dumbbell") -> 5
-            n.contains("cable") || n.contains("machine") -> 6
+            gear == EQUIPMENT_DUMBBELL -> 5
+            gear == EQUIPMENT_CABLE || gear == EQUIPMENT_MACHINE -> 6
             else -> 7
+        }
+    }
+
+    /**
+     * The apparatus family of [name]: the catalog's own `equipment` field when
+     * the exercise is in the pool, and a name-based guess for a user's own
+     * custom exercise, which has no catalog row to ask.
+     */
+    private fun equipmentClassFor(name: String): String {
+        val fromCatalog = ExerciseCatalog.equipmentFor(name)
+        if (fromCatalog.isNotBlank()) return fromCatalog
+        val n = name.lowercase()
+        return when {
+            n.contains("barbell") -> EQUIPMENT_BARBELL
+            n.contains("dumbbell") -> EQUIPMENT_DUMBBELL
+            n.contains("kettlebell") -> EQUIPMENT_KETTLEBELL
+            n.contains("cable") -> EQUIPMENT_CABLE
+            else -> EQUIPMENT_BODYWEIGHT
         }
     }
 
     private fun isHeavyCompound(name: String): Boolean {
         val n = name.lowercase()
         // Exercises that safe and productive for low-rep strength work
-        return (n.contains("barbell") || n.contains("military press")) && 
-               (n.contains("squat") || (n.contains("deadlift") && !n.contains("romanian")) || 
-                n.contains("bench press") || n.contains("overhead press") || 
+        val gear = equipmentClassFor(name)
+        return ((gear == EQUIPMENT_BARBELL) || n.contains("barbell") || n.contains("military press")) &&
+               (n.contains("squat") || (n.contains("deadlift") && !n.contains("romanian")) ||
+                n.contains("bench press") || n.contains("overhead press") ||
                 n.contains("military press") || n.contains("press behind the neck") ||
                 n.contains("clean") || n.contains("snatch"))
     }
@@ -1722,7 +2073,7 @@ object WorkoutTemplates {
         // is the floor-level rung: without it a dumbbells-only kit had NO
         // available link in the whole chain (every other rung needs bar,
         // band, bench or machine).
-        listOf("Pull-Up", "Chin-Ups", "Band Assisted Pull Ups", "Assisted Pull Ups", "Lat Pulldown", "Dumbbell Pullover"),
+        listOf("Pull-Up", "Chin-Ups", "Assisted Pull Ups (Band)", "Assisted Pull Ups", "Lat Pulldown", "Dumbbell Pullover"),
         // Horizontal pull: bodyweight -> barbell -> cable -> dumbbell row
         listOf("Pull-Up", "Chin-Ups", "Inverted Row", "Rings Inverted Row", "TRX Row", "Wide Grip Seated Cable Row", "Bent-Over Dumbbell Row"),
         // Horizontal row variants: barbell row -> dumbbell/machine rows (the
@@ -1834,6 +2185,27 @@ object WorkoutTemplates {
 
     /** Public gate for callers outside the generator (ViewModel premade mapping). */
     fun grantedTagsForPublic(equipment: List<String>): Set<String>? = grantedTagsFor(equipment)
+
+    /**
+     * The equipment gate a PICKER should apply, given what the host knows.
+     *
+     * [fineTags] is the user's granted fine tags when the host has them;
+     * [coarseCategories] is the chip list. The fine tags win outright, and
+     * deliberately so: the coarse vocabulary is "Barbell", "Dumbbell", … and
+     * has no category for a chair, a bench or a pull-up bar, so rebuilding the
+     * gate from it silently drops grants the user actually ticked. The coarse
+     * path is kept only for a host with nothing better to offer.
+     *
+     * Null = unrestricted (never restricted the kit). An EMPTY set is not the
+     * same thing: it is the strict bodyweight-only scenario, and passing it
+     * through keeps that strictness. This is why the two are distinguished all
+     * the way down instead of being collapsed into a boolean.
+     */
+    fun pickerGrantedTags(
+        fineTags: Set<String>?,
+        coarseCategories: List<String>
+    ): Set<String>? = fineTags
+        ?: grantedTagsFor(coarseCategories)
 
     private fun widenWithSubstitutes(
         partPool: List<String>,
@@ -2276,6 +2648,16 @@ object WorkoutTemplates {
     }
 
     fun isBodyweightExercise(name: String): Boolean {
+        // The pool states its own apparatus, so a pool exercise is bodyweight
+        // exactly when the catalog says so. The catalog is consulted FIRST on
+        // purpose: the name heuristic below calls a "squat" bodyweight unless
+        // the name says otherwise, and after the name generalization the
+        // barbell squat is called "Barbell Back Squat" - so the heuristic was declaring
+        // it bodyweight and zeroing its starting load. The name is only ever a
+        // fallback, for a user's own exercise that has no catalog row.
+        val fromCatalog = ExerciseCatalog.equipmentFor(name)
+        if (fromCatalog.isNotEmpty()) return fromCatalog == EQUIPMENT_BODYWEIGHT
+
         val lowerName = name.lowercase().trim()
         
         // 1. Explicit common bodyweight patterns
@@ -2300,9 +2682,7 @@ object WorkoutTemplates {
             lowerName.contains("bodyweight")
         ) return true
 
-        // The rebuilt pool knows its equipment authoritatively; a pool
-        // exercise is bodyweight exactly when the catalog says so.
-        return ExerciseCatalog.equipmentFor(name) == EQUIPMENT_BODYWEIGHT
+        return false
     }
 
     /**

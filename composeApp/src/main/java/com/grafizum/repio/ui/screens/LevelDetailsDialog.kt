@@ -72,8 +72,10 @@ import kotlinx.coroutines.withContext
  * default was too thin for the row's level + prescription + tag, and whose text
  * slot inset the sides 24dp against 16dp top and bottom). `weight(1f)` keeps the
  * title, the lock row and Done in place while the ladder scrolls between them, and
- * the list opens on the user's current level — with 500 rows, starting at the top
- * would hide the one row that matters most.
+ * the list opens on the user's current level with a couple of rungs above it kept
+ * visible — with 500 rows, starting at the top would hide the one row that matters
+ * most, but opening exactly ON it hid the levels BELOW the start, which is where a
+ * user goes when the prescribed weight is too heavy.
  */
 @Composable
 fun LevelDetailsDialog(
@@ -89,7 +91,10 @@ fun LevelDetailsDialog(
     var details by remember { mutableStateOf(viewModel.levelDetails(exerciseName)) }
     var canExtend by remember { mutableStateOf(viewModel.canExtendLevelList(exerciseName)) }
     val listState = rememberLazyListState(
-        initialFirstVisibleItemIndex = details.indexOfFirst { it.isCurrent }.coerceAtLeast(0)
+        initialFirstVisibleItemIndex = levelPickerInitialIndex(
+            currentIndex = details.indexOfFirst { it.isCurrent },
+            totalRows = details.size
+        )
     )
 
     // Extending rebuilds the whole ladder (up to PICKER_LEVEL_LIMIT rows) and
@@ -305,6 +310,33 @@ fun LevelDetailsDialog(
         }
     }
 }/**
+ * How many rungs ABOVE the current one stay on screen when the picker opens.
+ *
+ * Every weighted exercise in the pool starts at level 4 of its own ladder (the
+ * CSV's Medium rung), so opening the list exactly on the current rung put level 4
+ * at the top of the screen and pushed levels 1–3 above the fold. The owner's
+ * report — "exercises below level 4 (starting level) are not even shown" — is
+ * this: the rungs were in the list, just scrolled out of sight, which reads
+ * exactly like their being absent.
+ *
+ * Two is the lead-in that makes the ladder read as a ladder: enough to show there
+ * is something above the current rung, without turning the dialog into a scroller
+ * whose position has to be re-found every time.
+ */
+private const val LEVEL_PICKER_LEAD_IN_ROWS = 2
+
+/**
+ * The row the picker opens on: the current rung, kept comfortably inside the
+ * viewport rather than pinned to its top edge. Public so the behaviour is
+ * testable without a composition.
+ */
+fun levelPickerInitialIndex(currentIndex: Int, totalRows: Int): Int {
+    if (totalRows <= 0) return 0
+    val current = currentIndex.coerceIn(0, totalRows - 1)
+    return (current - LEVEL_PICKER_LEAD_IN_ROWS).coerceIn(0, totalRows - 1)
+}
+
+/**
  * One rung of the ladder, drawn graphically: the level label on the left and a
  * weight bar whose fill grows with the level — heavier rungs literally read
  * heavier. Every rung is tappable for a direct jump.
@@ -366,6 +398,13 @@ private fun LevelDetailRowItem(
             Text(
                 text = when {
                     row.isCurrent -> getString("level_details_current")
+                    // A rep-progressed row (bodyweight/hold/cardio) shows the
+                    // REPS it asks for, not a variation name. The variation is
+                    // the substitution movement, not the work — "Bicycle
+                    // Crunch" told the user nothing about what level 2 asks of
+                    // them, which is the whole point of this column.
+                    row.repProgressed && row.stageReps.isNotEmpty() ->
+                        row.stageReps.joinToString(" / ") + " " + getString("reps")
                     row.prescribed != null -> prescriptionDisplayText(row.prescribed)
                     else -> ""
                 },

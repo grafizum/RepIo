@@ -108,9 +108,74 @@ object ProgressionEngine {
      * The per-set reps the Roman pattern prescribes at [stage] (1-based), or
      * null when the pattern has no row there — the data-error fallback the
      * callers treat as "do not auto-progress".
+     *
+     * This is the STAGE's own row and nothing else. For an exercise with no
+     * external load there is no other way to progress, so the level has to
+     * carry reps too — see [prescribedReps], which is what the UI should
+     * call. Kept as the raw lookup for the tests that assert the pattern
+     * itself, and as [prescribedReps]'s own starting point.
      */
     fun romanStageReps(entry: ProgressionEntry, stage: Int): List<Int>? =
         entry.romanStages.getOrNull(stage - 1)?.takeIf { it.isNotEmpty() }
+
+    /**
+     * True when the exercise progresses by reps rather than by an external
+     * load: bodyweight work (a variation ladder), holds and cardio. These are
+     * the rows where "level 6" has to MEAN more work than "level 1", because
+     * there is no weight on the bar to make it mean anything.
+     */
+    fun isRepProgressed(entry: ProgressionEntry): Boolean =
+        isProgressionReady(entry) && valueKindOf(entry) != ValueKind.LOAD
+
+    /**
+     * The per-set reps to prescribe at a [level]/[stage] of [entry].
+     *
+     * For a LOAD row this is exactly the Roman stage's own row — the load
+     * already carries the progression, so the reps stay put.
+     *
+     * For a rep-progressed row (bodyweight variation, hold, cardio) the reps
+     * RISE with the level, which is what makes a level mean anything when
+     * there is no weight to add. Two properties this guarantees, both
+     * requested by the owner and both previously untrue:
+     *
+     *  - reps never DROP when the level changes. Stage I is the pattern's
+     *    floor ([8,8,8]), so a level-up used to reset a set of 12s back to
+     *    8s — a demotion the user could see on the card.
+     *  - each level's ceiling is strictly higher than the level below, up to
+     *    the row's own [repMax] ceiling. [repMin] is the floor at level 1.
+     *
+     * The scale is linear between repMin and repMax across the ladder's
+     * effective range, and the stage is still honoured *inside* a level: the
+     * stage adds its own increment on top, then the result is clamped to
+     * [repMax]. So a mid-level stage still asks for more than the level's
+     * base, exactly as it does on a loaded row.
+     *
+     * Returns null only for the data-error case (no pattern row at the
+     * stage), matching [romanStageReps] so every caller keeps its existing
+     * "do not auto-progress on bad data" behaviour.
+     */
+    fun prescribedReps(entry: ProgressionEntry, level: Int, stage: Int): List<Int>? {
+        val base = romanStageReps(entry, stage) ?: return null
+        if (!isProgressionReady(entry) || valueKindOf(entry) == ValueKind.LOAD) return base
+
+        val min = entry.repMin ?: base.minOrNull() ?: return base
+        val max = entry.repMax ?: min
+        if (max <= min) return base
+        val effMax = effectiveMaxLevel(entry).coerceAtLeast(1)
+        val span = (effMax - 1).coerceAtLeast(1)
+        // How far up the rep range this level sits, 0 at level 1 and 1 at the
+        // top of the ladder.
+        val progress = (level - 1).toDouble() / span
+        val levelBase = min + ((max - min) * progress)
+        // The stage still counts inside the level, but capped at repMax so a
+        // deep stage cannot ask for more reps than the row's ceiling allows.
+        val stageBonus = (base.maxOrNull() ?: min) - min
+        val target = (levelBase + stageBonus).roundToInt().coerceIn(min, max)
+        // Never below what the stage alone asked for, and never below the
+        // row's floor: reps must not fall when the level changes.
+        val floor = (base.maxOrNull() ?: min).coerceIn(min, max)
+        return base.map { target.coerceAtLeast(floor) }
+    }
 
     /** How many stages the exercise's Roman pattern defines. */
     fun patternLength(entry: ProgressionEntry): Int =
@@ -138,12 +203,6 @@ object ProgressionEngine {
                 Prescription(entry.hardLevel, entry.hardValue, entry.hardStage, entry.hardReps)
         }
 
-        // The CSV pairs each start stage with target reps; when they disagree
-        // (a data error), prefer the stage's own pattern row so the UI can
-        // never display a mismatched pair.
-        val stageReps = romanStageReps(entry, stage) ?: reps
-        if (stageReps.isEmpty()) return null
-
         // Coach-reviewed rows (the bodyweight_variation family) start at Level
         // 1: the CSV's Easy/Medium/Hard rungs there encode the guessed ladder
         // position (Push-Up: 1 / 6 / 12), which would hand a fresh beginner the
@@ -151,8 +210,24 @@ object ProgressionEngine {
         // safe start for every difficulty — the difficulty still chooses the
         // routine build, not the entry level here.
         val startLevel = if (isCoachReviewed(entry)) 1 else (level ?: 1)
+
+        // The reps MUST be read at the level this prescription actually starts
+        // on. They used to be read at the CSV's own rung, which for a
+        // coach-reviewed row is NOT the level reported below — so Crunches came
+        // back as "Level 1, 11 reps" while the level system prescribed 8 at
+        // level 1. The routine was written with the higher number and the card
+        // showed the lower one, which is exactly the demotion the owner
+        // reported as "switching level reduces the reps". Read them together or
+        // the pair is a lie.
+        //
+        // The CSV pairs each start stage with target reps; when they disagree
+        // (a data error), prefer the stage's own pattern row so the UI can
+        // never display a mismatched pair.
+        val stageReps = prescribedReps(entry, startLevel, stage) ?: reps
+        if (stageReps.isEmpty()) return null
+
         val startValue = if (isCoachReviewed(entry))
-            valueAtLevelWithCeiling(entry, 1)
+            valueAtLevelWithCeiling(entry, startLevel)
         else value
 
         return StartingPrescription(
@@ -314,7 +389,6 @@ object ProgressionEngine {
     fun ladderRungs(entry: ProgressionEntry, listLength: Int = PICKER_LEVEL_LIMIT): List<LadderRung> {
         if (!isProgressionReady(entry)) return emptyList()
         val max = effectiveMaxLevel(entry)
-        val stageReps = romanStageReps(entry, 1).orEmpty()
         return (1..listLength.coerceAtLeast(max)).map { level ->
             if (level > max) {
                 LadderRung(
@@ -327,7 +401,10 @@ object ProgressionEngine {
                 LadderRung(
                     level = level,
                     prescribed = prescribedValueAtLevel(entry, level),
-                    stageReps = stageReps,
+                    // Level-aware: a rep-progressed row shows MORE reps on a
+                    // higher rung, so the picker says what each level asks for
+                    // rather than repeating stage I on every row.
+                    stageReps = prescribedReps(entry, level, 1).orEmpty(),
                     beyondPlan = false
                 )
             }
@@ -360,7 +437,7 @@ object ProgressionEngine {
         return if (state.stage < maxStage) {
             // Simple stage progression, load unchanged.
             val nextStage = state.stage + 1
-            val nextReps = romanStageReps(entry, nextStage) ?: return null
+            val nextReps = prescribedReps(entry, state.level, nextStage) ?: return null
             LevelProgression(
                 leveledUp = false,
                 newState = ProgressionState(state.level, nextStage),
@@ -375,12 +452,34 @@ object ProgressionEngine {
             // and the mastery flow (not another level) takes over.
             val newLevel = state.level + 1
             if (newLevel > effectiveMaxLevel(entry)) return null
-            val jumpClass = jumpClassForTransition(entry, state.level)
-            val resetReps = if (jumpClass == "large" || jumpClass == "very_large") {
-                entry.postJumpReps.takeIf { it.isNotEmpty() }
+            // A rep-progressed row (bodyweight/hold/cardio) must NOT reset to
+            // the pattern floor here: there is no heavier load to compensate,
+            // so a reset would silently DROP the user's reps at the moment
+            // they earned a level. prescribedReps scales them up with the new
+            // level instead, and never below what the level below prescribed.
+            val resetReps = if (isRepProgressed(entry)) {
+                // Scale up with the level, but never BELOW the reps the user
+                // just completed. Scaling alone is not enough: the user earns
+                // this level from the LAST stage of the one below, which asks
+                // for more reps than that same level's stage I does. Without
+                // the floor, archer-pull-ups went 12 reps at L1's final stage
+                // -> 9 at L2 — a rep DROP at the moment a level was earned,
+                // which is the exact thing the owner asked to stop.
+                val scaled = prescribedReps(entry, newLevel, 1)
+                val floor = prescribedReps(entry, state.level, state.stage)
+                when {
+                    scaled == null -> floor
+                    floor == null -> scaled
+                    else -> scaled.map { maxOf(it, floor.max()) }
+                }
             } else {
-                null
-            } ?: romanStageReps(entry, 1) ?: return null
+                val jumpClass = jumpClassForTransition(entry, state.level)
+                if (jumpClass == "large" || jumpClass == "very_large") {
+                    entry.postJumpReps.takeIf { it.isNotEmpty() }
+                } else {
+                    null
+                } ?: romanStageReps(entry, 1)
+            } ?: return null
             LevelProgression(
                 leveledUp = true,
                 newState = ProgressionState(newLevel, 1),
@@ -486,6 +585,44 @@ object ProgressionEngine {
         "stack_step" -> LoadUnit.STACK_STEP
         "resistance_step" -> LoadUnit.RESISTANCE_STEP
         else -> LoadUnit.KG
+    }
+
+    /**
+     * How an exercise's load is counted, or null when the exercise has no
+     * progression row (a user's own custom exercise) or carries no load at all
+     * (a variation or duration ladder).
+     *
+     * The UI needs this for the *field*, not only for the prescription text: a
+     * selectorized stack and a resistance band have a number that is NOT a
+     * weight, so a field labelled "kg" on those rows asks the user a question
+     * they cannot answer honestly. Dashboard task "steps instead of weight".
+     */
+    fun loadUnitFor(exerciseName: String): LoadUnit? {
+        val entry = entryFor(exerciseName) ?: return null
+        if (!isProgressionReady(entry)) return null
+        if (valueKindOf(entry) != ValueKind.LOAD) return null
+        return loadUnitOf(entry)
+    }
+
+    /** Where a resistance step sits on the light-to-heavy band ladder. */
+    enum class BandTension { VERY_LIGHT, LIGHT, MEDIUM, HEAVY, VERY_HEAVY }
+
+    /**
+     * The band a `resistance_step` value names. The ladder runs 1..10, which is
+     * five real bands with two rungs each: bands are bought in colours and
+     * labelled by feel, not by number, so a raw "step 4" asks the user to know
+     * a numbering their gym does not use.
+     *
+     * Bands also LOSE tension as they stretch, so a step number is not a
+     * multiple of a weight either — which is why this exists instead of a
+     * conversion.
+     */
+    fun bandTensionOf(step: Double): BandTension = when {
+        step < 3 -> BandTension.VERY_LIGHT
+        step < 5 -> BandTension.LIGHT
+        step < 7 -> BandTension.MEDIUM
+        step < 9 -> BandTension.HEAVY
+        else -> BandTension.VERY_HEAVY
     }
 
     /**
@@ -630,17 +767,144 @@ object ProgressionEngine {
     /** The exercise's branches, empty when none were curated. */
     fun branchesFor(entry: ProgressionEntry): List<ProgressionBranch> = entry.branches
 
+    // ------------------------------------------------------------------
+    // The evolution offer: "what it was" and "what it can become"
+    //
+    // The mastery section already lists branches as buttons. The evolution
+    // popup is the same decision made legible: both ladders drawn as their
+    // REAL numbers, side by side, so the choice is "I am here, I could be
+    // here" rather than a list of names. Everything it shows is computed
+    // from the same engine the prescriptions come from, so the popup cannot
+    // promise a start level the next session would not actually give.
+    // ------------------------------------------------------------------
+
+    /**
+     * One side of the offer. [level] is where the user stands, [maxLevel]
+     * how far this ladder runs, [reps] what the current level asks for and
+     * [nodes] the future path names (only the "after" side has a future).
+     */
+    data class EvolutionSide(
+        val exerciseName: String,
+        val level: Int,
+        val maxLevel: Int,
+        val stageRoman: String,
+        val load: Double?,
+        val unit: String,
+        val reps: List<Int>,
+        val nodes: List<String>,
+    ) {
+        /**
+         * How far along this side is, 0f..1f. The "before" side is always
+         * 1f by construction — that is the whole premise of the offer — so
+         * this is really only meaningful for the "after" side, where it is
+         * what makes the arrow a gain rather than a sideways move.
+         */
+        val progressFraction: Float
+            get() = if (maxLevel <= 1) 1f else (level.toFloat() / maxLevel).coerceIn(0f, 1f)
+    }
+
+    /** The full before/after pair the popup draws. */
+    data class EvolutionOffer(
+        val from: EvolutionSide,
+        val to: EvolutionSide,
+        val targetName: String,
+        val note: String,
+        val tag: String,
+    )
+
+    /**
+     * Builds the offer for [sourceName] -> [targetName], or null when either
+     * side is missing or the target has no progression of its own (an offer
+     * to start from nothing is not an upgrade, it is a restart).
+     */
+    fun evolutionOffer(
+        sourceName: String,
+        targetName: String,
+        state: ProgressionState,
+    ): EvolutionOffer? {
+        val sourceEntry = entryFor(sourceName) ?: return null
+        val targetEntry = entryFor(targetName) ?: return null
+        if (!isProgressionReady(targetEntry)) return null
+        val branch = sourceEntry.branches.firstOrNull { it.entry == targetName } ?: return null
+        val startLevel = branchStartLevel(sourceEntry, state, targetEntry)
+        return EvolutionOffer(
+            from = EvolutionSide(
+                exerciseName = sourceName,
+                level = state.level,
+                // The "before" ladder is drawn complete: it has been climbed.
+                maxLevel = effectiveMaxLevel(sourceEntry),
+                stageRoman = stageName(state.stage),
+                load = valueAtLevelWithCeiling(sourceEntry, state.level),
+                unit = sourceEntry.unit,
+                reps = prescribedReps(sourceEntry, state.level, state.stage).orEmpty(),
+                nodes = emptyList(),
+            ),
+            to = EvolutionSide(
+                exerciseName = targetName,
+                level = startLevel,
+                maxLevel = effectiveMaxLevel(targetEntry),
+                stageRoman = stageName(1),
+                load = valueAtLevelWithCeiling(targetEntry, startLevel),
+                unit = targetEntry.unit,
+                reps = prescribedReps(targetEntry, startLevel, 1).orEmpty(),
+                nodes = branch.nodes,
+            ),
+            targetName = targetName,
+            note = branch.note,
+            tag = branch.tag,
+        )
+    }
+
+    /**
+     * The branch the popup opens on when the user has not picked one: the
+     * "advanced" branch if the coach curated one, else the first. An evolution
+     * that offers a WEAKER exercise than the one being left behind is not an
+     * evolution, so a branch whose effective max is shorter than the source's
+     * is skipped when a longer one exists.
+     */
+    fun preferredBranch(entry: ProgressionEntry): ProgressionBranch? {
+        val branches = entry.branches
+        if (branches.isEmpty()) return null
+        val sourceMax = effectiveMaxLevel(entry)
+        val longer = branches.filter { candidate ->
+            entryFor(candidate.entry)?.let { effectiveMaxLevel(it) >= sourceMax } ?: false
+        }
+        val pool = longer.ifEmpty { branches }
+        return pool.firstOrNull { it.tag == "advanced" } ?: pool.first()
+    }
+
     /**
      * The starting level for a branch the user just picked: the user's
      * relative depth into their current exercise maps onto the target
      * exercise's effective range, clamped inside it.
+     *
+     * The one adjustment is the case the plain mapping gets wrong. The user
+     * only ever gets here at 100% depth (that is what "finished" means), so a
+     * target ladder that is LONGER than the source lands them partway up and
+     * keeps climbing - correct. But a target ladder of the SAME length lands
+     * them at its own maximum: Crunches -> Hanging Knee Raise (6 levels ->
+     * 6 levels) would hand over level 6 of 6, so the swap would be instantly
+     * finished too and the before/after popup would draw two identical bars.
+     * A ladder the same length has no more headroom to give, so it is capped
+     * at [PEER_LADDER_START_RATIO] of its range - the swap changes the
+     * movement and still leaves something to climb.
      */
     fun branchStartLevel(sourceEntry: ProgressionEntry, sourceState: ProgressionState, target: ProgressionEntry): Int {
         val sourceMax = effectiveMaxLevel(sourceEntry).coerceAtLeast(1)
         val ratio = (sourceState.level.toDouble() / sourceMax).coerceIn(0.0, 1.0)
         val targetMax = effectiveMaxLevel(target)
-        return (ratio * targetMax).roundToInt().coerceIn(1, targetMax)
+        val mapped = (ratio * targetMax).roundToInt().coerceIn(1, targetMax)
+        if (targetMax > sourceMax) return mapped
+        // Same length or shorter: never hand back a maxed-out ladder.
+        val capped = (targetMax * PEER_LADDER_START_RATIO).roundToInt().coerceAtLeast(1)
+        return minOf(mapped, capped).coerceAtLeast(1)
     }
+
+    /**
+     * Where a swap onto an equal-length ladder starts, as a fraction of that
+     * ladder. See [branchStartLevel].
+     */
+    private const val PEER_LADDER_START_RATIO = 0.6
 
     /**
      * The suggested alternatives shown on a "Human Limit Reached" card when

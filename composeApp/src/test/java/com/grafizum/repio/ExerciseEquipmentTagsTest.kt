@@ -68,10 +68,13 @@ class ExerciseEquipmentTagsTest {
     fun specExamplesResolveToTheirDocumentedTags() {
         // Push-Up -> none_required
         assertEquals(listOf<Set<String>>(emptySet()), ExerciseEquipmentTags.requirementsFor("Push-Up"))
-        // Decline Bench Press -> barbell_and_rack OR dumbbells_and_bench
+        // Decline Bench Press -> barbell_and_rack, OR dumbbells on a chair/bench.
+        // The seat is two alternatives, so a kitchen chair is not a dead end
+        // for a user who also owns the dumbbells.
         val decline = ExerciseEquipmentTags.requirementsFor("Decline Bench Press")
         assertTrue(setOf(ExerciseEquipmentTags.BARBELL_AND_RACK) in decline)
-        assertTrue(setOf(ExerciseEquipmentTags.DUMBBELLS_AND_BENCH) in decline)
+        assertTrue(setOf(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY) in decline)
+        assertTrue(setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY) in decline)
         // Dips on furniture: a chair OR a bench, never the merged legacy tag.
         assertEquals(
             listOf(setOf(ExerciseEquipmentTags.CHAIR), setOf(ExerciseEquipmentTags.BENCH)),
@@ -86,9 +89,12 @@ class ExerciseEquipmentTagsTest {
             listOf(setOf(ExerciseEquipmentTags.DUMBBELLS_ONLY)),
             ExerciseEquipmentTags.requirementsFor("Goblet Squat")
         )
-        // Dumbbell Bench Press -> dumbbells_and_bench
+        // Dumbbell Bench Press -> dumbbells on a chair OR a bench
         assertEquals(
-            listOf(setOf(ExerciseEquipmentTags.DUMBBELLS_AND_BENCH)),
+            listOf(
+                setOf(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY),
+                setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY),
+            ),
             ExerciseEquipmentTags.requirementsFor("Dumbbell Bench Press")
         )
         // Dumbbell Floor Press -> dumbbells_and_floor (NO bench needed)
@@ -101,15 +107,21 @@ class ExerciseEquipmentTagsTest {
     // ---------- 3. The two reported bugs stay dead ----------
 
     @Test
-    fun declineBenchPressIsBlockedWithoutABenchEvenWithDumbbells() {
+    fun declineBenchPressIsBlockedWithoutASeatEvenWithDumbbells() {
         val granted = ExerciseEquipmentTags.allowedTagsFor(dumbbellPreset())
         assertFalse(
-            "Decline Bench Press must require a bench (barbell+rack OR dumbbells+bench)",
+            "Decline Bench Press must require a seat (barbell+rack OR dumbbells on a chair/bench)",
             ExerciseEquipmentTags.isAvailable("Decline Bench Press", granted)
         )
         assertTrue(
+            "dumbbells and a bench are two tiles, and together they are enough",
             ExerciseEquipmentTags.isAvailable("Decline Bench Press",
-                dumbbellsOnly + ExerciseEquipmentTags.DUMBBELLS_AND_BENCH)
+                dumbbellsOnly + ExerciseEquipmentTags.BENCH)
+        )
+        assertTrue(
+            "a chair is a seat too",
+            ExerciseEquipmentTags.isAvailable("Decline Bench Press",
+                dumbbellsOnly + ExerciseEquipmentTags.CHAIR)
         )
         assertTrue(
             ExerciseEquipmentTags.isAvailable("Decline Bench Press",
@@ -174,7 +186,7 @@ class ExerciseEquipmentTagsTest {
         assertFalse(ExerciseEquipmentTags.isAvailable("Pull-Up", setOf(ExerciseEquipmentTags.DIP_BARS)))
         // Bands unlock the banded pool plus band-assisted pull-ups.
         assertTrue(ExerciseEquipmentTags.isAvailable("Banded Squat", bwBands))
-        assertTrue(ExerciseEquipmentTags.isAvailable("Band Assisted Pull Ups", bwBands))
+        assertTrue(ExerciseEquipmentTags.isAvailable("Assisted Pull Ups (Band)", bwBands))
         assertFalse(ExerciseEquipmentTags.isAvailable("Pull-Up", bwBands))
         // Rings/TRX tier.
         assertTrue(ExerciseEquipmentTags.isAvailable("Ring Push-Up", setOf(ExerciseEquipmentTags.GYMNASTIC_RINGS)))
@@ -344,7 +356,7 @@ class ExerciseEquipmentTagsTest {
         // Bodyweight + bands: the plain Pull-Up stays (it needs nothing?? no —
         // it needs the bar). The chain must land on the band-assisted variant.
         val sub = WorkoutTemplates.substituteExercise("Pull-Up", listOf(ExerciseEquipmentTags.PRESET_BW_BANDS))
-        assertEquals("Band Assisted Pull Ups", sub)
+        assertEquals("Assisted Pull Ups (Band)", sub)
         // With a pull-up bar granted, the original stays.
         val kept = WorkoutTemplates.substituteExercise("Pull-Up", listOf(ExerciseEquipmentTags.PRESET_BW_PULLUP_BAR))
         assertEquals("Pull-Up", kept)

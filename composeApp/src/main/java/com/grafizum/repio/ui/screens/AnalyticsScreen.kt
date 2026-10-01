@@ -248,17 +248,22 @@ fun AnalyticsScreen(
                         getString("overall_level_none")
                     },
                     subtitle = "",
-                    icon = Icons.Default.EmojiEvents,
+                    // Same as Home's card: the rank letter leads, in the themed tile
+                    // the trophy used to own, and the trophy falls back into that same
+                    // tile while there is no rank yet. Two cards showing one stat must
+                    // not disagree about where the rank sits.
+                    icon = if (overallRank == null) Icons.Default.EmojiEvents else null,
                     iconColor = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.fillMaxWidth(),
                     badgeText = if (overallLevel != null) null
                                 else getString("overall_level_not_ready"),
                     compact = true,
-                    trailing = if (overallRank != null) {
+                    leading = if (overallRank != null) {
                         {
                             com.grafizum.repio.ui.components.RankBadge(
                                 rank = overallRank.rank,
-                                contentDescription = getString("rank_badge_content_desc", overallRank.letter)
+                                contentDescription = getString("rank_badge_content_desc", overallRank.letter),
+                                size = 40.dp
                             )
                         }
                     } else {

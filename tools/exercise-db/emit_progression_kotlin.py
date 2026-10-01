@@ -22,11 +22,14 @@ import json
 import pathlib
 import re
 
+import generalize
+
 ROOT = pathlib.Path(__file__).resolve().parents[2]
 OUT = pathlib.Path(__file__).resolve().parent / "out"
 MAIN = ROOT / "composeApp/src/main/java/com/grafizum/repio"
 
 CATALOG = OUT / "catalog_v5.json"
+RENAMES = OUT / "name_renames.json"
 PROGRESSION = OUT / "progression_v5.json"
 
 STAGE_ORDER = ["I", "II", "III", "IV", "V", "VI", "VII", "VIII", "IX", "X", "XI", "XII", "XIII"]
@@ -194,6 +197,7 @@ def ladder_const_ref(json_str: str) -> str:
 def main() -> int:
     entries = json.loads(CATALOG.read_text(encoding="utf-8"))
     prog = json.loads(PROGRESSION.read_text(encoding="utf-8"))
+    renames = json.loads(RENAMES.read_text(encoding="utf-8")) if RENAMES.is_file() else {}
     entries.sort(key=lambda r: r["name"].lower())
     prog_by_id = {p["id"]: p for p in prog}
 
@@ -306,6 +310,8 @@ def main() -> int:
         "",
         "    /** The English method description of a pool exercise, or null outside it. */",
         "    fun descriptionFor(name: String): String? = entryFor(name)?.description?.ifBlank { null }",
+        "",
+        generalize.format_rename_table(renames).rstrip("\n"),
         "}",
         "",
     ]

@@ -14,11 +14,11 @@ import org.junit.Test
  * correct — keys that match pool exercises, unique names and descriptions, no shadowing —
  * and the canonical-name resolution must keep working.
  *
- * CLEAN SLATE (branch `experiment/csv-exercise-db`): the pool was rebuilt from the
- * exercise-database CSV, so every canonical name changed and the German/Italian tables
- * were retired (the full translated history is on `main`). While the tables regrow, these
- * tests hold for a *partial* table and keep every guarantee except coverage; re-add a
- * `coverageLockedIn` test per language once a table covers the whole pool again.
+ * The pool was rebuilt from the exercise-database CSV on branch
+ * `experiment/csv-exercise-db`, so every canonical name changed and the German/Italian
+ * tables were retired. They have since been regrown to cover the whole pool again, so
+ * `everyTableCoversTheWholePool` now asserts that. If a language is ever retired again,
+ * drop that one language from the coverage test rather than weakening the rest.
  */
 class ExerciseLocalizationTest {
 
@@ -85,6 +85,19 @@ class ExerciseLocalizationTest {
     }
 
     @Test
+    fun everyTableCoversTheWholePool() {
+        for (language in languages) {
+            val poolSlugs = poolBySlug.keys
+            val missing = poolSlugs - ExerciseLocalization.translatedSlugs(language)
+            assertEquals(
+                "[$language] ${missing.size} pool exercises still fall back to English",
+                emptySet<String>(),
+                missing
+            )
+        }
+    }
+
+    @Test
     fun translationsAreActuallyTranslated() {
         // A copy-paste of the English name would silently pass every check above.
         // An empty table is legitimate on the clean-slate branch; a non-empty one
@@ -131,7 +144,7 @@ class ExerciseLocalizationTest {
     @Test
     fun canonicalForResolvesCanonicalNamesAndRejectsUnknownOnes() {
         assertEquals("Dumbbell Bicep Curl", ExerciseLocalization.canonicalFor("Dumbbell Bicep Curl"))
-        assertEquals("Dumbbell Bicep Curl", ExerciseLocalization.canonicalFor("dumbbell bicep curl"))
+        assertEquals("Dumbbell Bicep Curl", ExerciseLocalization.canonicalFor("bicep curl (dumbbell)"))
         assertNull(ExerciseLocalization.canonicalFor("My Custom Exercise"))
         assertNull(ExerciseLocalization.canonicalFor(""))
     }

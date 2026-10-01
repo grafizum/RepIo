@@ -63,8 +63,12 @@ import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
+import com.grafizum.repio.ui.components.bandTensionLabel
+import com.grafizum.repio.ui.components.loggedLoadSummary
+import com.grafizum.repio.ui.components.EvolutionDialog
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
+import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.viewmodel.MasteryCardData
@@ -100,8 +104,23 @@ fun WorkoutNowScreen(
     // that jumps straight to a level.
     var levelDetailsFor by remember { mutableStateOf<String?>(null) }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
+
+    // The evolution popup. A QUEUE of whole offers rather than a pair of
+    // names, so the before/after the user reads is the same object the engine
+    // built, and three exercises finishing their ladders in one session are
+    // three decisions rather than three stacked modals or two silent drops.
+    var evolutionQueue by remember {
+        mutableStateOf<List<com.grafizum.repio.data.ProgressionEngine.EvolutionOffer>>(emptyList())
+    }
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
     val themeKey by viewModel.themeOption.collectAsState()
+    // Why the last press of the level pill did not open the ladder. Null = no
+    // notice showing; see the pill's onBlockedTap for the two reasons.
+    var blockedLevelNotice by remember { mutableStateOf<String?>(null) }
+    // Resolved here, not inside the tap lambda: that lambda is invoked from the
+    // Surface's click handler, outside composition, and getString is @Composable.
+    val pencilBlockedHint = getString("level_pencil_hint")
+    val customBlockedHint = getString("level_fields_locked_toast")
 
     val context = LocalContext.current
     var notificationsEnabled by remember {
@@ -137,6 +156,24 @@ fun WorkoutNowScreen(
 
     val currentDayExercises = remember(allExercises, workoutState.selectedDayOfWeek) {
         allExercises.filter { it.dayOfWeek == workoutState.selectedDayOfWeek }
+    }
+
+    // The evolution popup: "here is where you are, here is what it becomes".
+    // Accepting re-levels the target; declining LOCKS the exercise at its cap
+    // and nothing re-offers it except the editor.
+    evolutionQueue.firstOrNull()?.let { offer ->
+        EvolutionDialog(
+            offer = offer,
+            onEvolve = {
+                viewModel.acceptEvolution(offer.from.exerciseName, offer.targetName)
+                evolutionQueue = evolutionQueue.drop(1)
+            },
+            onDecline = {
+                viewModel.declineEvolution(offer.from.exerciseName)
+                evolutionQueue = evolutionQueue.drop(1)
+            },
+            onDismiss = { evolutionQueue = evolutionQueue.drop(1) },
+        )
     }
 
     if (showRestartDialog) {
@@ -386,14 +423,25 @@ fun WorkoutNowScreen(
                                 }
                             }
 
-                            // YOUR PROGRESSION OPPORTUNITIES — the Mastery &
-                            // Branch hub. Only present when at least one exercise
-                            // finished its ladder or reached its researched human
-                            // ceiling this workout.
-                            if (workoutState.masteredExercises.isNotEmpty()) {
-                                MasterySection(
-                                    cards = workoutState.masteredExercises,
-                                    onAcceptBranch = { source, target -> viewModel.acceptBranch(source, target) },
+                            // YOUR PROGRESSION OPPORTUNITIES — the evolution
+                            // popup opens on its own when the workout completes.
+                            // The owner asked for it "as a popup window to show
+                            // the user there is something here", and a section
+                            // the user has to notice and scroll to is exactly
+                            // the thing that does not do that, so the branch
+                            // cards are gone from here.
+                            LaunchedEffect(workoutState.evolutionToken) {
+                                evolutionQueue = workoutState.evolutionOffers
+                            }
+
+                            // A TRUE CEILING with no branch has no evolution to
+                            // offer, so no popup opens for it — and deleting the
+                            // section would silently delete the fact that the
+                            // exercise has finished. Those stay as a line.
+                            val ceilings = workoutState.masteredExercises.filter { it.branches.isEmpty() }
+                            if (ceilings.isNotEmpty()) {
+                                MasteryCeilingSummary(
+                                    cards = ceilings,
                                     onKeepAtCap = { viewModel.keepExerciseAtCap(it) }
                                 )
                             }
@@ -443,7 +491,9 @@ fun WorkoutNowScreen(
                             prescribed?.kind == ProgressionEngine.ValueKind.LOAD ->
                                 prescriptionDisplayText(prescribed)
                             workoutState.currentWeightKg > 0.0 ->
-                                getString("weight_kg_intl", workoutState.currentWeightKg)
+                                // The user's own value, in the exercise's own unit —
+                                // a stack's pin is not a kilogram.
+                                loggedLoadSummary(currentExercise.name, workoutState.currentWeightKg)
                             else -> null
                         }
 
@@ -808,8 +858,31 @@ fun WorkoutNowScreen(
                                     if (delta > 0) viewModel.advanceStageOrLevel(currentExercise.name)
                                     else viewModel.retreatStageOrLevel(currentExercise.name)
                                 },
-                                onToggleLock = { viewModel.setExerciseLocked(currentExercise.name, !currentExercise.locked) },
-                                onOpenDetails = { levelDetailsFor = currentExercise.name }
+                                onBeginEdit = { viewModel.setExerciseLocked(currentExercise.name, false) },
+                                onCommitEdit = { viewModel.setExerciseLocked(currentExercise.name, true) },
+                                onOpenDetails = { levelDetailsFor = currentExercise.name },
+                                // The pill LOOKS pressable always, so a press that
+                                // cannot open the ladder has to say why rather than
+                                // doing nothing.
+                                //
+                                // The reason is NOT `locked`: an exercise that was
+                                // never locked is also blocked while idle, because
+                                // the ladder opens only inside an edit pass. Keying
+                                // the message off `locked` would tell a first-time
+                                // user to "switch to custom" when the honest answer
+                                // is "press the pencil". So: if the level system is
+                                // running at all, the way in is the pencil; only a
+                                // fully custom mode has the other answer.
+                                onBlockedTap = {
+                                    blockedLevelNotice =
+                                        when (levelPillBlockedReason(
+                                            currentExercise.locked,
+                                            viewModel.levelSystemEnabled.value
+                                        )) {
+                                            LevelPillBlocked.NEEDS_EDIT_PASS -> pencilBlockedHint
+                                            LevelPillBlocked.NEEDS_CUSTOM_MODE -> customBlockedHint
+                                        }
+                                }
                             )
 
                         }
@@ -928,6 +1001,18 @@ fun WorkoutNowScreen(
         Spacer(modifier = Modifier.height(24.dp))
     }
 
+    // WHY-THE-PILL-DID-NOTHING notice. The pill is drawn pressable in every state,
+    // so a press while the level is ticked in has to answer for itself instead of
+    // being swallowed - the same failure the greyed level fields had.
+    blockedLevelNotice?.let { notice ->
+        ThemedToast(
+            message = notice,
+            themeKey = themeKey,
+            visible = true,
+            onDismiss = { blockedLevelNotice = null }
+        )
+    }
+
     // LEVEL DETAILS DIALOG — jump levels with full weight/reps overview.
     levelDetailsFor?.let { name ->
         LevelDetailsDialog(
@@ -949,6 +1034,20 @@ fun WorkoutNowScreen(
             themeKey = themeKey,
             levelsManaged = viewModel.isExerciseLevelManaged(exercise.name),
             userEquipmentCategories = viewModel.userEquipmentCategories(),
+            userGrantedTags = viewModel.userGrantedEquipmentTags(),
+            // Same contract as the Routine editor: declining locks the
+            // exercise, and this badge is the only way to reopen the offer.
+            evolutionLocked = viewModel.isEvolutionDeclined(exercise.name),
+            onUpgrade = {
+                // Reopening from the editor: clear the lock, then put the
+                // preferred offer straight back on the queue so the same
+                // popup opens again.
+                viewModel.reopenEvolution(exercise.name)
+                editingExercise = null
+                viewModel.preferredEvolutionOffer(exercise.name)?.let {
+                    evolutionQueue = listOf(it)
+                }
+            },
             onRequestCustomMode = { confirmCustom = true },
             onDismiss = { editingExercise = null },
             onSave = { updated ->
@@ -979,7 +1078,7 @@ fun WorkoutNowScreen(
 
 /**
  * Renders an engine [ProgressionEngine.PrescribedValue] as localized UI text:
- * "8 kg each", "12 kg", "4 steps", "Incline Push-Up", or "30 s".
+ * "8 kg each", "12 kg", "Pin 6", "Medium band", "Incline Push-Up", or "30 s".
  */
 @Composable
 fun prescriptionDisplayText(rx: ProgressionEngine.PrescribedValue): String = when (rx.kind) {
@@ -991,8 +1090,11 @@ fun prescriptionDisplayText(rx: ProgressionEngine.PrescribedValue): String = whe
         when (rx.loadUnit) {
             ProgressionEngine.LoadUnit.KG_EACH -> getString("progression_load_each", clean)
             ProgressionEngine.LoadUnit.KG -> getString("progression_load_kg", clean)
-            ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_steps", clean)
-            ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString("progression_load_steps", clean)
+            ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_pin", clean)
+            ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString(
+                "progression_load_band",
+                bandTensionLabel(ProgressionEngine.bandTensionOf(v))
+            )
             null -> ""
         }
     }
@@ -1070,6 +1172,68 @@ private fun HeaderActionPill(
  * row the engine cannot rate) drop the header and stage dots; the card then
  * stands alone as the routine's own "this set" row.
  */
+/**
+ * What the level card's controls are allowed to do, in one answer.
+ *
+ * The owner's contract for the pencil (board task_3o3c023w5k073f573g0h2g29) is three
+ * rules that used to be three separate boolean expressions in the composable, and
+ * three separate expressions is three chances for them to disagree:
+ *
+ *   - the pencil/tick is ALWAYS reachable, committed or not, or there would be no
+ *     way back into edit mode;
+ *   - the roman-stage stepper and the level pill work ONLY inside an edit pass -
+ *     "while in edit mode the + and - are shown ... but hidden once locked in",
+ *     and the level card "can be pressed ... when lock in then not anymore";
+ *   - an exercise the level system cannot rate (`adjustable == false`) never grows
+ *     the pencil at all, whatever its lock state.
+ *
+ * `editing` is local UI state on purpose: the PERSISTED thing is the same
+ * `routine_exercises.locked` pin the old lock icon wrote. The pencil clears it,
+ * the tick sets it, and a committed level therefore survives a restart exactly as
+ * before - the change is the flow around the pin, not a new storage.
+ */
+data class LevelEditControls(
+    val stepperEnabled: Boolean,
+    val levelPillEnabled: Boolean,
+    val showPencil: Boolean
+)
+
+fun levelEditControls(adjustable: Boolean, locked: Boolean, editing: Boolean): LevelEditControls =
+    LevelEditControls(
+        stepperEnabled = adjustable && editing && !locked,
+        levelPillEnabled = adjustable && editing && !locked,
+        showPencil = adjustable || locked || editing
+    )
+
+/** Why the level pill refused a press, so the toast can say the useful thing. */
+enum class LevelPillBlocked {
+    /** The level system is running: the way in is the pencil. */
+    NEEDS_EDIT_PASS,
+
+    /** No level system at all: the honest answer is the custom mode. */
+    NEEDS_CUSTOM_MODE
+}
+
+/**
+ * Which explanation a blocked level pill owes the user.
+ *
+ * The pill is drawn pressable in every state, so a press it refuses has to say
+ * why — the same lesson as the greyed level fields, where `enabled = false`
+ * swallowed the tap and read as broken.
+ *
+ * The trap, which this function exists to make impossible to get wrong again:
+ * the obvious implementation keys off `locked`, and `locked` is FALSE for an
+ * exercise that was never locked. Such an exercise is blocked too — the ladder
+ * opens only inside an edit pass — so keying off the lock tells a first-time
+ * user to "switch to custom", which is not why their tap did nothing.
+ */
+fun levelPillBlockedReason(
+    locked: Boolean,
+    levelSystemOn: Boolean
+): LevelPillBlocked =
+    if (locked || levelSystemOn) LevelPillBlocked.NEEDS_EDIT_PASS
+    else LevelPillBlocked.NEEDS_CUSTOM_MODE
+
 @OptIn(ExperimentalMaterial3Api::class) // Surface(onClick) for the level pill
 @Composable
 private fun LevelPrescriptionCard(
@@ -1090,11 +1254,22 @@ private fun LevelPrescriptionCard(
     loadText: String?,
     isTimeBased: Boolean,
     onStageStep: (Int) -> Unit,
-    onToggleLock: () -> Unit,
-    onOpenDetails: () -> Unit
+    onBeginEdit: () -> Unit,
+    onCommitEdit: () -> Unit,
+    onOpenDetails: () -> Unit,
+    onBlockedTap: () -> Unit
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val inSystem = level != null && stage != null
+    // Pencil -> edit mode -> tick. "Lock in" is the same persisted pin the old
+    // lock icon wrote (routine_exercises.locked), reached through an explicit
+    // edit pass: the pencil unfreezes the exercise so the stepper and the level
+    // pill work, the tick freezes it at whatever the user chose. The +/- hide
+    // and the pill goes inert the moment it is committed.
+    var editing by remember(exerciseName) { mutableStateOf(false) }
+    // One place decides what the stepper, the level pill and the pencil may do -
+    // see [levelEditControls] for why the three used to be separate expressions.
+    val controls = levelEditControls(adjustable = adjustable, locked = locked, editing = editing)
     // The per-set action banner is LEVEL-MODE ONLY: it narrates the system's
     // prescription. Custom mode keeps the classic read — one big target line,
     // plan summary beside it — so the two modes look and feel different.
@@ -1128,14 +1303,30 @@ private fun LevelPrescriptionCard(
             ) {
                 // The clickable level pill: a raised tonal button rather than bare
                 // text, so the tap target is discoverable without a caption.
+                //
+                // It must LOOK pressable in EVERY state. It used to drop its
+                // elevation outside edit mode and to pass Material's `enabled`,
+                // which greys the whole surface - so the one control that opens the
+                // level ladder read as flat text, and the owner reported it as
+                // "doesnt look like its pressabel". Raised, with a rim, always.
+                //
+                // The CLICK is still gated by the edit contract ("when lock in then
+                // not anymore"), but a press that cannot act now explains itself
+                // instead of being swallowed - the same lesson as the greyed level
+                // fields, where `enabled = false` made a tap do nothing at all and
+                // read as broken. Hence `enabled = true` with the decision moved
+                // inside, and onBlockedTap carrying WHY it is blocked.
                 Surface(
-                    onClick = onOpenDetails,
-                    enabled = adjustable,
+                    onClick = {
+                        if (controls.levelPillEnabled) onOpenDetails() else onBlockedTap()
+                    },
+                    enabled = true,
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
                     color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
                     contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onPrimary,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
-                    shadowElevation = if (isDeveloper || !adjustable) 0.dp else 2.dp,
+                    border = if (isDeveloper) BorderStroke(1.dp, Color.White)
+                             else BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)),
+                    shadowElevation = if (isDeveloper) 0.dp else 2.dp,
                     modifier = Modifier.semantics { testTag = "level_chip" }
                 ) {
                     Text(
@@ -1158,12 +1349,17 @@ private fun LevelPrescriptionCard(
                 // Compact stepper: − stage +. The arrows walk the Roman stages
                 // of the current level one at a time; at the LAST stage the +
                 // rolls over into the next level's stage I (and − into the
-                // previous level's last stage). A locked exercise pins the
-                // stepper completely: disabled clicks, fully grayed icons.
-                val canStepDown = adjustable && ((stage ?: 1) > 1 || (level ?: 1) > 1)
-                val canStepUp = adjustable &&
+                // previous level's last stage).
+                //
+                // VISIBLE ONLY IN EDIT MODE. Once the level is ticked in there is
+                // nothing to step — the prescription is what the user saved, so
+                // the arrows are gone rather than merely greyed. The Roman
+                // numeral stays as the level readout either way.
+                val canStepDown = controls.stepperEnabled &&
+                    ((stage ?: 1) > 1 || (level ?: 1) > 1)
+                val canStepUp = controls.stepperEnabled &&
                     ((stage ?: 1) < lastStage || (level ?: 1) < maxLevel)
-                Surface(
+                if (controls.stepperEnabled) Surface(
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
                     color = if (isDeveloper) Color.White.copy(alpha = 0.10f)
                             else MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
@@ -1221,27 +1417,47 @@ private fun LevelPrescriptionCard(
                     }
                 }
 
-                // The lock rides at the row's far end, always visible and
-                // tappable — INCLUDING while locked, or there would be no way
-                // back. Locked persists per exercise in the routine table and
-                // pins this exercise's level: the stepper grays out completely.
-                if (adjustable || locked) {
+                // The pencil/tick rides at the row's far end, always visible and
+                // tappable — INCLUDING while committed, or there would be no way
+                // back into edit mode.
+                //
+                //   pencil (idle)   -> unfreezes the exercise and enters edit mode
+                //   tick  (editing) -> freezes it at the chosen level and saves
+                //
+                // Both halves persist through the same per-exercise pin in the
+                // routine table, so a committed level survives a restart exactly
+                // as the old lock icon's did — the change is the flow around it,
+                // not a new storage.
+                if (controls.showPencil) {
                     CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
                         Box(
                             modifier = Modifier
                                 .size(32.dp)
                                 .clip(CircleShape)
-                                .clickable(onClick = onToggleLock),
+                                .clickable {
+                                    if (editing) {
+                                        editing = false
+                                        onCommitEdit()
+                                    } else {
+                                        editing = true
+                                        onBeginEdit()
+                                    }
+                                }
+                                .semantics { testTag = if (editing) "level_commit" else "level_edit" },
                             contentAlignment = Alignment.Center
                         ) {
                             Icon(
-                                imageVector = if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
-                                contentDescription = getString(if (locked) "exercise_lock_desc" else "exercise_unlock_desc"),
-                                tint = when {
-                                    isDeveloper -> Color.White
-                                    locked -> MaterialTheme.colorScheme.primary
-                                    else -> MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.45f)
-                                },
+                                imageVector = if (editing) Icons.Default.Check else Icons.Default.Edit,
+                                contentDescription = getString(
+                                    if (editing) "exercise_commit_desc" else "exercise_edit_desc"
+                                ),
+                                // ALWAYS the theme colour. It was dimmed to 45%
+                                // while idle, which the owner read as “the pencil is
+                                // grayed out at the beginning” - and it is the one
+                                // control that unlocks the exercise, so looking
+                                // disabled is the opposite of the truth.
+                                tint = if (isDeveloper) Color.White
+                                       else MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(18.dp)
                             )
                         }
@@ -1427,290 +1643,64 @@ private fun StageDots(total: Int, current: Int, modifier: Modifier = Modifier) {
 }
 
 // ----------------------------------------------------------------------
-// Mastery & Branch — the post-workout progression hub.
+// Mastery — the exercises that finished with nothing to evolve INTO.
 //
-// Celebratory but grounded: the exercise's track is drawn as a node road
-// (completed, current, locked), the load line names the ceiling that was
-// reached, and each branch is a real card with its own mini track — not a
-// bare button. A true ceiling (no branches) shows the acknowledgement card
-// instead. All animations are subtle fades; nothing bounces.
+// The branch cards are gone: an exercise with a branch now gets the
+// evolution popup, which says more in one screen than a list of branch
+// buttons ever did. But a TRUE CEILING has no branch, so nothing pops for
+// it, and deleting the section outright would silently delete the fact that
+// the exercise is done. Those stay here as one line each.
 // ----------------------------------------------------------------------
 
 @Composable
-private fun MasterySection(
+private fun MasteryCeilingSummary(
     cards: List<MasteryCardData>,
-    onAcceptBranch: (sourceName: String, targetName: String) -> Unit,
-    onKeepAtCap: (sourceName: String) -> Unit
+    onKeepAtCap: (String) -> Unit,
 ) {
-    Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
-        Text(
-            text = getString("mastery_section_title"),
-            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-            color = MaterialTheme.colorScheme.onBackground
-        )
-        Text(
-            text = getString("mastery_section_subtitle"),
-            style = MaterialTheme.typography.bodyMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        cards.forEach { card -> MasteryCard(card, onAcceptBranch, onKeepAtCap) }
-    }
-}
-
-@Composable
-private fun MasteryCard(
-    card: MasteryCardData,
-    onAcceptBranch: (String, String) -> Unit,
-    onKeepAtCap: (String) -> Unit
-) {
-    val isDeveloper = LocalDeveloperSkin.current
-    Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-        colors = CardDefaults.cardColors(
-            containerColor = MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.35f)
-        ),
-        border = if (isDeveloper) BorderStroke(1.dp, Color.White)
-                 else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.4f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(16.dp), verticalArrangement = Arrangement.spacedBy(12.dp)) {
-            // --- Identity + load line ---
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Box(
-                    modifier = Modifier
-                        .size(44.dp)
-                        .clip(CircleShape)
-                        .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-                    contentAlignment = Alignment.Center
-                ) {
-                    Icon(
-                        imageVector = Icons.Default.EmojiEvents,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(24.dp)
-                    )
-                }
-                Spacer(modifier = Modifier.width(12.dp))
-                Column(modifier = Modifier.weight(1f)) {
-                    Text(
-                        text = translateExerciseName(card.exerciseName),
-                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.onSurface
-                    )
-                    Text(
-                        text = listOf(card.muscleGroup, card.equipment).filter { it.isNotBlank() }
-                            .joinToString(" · "),
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant
-                    )
-                }
-            }
-
-            // --- Progress track: filled bar + "MAX" pill ---
-            val loadLine = card.load?.let {
-                val clean = if (it % 1.0 == 0.0) it.toInt().toString() else it.toString()
-                getString("progression_load_kg", clean)
-            } ?: ""
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .height(8.dp)
-                    .clip(RoundedCornerShape(4.dp))
-                    .background(MaterialTheme.colorScheme.primary.copy(alpha = 0.15f))
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        cards.forEach { card ->
+            Surface(
+                shape = RoundedCornerShape(14.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                modifier = Modifier.fillMaxWidth(),
             ) {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(8.dp)
-                        .clip(RoundedCornerShape(4.dp))
-                        .background(MaterialTheme.colorScheme.primary)
-                )
-            }
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
+                Column(
+                    verticalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.padding(12.dp),
                 ) {
+                    Row(verticalAlignment = Alignment.CenterVertically) {
+                        Text(
+                            text = translateExerciseName(card.exerciseName),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            modifier = Modifier.weight(1f),
+                        )
+                        Text(
+                            text = getString("mastery_human_limit"),
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
                     Text(
-                        text = "MAX",
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
+                        text = card.ceiling?.basis ?: getString("mastery_ceiling_default"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
                     )
-                }
-                Spacer(modifier = Modifier.width(8.dp))
-                Text(
-                    text = getString("mastery_level_line", card.level, card.stageRoman) +
-                        if (loadLine.isNotBlank()) " – $loadLine" else "",
-                    style = MaterialTheme.typography.labelMedium,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            }
-            Text(
-                text = when (card.reason) {
-                    ProgressionEngine.MasteryReason.CEILING_REACHED ->
-                        card.ceiling?.basis ?: getString("mastery_ceiling_default")
-                    ProgressionEngine.MasteryReason.LADDER_COMPLETE ->
-                        getString("mastery_ladder_complete")
-                },
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-
-            // --- Branches, or the true-ceiling acknowledgement ---
-            if (card.branches.isNotEmpty()) {
-                card.branches.forEach { branch ->
-                    BranchCard(card.exerciseName, branch, onAcceptBranch)
-                }
-                Text(
-                    text = getString("mastery_switch_later"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-            } else {
-                HumanLimitCard(card, onKeepAtCap)
-            }
-
-            // "Stay at cap" is available for branch exercises too (decline).
-            if (card.branches.isNotEmpty()) {
-                TextButton(onClick = { onKeepAtCap(card.exerciseName) }) {
-                    Text(getString("mastery_keep_current"), style = MaterialTheme.typography.labelMedium)
-                }
-            }
-        }
-    }
-}
-
-@Composable
-private fun BranchCard(
-    sourceName: String,
-    branch: com.grafizum.repio.data.ProgressionBranch,
-    onAcceptBranch: (String, String) -> Unit
-) {
-    val isDeveloper = LocalDeveloperSkin.current
-    Surface(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
-        color = MaterialTheme.colorScheme.surface,
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(modifier = Modifier.padding(12.dp), verticalArrangement = Arrangement.spacedBy(8.dp)) {
-            Row(verticalAlignment = Alignment.CenterVertically) {
-                Text(
-                    text = translateExerciseName(branch.entry),
-                    style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                    modifier = Modifier.weight(1f)
-                )
-                Surface(
-                    shape = RoundedCornerShape(6.dp),
-                    color = if (branch.tag == "advanced") MaterialTheme.colorScheme.errorContainer
-                            else MaterialTheme.colorScheme.secondaryContainer,
-                    contentColor = if (branch.tag == "advanced") MaterialTheme.colorScheme.onErrorContainer
-                            else MaterialTheme.colorScheme.onSecondaryContainer
-                ) {
-                    Text(
-                        text = if (branch.tag == "advanced") getString("mastery_tag_advanced")
-                               else getString("mastery_tag_new"),
-                        style = MaterialTheme.typography.labelSmall,
-                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 2.dp)
-                    )
-                }
-            }
-            Text(
-                text = branch.note,
-                style = MaterialTheme.typography.bodySmall,
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            // Mini progress track: the branch's future nodes, next one highlighted.
-            if (branch.nodes.isNotEmpty()) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp)
-                ) {
-                    branch.nodes.take(3).forEachIndexed { index, node ->
-                        Surface(
-                            shape = RoundedCornerShape(8.dp),
-                            color = if (index == 0) MaterialTheme.colorScheme.primaryContainer
-                                    else MaterialTheme.colorScheme.surfaceVariant,
-                            contentColor = if (index == 0) MaterialTheme.colorScheme.onPrimaryContainer
-                                    else MaterialTheme.colorScheme.onSurfaceVariant
-                        ) {
-                            Text(
-                                text = translateExerciseName(node),
-                                style = MaterialTheme.typography.labelSmall,
-                                modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)
-                            )
-                        }
-                        if (index < branch.nodes.take(3).lastIndex) {
-                            Icon(
-                                imageVector = Icons.AutoMirrored.Filled.ArrowForward,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.outline,
-                                modifier = Modifier.size(12.dp)
-                            )
-                        }
+                    if (card.suggestions.isNotEmpty()) {
+                        val names = card.suggestions.map { translateExerciseName(it) }
+                        Text(
+                            text = getString("mastery_focus_on") + " " + names.joinToString(", "),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        )
+                    }
+                    TextButton(onClick = { onKeepAtCap(card.exerciseName) }) {
+                        Text(
+                            text = getString("mastery_acknowledge"),
+                            style = MaterialTheme.typography.labelMedium,
+                        )
                     }
                 }
             }
-            Button(
-                onClick = { onAcceptBranch(sourceName, branch.entry) },
-                colors = ButtonDefaults.buttonColors(
-                    containerColor = MaterialTheme.colorScheme.primary,
-                    contentColor = MaterialTheme.colorScheme.onPrimary
-                ),
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(getString("mastery_choose_path"), style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold))
-            }
         }
     }
 }
-
-@Composable
-private fun HumanLimitCard(
-    card: MasteryCardData,
-    onKeepAtCap: (String) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(verticalAlignment = Alignment.CenterVertically) {
-            Icon(
-                imageVector = Icons.Default.EmojiEvents,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(20.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = getString("mastery_human_limit"),
-                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold)
-            )
-        }
-        Text(
-            text = getString("mastery_human_limit_text", translateExerciseName(card.exerciseName)),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        if (card.suggestions.isNotEmpty()) {
-            val suggestionList = card.suggestions.map { translateExerciseName(it) }.joinToString(", ")
-            Text(
-                text = getString("mastery_focus_on") + " " + suggestionList,
-                style = MaterialTheme.typography.bodySmall
-            )
-        }
-
-        Button(
-            onClick = { onKeepAtCap(card.exerciseName) },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.surfaceVariant,
-                contentColor = MaterialTheme.colorScheme.onSurfaceVariant
-            ),
-            shape = RoundedCornerShape(12.dp),
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Text(getString("mastery_acknowledge"), style = MaterialTheme.typography.labelLarge)
-        }
-    }
-}
-
-

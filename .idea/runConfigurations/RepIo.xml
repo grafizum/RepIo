@@ -1,4 +1,20 @@
 <component name="ProjectRunConfigurationManager">
+  <!--
+    Runs the app on whatever device is selected in the toolbar dropdown.
+
+    Two things this deliberately does NOT pin, both of which used to make the
+    config unusable on a new machine:
+
+      * No specific activity. The app ships FOUR launcher activities, one per
+        theme (MainActivityFlame / Beige / Purple / Emerald), and the config was
+        pinned to MainActivityBeige - so a plain "Run" opened the beige theme
+        rather than the app. The theme-specific entries are separate configs
+        now; this one just launches the app.
+      * No device serial. A serial is remembered per config in
+        .idea/deploymentTargetSelector.xml, and the ones on file belonged to the
+        old Windows machine's phones, so Studio tried to deploy to hardware that
+        is not plugged in. Pick the phone in the dropdown.
+  -->
   <configuration default="false" name="RepIo" type="AndroidRunConfigurationType" factoryName="Android App" activateToolWindowBeforeRun="false">
     <module name="RepIo.composeApp" />
     <option name="ANDROID_RUN_CONFIGURATION_SCHEMA_VERSION" value="1" />
@@ -10,15 +26,19 @@
     <option name="ALL_USERS" value="false" />
     <option name="ALWAYS_INSTALL_WITH_PM" value="false" />
     <option name="ALLOW_ASSUME_VERIFIED" value="false" />
+    <!-- Never wipe app data on run: the first-time setup, the saved equipment
+         tiles, the split style and every logged set live in the app's storage,
+         and losing them to a "Run" is a bad first surprise. -->
     <option name="CLEAR_APP_STORAGE" value="false" />
     <option name="DYNAMIC_FEATURES_DISABLED_LIST" value="" />
     <option name="ACTIVITY_EXTRA_FLAGS" value="" />
-    <option name="MODE" value="specific_activity" />
     <option name="RESTORE_ENABLED" value="false" />
     <option name="RESTORE_FILE" value="" />
     <option name="RESTORE_FRESH_INSTALL_ONLY" value="false" />
     <option name="CLEAR_LOGCAT" value="false" />
     <option name="SHOW_LOGCAT_AUTOMATICALLY" value="true" />
+    <!-- The device dropdown, so a physical phone and an emulator are both
+         available at run time instead of being decided here. -->
     <option name="TARGET_SELECTION_MODE" value="DEVICE_AND_SNAPSHOT_COMBO_BOX" />
     <option name="DEBUGGER_TYPE" value="Auto" />
     <Auto>
@@ -57,8 +77,6 @@
       <option name="NATIVE_MEMORY_SAMPLE_RATE_BYTES" value="2048" />
     </Profilers>
     <option name="DEEP_LINK" value="" />
-    <option name="ACTIVITY" value="" />
-    <option name="ACTIVITY_CLASS" value="com.grafizum.repio.MainActivityBeige" />
     <option name="SEARCH_ACTIVITY_IN_GLOBAL_SCOPE" value="false" />
     <option name="SKIP_ACTIVITY_VALIDATION" value="false" />
     <method v="2">

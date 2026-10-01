@@ -89,6 +89,7 @@ import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.ExercisePopularity
 import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.ExerciseEquipmentTags
+import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.WorkoutTemplates
 import java.util.Calendar
 import kotlin.math.roundToInt
@@ -292,7 +293,7 @@ fun translateExerciseName(name: String): String {
     // Pool exercises are translated from the tables in ExerciseLocalization. Those tables
     // cover 121 of the 601 pool exercises per language so far — anything they miss falls back
     // to its canonical English name, which is correct, just untranslated. Everything outside
-    // the pool — the generic movement names some templates still carry ("Row", "Curls") and
+    // the pool — the generic movement names some templates still carry ("TRX Row", "Curls") and
     // user-created customs — falls through to the legacy mapping below.
     val canonical = ExerciseLocalization.canonicalFor(name)
     if (canonical != null) {
@@ -317,7 +318,7 @@ private fun translateGenericExerciseName(name: String): String {
         lower == "pullover" || lower == "pullovers" -> getString("ex_dumbbell_pullover")
         lower == "curl" || lower == "curls" -> getString("ex_curls")
         lower == "hammer curl" || lower == "hammer curls" ||
-            lower == "dumbbell hammer curl" || lower == "dumbbell hammer curls" -> getString("ex_hammer_curl")
+            lower == "hammer curl (dumbbell)" || lower == "dumbbell hammer curls" -> getString("ex_hammer_curl")
         lower == "shoulder press" || lower == "shoulder presses" -> getString("ex_shoulder_press")
         lower == "lateral raise" || lower == "lateral raises" -> getString("ex_lateral_raise")
         lower == "crunch" || lower == "crunches" -> getString("ex_crunches")
@@ -356,9 +357,9 @@ private fun translateGenericExerciseName(name: String): String {
         lower == "dumbbell row" || lower == "dumbbell rows" -> getString("ex_dumbbell_row")
         lower == "barbell row" || lower == "barbell rows" -> getString("ex_barbell_row")
         lower == "barbell squat" || lower == "barbell squats" -> getString("ex_barbell_squat")
-        lower == "dumbbell lunge" || lower == "dumbbell lunges" -> getString("ex_dumbbell_lunge")
+        lower == "lunge (dumbbell)" || lower == "dumbbell lunges" -> getString("ex_dumbbell_lunge")
         lower == "barbell floor press" || lower == "barbell floor presses" -> getString("ex_barbell_floor_press")
-        lower == "dumbbell floor press" || lower == "dumbbell floor presses" -> getString("ex_dumbbell_floor_press")
+        lower == "floor press (dumbbell)" || lower == "dumbbell floor presses" -> getString("ex_dumbbell_floor_press")
 
         else -> name
     }
@@ -453,7 +454,15 @@ fun StatCard(
      * the rank badge. Rendered in the compact and hero layouts, which are the
      * two that have a badge slot; the standard (subtitle) layout has none.
      */
-    trailing: (@Composable () -> Unit)? = null
+    trailing: (@Composable () -> Unit)? = null,
+    /**
+     * Replaces the leading icon INSIDE its chip: same 40dp rounded tile, same
+     * tinted background, but the content is the caller's. The Overall Level card
+     * passes the rank letter here so the rank sits on the LEFT of the number in
+     * the slot the trophy used to own, rather than trailing the number as a
+     * badge of its own. Preferred over [icon]; when both are given, this wins.
+     */
+    leading: (@Composable () -> Unit)? = null
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val window = LocalWindowSize.current
@@ -485,7 +494,7 @@ fun StatCard(
                         verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier.fillMaxWidth()
                     ) {
-                        if (icon != null) {
+                        if (leading != null || icon != null) {
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
@@ -493,12 +502,16 @@ fun StatCard(
                                     .background(if (isDeveloper) Color.White else iconColor.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
-                                Icon(
-                                    imageVector = icon,
-                                    contentDescription = null,
-                                    tint = if (isDeveloper) Color.Black else iconColor,
-                                    modifier = Modifier.size(20.dp)
-                                )
+                                if (leading != null) {
+                                    leading()
+                                } else {
+                                    Icon(
+                                        imageVector = icon!!,
+                                        contentDescription = null,
+                                        tint = if (isDeveloper) Color.Black else iconColor,
+                                        modifier = Modifier.size(20.dp)
+                                    )
+                                }
                             }
                             Spacer(modifier = Modifier.width(12.dp))
                         }
@@ -910,7 +923,7 @@ private fun genericExerciseDescription(name: String, muscleGroup: String): Strin
         cleanName.contains("lunge") || cleanName.contains("step-up") || cleanName.contains("split squat") -> getString("ex_lunges_desc")
         cleanName.contains("side lying leg raise") -> getString("ex_side_lying_leg_raise_desc")
         cleanName.contains("clamshell") -> getString("ex_clamshell_desc")
-        cleanName.contains("cable crunch") -> getString("ex_cable_crunch_desc")
+        cleanName.contains("crunch") -> getString("ex_cable_crunch_desc")
         cleanName.contains("crunch") -> getString("ex_crunches_desc")
         cleanName.contains("leg raise") -> getString("ex_leg_raises_desc")
         cleanName.contains("russian twist") -> getString("ex_russian_twist_desc")
@@ -2204,15 +2217,23 @@ fun SearchableExerciseField(
         }
     }
 
+    // The normalisation of every searchable name (lowercase / compact / split) does
+    // not depend on what is typed, so it is done once per pool instead of once per
+    // keystroke. Measured 19ms -> 8ms per keystroke on the JVM; on a phone that is
+    // several times more, and it runs on the main thread inside composition.
+    // Ranking is unchanged - `thePreparedIndexReturnsExactlyWhatTheDirectSearchDoes`
+    // asserts the two agree name-for-name and order-for-order.
+    val searchIndex = remember(candidates) { ExerciseSearch.PreparedIndex.build(candidates) }
+
     // Typo-tolerant search: still finds "Dumbbell Curls" from "dumbell curls"
     // or "Bench Press" from "bnech pres". Exact/prefix matches stay on top.
     // A BLANK query shows the pool itself (popularity-ordered, already filtered
     // by the caller): the owner's "suggestions have to ACTUALLY SUGGEST AND
     // SHOW EXERCISES" — the dropdown used to stay empty until a letter was
     // typed, because searchCandidates treats an empty query as "no matches".
-    val filteredExercises = remember(value, candidates) {
+    val filteredExercises = remember(value, searchIndex) {
         if (value.isBlank()) candidates
-        else ExerciseSearch.searchCandidates(candidates, value)
+        else ExerciseSearch.searchPrepared(searchIndex, value)
     }
 
     ExposedDropdownMenuBox(
@@ -2466,6 +2487,12 @@ fun CompactNumericField(
      * custom mode to change the value.
      */
     enabled: Boolean = true,
+    /**
+     * Called when a DISABLED field is tapped. A disabled text field swallows the
+     * tap, so without this the greyed box just does nothing and the user is left
+     * guessing; the editor passes a short notice here instead.
+     */
+    onLockedTap: (() -> Unit)? = null,
     keyboardOptions: KeyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
     placeholder: String? = null,
     suffix: @Composable (() -> Unit)? = null,
@@ -2475,7 +2502,12 @@ fun CompactNumericField(
     BasicTextField(
         value = value,
         onValueChange = onValueChange,
-        modifier = modifier.defaultMinSize(minHeight = 56.dp),
+        modifier = modifier
+            .defaultMinSize(minHeight = 56.dp)
+            .pointerInput(enabled) {
+                if (enabled) return@pointerInput
+                detectTapGestures { onLockedTap?.invoke() }
+            },
         interactionSource = interactionSource,
         enabled = enabled,
         singleLine = true,
@@ -2529,6 +2561,8 @@ fun RepsRangeField(
      * routine editor when the level system prescribes this exercise.
      */
     enabled: Boolean = true,
+    /** See [CompactNumericField]. */
+    onLockedTap: (() -> Unit)? = null,
     supportingText: @Composable (() -> Unit)? = null
 ) {
     val parts = value.split("-", "–")
@@ -2569,7 +2603,13 @@ fun RepsRangeField(
         modifier = modifier
             .defaultMinSize(minHeight = 56.dp)
             .pointerInput(enabled) {
-                if (!enabled) return@pointerInput
+                if (!enabled) {
+                    // Locked: the tap cannot open the editor, but it is not
+                    // swallowed either - the notice is the whole point of
+                    // greying the box out.
+                    detectTapGestures { onLockedTap?.invoke() }
+                    return@pointerInput
+                }
                 detectTapGestures { offset ->
                     if (isExpanded) {
                         if (offset.x < size.width / 2) minFocusRequester.requestFocus()
@@ -2733,6 +2773,94 @@ fun RepsRangeField(
     )
 }
 
+/**
+ * The band a `resistance_step` value names, in the user's language. Bands are sold
+ * by colour and felt, never by number, so the ladder's 1..10 is rendered as the
+ * five tensions a user can actually pick up.
+ */
+@Composable
+fun bandTensionLabel(tension: ProgressionEngine.BandTension): String = when (tension) {
+    ProgressionEngine.BandTension.VERY_LIGHT -> getString("band_tension_very_light")
+    ProgressionEngine.BandTension.LIGHT -> getString("band_tension_light")
+    ProgressionEngine.BandTension.MEDIUM -> getString("band_tension_medium")
+    ProgressionEngine.BandTension.HEAVY -> getString("band_tension_heavy")
+    ProgressionEngine.BandTension.VERY_HEAVY -> getString("band_tension_very_heavy")
+}
+
+/**
+ * The label the load field carries for an exercise. Most are loaded with weight,
+ * so the default is "Weight"/"kg" — but a selectorized stack and a resistance
+ * band are NOT weights: a pin means a different resistance on every machine and a
+ * band loses tension as it stretches. Labelling those rows "kg" asked the user to
+ * invent a number (dashboard task "lots of exercises have steps instead of weight").
+ */
+@Composable
+fun loadFieldLabel(exerciseName: String): String =
+    when (ProgressionEngine.loadUnitFor(exerciseName)) {
+        ProgressionEngine.LoadUnit.STACK_STEP -> getString("load_unit_pin")
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString("load_unit_band")
+        else -> getString("weight")
+    }
+
+/** The unit printed inside the load field. Empty for the step units: they are a count, not a measure. */
+@Composable
+fun loadFieldSuffix(exerciseName: String): String =
+    when (ProgressionEngine.loadUnitFor(exerciseName)) {
+        ProgressionEngine.LoadUnit.STACK_STEP,
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP -> ""
+        else -> "kg"
+    }
+
+/**
+ * The stored load as the load field should print it.
+ *
+ * The field was seeded with `Double.toString()`, which is right for weight ("2.5")
+ * and wrong for a COUNT: pin 20 arrived as "20.0", and the placeholder said "0.0"
+ * too, so a stack row asked for a number with a decimal point on a machine whose
+ * plate stack has no such thing. [loggedLoadSummary] already dropped the ".0" on
+ * the way out; this is the same rule on the way in, and the two now agree because
+ * a field that reads back differently from the card that printed it is its own
+ * small lie.
+ *
+ * A non-whole value is still printed in full: if the user typed a fraction into a
+ * pin field, rounding it away would silently change what gets saved.
+ */
+fun loadFieldValueText(exerciseName: String, value: Double): String {
+    if (value <= 0.0) return ""
+    val isCount = ProgressionEngine.loadUnitFor(exerciseName) in setOf(
+        ProgressionEngine.LoadUnit.STACK_STEP,
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP
+    )
+    return if (isCount && value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+}
+
+/** The empty-field hint, in the exercise's own unit: a count is not written "0.0". */
+fun loadFieldPlaceholder(exerciseName: String): String =
+    when (ProgressionEngine.loadUnitFor(exerciseName)) {
+        ProgressionEngine.LoadUnit.STACK_STEP,
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP -> "0"
+        else -> "0.0"
+    }
+
+/**
+ * How a logged set's own load reads, in the exercise's own unit: "20 kg", "Pin 6",
+ * "Medium band". The value stored is whatever the user typed, so a stack's pin
+ * number is printed back as a pin, not as a kilogram.
+ */
+@Composable
+fun loggedLoadSummary(exerciseName: String, value: Double): String {
+    if (value <= 0.0) return ""
+    val clean = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+    return when (ProgressionEngine.loadUnitFor(exerciseName)) {
+        ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_pin", clean)
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString(
+            "progression_load_band",
+            bandTensionLabel(ProgressionEngine.bandTensionOf(value))
+        )
+        else -> "$clean kg"
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseEditDialog(
@@ -2761,7 +2889,28 @@ fun ExerciseEditDialog(
      * suggestions" list that includes kit the user does not own is exactly
      * how the equipment setup read as "the filter doesn't work".
      */
-    userEquipmentCategories: List<String> = emptyList()
+    userEquipmentCategories: List<String> = emptyList(),
+    /**
+     * The user's granted FINE tags, when the host has them.
+     *
+     * [userEquipmentCategories] is deliberately coarse — the chip vocabulary is
+     * "Barbell", "Dumbbell", … and has NO category for a chair, a bench or a
+     * pull-up bar, so those are already gone by the time it arrives. Rebuilding
+     * the gate from it cannot restore them: `allowedTagsFor` on the coarse list
+     * yields dumbbells/floor/bands only, and the furniture and bar grants the
+     * user actually ticked are silently dropped (measured: chair, bench and
+     * pull_up_bar all lost). Prefer this when non-null; fall back to the coarse
+     * list only for a host that has no fine tags to give.
+     */
+    userGrantedTags: Set<String>? = null,
+    /**
+     * True when this exercise's evolution offer was declined and it is locked
+     * at its top level. The badge is the ONLY way a declined offer comes back,
+     * so it has to be visible here rather than remembered.
+     */
+    evolutionLocked: Boolean = false,
+    /** Opens the evolution popup again for this locked exercise. */
+    onUpgrade: (() -> Unit)? = null,
 ) {
     // Only an edit of an existing, level-managed row is locked; a fresh add
     // always keeps its inputs open. Touching a locked field (while enabled,
@@ -2779,32 +2928,38 @@ fun ExerciseEditDialog(
     var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
     var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
-    var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
-
-    // Same filters the replace dialog offers: equipment chips plus a broad
-    // muscle-group dropdown. They only narrow which exercises the search field
-    // suggests — the stored muscle still comes from the exercise itself, and an
-    // existing row keeps whatever group it was saved with.
-    var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
-    // The chips start on the user's OWN kit (not empty = unrestricted): the
-    // suggestions must never offer barbell rows to a no-barbell setup before
-    // the user has touched a single control.
-    var filterEquipment by remember(exercise?.id) {
-        mutableStateOf(userEquipmentCategories)
+    // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
+    // count, so it must not open the sheet as "20.0" (see the function's note).
+    var targetWeightValue by remember {
+        mutableStateOf(exercise?.targetWeightKg?.let { loadFieldValueText(name, it) } ?: "")
     }
-    val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
+
+    // The suggestion filter popup was removed (dashboard task
+    // "The exercise suggestions tab is still broken. Remove it completely").
+    // What is left is the ONE gate that is not a convenience: the user's own
+    // kit. Suggestions must never offer a barbell row to a no-barbell setup
+    // before the user has touched a single control, so the equipment
+    // restriction starts ON (from the user's declared equipment) and the muscle
+    // restriction starts off. There is no UI to change either one any more.
+    val filteredExercises = remember(allAvailableExercises, userEquipmentCategories, userGrantedTags) {
         filteredExercisesForPickers(
-            allAvailableExercises, filterMuscleGroup, filterEquipment,
+            allAvailableExercises, null, userEquipmentCategories,
             // Fine-tag gate: coarse chips alone leaked bar-less moves (Pull-Ups)
             // into dumbbells+chair suggestions through the Bodyweight chip.
-            ExerciseEquipmentTags.allowedTagsFor(userEquipmentCategories)
-                .takeIf { userEquipmentCategories.isNotEmpty() }
+            WorkoutTemplates.pickerGrantedTags(userGrantedTags, userEquipmentCategories)
         )
     }
-    val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
-    var showRecommendFilters by remember { mutableStateOf(false) }
 
     var activeToastMessage by remember { mutableStateOf<String?>(null) }
+
+    // One notice for every locked field: the level system prescribes the value,
+    // so the box is read-only and says why in one short line instead of silently
+    // ignoring the tap. Deliberately a toast, not a modal - it fires on every
+    // attempt and a dialog per tap would be unusable.
+    val lockedFieldNoticeText = getString("level_fields_locked_toast")
+    val lockedFieldNotice: () -> Unit = {
+        activeToastMessage = lockedFieldNoticeText
+    }
 
     val isRepsValid = remember(targetRepsValue, isTimeBased) {
         if (isTimeBased) true
@@ -2879,6 +3034,78 @@ fun ExerciseEditDialog(
                         interactionSource = remember { MutableInteractionSource() }
                     ) { focusManager.clearFocus() }
             ) {
+                // The lock the user set by declining an evolution. Declining
+                // is permanent, so without a visible way back it would read as
+                // "the app decided this exercise was finished".
+                if (evolutionLocked && exercise != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = getString("evolution_locked_badge"),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                                Text(
+                                    text = getString("evolution_decline_warns"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                            TextButton(
+                                onClick = { onUpgrade?.invoke() },
+                                enabled = onUpgrade != null,
+                            ) {
+                                Text(getString("evolution_locked_upgrade"))
+                            }
+                        }
+                    }
+                }
+
+                // The lock the user set by declining an evolution. Declining
+                // is permanent, so without a visible way back it would read as
+                // "the app decided this exercise was finished".
+                if (evolutionLocked && exercise != null) {
+                    Surface(
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(10.dp),
+                        ) {
+                            Column(modifier = Modifier.weight(1f)) {
+                                Text(
+                                    text = getString("evolution_locked_badge"),
+                                    style = MaterialTheme.typography.labelLarge,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                                Text(
+                                    text = getString("evolution_decline_warns"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onSecondaryContainer,
+                                )
+                            }
+                            TextButton(
+                                onClick = { onUpgrade?.invoke() },
+                                enabled = onUpgrade != null,
+                            ) {
+                                Text(getString("evolution_locked_upgrade"))
+                            }
+                        }
+                    }
+                }
+
                 // When the level system prescribes this exercise, the values it
                 // owns are shown read-only: the prescription is authoritative, so
                 // the fields are greyed out rather than hidden, and one line
@@ -2909,23 +3136,6 @@ fun ExerciseEditDialog(
                     },
                     modifier = Modifier.fillMaxWidth()
                 )
-
-                // RECOMMENDATION FILTERS — optional and popup-only while adding
-                // (an edit keeps its own name). A user typing a known exercise
-                // manually never sees them; the picker narrows the SUGGESTIONS only.
-                if (exercise == null) {
-                    OutlinedButton(
-                        onClick = { showRecommendFilters = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (filtersActive) getString("recommend_filters_active", filteredExercises.size)
-                            else getString("recommend_filters_open")
-                        )
-                    }
-                }
 
                 SearchableExerciseField(
                     allExercises = filteredExercises,
@@ -3027,6 +3237,7 @@ fun ExerciseEditDialog(
                         },
                         label = getString("sets"),
                         enabled = !inputsLocked,
+                        onLockedTap = lockedFieldNotice,
                         modifier = Modifier.weight(1f).fillMaxHeight()
                     )
 
@@ -3034,7 +3245,14 @@ fun ExerciseEditDialog(
                         var expandedTime by remember { mutableStateOf(false) }
                         ExposedDropdownMenuBox(
                             expanded = expandedTime,
-                            onExpandedChange = { expandedTime = !expandedTime },
+                            // The anchor kept opening its menu while locked: the
+                            // dropdown then closed again on the very next
+                            // composition, so a tap on a greyed field looked
+                            // like nothing happened at all.
+                            onExpandedChange = {
+                                if (inputsLocked) lockedFieldNotice()
+                                else expandedTime = !expandedTime
+                            },
                             modifier = Modifier.weight(1f).fillMaxHeight()
                         ) {
                             val digitsOnly = targetTimeValue.filter { it.isDigit() }
@@ -3096,6 +3314,7 @@ fun ExerciseEditDialog(
                             label = getString("reps"),
                             isError = repsError,
                             enabled = !inputsLocked,
+                            onLockedTap = lockedFieldNotice,
                             modifier = Modifier.weight(1f).fillMaxHeight()
                         )
                     }
@@ -3132,12 +3351,16 @@ fun ExerciseEditDialog(
                             if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
                             targetWeightValue = newValue
                         },
-                        label = getString("weight"),
+                        // Not every exercise is loaded with weight: a selectorized
+                        // stack counts pins and a band counts tension, and a "kg"
+                        // label on those rows asks a question with no honest answer.
+                        label = loadFieldLabel(name),
                         enabled = !inputsLocked,
+                        onLockedTap = lockedFieldNotice,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        placeholder = "0.0",
-                        suffix = { Text("kg", fontSize = 12.sp) }
+                        placeholder = loadFieldPlaceholder(name),
+                        suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) }
                     )
                     CompactNumericField(
                         value = targetIntensityStr,
@@ -3154,6 +3377,7 @@ fun ExerciseEditDialog(
                         },
                         label = getString("intensity_label"),
                         enabled = !inputsLocked,
+                        onLockedTap = lockedFieldNotice,
                         modifier = Modifier.weight(1f).fillMaxHeight(),
                         keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
                     )
@@ -3176,26 +3400,7 @@ fun ExerciseEditDialog(
             }
     }
 
-    // Optional recommendation popup (add mode only). Lives OUTSIDE the main
-    // AlertDialog so it stacks on top of it.
-    if (showRecommendFilters && exercise == null) {
-        ExerciseRecommendationFilterDialog(
-            filterMuscleGroup = filterMuscleGroup,
-            filterEquipment = filterEquipment,
-            filteredCount = filteredExercises.size,
-            onMuscleGroupChange = { filterMuscleGroup = it },
-            onEquipmentToggle = { key ->
-                filterEquipment = if (filterEquipment.contains(key)) filterEquipment - key
-                                  else filterEquipment + key
-            },
-            onReset = {
-                filterMuscleGroup = null
-                filterEquipment = emptyList()
-            },
-            onDismiss = { showRecommendFilters = false }
-        )
     }
-}
 
 /**
  * Gap between two day chips, as a fraction of one chip's slot width. A ratio rather than a number
@@ -3646,10 +3851,14 @@ private fun DayDetailContent(
             val isTime = WorkoutTemplates.isExerciseTimeBased(firstSet.exerciseName)
             val isBW = WorkoutTemplates.isBodyweightExercise(firstSet.exerciseName)
             
+            // A selectorized stack and a band are not loaded in kg; showing "kg"
+            // there is the same lie as labelling the field, so the summary reads
+            // the exercise's own unit.
+            val loadDetail = loggedLoadSummary(firstSet.exerciseName, firstSet.weightKg)
             val repsDetail = if (isTime) {
-                if (isBW) "${firstSet.reps}s" else "${firstSet.weightKg}kg x ${firstSet.reps}s"
+                if (isBW) "${firstSet.reps}s" else "$loadDetail x ${firstSet.reps}s"
             } else {
-                if (isBW) "${firstSet.reps}" else "${firstSet.weightKg}kg x ${firstSet.reps}"
+                if (isBW) "${firstSet.reps}" else "$loadDetail x ${firstSet.reps}"
             }
 
             Row(
@@ -3905,65 +4114,6 @@ fun EquipmentFilterRow(
 }
 
 /**
- * The optional "recommendation" popup for the add-exercise dialogs: muscle
- * group + equipment filters that narrow which exercises the name field
- * suggests. Deliberately NOT inline with the form — typing a known exercise
- * manually needs no filters, so the picker only opens on request.
- */
-@Composable
-fun ExerciseRecommendationFilterDialog(
-    filterMuscleGroup: String?,
-    filterEquipment: List<String>,
-    filteredCount: Int,
-    onMuscleGroupChange: (String?) -> Unit,
-    onEquipmentToggle: (String) -> Unit,
-    onReset: () -> Unit,
-    onDismiss: () -> Unit
-) {
-    AppDialog(
-        onDismissRequest = onDismiss,
-        title = getString("recommend_filters_title"),
-        confirmLabel = getString("recommend_apply"),
-        onConfirm = onDismiss,
-        dismissLabel = getString("cancel"),
-        onDismiss = onDismiss
-    ) {
-        Text(
-            text = getString("recommend_filters_desc"),
-            style = MaterialTheme.typography.bodySmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        MuscleGroupFilterField(
-            selectedMuscleGroup = filterMuscleGroup,
-            onSelect = onMuscleGroupChange
-        )
-        EquipmentFilterRow(
-            selectedEquipment = filterEquipment,
-            onToggle = onEquipmentToggle
-        )
-        if (filterMuscleGroup != null || filterEquipment.isNotEmpty()) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                Text(
-                    text = getString("exercises_count", filteredCount),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    modifier = Modifier.weight(1f)
-                )
-                TextButton(
-                    onClick = onReset,
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Text(getString("reset"), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
-    }
-}
-
-/**
  * The muscle-group filter dropdown from the replace dialog: "Any" plus the six
  * broad body parts. Selecting "Legs" offers every exercise whose own body part
  * is Legs — the same partition the replace dialog filters by.
@@ -4030,7 +4180,9 @@ fun ReplaceExerciseDialog(
      * the chips then start from the replaced exercise's own category, as
      * before.
      */
-    userEquipmentCategories: List<String> = emptyList()
+    userEquipmentCategories: List<String> = emptyList(),
+    /** The user's granted FINE tags — see [ExerciseEditorDialog]'s note. */
+    userGrantedTags: Set<String>? = null
 ) {
     val focusManager = LocalFocusManager.current
     val broadMuscleGroups = remember { WorkoutTemplates.getBroadMuscleGroups() }
@@ -4093,8 +4245,7 @@ fun ReplaceExerciseDialog(
         // Fine-tag gate (same as the generator): the coarse Bodyweight chip
         // covers every bar-less movement, so without it a dumbbells+chair setup
         // was offered Pull-Ups and Muscle-Ups. Null when unrestricted.
-        val granted = ExerciseEquipmentTags.allowedTagsFor(userEquipmentCategories)
-            .takeIf { userEquipmentCategories.isNotEmpty() }
+        val granted = WorkoutTemplates.pickerGrantedTags(userGrantedTags, userEquipmentCategories)
         if (granted != null) pool = pool.filter { ExerciseEquipmentTags.isAvailable(it, granted) }
         ExercisePopularity.sortedByPopularity(
             pool.distinct().filter { it.lowercase() != exercise.name.lowercase() }
@@ -4111,9 +4262,15 @@ fun ReplaceExerciseDialog(
             ExerciseSearch.Candidate(name, ExerciseLocalization.allNamesFor(name))
         }
     }
-    val visibleAlternatives = remember(searchQuery, searchCandidates, alternatives) {
+    // Same precomputation as the add-exercise field: the per-name normalisation is
+    // query-independent, so paying it per keystroke was pure waste on the main
+    // thread. See ExerciseSearch.PreparedIndex.
+    val searchIndex = remember(searchCandidates) {
+        ExerciseSearch.PreparedIndex.build(searchCandidates)
+    }
+    val visibleAlternatives = remember(searchQuery, searchIndex, alternatives) {
         if (searchQuery.isBlank()) alternatives
-        else ExerciseSearch.searchCandidates(searchCandidates, searchQuery).map { it.canonical }
+        else ExerciseSearch.searchPrepared(searchIndex, searchQuery).map { it.canonical }
     }
 
     val window = LocalWindowSize.current

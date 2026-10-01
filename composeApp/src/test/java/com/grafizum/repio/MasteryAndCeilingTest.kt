@@ -1,5 +1,6 @@
 package com.grafizum.repio
 
+import com.grafizum.repio.data.ExerciseProgression
 import com.grafizum.repio.data.ProgressionEngine
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -7,6 +8,7 @@ import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.roundToInt
 
 /**
  * Guards the mastery layer: human ceilings cap the ladders, mastered
@@ -140,13 +142,57 @@ class MasteryAndCeilingTest {
         )
         assertTrue(half in 1..targetMax)
         assertTrue(half >= targetMax / 2 - 1 && half <= targetMax / 2 + 1)
-        // Clamped at both ends.
+        // Clamped at the bottom.
         assertEquals(
             1, ProgressionEngine.branchStartLevel(source, ProgressionEngine.ProgressionState(1, 1), target),
         )
-        assertEquals(
-            targetMax,
-            ProgressionEngine.branchStartLevel(source, ProgressionEngine.ProgressionState(sourceMax, 1), target),
+        // Clamped at the TOP - but not at the target's own maximum. Bench and
+        // Front Squat are both 80-level ladders, and the plain relative-depth
+        // mapping returns targetMax for a finished exercise, which would hand
+        // over a ladder that is already complete: the swap would be over
+        // before it began and the evolution popup would draw two identical
+        // bars. An equal-length target has no more headroom to give, so it is
+        // capped partway down instead. EvolutionOfferTest sweeps every branch
+        // for this; this case pins the numbers.
+        val atTop = ProgressionEngine.branchStartLevel(
+            source, ProgressionEngine.ProgressionState(sourceMax, 1), target,
+        )
+        assertTrue(
+            "a finished source landed on $atTop of $targetMax, which is the target's own cap",
+            atTop < targetMax,
+        )
+        assertEquals((targetMax * 0.6).roundToInt(), atTop)
+    }
+
+    @Test
+    fun aLongerTargetStillTakesThePlainRelativeDepth() {
+        // The cap above is for EQUAL-length ladders only. A longer target
+        // exists precisely so the user arrives partway up with room left, and
+        // capping it too would throw that away. Swept over the REAL branches,
+        // because branchStartLevel only ever runs for those.
+        var longerFound = 0
+        ExerciseProgression.ENTRIES.forEach { source ->
+            val sourceMax = ProgressionEngine.effectiveMaxLevel(source)
+            source.branches.forEach { branch ->
+                val target = ProgressionEngine.entryFor(branch.entry) ?: return@forEach
+                val targetMax = ProgressionEngine.effectiveMaxLevel(target)
+                if (targetMax <= sourceMax) return@forEach
+                val mapped = ProgressionEngine.branchStartLevel(
+                    source, ProgressionEngine.ProgressionState(sourceMax, 1), target,
+                )
+                // Relative depth 1.0 on a longer ladder lands on its top,
+                // which IS the point: the swap gives a whole new ladder.
+                assertEquals(
+                    "a longer target was capped, so the swap would restart the user near the bottom",
+                    targetMax,
+                    mapped,
+                )
+                longerFound++
+            }
+        }
+        assertTrue(
+            "no longer-than-source branch existed in the pool, so the cap is untested",
+            longerFound > 0,
         )
     }
 

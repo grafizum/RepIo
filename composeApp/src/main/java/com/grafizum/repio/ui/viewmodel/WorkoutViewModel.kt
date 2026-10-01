@@ -71,7 +71,17 @@ data class WorkoutNowState(
     val maxExerciseSeconds: Int = 600,
     val totalSetsLoggedToday: Int = 0,
     /** Exercises that reached their ladder end / human ceiling this workout. */
-    val masteredExercises: List<MasteryCardData> = emptyList()
+    val masteredExercises: List<MasteryCardData> = emptyList(),
+    /**
+     * The evolution offers to put in front of the user, one per mastered
+     * exercise that has a branch. The screen shows them as a queue of popups.
+     */
+    val evolutionOffers: List<ProgressionEngine.EvolutionOffer> = emptyList(),
+    /**
+     * Bumped whenever [evolutionOffers] is recomputed, so the screen can seed
+     * its queue once per change instead of on every recomposition.
+     */
+    val evolutionToken: Int = 0,
 )
 
 /**
@@ -483,7 +493,7 @@ class WorkoutViewModel(
                             val progState = currentProgressionState(it.name)
                             val progEntry = progState?.let { _ -> ProgressionEngine.entryFor(it.name) }
                             val stageTargetReps = if (progState != null && progEntry != null) {
-                                ProgressionEngine.romanStageReps(progEntry, progState.stage).orEmpty()
+                                ProgressionEngine.prescribedReps(progEntry, progState.level, progState.stage).orEmpty()
                             } else emptyList()
                             val prescribed = if (progState != null && progEntry != null) {
                                 ProgressionEngine.prescribedValueAtLevel(progEntry, progState.level)
@@ -737,7 +747,8 @@ class WorkoutViewModel(
         intensity: String = "",
         templateId: String = "",
         equipment: List<String> = emptyList(),
-        workoutDuration: String = WorkoutTemplates.DURATION_STANDARD
+        workoutDuration: String = WorkoutTemplates.DURATION_STANDARD,
+        splitStyle: String = WorkoutTemplates.SplitStyle.DEFAULT.id
     ) {
         viewModelScope.launch {
             // Completing a brand-new build from the Welcome screen replaces the routine,
@@ -771,6 +782,7 @@ class WorkoutViewModel(
             prefs.putString("setup_template_id", templateId)
             prefs.putString("setup_equipment", equipment.joinToString(","))
             prefs.putString("setup_duration", workoutDuration)
+            prefs.putString("setup_split_style", splitStyle)
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
@@ -820,11 +832,45 @@ class WorkoutViewModel(
     fun userEquipmentCategories(): List<String> =
         ExerciseEquipmentTags.coarseCategoriesFor(loadSetupEquipment())
 
+    /**
+     * The saved equipment EXACTLY as it was written, for pre-filling a picker.
+     *
+     * [userEquipmentCategories] and [userGrantedEquipmentTags] both go through
+     * [ExerciseEquipmentTags], which flattens the selection into other
+     * vocabularies — and the coarse one cannot express a chair, a bench or a
+     * pull-up bar at all. That is fine for gating, and wrong for a control that
+     * has to show the user's own tiles lit: it would open on a selection the
+     * user never made. This returns the stored list (preset id first, then fine
+     * tags) so the equipment block opens on what is actually saved.
+     */
+    fun savedEquipmentSelection(): List<String> = loadSetupEquipment()
+
+    /**
+     * The saved equipment as the user's granted FINE tags, for the pickers'
+     * equipment gate.
+     *
+     * [userEquipmentCategories] cannot drive that gate on its own: it is the
+     * coarse chip vocabulary, which has no category for a chair, a bench or a
+     * pull-up bar, so re-expanding it silently drops those grants. Null =
+     * unrestricted (the user never restricted their kit), which is a different
+     * thing from an empty set = strict bodyweight only.
+     */
+    fun userGrantedEquipmentTags(): Set<String>? =
+        WorkoutTemplates.grantedTagsForPublic(loadSetupEquipment())
+
     /** The session length saved with the last build (defaults to the standard window). */
     private fun loadSetupDuration(): String =
         prefs.getString("setup_duration", null)
             ?.takeIf { WorkoutTemplates.isValidDuration(it) }
             ?: WorkoutTemplates.DURATION_STANDARD
+
+    /**
+     * The week style saved with the last build. An unknown or absent value
+     * falls back to the default rather than failing, so a build made before the
+     * style picker existed keeps working.
+     */
+    private fun loadSetupSplitStyle(): WorkoutTemplates.SplitStyle =
+        WorkoutTemplates.SplitStyle.fromId(prefs.getString("setup_split_style", null))
 
     fun regenerateProgramWithNewGoal(newGoal: String) {
         viewModelScope.launch {
@@ -837,6 +883,7 @@ class WorkoutViewModel(
             val templateId = prefs.getString("setup_template_id", "") ?: ""
             val equipment = loadSetupEquipment()
             val duration = loadSetupDuration()
+            val splitStyle = loadSetupSplitStyle()
             
             when (setupType) {
                 "ASSISTED" -> {
@@ -846,7 +893,8 @@ class WorkoutViewModel(
                         intensity = intensity,
                         workoutGoal = newGoal,
                         equipment = equipment,
-                        duration = duration
+                        duration = duration,
+                        splitStyle = splitStyle
                     )
                     repository.applyProgram(program.days, program.exercises)
                 }
@@ -955,10 +1003,22 @@ class WorkoutViewModel(
      * The highest level the picker and arrows may offer: the program's own
      * ladder end, lifted to the extension grid (50, then 100 … up to 500) the
      * user has unlocked for this exercise.
+     *
+     * A REP-PROGRESSED row (bodyweight variation, hold, cardio) is the
+     * exception, and it is not a small one. The extension grid is honest for a
+     * LOAD row because extrapolating a ladder gives a real weight — but a
+     * variation ladder has already run out: past its last rung
+     * [ProgressionEngine.variationAtLevel] repeats the hardest movement and the
+     * reps clamp to `repMax`. So Crunches (a 6-level ladder) showed 50 rows of
+     * which 44 were the SAME row, all reading "Dragon Flag / 15 reps" — the
+     * owner's "each level has to be more max reps" and "don't display Dragon
+     * Flag instead show the reps", both at once. There is nothing to extend TO,
+     * so the picker ends where the ladder does.
      */
     fun progressionMaxLevel(exerciseName: String): Int {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return 1
         if (!ProgressionEngine.isProgressionReady(entry)) return 1
+        if (ProgressionEngine.isRepProgressed(entry)) return ProgressionEngine.effectiveMaxLevel(entry)
         return maxOf(
             ProgressionEngine.maxLevel(entry),
             ProgressionEngine.EXTENSION_CHUNK,
@@ -1142,7 +1202,14 @@ class WorkoutViewModel(
         val prescribed: ProgressionEngine.PrescribedValue?,
         val stageReps: List<Int>,
         val isCurrent: Boolean,
-        val isBeyondPlan: Boolean
+        val isBeyondPlan: Boolean,
+        /**
+         * True when this row's prescription is reps rather than a load, so the
+         * picker shows the reps instead of the variation name. A bodyweight
+         * ladder's variation ("Bicycle Crunch" for "Crunches") is the
+         * substitution, not the work — the owner asked to see reps there.
+         */
+        val repProgressed: Boolean = false
     )
 
     /**
@@ -1158,14 +1225,14 @@ class WorkoutViewModel(
         if (!ProgressionEngine.isProgressionReady(entry)) return emptyList()
         val current = progressionDisplayLevel(exerciseName) ?: return emptyList()
         val shown = progressionMaxLevel(exerciseName)
-        val stageReps = ProgressionEngine.romanStageReps(entry, 1).orEmpty()
         return (1..shown).map { level ->
             LevelDetailRow(
                 level = level,
                 prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level),
-                stageReps = stageReps,
+                stageReps = ProgressionEngine.prescribedReps(entry, level, 1).orEmpty(),
                 isCurrent = level == current,
-                isBeyondPlan = false
+                isBeyondPlan = false,
+                repProgressed = ProgressionEngine.isRepProgressed(entry)
             )
         }
     }
@@ -1182,7 +1249,7 @@ class WorkoutViewModel(
         if (currentExerciseName() != exerciseName) return
         val progState = currentProgressionState(exerciseName) ?: return
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return
-        val stageTargetReps = ProgressionEngine.romanStageReps(entry, progState.stage).orEmpty()
+        val stageTargetReps = ProgressionEngine.prescribedReps(entry, progState.level, progState.stage).orEmpty()
         val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level)
         val setTarget = targetRepsForCurrentSet(exerciseName, state.currentSetNumber)
         _workoutNowState.update {
@@ -1324,6 +1391,10 @@ class WorkoutViewModel(
     fun canExtendLevelList(exerciseName: String): Boolean {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
         if (!ProgressionEngine.isProgressionReady(entry)) return false
+        // A rep-progressed ladder has no extrapolatable tail (see
+        // progressionMaxLevel), so there is nothing to extend and offering the
+        // button would only produce duplicate rows.
+        if (ProgressionEngine.isRepProgressed(entry)) return false
         return progressionMaxLevel(exerciseName) < ProgressionEngine.PICKER_LEVEL_LIMIT
     }
 
@@ -1366,7 +1437,7 @@ class WorkoutViewModel(
     private fun targetRepsForCurrentSet(exerciseName: String, setNumber: Int): Int? {
         val state = currentProgressionState(exerciseName) ?: return null
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
-        val stageReps = ProgressionEngine.romanStageReps(entry, state.stage) ?: return null
+        val stageReps = ProgressionEngine.prescribedReps(entry, state.level, state.stage) ?: return null
         // The stage's reps list is per set: set 1 takes reps[0], set 2 reps[1]…
         // beyond the pattern's set count the last set's target repeats.
         return if (stageReps.isEmpty()) null
@@ -1397,7 +1468,7 @@ class WorkoutViewModel(
         val name = exercise.name
         val state = currentProgressionState(name) ?: return
         val entry = ProgressionEngine.entryFor(name) ?: return
-        val stageReps = ProgressionEngine.romanStageReps(entry, state.stage) ?: return
+        val stageReps = ProgressionEngine.prescribedReps(entry, state.level, state.stage) ?: return
         if (stageReps.isEmpty()) return
 
         val setNumber = _workoutNowState.value.currentSetNumber
@@ -1479,6 +1550,11 @@ class WorkoutViewModel(
             val state = currentProgressionState(ex.name) ?: return@mapNotNull null
             val entry = ProgressionEngine.entryFor(ex.name) ?: return@mapNotNull null
             if (!ProgressionEngine.isMastered(entry, state)) return@mapNotNull null
+            // A DECLINED evolution is locked, not snoozed. Without this the
+            // five-workout cooldown would quietly re-offer it forever, which
+            // is the nagging the lock exists to stop. Only the editor
+            // reopens it (reopenEvolution).
+            if (isEvolutionDeclined(ex.name)) return@mapNotNull null
             // A reviewed-and-declined card rests before re-showing.
             val reviewedAt = prefs.getInt(masteryReviewedKey(ex.name), -1)
             if (reviewedAt >= 0 && workoutCount - reviewedAt < MASTERY_REVIEW_COOLDOWN) {
@@ -1527,6 +1603,72 @@ class WorkoutViewModel(
         refreshMasteredCards()
     }
 
+    // ------------------------------------------------------------------
+    // The evolution offer, and the lock a declined one puts on.
+    //
+    // Declining is a decision, not a snooze. The old behaviour only silenced
+    // the card for five workouts, so the same offer came back on its own -
+    // which is the nagging the owner wanted gone. Declining now LOCKS the
+    // exercise at its cap until the user goes to that exercise in the editor
+    // and asks for the offer again. Nothing re-opens it by itself.
+    // ------------------------------------------------------------------
+
+    private fun evolutionDeclinedKey(name: String) = "evolution_declined_$name"
+
+    /** True when [name]'s evolution offer has been declined and left locked. */
+    fun isEvolutionDeclined(name: String): Boolean = prefs.getBoolean(evolutionDeclinedKey(name), false)
+
+    /**
+     * Declines the offer: the exercise stays at its cap and is locked there.
+     * The lock is per-exercise and permanent until [reopenEvolution].
+     */
+    fun declineEvolution(name: String) {
+        prefs.putBoolean(evolutionDeclinedKey(name), true)
+        markMasteryReviewed(name)
+        refreshMasteredCards()
+    }
+
+    /**
+     * The owner opened a locked exercise's offer from the editor, so drop the
+     * lock and let the offer be made again.
+     */
+    fun reopenEvolution(name: String) {
+        prefs.remove(evolutionDeclinedKey(name))
+    }
+
+    /** Accepts the offer and clears any lock in one step. */
+    fun acceptEvolution(sourceName: String, targetName: String) {
+        reopenEvolution(sourceName)
+        acceptBranch(sourceName, targetName)
+    }
+
+    /**
+     * Locked evolutions among [exercises]: mastered exercises whose offer the
+     * user declined. The editor shows an "Upgrade" affordance on exactly
+     * these, which is the only way a declined offer comes back.
+     */
+    fun evolutionLockedExercises(exercises: List<RoutineExerciseEntity>): List<String> =
+        exercises.distinctBy { it.name }
+            .filter { isEvolutionDeclined(it.name) }
+            .map { it.name }
+
+    /**
+     * The before/after for [sourceName] -> [targetName], or null when either
+     * side is missing. The popup opens on the branch the engine prefers and
+     * the section's cards can ask for a specific one.
+     */
+    fun evolutionOfferFor(sourceName: String, targetName: String): ProgressionEngine.EvolutionOffer? {
+        val state = currentProgressionState(sourceName) ?: return null
+        return ProgressionEngine.evolutionOffer(sourceName, targetName, state)
+    }
+
+    /** The branch the popup opens on for a mastered exercise, if any. */
+    fun preferredEvolutionOffer(sourceName: String): ProgressionEngine.EvolutionOffer? {
+        val entry = ProgressionEngine.entryFor(sourceName) ?: return null
+        val branch = ProgressionEngine.preferredBranch(entry) ?: return null
+        return evolutionOfferFor(sourceName, branch.entry)
+    }
+
     private fun markMasteryReviewed(name: String) {
         prefs.putInt(masteryReviewedKey(name), prefs.getInt("completed_workout_count", 0))
     }
@@ -1534,8 +1676,17 @@ class WorkoutViewModel(
     private fun refreshMasteredCards() {
         val exercises = allRoutineExercises.value
         if (exercises.isEmpty()) return
+        val cards = computeMasteredExercises(exercises)
         _workoutNowState.update {
-            it.copy(masteredExercises = computeMasteredExercises(exercises))
+            it.copy(
+                masteredExercises = cards,
+                evolutionOffers = cards.mapNotNull { card ->
+                    preferredEvolutionOffer(card.exerciseName)
+                },
+                // Bumped even when the offers are unchanged, so the screen can
+                // tell "same list, recomposed" from "new decision to make".
+                evolutionToken = it.evolutionToken + 1,
+            )
         }
     }
 

@@ -333,7 +333,13 @@ fun HomeScreen(
                             getString("overall_level_none")
                         },
                         subtitle = "",
-                        icon = Icons.Default.EmojiEvents,
+                        // The rank letter takes the slot the trophy used to own, so
+                        // it reads BEFORE the number rather than after it, in the same
+                        // themed tile every other stat on this screen uses. With no
+                        // rank yet there is no letter to show, and `leading` wins over
+                        // `icon`, so the trophy falls back into the same tile rather
+                        // than leaving it empty.
+                        icon = if (rank == null) Icons.Default.EmojiEvents else null,
                         iconColor = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.fillMaxWidth(),
                         badgeText = if (level != null) {
@@ -342,11 +348,12 @@ fun HomeScreen(
                             getString("overall_level_not_ready")
                         },
                         compact = true,
-                        trailing = if (rank != null) {
+                        leading = if (rank != null) {
                             {
                                 RankBadge(
                                     rank = rank.rank,
-                                    contentDescription = getString("rank_badge_content_desc", rank.letter)
+                                    contentDescription = getString("rank_badge_content_desc", rank.letter),
+                                    size = 40.dp
                                 )
                             }
                         } else {

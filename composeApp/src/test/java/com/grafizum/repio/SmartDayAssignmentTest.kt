@@ -332,7 +332,7 @@ class SmartDayAssignmentTest {
     @Test
     fun pullUpSubstitutesToBandsThenMachine() {
         assertEquals(
-            "Band Assisted Pull Ups",
+            "Assisted Pull Ups (Band)",
             WorkoutTemplates.substituteExercise("Pull-Up", listOf("Bands"))
         )
         assertEquals(
@@ -412,13 +412,13 @@ class SmartDayAssignmentTest {
         // session sequence over the calendar week, so tap order is discarded.
         val picked = listOf("MONDAY", "WEDNESDAY", "FRIDAY", "SATURDAY", "TUESDAY")
         val program = generate(days = picked)
-        // The picked days in calendar order get the Upper/Lower/Push/Pull/Legs
-        // sequence: legs land on TUESDAY and SATURDAY, three days apart and
-        // never adjacent.
+        // The picked days in calendar order (Mon, Tue, Wed, Fri, Sat) get the
+        // default Push/Pull/Legs/Upper/Lower sequence: the legs land on
+        // WEDNESDAY and SATURDAY, two days apart and never adjacent.
         val legDays = weekOrder.filter { day -> "Legs" in partsOfDay(program, day) }
         assertEquals(
             "a 5-day week trains legs exactly twice, got $legDays",
-            listOf("TUESDAY", "SATURDAY"),
+            listOf("WEDNESDAY", "SATURDAY"),
             legDays
         )
         // And whatever the tap order, no strict topic lands on adjacent days.

@@ -1,5 +1,6 @@
 package com.grafizum.repio
 
+import com.grafizum.repio.data.ExerciseLocalization
 import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.WorkoutTemplates
 import org.junit.Assert.assertEquals
@@ -85,8 +86,21 @@ class ExerciseSearchTest {
     @Test
     fun shortQueriesDoNotFuzzyMatch() {
         // Two-letter queries must stay literal so they don't drag in the whole pool.
-        val results = ExerciseSearch.search(pool, "ab")
-        assertTrue(results.all { it.lowercase().contains("ab") })
+        // "Literal" means one of the exercise's names really contains the query:
+        // a canonical name alone is too narrow now that an exercise also answers
+        // to its translation and to the name it had before the generalization -
+        // "Barbell Back Squat" also answers to "Barbell Back Squat".
+        val results = ExerciseSearch.search(pool, "be")
+        assertTrue("the query should match the bench presses", results.isNotEmpty())
+        assertTrue(
+            "a two-letter query must not reach an exercise with no such literal name",
+            results.all { name ->
+                ExerciseLocalization.allNamesFor(name).any { it.lowercase().contains("be") }
+            }
+        )
+        // And it must not behave like a fuzzy matcher: nothing without the
+        // literal reaches the results, so the pool stays small.
+        assertTrue("two letters must not drag in the whole pool", results.size < pool.size)
     }
 
     @Test
@@ -98,7 +112,7 @@ class ExerciseSearchTest {
     fun realPoolFindsCommonTypos() {
         val all = WorkoutTemplates.getAllExerciseNames()
         assertTrue(ExerciseSearch.search(all, "barbel squat").any { it.contains("Squat") })
-        assertTrue(ExerciseSearch.search(all, "dumbell row").any { it.contains("Row") })
+        assertTrue(ExerciseSearch.search(all, "dumbell row").any { it.contains("Dumbbell Row") })
         assertTrue(ExerciseSearch.search(all, "dumbell curl").any { it.contains("Curl") })
         assertTrue(ExerciseSearch.search(all, "bnech press").any { it.contains("Bench Press") })
         assertTrue(ExerciseSearch.search(all, "pullup").any { it.contains("Pull-Up") })

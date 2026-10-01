@@ -29,6 +29,8 @@ Run from the repository root:
 
 from __future__ import annotations
 
+import generalize  # noqa: F401  (name generalization, see generalize.py)
+
 import csv
 import json
 import pathlib
@@ -496,10 +498,16 @@ def main() -> int:
             matched_via = "hand" if desc else ""
 
         # --- catalog entry (what the app's pickers/badges/search need) ----
+        # `name` is the DISPLAY name and goes through the generalization step:
+        # a leading apparatus word ("Smith Machine Bent Over Row") repeats the
+        # `equipment` field this same row already carries. The slug and the id
+        # keep the CSV's spelling, so descriptions, progression branches and
+        # every stored id stay exactly where they were.
         entry = {
             "id": row.get("normalized_exercise_id") or slugify(name),
             "slug": slug,
             "name": name,
+            "sourceName": name,
             "muscle": map_muscle(row),
             "equipment": map_equipment(row),
             "type": (row.get("training_category") or "").strip(),
@@ -675,6 +683,44 @@ def main() -> int:
     if len(set(slugs)) != len(slugs):
         problems.append("slug collisions after mapping")
 
+    # --- name generalization (see generalize.py) -------------------------
+    # Applied LAST, after every slug-keyed lookup has run, so the description
+    # merge and the progression branches still match on the CSV's own spelling.
+    # The rename map is written alongside the catalog: the app needs it to keep
+    # routines logged under the old names pointing at the same exercise.
+    try:
+        renames = generalize.build_rename_map([e["name"] for e in catalog])
+    except ValueError as exc:
+        renames = {}
+        problems.append(f"name generalization: {exc}")
+    for e in catalog:
+        e["name"] = renames.get(e["name"], e["name"])
+    # Progression branches point at sibling exercises BY NAME ("mastered this,
+    # try that"), so they have to travel with the rename. Leaving them on the
+    # old spelling would leave the generated Kotlin linking to exercises the
+    # pool no longer has - 26 dangling references when this was added.
+    if renames:
+        for p in progression:
+            for b in p.get("branches") or []:
+                if b.get("entry") in renames:
+                    b["entry"] = renames[b["entry"]]
+                if b.get("nodes"):
+                    b["nodes"] = [renames.get(n, n) for n in b["nodes"]]
+    display_names = [e["name"] for e in catalog]
+    if len(set(display_names)) != len(display_names):
+        duplicates = sorted({n for n in display_names if display_names.count(n) > 1})
+        problems.append(
+            "display names must be unique - the pool is joined by name, so a "
+            f"duplicate merges two exercises: {duplicates}"
+        )
+    known = set(display_names)
+    for p in progression:
+        for b in p.get("branches") or []:
+            for ref in [b.get("entry")] + list(b.get("nodes") or []):
+                if ref and ref not in known:
+                    problems.append(
+                        f"branch for {p['slug']} points at '{ref}', which is not in the pool")
+
     lines = [
         "PROGRESSION DATABASE BUILD (v5)",
         f"v5 rows                     : {stats['rows']}",
@@ -687,6 +733,7 @@ def main() -> int:
             f"{k}={v}" for k, v in sorted(match_counts.items())
         ),
         f"entries without description : {stats['no_description']}",
+        f"display names generalized   : {len(renames)}",
         f"beginner_build_eligible     : {stats['beginner_build_eligible']}",
         f"app-ready (valid + simple)  : {stats['app_ready']}",
         "",
@@ -715,6 +762,8 @@ def main() -> int:
     (OUT / "report_progression.txt").write_text(report, encoding="utf-8")
     (OUT / "catalog_v5.json").write_text(
         json.dumps(catalog, ensure_ascii=False, indent=1), encoding="utf-8")
+    (OUT / "name_renames.json").write_text(
+        json.dumps(renames, ensure_ascii=False, indent=1, sort_keys=True), encoding="utf-8")
     (OUT / "progression_v5.json").write_text(
         json.dumps(progression, ensure_ascii=False, indent=1), encoding="utf-8")
     with (OUT / "unmatched_v5.csv").open("w", newline="", encoding="utf-8") as f:

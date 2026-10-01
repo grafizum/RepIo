@@ -214,6 +214,7 @@ class WindowSizeTest {
         assertEquals(240f, phone.donutHeight.value, 0.001f)
         assertEquals(340f, large.donutHeight.value, 0.001f)
 
+
         assertEquals(0.92f, smallest.typeScale, 0.001f)
         assertEquals(1f, phone.typeScale, 0.001f)
         assertEquals(1.12f, large.typeScale, 0.001f)

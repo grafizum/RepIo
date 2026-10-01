@@ -769,6 +769,16 @@ fun WorkoutScreen(
             themeKey = themeOption,
             levelsManaged = editingExercise?.let { viewModel.isExerciseLevelManaged(it.name) } ?: false,
             userEquipmentCategories = viewModel.userEquipmentCategories(),
+            userGrantedTags = viewModel.userGrantedEquipmentTags(),
+            // A declined evolution is locked permanently, so this badge is the
+            // only way back into the offer. It lives here because this is the
+            // editor the owner named ("allow the user to upgrade it when
+            // editing that exercise").
+            evolutionLocked = editingExercise?.let { viewModel.isEvolutionDeclined(it.name) } == true,
+            onUpgrade = {
+                editingExercise?.let { viewModel.reopenEvolution(it.name) }
+                editingExercise = null
+            },
             onDismiss = {
                 showAddDialog = false
                 editingExercise = null
@@ -993,6 +1003,7 @@ fun WorkoutScreen(
         ReplaceExerciseDialog(
             exercise = exercise,
             userEquipmentCategories = viewModel.userEquipmentCategories(),
+            userGrantedTags = viewModel.userGrantedEquipmentTags(),
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Swap the original for the picked exercise, in its slot. The new

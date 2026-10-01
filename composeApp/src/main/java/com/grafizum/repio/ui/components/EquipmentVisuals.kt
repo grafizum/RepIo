@@ -106,6 +106,10 @@ fun equipmentCategoryIcon(category: String): EquipmentIcon = when (category) {
  */
 fun equipmentTagShortLabelKey(tag: String): String = when (tag) {
     ExerciseEquipmentTags.CHAIR -> "equipment_tag_chair"
+    // The Bench tile had no branch here and fell through to the generic
+    // "equipment" label, so a tile drawing a bench was captioned "Equipment" -
+    // the one the owner could not make sense of.
+    ExerciseEquipmentTags.BENCH -> "equipment_tag_bench"
     ExerciseEquipmentTags.CHAIR_OR_BENCH -> "equipment_tag_bench"
     ExerciseEquipmentTags.PULL_UP_BAR -> "equipment_tag_pullup"
     ExerciseEquipmentTags.DIP_BARS -> "equipment_tag_dips"
@@ -116,6 +120,7 @@ fun equipmentTagShortLabelKey(tag: String): String = when (tag) {
     ExerciseEquipmentTags.TOWEL -> "equipment_tag_towel"
     ExerciseEquipmentTags.RESISTANCE_BANDS -> "equipment_tag_bands"
     ExerciseEquipmentTags.DUMBBELLS_ONLY -> "equipment_tag_dumbbells"
+    // Retired tile: kept only so a value persisted under it still has a label.
     ExerciseEquipmentTags.DUMBBELLS_AND_BENCH -> "equipment_tag_db_bench"
     ExerciseEquipmentTags.DUMBBELLS_AND_FLOOR -> "equipment_tag_dumbbells"
     // Label and drawing have to name the SAME thing: the rack tile drew a
@@ -126,5 +131,20 @@ fun equipmentTagShortLabelKey(tag: String): String = when (tag) {
     ExerciseEquipmentTags.KETTLEBELL_ONLY -> "equipment_tag_kettlebell"
     ExerciseEquipmentTags.CABLE_MACHINE -> "equipment_tag_cable"
     ExerciseEquipmentTags.MACHINE_OTHER -> "equipment_tag_machines"
+    // Selectorized stations: not selectable tiles of their own, but a full-gym
+    // kit stores all eight, and a stored tag shown back to the user as the
+    // generic "Equipment" chip told the owner nothing about the seven machines
+    // his kit actually granted - which is what put a plate-loaded lateral
+    // raise into the week he thought was bodyweight.
+    ExerciseEquipmentTags.LEG_PRESS_MACHINE -> "equipment_tag_leg_press"
+    ExerciseEquipmentTags.LAT_PULLDOWN_MACHINE -> "equipment_tag_lat_pulldown"
+    ExerciseEquipmentTags.SMITH_MACHINE -> "equipment_tag_smith"
+    ExerciseEquipmentTags.LEG_EXTENSION_MACHINE -> "equipment_tag_leg_extension"
+    ExerciseEquipmentTags.LEG_CURL_MACHINE -> "equipment_tag_leg_curl"
+    ExerciseEquipmentTags.CHEST_PRESS_MACHINE -> "equipment_tag_chest_press_machine"
+    ExerciseEquipmentTags.SEATED_ROW_MACHINE -> "equipment_tag_seated_row"
+    ExerciseEquipmentTags.NONE_REQUIRED -> "equipment_tag_none_required"
+    ExerciseEquipmentTags.BARBELL_ONLY -> "equipment_tag_barbell"
+    ExerciseEquipmentTags.KETTLEBELL_AND_BENCH -> "equipment_tag_kettlebell"
     else -> "equipment"
 }
