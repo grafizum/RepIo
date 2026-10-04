@@ -972,3 +972,106 @@ launch with "You need to use a Theme.AppCompat theme".
 Also: `@Composable` calls cannot live inside a `semantics { }` lambda or inside
 a `joinToString` transform — hoist `stringResource` and `translateExerciseName`
 into the enclosing composable first.
+
+## A rep ladder stops where the MOVEMENT stops
+
+The 116 bodyweight rows with `unit == "variation_step"` all declare `repMin = 8` and a
+`repMax` of only 12 or 15, so **the CSV carries no max-effort figure for any of them**.
+That is the whole reason a flat cap stood in for the number — 25 for everything, 50 for
+core, read off the row's muscle — and it was wrong at **both** ends:
+
+- a **Glute Bridge** stopped at 25 reps, when ordinary programming is 30–50;
+- a **Handstand Push-Up** was asked for the same 25, when the movement itself ends near 12.
+
+`RepCeilings` now carries an **authored** number for all 116 (owner authorised reading names
+for this on 2026-10-04). Three things make that safe, and each was a way this could break
+quietly:
+
+- **It is a table, not a rule.** The numbers do not parse a name at runtime, so a rename
+  cannot silently re-tier an exercise. A rule reading the name would.
+- **The key is the pool SLUG, not the display name.** The 220 cumulative renames in
+  `ExerciseCatalog.RENAMED` cannot orphan a row keyed this way.
+- **Every rep-ladder row is covered**, and `RepCeilingCoverageTest` fails the build on a
+  silent fall-through to the flat cap — the defect the table exists to remove.
+
+Bands are the ones this file already documents: **12..50**. Nothing goes below 12, because 12
+is the first `REP_CHECKPOINTS` rung and a ladder that stopped under it could never offer a
+progression at all.
+
+**Authoring the table surfaced two real defects**, and both are the kind that only a *short*
+or *odd* ladder exposes:
+
+- **`repStepFor` floored to a 1-rep step.** "One rep is basically nothing" is the user's own
+  complaint about a 43-rung ladder, and it still holds **wherever the ladder has room**. It
+  does not hold of a genuinely short one: a pseudo-planche push-up's authored span is 8→12,
+  and forcing a two-rep step there leaves three rungs for a four-rep-wide range. The rule is
+  **span-aware** (≥2 once the span is ≥6), not a flat 2.
+- **`repRungs` divided DOWN, so a ladder topped out one rung short of its own ceiling.** This
+  predates the table: a strict Push-Up stopped at **24** of a declared 25. The rung count now
+  rounds **up**, and `repsAtLevel`'s `coerceIn` holds the last rung at the ceiling — which
+  means the top rung is the one place a ladder is *not* a plain step, so `RepLadderTest` pins
+  the clamp explicitly rather than assuming none exists.
+
+**Verified non-vacuously** by collapsing the whole table to a flat 25. That sabotage also
+caught a weak assertion of my own: comparing a list against `sortedDescending` is satisfied by
+an **all-equal** list, so a blanket per-muscle number passed a check meant to catch one. It now
+asserts *strict* decrease.
+
+Verified on device: **Chin-Ups runs 8/10/12/14/16/18/20 across seven levels and stops on its
+authored 20** — which confirms the ceiling *and* the `repRungs` fix, since floor division would
+have stopped at 18.
+
+## Every key in `.env` becomes a `BuildConfig` field unless it is ignored
+
+`composeApp/build.gradle.kts` sets `secrets { propertiesFileName = ".env" }`, which turns
+**every** key in that file into a Java field in `BuildConfig` — and `BuildConfig` ships inside
+the APK. So writing an active value into `.env` for something that is only needed at build
+time **publishes that secret to anyone who installs the app**.
+
+`GRAFIZUM_DASHBOARD_URL` / `_TOKEN` / `_PROJECT_ID` are in the plugin's `ignoreList` for this
+reason. `GRAFIZUM_SYNC_KEY` — the dashboard's task-mirroring key — was **not**, and adding it
+to `.env` would have compiled it into the shipped binary. It is now ignored, with the reason in
+a comment beside the others.
+
+Two rules that go with it:
+
+- **Never add a build-time key to `.env.example`.** The plugin reads it as the *default* set,
+  and an active key with an empty value makes it emit invalid Java (`public static final String
+  X = ;`) and breaks compilation.
+- **Prove the absence, don't assume it.** After adding the ignore entry and building, grep the
+  generated `BuildConfig` **and** the packaged dex for the value. A fix that is only reasoned
+  about is a fix that can be undone by a rename.
+
+## `TODO.md` is a MIRROR with hard size limits, not the knowledge base
+
+`TODO.md` syncs to the Grafizum command center, and the API validates its payload:
+
+| field | limit |
+| --- | --- |
+| `title` | 500 characters |
+| `notes` | 5000 characters |
+
+The sync CLI's `buildPayload` sends `title` and `notes` **verbatim** with no clamp, so a long
+entry fails the whole run with a bare `400 Request validation failed` — and the CLI prints only
+`error.message`, so the field-level detail is invisible unless you log the response body.
+Meanwhile the dashboard's own handbook says *"notes — the detail… Long is fine here."* Those
+two facts contradict each other; **the API wins**, and a repo whose notes are long simply cannot
+sync.
+
+Note also that the parser **folds deeper-indented continuation lines into the previous key**,
+so a note can span several lines and a naive line-length check under-reports badly.
+
+**The division of labour that resolves this:** `AGENTS.md` holds the permanent engineering
+rule, `TODO.md` holds the task record. When a note outgrows 5000 characters, the durable
+lesson moves into this file and the note keeps the decision, the traps and the verification
+status.
+
+Diagnosing this at all needs the response body, which the CLI hides. The quickest route is to
+preload a `fetch` wrapper that logs any non-2xx body — **measure with the dashboard's own
+parser too**, because reimplementing it gave a confidently wrong answer here (0 of 9 offending
+entries, against the API's 9).
+
+Running the sync needs `grafizum-dashboard/apps/sync-cli`, and **the CWD must be inside that
+workspace** — `node --import tsx` resolves `tsx` from the working directory, not from the
+script's own location, so running it from the project root fails with
+`ERR_MODULE_NOT_FOUND` for a package that is installed.
