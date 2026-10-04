@@ -1066,6 +1066,18 @@ rule, `TODO.md` holds the task record. When a note outgrows 5000 characters, the
 lesson moves into this file and the note keeps the decision, the traps and the verification
 status.
 
+**This is now fixed at the source (grafizum-dashboard `2997a11`), so it should not recur** —
+but the fix lives in another repo and can be undone, so the limits still bind here:
+
+- The CLI clamps `title`, `notes` and `assignee` (on a word boundary, with a warning naming the
+  task and both lengths) and then validates against `syncRunSchema` from `@grafizum/core` —
+  **the API's own schema**, not a copy of the numbers. `github.ts` already truncated notes to
+  5000 by hand, which is how one sync path learned the limit and the other did not.
+- **A long note is a mirror problem, not a reason to stop writing detail.** Keep the decision,
+  the traps and the verification status in `TODO.md`; keep the durable rule in this file.
+- Their handbook said *"notes — Long is fine here"*, which is exactly what produced 14,000-char
+  notes. It now states the real limit.
+
 Diagnosing this at all needs the response body, which the CLI hides. The quickest route is to
 preload a `fetch` wrapper that logs any non-2xx body — **measure with the dashboard's own
 parser too**, because reimplementing it gave a confidently wrong answer here (0 of 9 offending
