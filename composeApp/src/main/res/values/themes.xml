@@ -24,8 +24,8 @@
         <item name="android:windowBackground">@color/bg_crimson</item>
     </style>
 
-    <style name="Theme.App.PostSplash.Azure" parent="Theme.MyApplication">
-        <item name="android:windowBackground">@color/bg_azure</item>
+    <style name="Theme.App.PostSplash.RoyalBlue" parent="Theme.MyApplication">
+        <item name="android:windowBackground">@color/bg_royal_blue</item>
     </style>
 
     <style name="Theme.App.PostSplash.Ocean" parent="Theme.MyApplication">
@@ -88,12 +88,12 @@
         <item name="windowSplashScreenIconBackgroundColor">@color/bg_crimson</item>
     </style>
 
-    <!-- Azure Splash -->
-    <style name="Theme.App.Starting.Azure" parent="Theme.App.Starting">
-        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.Azure</item>
-        <item name="windowSplashScreenBackground">@color/bg_azure</item>
+    <!-- RoyalBlue Splash -->
+    <style name="Theme.App.Starting.RoyalBlue" parent="Theme.App.Starting">
+        <item name="postSplashScreenTheme">@style/Theme.App.PostSplash.RoyalBlue</item>
+        <item name="windowSplashScreenBackground">@color/bg_royal_blue</item>
         <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
-        <item name="windowSplashScreenIconBackgroundColor">@color/bg_azure</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/bg_royal_blue</item>
     </style>
 
     <!-- Ocean Splash -->

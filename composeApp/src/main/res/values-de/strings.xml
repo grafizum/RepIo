@@ -19,14 +19,14 @@
     <string name="overall_level_format">L.%1$.1f</string>
     <string name="overall_level_none">—</string>
     <string name="overall_level_not_ready">Train 5+ Übungen zum Freischalten</string>
-    <string name="overall_level_help">Dein Gesamtniveau ist der Durchschnitt der Kraftübungen, die du trainierst, gewichtet danach, wie kürzlich du sie trainiert hast. Trainiere mindestens 5 verschiedene Übungen, um es freizuschalten.</string>
-    <string name="overall_level_short">Dies ist dein durchschnittliches Übungsniveau über alle Kraftübungen, die du trainierst. Höher bedeutet, dass du auf anspruchsvolleren Stufen trainierst.</string>
-    <string name="overall_level_gpa_lead">Dein Gesamtniveau ist wie ein GPA für das Krafttraining. Es wird so berechnet:</string>
+    <string name="overall_level_help">Dein Rang ergibt sich daraus, wie weit du bei jedem deiner Übungen gekommen bist, gemessen an deren gesamten Umfang. Die typische Übung entscheidet, und aktuelles Training zählt mehr als altes. Trainiere mindestens 5 verschiedene Übungen, um es freizuschalten.</string>
+    <string name="overall_level_short">Dies ist dein Rang über alle Kraftübungen, die du trainierst, gemessen daran, wie weit du bei jeder gekommen bist. Höher bedeutet, dass du auf anspruchsvolleren Stufen trainierst.</string>
+    <string name="overall_level_gpa_lead">Dein Rang funktioniert wie ein GPA für das Krafttraining. Er wird so berechnet:</string>
     <string name="overall_level_gpa_step_1">Man schaut sich jede Kraftübung an, die du trainiert hast.</string>
-    <string name="overall_level_gpa_step_2">Man nimmt deine aktuelle Stufe jeder Übung — ein Bankdrücken auf Stufe 5, ein Kniebeugen auf Stufe 3.</string>
-    <string name="overall_level_gpa_step_3">Man bildet den Durchschnitt, wobei die zuletzt trainierten Übungen stärker zählen.</string>
-    <string name="overall_level_gpa_example">Die fünf Beispiele unten ergeben im Durchschnitt L.%1$.1f.</string>
-    <string name="overall_level_gpa_outro">Diese Zahl zeigt deinen Gesamtfortschritt auf einen Blick. Sie steigt, je mehr Übungen du trainierst und je höher ihre Stufe wird.</string>
+    <string name="overall_level_gpa_step_2">Misst, wie weit jede in ihrem eigenen Umfang ist — Übungen haben sehr unterschiedliche Längen, das vergleicht Fortschritt, nicht rohe Stufen.</string>
+    <string name="overall_level_gpa_step_3">Nimmt die mittlere Übung, wobei die zuletzt trainierten stärker zählen.</string>
+    <string name="overall_level_gpa_example">Die Mitte der fünf Beispiele unten steht bei %1$d%% ihrer eigenen Leiter, das ergibt Rang %2$s.</string>
+    <string name="overall_level_gpa_outro">Das ist dein Gesamtfortschritt auf einen Blick. Wenn du deine Übungen weiter in ihrem eigenen Umfang bringst, steigt er.</string>
 
     <!-- Level system on/off dialogs. -->
     <string name="level_system_off_title">Level-System ausschalten?</string>
@@ -38,10 +38,11 @@
     <string name="rank_system_guide_title">Ränge (E → SS+)</string>
     <string name="rank_system_guide_desc">Alle Ränge auf einen Blick</string>
     <string name="rank_label_format">Rang %1$s</string>
+    <string name="overall_level_value_format">Nr. %1$d</string>
     <string name="rank_badge_content_desc">Gesamtrang %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
-    <string name="rank_tooltip_level">Gesamtniveau: %1$.1f (Rang %2$s)</string>
+    <string name="rank_tooltip_level">Gesamtniveau: Rang %1$s</string>
     <string name="rank_tooltip_progress">%1$d%% bis Rang %2$s</string>
     <string name="rank_tooltip_top">Höchster Rang erreicht</string>
     <plurals name="overall_level_exercises_pl" tools:ignore="UnusedResources">
@@ -204,6 +205,8 @@
     <string name="notification_countdown_text">Pause zwischen den Sätzen…</string>
     <string name="notification_title">Satzpause beendet! 💪</string>
     <string name="notification_text">Zeit für den nächsten Satz!</string>
+    <string name="notification_exercise_title">Zeit um! ⏱️</string>
+    <string name="notification_exercise_text">Gut gemacht, halte die Form.</string>
     <string name="in_app_rest_ended_message">Pause beendet. Weiter mit dem Training!</string>
     <string name="replace">Ersetzen</string>
     <string name="alternative_exercises">Alternative Übungen</string>
@@ -272,6 +275,14 @@
     <string name="rest_recovery_day">Ruhe- &amp; Erholungstag</string>
     <string name="rest_recovery_recommendation">Kein Krafttraining für %1$s geplant. Aktives Gehen oder leichte Mobilität empfohlen!</string>
     <string name="workout_completed_title">Training beendet! 🎉</string>
+    <string name="recap_title">Sitzungübersicht</string>
+    <string name="recap_exercises">Übungen</string>
+    <string name="recap_sets">Sätze</string>
+    <string name="recap_volume">Volumen</string>
+    <string name="recap_duration">Dauer</string>
+    <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_duration_format">%1$d Min.</string>
+    <string name="recap_split_title">Verteilung der Belastung</string>
     <plurals name="workout_completed_text">
         <item quantity="one">Du hast %1$d Satz für %2$s gespeichert!</item>
         <item quantity="other">Du hast %1$d Sätze für %2$s gespeichert!</item>
@@ -296,6 +307,7 @@
     <string name="band_tension_heavy">Schwer</string>
     <string name="band_tension_very_heavy">Sehr schwer</string>
     <string name="progression_load_pin">Stift %1$s</string>
+    <string name="progression_load_seconds">Stufe %1$s s</string>
     <string name="progression_load_band">%1$s-Band</string>
     <string name="reps_completed">Wdh. geschafft</string>
     <plurals name="reps_count">
@@ -569,7 +581,7 @@
     <string name="flame_orange">Flammenorange</string>
     <string name="ocean_teal">Ozean-Teal</string>
     <string name="rose_pink">Rosen-Pink</string>
-    <string name="azure_sky">Azurblau</string>
+    <string name="royal_blue">Königsblau</string>
 
     <string name="monday">Montag</string>
     <string name="tuesday">Dienstag</string>
@@ -675,12 +687,14 @@
     <string name="mastery_focus_on">Fokus auf:</string>
     <string name="mastery_acknowledge">Verstanden – Übung am Limit behalten</string>
 
-    <string name="evolution_title">Diese Übung hat sich weiterentwickelt</string>
-    <string name="evolution_subtitle">Diese Übung ist durch. Hier bist du, und hier kann sie als Nächstes hingehen.</string>
+    <string name="evolution_title">Neue Übungsprogression!</string>
+    <string name="evolution_subtitle">Eine Übung lässt sich weiterentwickeln, sobald du ihre höchste Stufe erreichst — wähle, was sie als Nächstes werden kann.</string>
     <string name="evolution_heading_before">Du bist hier</string>
     <string name="evolution_heading_after">Sie wird zu</string>
     <string name="evolution_level_of_max">Level %1$d von %2$d</string>
     <string name="evolution_path_ahead">Weiterer Weg:</string>
+    <string name="evolution_trunk_mastered">Abgeschlossen — höchste Stufe erreicht</string>
+    <string name="evolution_new_branch">Neu</string>
     <string name="evolution_accept">Weiterentwickeln</string>
     <string name="evolution_not_now">Später</string>
     <string name="evolution_decline">Diese Übung behalten und hier sperren</string>
@@ -741,11 +755,11 @@
     <string name="workout_goal">Trainingsziel</string>
     <string name="choose_workout_goal">Was ist dein primäres Trainingsziel?</string>
     <string name="workout_goal_desc">Legt Wiederholungsbereich, Pausenzeit und Übungsauswahl fest. Die Schwierigkeit bestimmt weiterhin allein die Satzzahl.</string>
-    <string name="goal_bodybuilding">Hypertrophie</string>
-    <string name="goal_strength">Kraft</string>
-    <string name="goal_calisthenics">Calisthenics</string>
-    <string name="goal_endurance">Ausdauer</string>
-    <string name="goal_general">Allgemeine Fitness</string>
+    <string name="goal_bodybuilding">Muskelaufbau (Hypertrophie)</string>
+    <string name="goal_strength">Krafttraining (Maximalkraft)</string>
+    <string name="goal_calisthenics">Calisthenics (Körpergewichtstraining)</string>
+    <string name="goal_endurance">Ausdauer (Cardio &amp; Konditionierung)</string>
+    <string name="goal_general">Allgemeine Fitness (Gesundheit)</string>
     <string name="goal_olympic">Olympisches Gewichtheben</string>
     <string name="goal_powerbuilding">Powerbuilding</string>
     <string name="goal_crossfit">CrossFit / Hybrid</string>
@@ -856,7 +870,7 @@
     <string name="large_jump_example_arrow">großer Sprung</string>
     <string name="large_jump_example_caption">Wenn das nächste Gewicht ein großer Sprung ist, setzt die App deine Wiederholungen zurück, damit es machbar bleibt.</string>
     <string name="difficulty_change_example_title">Startschwierigkeit ändern</string>
-    <string name="difficulty_change_example_caption">Du kannst die Startschwierigkeit für jede Ügebung vor deinem ersten Satz ändern.</string>
+    <string name="difficulty_change_example_caption">Du kannst die Startschwierigkeit für jede Übung vor deinem ersten Satz ändern.</string>
 
 
     <!-- Level-Anpassung + Sammel-Anpassung — TODO:. -->
@@ -893,6 +907,7 @@
     <string name="level_fields_locked_hint">Vom Level-System verwaltet. Wechsle zu „Eigene“, um hier Änderungen zu machen.</string>
     <string name="level_fields_locked_toast">Wechsle zu „Eigene“, um das zu ändern.</string>
     <string name="level_pencil_hint">Tippe zuerst auf den Stift, um dieses Level zu bearbeiten.</string>
+    <string name="progression_available">Progression verfügbar</string>
     <string name="level_guide_onboarding_title">Neu! Level-System</string>
     <string name="level_guide_cta_got_it">Verstanden</string>
     <string name="level_guide_reassurance">Deine ersten Level stammen aus der Entscheidung für Leicht / Mittel / Schwer im nächsten Schritt und können sich anfangs etwas falsch anfühlen — passe sie an, sobald du trainierst. Danach bringt dich jede abgeschlossene Übung automatisch nach oben.</string>

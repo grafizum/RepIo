@@ -2,6 +2,7 @@ package com.grafizum.repio
 
 import com.grafizum.repio.util.IconSwitchHelper
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 import java.io.File
@@ -108,16 +109,29 @@ class LauncherIconDefaultThemeTest {
      * inline `if` in `RepIoApplication`.
      */
     @Test
-    fun theFirstLaunchThemeFollowsTheSystem() {
+    fun theFirstLaunchThemeIsBeigeInBothSystemAppearances() {
+        // Owner ruling 2026-10-04: "change the base theme of the app to be the
+        // light beige one no matter if the system is dark or light". This test
+        // used to assert the opposite - Flame on a dark system - which is the
+        // correct assertion for the OLD rule and now pins the new one.
         assertEquals(
-            "a dark system must start on Flame, the dark-plate theme",
-            "FLAME",
+            "a dark system must ALSO start on Beige: the base theme no longer " +
+                "follows the system appearance",
+            IconSwitchHelper.MANIFEST_DEFAULT_THEME,
             IconSwitchHelper.defaultThemeFor(isSystemDark = true),
         )
         assertEquals(
             "a light system must start on the theme the manifest already enables",
             IconSwitchHelper.MANIFEST_DEFAULT_THEME,
             IconSwitchHelper.defaultThemeFor(isSystemDark = false),
+        )
+        // Stated as a property rather than left implied by the two asserts above:
+        // the whole point of the ruling is that the argument does not matter, and
+        // an equality pair still reads as two separate expectations.
+        assertEquals(
+            "the system appearance must not change the base theme",
+            IconSwitchHelper.defaultThemeFor(isSystemDark = false),
+            IconSwitchHelper.defaultThemeFor(isSystemDark = true),
         )
     }
 
@@ -128,7 +142,24 @@ class LauncherIconDefaultThemeTest {
      * test.
      */
     @Test
-    fun onlyTheDarkSystemNeedsAnIconSwitch() {
+    fun noSystemAppearanceNeedsAnIconSwitchAnymore() {
+        // The REPLACES `onlyTheDarkSystemNeedsAnIconSwitch`, which asserted that a
+        // dark system differs from the manifest default so RepIoApplication has to
+        // switch the launcher component. That difference is gone by design.
+        //
+        // This is the property that makes the ruling SAFE rather than merely
+        // different: RepIoApplication's guard is
+        // `if (initialTheme != MANIFEST_DEFAULT_THEME) switchIcon(...)`, so a dark
+        // phone now resolves to the theme the manifest ALREADY enables and takes
+        // the early-return branch. The launcher component is therefore never
+        // switched on either appearance, and the duplicate-icon mistake this guard
+        // exists to prevent cannot happen.
+        //
+        // The flip side, and it is the reason Beige's own icon must be right: with
+        // no switch, the enabled component stays whatever the manifest declares,
+        // so the icon shown on a dark phone is the Beige icon the manifest points
+        // at. `LauncherIconNightVariantTest` is what proves that plate is the
+        // LIGHT one and cannot be overridden by system night mode.
         val light = IconSwitchHelper.defaultThemeFor(isSystemDark = false)
         val dark = IconSwitchHelper.defaultThemeFor(isSystemDark = true)
         assertEquals(
@@ -137,9 +168,15 @@ class LauncherIconDefaultThemeTest {
             IconSwitchHelper.MANIFEST_DEFAULT_THEME,
             light,
         )
-        assertTrue(
-            "on a dark system the icon must actually change, or a dark phone shows " +
-                "the light-system default",
+        assertEquals(
+            "on a dark system the same holds now, because the base theme is Beige " +
+                "in both appearances - so the launcher is never switched",
+            IconSwitchHelper.MANIFEST_DEFAULT_THEME,
+            dark,
+        )
+        assertFalse(
+            "if this ever differs again, RepIoApplication will switch the launcher " +
+                "component again and the icon must be re-checked",
             dark != IconSwitchHelper.MANIFEST_DEFAULT_THEME,
         )
     }

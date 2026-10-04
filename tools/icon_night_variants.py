@@ -18,7 +18,7 @@ orange artwork sits on.
     rose     icon_bg_dark       45.0
     purple   icon_bg_dark       45.0
     retro    icon_bg_dark       46.0
-    azure    icon_bg_white     252.7
+    royal_blue    icon_bg_white     252.7
     crimson  icon_bg_white     252.7
     emerald  icon_bg_white     252.7
     beige    icon_bg_white     252.7
@@ -81,7 +81,7 @@ DENSITIES = ["mdpi", "hdpi", "xhdpi", "xxhdpi", "xxxhdpi"]
 
 # Theme.kt's LIGHT themes, plus DEFAULT (which follows the system and so must
 # be correct in BOTH modes). The five dark themes already ship a dark plate.
-LIGHT_PLATE_THEMES = ["orange", "azure", "crimson", "emerald", "beige"]
+LIGHT_PLATE_THEMES = ["orange", "royal_blue", "crimson", "emerald", "beige"]
 DEFAULT_THEME = "orange"      # android:icon in the manifest's main activity
 
 # The themes that ALREADY carry a dark plate in the light-mode file. They need a

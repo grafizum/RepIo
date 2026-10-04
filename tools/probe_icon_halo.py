@@ -25,7 +25,7 @@ from PIL import Image
 RES = Path(__file__).resolve().parents[1] / "composeApp/src/main/res"
 NS = "{http://schemas.android.com/apk/res/android}"
 THEMES = ["orange", "ocean", "flame", "rose", "purple", "retro",
-          "azure", "crimson", "emerald", "beige"]
+          "royal_blue", "crimson", "emerald", "beige"]
 
 
 def color_value(name: str):

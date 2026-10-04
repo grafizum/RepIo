@@ -104,7 +104,7 @@ val lightThemes = listOf(
     ThemeColorItem("BEIGE", "warm_beige", Color(0xFF8C6239), Color(0xFFF7F4EE)),
     ThemeColorItem("EMERALD", "emerald_mint", Color(0xFF00796B), Color(0xFFF1F8F7)),
     ThemeColorItem("CRIMSON", "crimson_red", Color(0xFFC62828), Color(0xFFFFFAFA)),
-    ThemeColorItem("AZURE", "azure_sky", Color(0xFF007AFF), Color.White)
+    ThemeColorItem("ROYAL_BLUE", "royal_blue", Color(0xFF007AFF), Color.White)
 )
 
 val darkThemes = listOf(

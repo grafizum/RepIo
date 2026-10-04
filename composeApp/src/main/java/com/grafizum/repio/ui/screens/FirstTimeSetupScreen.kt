@@ -1341,6 +1341,14 @@ private fun WorkoutGoalBlock(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(getString("workout_goal")) },
+                // The goal labels now carry the technical term in parentheses
+                // ("Muscle Building (Hypertrophy)"), which does not fit one line
+                // of a phone's width. An OutlinedTextField is single-line by
+                // default and silently clips, so the chosen goal would read
+                // "Muscle Building (Hypertr…". Two lines is enough for the
+                // longest label at bodyMedium and still leaves the label
+                // ("Workout Goal") and the trailing chevron their room.
+                maxLines = 2,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
                     focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,

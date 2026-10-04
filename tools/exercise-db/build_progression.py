@@ -11,6 +11,10 @@ The authoritative source is `tools/exercise-db/data/exercise_progression_databas
   3. merges the English method descriptions from the previous pipeline's
      catalog (the v5 CSV carries none), then fills the rest from the
      hand-written table in data/hand_descriptions.py,
+  3b. installs a curated level ladder on the rows the CSV left at
+     `manual_review` (a stretch is a hold in seconds, a barbell lift is a kg
+     ladder) and records the reason for the ones that genuinely have no
+     universal measure - see ladder_backfill.py,
   4. writes:
        tools/exercise-db/out/catalog_v5.json        - the merged catalog
        tools/exercise-db/out/progression_v5.json    - the progression payload
@@ -30,6 +34,7 @@ Run from the repository root:
 from __future__ import annotations
 
 import generalize  # noqa: F401  (name generalization, see generalize.py)
+import ladder_backfill  # curated ladders for the rows the CSV declined to guess
 
 import csv
 import json
@@ -48,8 +53,118 @@ OLD_CATALOG = OUT / "catalog.json"
 # old catalog could not cover.
 sys.path.insert(0, str(DATA))
 from hand_descriptions import HAND_DESCRIPTIONS  # noqa: E402
+from description_overrides import OVERRIDES as DESCRIPTION_OVERRIDES  # noqa: E402
 sys.path.insert(0, str(pathlib.Path(__file__).parent / "data"))
 from progression_branches import BRANCHES, CEILING_OVERRIDES  # noqa: E402
+from progression_branches_ext import BRANCHES_EXT  # noqa: E402
+import progression_ladders  # noqa: E402
+from progression_ladders import MAX_NODES  # noqa: E402
+
+def merge_branches(catalog: list[dict], progression_ready: set[str]) -> dict[str, list[dict]]:
+    """Every source of branches, merged into one table keyed by pool slug.
+
+    The original 29 curated rows are never REPLACED by the two newer tables -
+    their branches are concatenated onto whatever those produce, so regenerating
+    a ladder table cannot silently drop a hand-written chain. That ordering is
+    the reason a ladder rung can appear both as a destination in one table and
+    as a source in another without either half being lost.
+
+    The derived table comes last so a hand-written branch for the same
+    (source, entry) pair is the one a reader sees first in the JSON.
+
+    [progression_ready] holds the slugs that carry a real level system. It
+    matters because a branch whose DESTINATION has no ladder cannot be rendered
+    at all: ProgressionEngine.evolutionOffer returns null for a target that is
+    not progression-ready, so the offer silently disappears and the popup would
+    show an exercise it cannot offer. Seven pool rows are in that state
+    (manual_review_required: Box Jump, Jump Squat, Plyo Lunge, Plyo Push-Up,
+    Nordic Hamstring Curl, Rope Climb, Wrist Roller) and none of them may appear
+    as an `entry` or a `node`.
+    """
+    merged: dict[str, list[dict]] = {}
+    for table in (
+        BRANCHES,
+        BRANCHES_EXT,
+        progression_ladders.derive_branches_from_ladders(
+            {e["slug"]: e["name"] for e in catalog}
+        ),
+    ):
+        for slug, branches in table.items():
+            merged.setdefault(slug, []).extend(branches)
+
+    ready_names = {
+        e["name"] for e in catalog if e["slug"] in progression_ready
+    }
+    # A branch into a row with no level system is unrenderable - see the
+    # docstring. Dropped here rather than left to fail a Kotlin test, because
+    # the fix belongs next to the data that produced it. This is a WARNING, not
+    # a `problems` entry: the seven rows it drops into are a known, reported
+    # state of the pool (see the "no level system" section this build already
+    # prints), so failing the whole pipeline on them would make it unrunnable.
+    unrenderable: list[str] = []
+    for slug, branches in merged.items():
+        kept = []
+        for b in branches:
+            if b["entry"] not in ready_names:
+                unrenderable.append(f"{slug} -> {b['entry']}")
+                continue
+            kept.append(b)
+        merged[slug] = kept
+
+    # Two tables - and two LADDERS - can reach the same destination, because a
+    # rung belongs to more than one ladder (a dumbbell bench press is the bottom
+    # of both the press ladder and the floor-press ladder). Each ladder emits its
+    # own branch, so the same `entry` arrives twice.
+    #
+    # This is NOT the harmless duplicate it looks like. ProgressionEngine
+    # resolves an offer with `branches.firstOrNull { it.entry == targetName }`,
+    # so of N rows sharing one entry only the FIRST is ever reachable - the rest
+    # are dead data that any picker would still render as a second identical
+    # choice. Measured on the generated table: 28 of 334 exercises carried a
+    # repeated entry, and Dumbbell Shoulder Press offered "Barbell Overhead
+    # Press" three times.
+    #
+    # They are therefore merged by ENTRY, keeping one row and unioning the
+    # `nodes` so the surviving branch shows the union of the paths rather than
+    # arbitrarily losing one. Order is first-seen, and the list is capped at
+    # MAX_NODES for the same reason the derivation caps it: three reads as "this
+    # goes somewhere", six is a wall of text. The old (entry, nodes) key could
+    # not do this - it treated differing node lists as meaningfully different
+    # branches when the engine cannot tell them apart.
+    #
+    # A genuinely different branch (a different `entry`, or the same entry
+    # carrying a different `tag`) is untouched: distinct destinations are
+    # distinct choices and must stay.
+    by_entry: dict[str, dict[str, dict]] = {}
+    for slug, branches in merged.items():
+        kept: dict[str, dict] = {}
+        order: list[str] = []
+        for b in branches:
+            entry = b["entry"]
+            existing = kept.get(entry)
+            if existing is None:
+                kept[entry] = b
+                order.append(entry)
+                continue
+            if existing.get("tag") != b.get("tag"):
+                # Same destination, different kind of branch (advanced vs new).
+                # Both are legitimate, so keep the first and do not merge nodes
+                # across them - the second is a different claim about the same
+                # exercise and the engine will still resolve to the first.
+                continue
+            merged_nodes: list[str] = list(existing.get("nodes") or [])
+            for node in b.get("nodes") or []:
+                if node not in merged_nodes:
+                    merged_nodes.append(node)
+            existing["nodes"] = merged_nodes[:MAX_NODES]
+        by_entry[slug] = [kept[e] for e in order]
+    deduped = by_entry
+    if unrenderable:
+        print(
+            f"  note: dropped {len(unrenderable)} branch(es) whose target has no "
+            f"level system: {', '.join(sorted(unrenderable)[:10])}"
+        )
+    return deduped
 
 # --------------------------------------------------------------------------
 # The app's taxonomies (must mirror WorkoutTemplates / mapping.py exactly).
@@ -301,6 +416,31 @@ def stage_reps(row: dict, stage: str) -> list[int] | None:
     return [int(x) for x in reps] if reps else None
 
 
+def merge_rename_history(current: dict[str, str]) -> dict[str, str]:
+    """Union this pass's renames with the previous cumulative map.
+
+    A rename's target may itself have been renamed by an earlier pass, so the
+    union is retargeted until stable: without that, a name renamed twice walks
+    to an intermediate spelling the pool no longer contains.
+    """
+    previous: dict[str, str] = {}
+    if (OUT / "name_renames.json").exists():
+        try:
+            previous = json.loads((OUT / "name_renames.json").read_text(encoding="utf-8"))
+        except json.JSONDecodeError:
+            previous = {}
+    merged = dict(previous)
+    merged.update(current)
+    changed = True
+    while changed:
+        changed = False
+        for source, target in list(merged.items()):
+            if target in merged and merged[target] != target:
+                merged[source] = merged[target]
+                changed = True
+    return merged
+
+
 def slugify(name: str) -> str:
     slug = re.sub(r"[^a-z0-9]+", "_", name.lower()).strip("_")
     return re.sub(r"_+", "_", slug)
@@ -447,6 +587,11 @@ def main() -> int:
     old_desc, old_by_norm, old_by_tokens = load_old_descriptions()
     old_slugs = set(old_desc)
 
+    # Rows the v5 database declined to give a ladder, and what happened to each.
+    backfilled: list[str] = []
+    duration_normalized: list[str] = []
+    still_gap: dict[str, tuple[str, str]] = {}
+
     catalog: list[dict] = []
     progression: list[dict] = []
     unmatched: list[dict] = []
@@ -472,10 +617,22 @@ def main() -> int:
         status = (row.get("progression_validation_status") or "").strip()
         slug = slugify(name)
 
-        # --- description reconciliation (tiers 1-4) -----------------------
+        # --- description reconciliation -------------------------------------
+        # TIER 0: the instruction-first overrides. These come FIRST on purpose -
+        # the tiers below reconcile the previous catalog's text, and 73 of those
+        # lead with who used the lift rather than how to do it (see
+        # data/description_overrides.py). An override added to HAND_DESCRIPTIONS
+        # instead would never be read for those slugs, because tiers 1-4 always
+        # match first and HAND_DESCRIPTIONS is the last fallback.
+        desc = DESCRIPTION_OVERRIDES.get(slug, "")
+        matched_via = "override" if desc else ""
+
+        # Tiers 1-4: the previous catalog, reconciled by slug / normalized name
+        # / sorted tokens / alias.
         norm = normalize_name(name)
-        desc = old_desc.get(slug, "")
-        matched_via = "slug" if desc else ""
+        if not desc:
+            desc = old_desc.get(slug, "")
+            matched_via = "slug" if desc else ""
         if not desc and norm in old_by_norm:
             desc = old_desc.get(old_by_norm[norm][0], "")
             matched_via = "normalized" if desc else ""
@@ -570,7 +727,31 @@ def main() -> int:
             "beginnerBuildEligible": parse_bool(row.get("beginner_build_eligible")),
             "validationStatus": status,
         }
+        # --- gap fill -----------------------------------------------------
+        # The CSV flags 109 rows `manual_review` rather than invent a starting
+        # value, which leaves them outside the level system entirely. For each
+        # one, install the measure the row's own training_category names - a
+        # stretch is a hold in seconds, a barbell lift is a kg ladder - and keep
+        # the reason for the rows that genuinely have no universal measure, so
+        # the build can report that short list instead of hiding it.
+        # Only `manual_review` rows are touched: this fills a gap, it never
+        # overwrites a prescription the database did supply.
+        if ladder_backfill.apply(prog, row):
+            backfilled.append(prog["slug"])
+        elif prog["method"] == "manual_review":
+            still_gap[prog["slug"]] = (
+                (row.get("exercise_name") or slug),
+                ladder_backfill.reason_for(row, slug) or "",
+            )
         progression.append(prog)
+
+        # The shared duration ladder. Deliberately OUTSIDE the gap-fill branch
+        # above: that one installs a ladder where there was none, and this one
+        # makes 147 rows that HAVE a ladder agree with each other, so the same
+        # level means the same number of seconds everywhere. Running it after
+        # the backfill means a backfilled hold is normalized too.
+        if ladder_backfill.normalize_duration_rungs(prog, row):
+            duration_normalized.append(prog["slug"])
 
         # --- stats / unmatched -------------------------------------------
         if entry["description"]:
@@ -602,12 +783,21 @@ def main() -> int:
     # result and the app never reads this file.
     # ------------------------------------------------------------------
     name_by_slug = {e["slug"]: e["name"] for e in catalog}
+    # Mirror of ProgressionEngine.isProgressionReady, in Python. A branch whose
+    # destination fails this cannot be rendered as an offer, so it must not be
+    # generated in the first place. Keep the two definitions in step.
+    progression_ready = {
+        p["slug"] for p in progression
+        if p.get("validationStatus") in ("valid", "valid_but_review_recommended")
+        and (p.get("levelValueSequence") or p.get("level1") is not None)
+    }
+    all_branches = merge_branches(catalog, progression_ready)
     for e in catalog:
         slug = e["slug"]
         prog = next(p for p in progression if p["slug"] == slug)
 
         # --- branches ---
-        branch_list = BRANCHES.get(slug) or []
+        branch_list = all_branches.get(slug) or []
         cleaned = []
         for b in branch_list:
             entry_name = b["entry"]
@@ -634,6 +824,20 @@ def main() -> int:
             })
         prog["branches"] = cleaned
 
+        # A branch whose entry IS the exercise it hangs off would render as
+        # "you have mastered X -> try X", which is the one thing the popup must
+        # never say. It is an easy mistake to make in a ladder table (the rung
+        # looks like it belongs to itself), so it is checked rather than trusted.
+        for b in cleaned:
+            if b["entrySlug"] == slug:
+                problems.append(
+                    f"branches: '{slug}' points at itself (entry == source); "
+                    "entry must be the exercise the user moves TO")
+            if b["entry"] in b["nodes"]:
+                problems.append(
+                    f"branches: '{slug}' -> entry '{b['entry']}' also appears in its "
+                    "own nodes; nodes are the path BEYOND the entry")
+
         # --- human ceiling ---
         ov = CEILING_OVERRIDES.get(slug)
         if ov is not None:
@@ -645,30 +849,49 @@ def main() -> int:
         elif prog.get("maxValue") is not None and prog.get("unit") != "variation_step":
             # variation_step rows carry no load ceiling: their maxValue is the
             # hardest variation's rep count, not a level the ladder climbs to.
+            # A backfilled row's maxValue comes from the curated ladder, not the
+            # v5 CSV, so it must not claim the CSV as its source.
             prog["ceiling"] = {
                 "load": prog["maxValue"],
                 "femaleLoad": None,
-                "basis": "v5 progression database maximum progression value",
+                "basis": (
+                    "curated ladder top (ladder_backfill.py)"
+                    if prog.get("valueSource") == "curated_ladder"
+                    else "v5 progression database maximum progression value"
+                ),
             }
         else:
             prog["ceiling"] = None
 
     # Sidecar integrity: every branch key and ceiling key must be a catalog slug.
-    for key in sorted(BRANCHES):
+    for key in sorted(all_branches):
         if key not in name_by_slug:
             problems.append(f"progression_branches: branch key '{key}' matches no catalog exercise")
     for key in sorted(CEILING_OVERRIDES):
         if key not in name_by_slug:
             problems.append(f"progression_branches: ceiling key '{key}' matches no catalog exercise")
+    # A typo'd slug in the curated ladder tables would silently leave one row
+    # without a level system, which is the failure this whole pass exists to
+    # remove. Every curated key must hit a real exercise.
+    problems.extend(ladder_backfill.unmatched_keys(
+        {p["slug"] for p in progression},
+        {(r.get("training_category") or "").strip() for r in rows},
+    ))
     stats["rows_with_branches"] = sum(1 for p in progression if p.get("branches"))
     stats["rows_with_ceiling"] = sum(1 for p in progression if p.get("ceiling"))
 
     # Every hand-written key must hit a catalog row: a typo would otherwise
-    # silently leave that exercise blank.
+    # silently leave that exercise blank. The override table is validated the
+    # same way, and harder - an override that misses does not blank a
+    # description, it silently reverts to the old catalog text, which is exactly
+    # the bug the table exists to fix.
     catalog_slugs = {e["slug"] for e in catalog}
     for key in sorted(HAND_DESCRIPTIONS):
         if key not in catalog_slugs:
             problems.append(f"hand_descriptions: key '{key}' matches no catalog exercise")
+    for key in sorted(DESCRIPTION_OVERRIDES):
+        if key not in catalog_slugs:
+            problems.append(f"description_overrides: key '{key}' matches no catalog exercise")
     match_counts: dict[str, int] = {}
     for e in catalog:
         if e["description"]:
@@ -693,6 +916,15 @@ def main() -> int:
     except ValueError as exc:
         renames = {}
         problems.append(f"name generalization: {exc}")
+
+    # The rename map is CUMULATIVE, and this pass only ever sees the current
+    # one. Overwriting it silently dropped 178 entries on 2026-10-02: a routine
+    # logged before the previous rename pass lost its link to its exercise, and
+    # `ExerciseLocalization.canonicalFor` started returning null for names that
+    # had always resolved. Merge the previous map back in and retarget chains
+    # whose target was itself renamed later, so old and new spellings both walk
+    # to today's name.
+    renames = merge_rename_history(renames)
     for e in catalog:
         e["name"] = renames.get(e["name"], e["name"])
     # Progression branches point at sibling exercises BY NAME ("mastered this,
@@ -737,6 +969,11 @@ def main() -> int:
         f"beginner_build_eligible     : {stats['beginner_build_eligible']}",
         f"app-ready (valid + simple)  : {stats['app_ready']}",
         "",
+        "level-system gap (CSV rows left at manual_review):",
+        f"  backfilled with a ladder : {len(backfilled)}",
+        f"  snapped to the shared duration ladder : {len(duration_normalized)}",
+        f"  still without a ladder   : {len(still_gap)}",
+        "",
         "per equipment category (must mirror the app's 8 chips):",
         f"{'':26}" + "  ".join(
             f"{cat} {sum(1 for e in catalog if e['equipment'] == cat)}"
@@ -747,6 +984,15 @@ def main() -> int:
     ]
     for muscle in sorted(by_muscle):
         lines.append(f"  {muscle:<18} {by_muscle[muscle]}")
+
+    if still_gap:
+        # The short list the owner asked for on 2026-10-02: "list the ones that
+        # still wont have a level system after the fix". Written out with the
+        # reason, so the next session does not have to re-derive why.
+        lines.append("")
+        lines.append("exercises that still have no level system, and why:")
+        for name, reason in sorted(still_gap.values()):
+            lines.append(f"  - {name}: {reason}")
 
     if problems:
         lines.append("")

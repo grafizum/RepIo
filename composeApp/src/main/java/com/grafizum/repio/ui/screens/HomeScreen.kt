@@ -327,8 +327,23 @@ fun HomeScreen(
                 ) {
                     StatCard(
                         title = getString("overall_level_label"),
-                        value = if (level != null) {
-                            getString("overall_level_format", level)
+                        // The RANK, never the percentage. The owner ruled
+                        // (2026-10-02) that the 0-100 figure and the median behind
+                        // it stay backend-only, so the headline number a user reads
+                        // is the letter their progress has earned. The figure is
+                        // still computed and still stored - it is what the letter is
+                        // derived from - it just is not printed.
+                        value = if (level != null && rank != null) {
+                            // The LEVEL, not the rank word. The owner asked for
+                            // "the actual level with only the rank symbol next to
+                            // it": the letter is already the card's leading badge
+                            // (RankBadge below), so printing "Rank E" as well
+                            // said the same thing twice and hid the one number
+                            // that moves every session.
+                            getString(
+                                "overall_level_value_format",
+                                OverallLevelRank.displayLevel(level)
+                            )
                         } else {
                             getString("overall_level_none")
                         },

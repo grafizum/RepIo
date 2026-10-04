@@ -89,10 +89,15 @@ fun OverallLevelTooltip(
     rank: OverallLevelRank.Info?,
     exerciseCount: Int
 ) {
+    // [level] is deliberately UNUSED for display. It arrives so the caller can
+    // tell "no measurement yet" from "measured", but the owner ruled (2026-10-02)
+    // that the 0-100 figure and the weighted median behind it stay backend-only,
+    // so nothing in here prints it. Only the letter and the progress to the next
+    // one are user-facing.
     Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
         if (level != null && rank != null) {
             Text(
-                text = getString("rank_tooltip_level", level, rank.letter),
+                text = getString("rank_tooltip_level", rank.letter),
                 fontWeight = FontWeight.Bold
             )
             Text(

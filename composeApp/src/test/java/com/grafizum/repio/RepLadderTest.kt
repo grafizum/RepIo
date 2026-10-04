@@ -3,6 +3,7 @@ package com.grafizum.repio
 import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.WorkoutTemplates
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -79,29 +80,84 @@ class RepLadderTest {
     }
 
     /**
-     * "dont display 'dragon flag' or whatever, instead show the reps."
+     * The level of a rep ladder is a REP COUNT, not a rung of the variation
+     * ladder. Owner ruling 2026-10-03: "changing the position of exercise i
+     * want removed, instead increase the reps."
      *
-     * A variation ladder past its last rung repeats the hardest movement and
-     * clamps the reps, so every row past the end reads identically. The picker
-     * used to offer 50 levels for a 6-level ladder, which meant 44 duplicate
-     * rows all labelled "Dragon Flag". The ladder's own end is the honest limit
-     * for a row with nothing to extrapolate.
+     * The picker used to offer 50 levels for a 6-level ladder and label the 44
+     * duplicate rows "Dragon Flag", which is the defect that prompted the
+     * change: the level said nothing about the work and silently swapped the
+     * movement under the user.
      */
     @Test
-    fun aVariationLadderEndsWhereItEndsRatherThanRepeatingItsLastMovement() {
+    fun aRepLaddersLevelsAreRepCountsAndNameNoMovement() {
         val maxLevel = ProgressionEngine.effectiveMaxLevel(crunches)
-        val seen = mutableSetOf<String>()
+        assertEquals(
+            ProgressionEngine.repRungs(crunches),
+            maxLevel
+        )
         for (level in 1..maxLevel) {
-            val variation = ProgressionEngine.variationAtLevel(crunches, level)!!
-            assertTrue(
-                "level $level repeats '$variation', which already appeared at a lower level",
-                seen.add(variation)
+            assertNull(
+                "level $level still prescribes a movement on a rep ladder",
+                ProgressionEngine.prescribedValueAtLevel(crunches, level)
             )
         }
-        assertTrue(
-            "expected the ladder to be longer than its single movement",
-            seen.size > 1
+    }
+
+    /**
+     * Each level adds exactly the row's STEP, from the row's own floor, with
+     * nothing skipped and nothing repeated.
+     *
+     * The step is per-exercise and is never 1 - see
+     * [RepProgressionOfferTest.noRepLadderStartsAtOneRepAndEveryLadderIsWalkable],
+     * which sweeps every row in the pool. This pins the arithmetic for one.
+     *
+     * The one thing that is NOT a plain step is the LAST rung, and it has to be
+     * spelled out rather than waved through: a span that does not divide evenly
+     * by its step reaches the top by rounding the rung count UP, so the final
+     * rung overshoots and is held at the ceiling. Without the clamp that last
+     * rung would ask for more reps than the exercise has - and with the old
+     * floor-division rung count the ladder instead stopped one rep SHORT of the
+     * ceiling it was built to reach.
+     */
+    @Test
+    fun everyLevelOfARepLadderAddsExactlyOneStep() {
+        val floor = ProgressionEngine.repFloorOf(crunches)
+        val top = ProgressionEngine.repCeilingFor(crunches)
+        val step = ProgressionEngine.repStepFor(crunches)
+        assertTrue("a rep ladder must not step by a single rep", step >= 2)
+        val maxLevel = ProgressionEngine.effectiveMaxLevel(crunches)
+        val rungs = ProgressionEngine.repRungs(crunches)
+        for (level in 1..maxLevel) {
+            val expected = (floor + step * (level - 1)).coerceIn(floor, top)
+            assertEquals(
+                "level $level should ask $expected reps",
+                expected,
+                ProgressionEngine.repsAtLevel(crunches, level)
+            )
+            assertEquals(
+                "level $level does not prescribe its own rep count",
+                expected,
+                ProgressionEngine.prescribedReps(crunches, level, 1)!!.first()
+            )
+            // Every rung but the last is an exact step - the clamp belongs to
+            // the top of the ladder and nowhere else.
+            if (level < rungs) {
+                assertEquals(
+                    "level $level of $rungs should be an unclamped step",
+                    floor + step * (level - 1),
+                    ProgressionEngine.repsAtLevel(crunches, level)
+                )
+            }
+        }
+        // And the last rung IS the ceiling - reachable, not one rep below it.
+        assertEquals(
+            "the ladder stops short of its own ceiling",
+            top,
+            ProgressionEngine.repsAtLevel(crunches, rungs)
         )
+        // And level 1 is never a single rep.
+        assertTrue(ProgressionEngine.repsAtLevel(crunches, 1) >= 8)
     }
 
     /** Every rep-progressed row's reps rise monotonically, not just Crunches. */

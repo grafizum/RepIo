@@ -1,5 +1,6 @@
 package com.grafizum.repio
 
+import com.grafizum.repio.data.ExerciseCatalog
 import com.grafizum.repio.data.ExerciseProgression
 import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.WorkoutTemplates
@@ -74,10 +75,85 @@ class ProgressionEngineTest {
         val easy = ProgressionEngine.startingSeconds("Air Bike", ProgressionEngine.Difficulty.EASY)
         val medium = ProgressionEngine.startingSeconds("Air Bike", ProgressionEngine.Difficulty.MEDIUM)
         val hard = ProgressionEngine.startingSeconds("Air Bike", ProgressionEngine.Difficulty.HARD)
-        // v5 CSV: 30 / 90 / 240 seconds.
-        assertEquals(30, easy)
-        assertEquals(90, medium)
-        assertEquals(240, hard)
+        // The SHARED duration ladder (owner ruling 2026-10-04): every
+        // seconds-based row snaps to 15/30/45/60/90/120, and Air Bike is a
+        // REPEATED interval rather than a hold, so its own 180-600s rungs are
+        // kept on top of that floor rather than truncated away.
+        //   rungs = 15, 30, 45, 60, 90, 120, 180, 240, 300, 420, 600
+        // Easy is the floor rung, Medium the 30s dose, Hard the top.
+        assertEquals(15, easy)
+        assertEquals(30, medium)
+        assertEquals(600, hard)
+    }
+
+    /**
+     * THE SHARED DURATION LADDER, and the invariant behind the 2026-10-04
+     * normalization pass: the same level means the same number of seconds on
+     * every hold row. Before it, 147 rows already had a seconds ladder and
+     * they disagreed with each other - a Plank climbed 30/45/60/90, a Back Lever
+     * 20/30/40 - so the number on the level card was not comparable across the
+     * pool.
+     *
+     * The ladder is asserted as DATA rather than as a constant imported from
+     * the pipeline, because the failure being guarded is the pipeline drifting
+     * away from itself. A row may carry rungs ABOVE the shared floor only when
+     * its own ceiling goes past it: 120s is a ceiling for anything HELD and
+     * only a floor for anything REPEATED, so Air Bike legitimately keeps its
+     * 180-600s intervals.
+     */
+    @Test
+    fun everyHoldRowWalksTheSameDurationLadder() {
+        val shared = listOf(15.0, 30.0, 45.0, 60.0, 90.0, 120.0)
+        val holds = ExerciseProgression.ENTRIES.filter { it.unit == "seconds" }
+        assertTrue(
+            "no seconds-based rows in the pool, so this test would pass vacuously",
+            holds.size > 100,
+        )
+        for (hold in holds) {
+            assertTrue("${hold.slug} is not ascending", hold.levelValues == hold.levelValues.sorted())
+            for (rung in hold.levelValues) {
+                if (rung <= shared.last()) {
+                    assertTrue(
+                        "${hold.slug} has rung $rung, which is not on the shared ladder " +
+                            "$shared - two rows would mean different things by level",
+                        rung in shared,
+                    )
+                } else {
+                    assertTrue(
+                        "${hold.slug} runs to $rung, past the shared floor, without a " +
+                            "ceiling of its own to justify it (120s is a CEILING for a " +
+                            "hold and only a FLOOR for a repeated movement)",
+                        (hold.maxValue ?: 0.0) >= rung,
+                    )
+                }
+            }
+            // The Easy/Medium/Hard starts are stored as a level INDEX, so a
+            // ladder rewritten underneath them leaves them naming a rung that no
+            // longer exists - silently, because the value just reads wrong.
+            for ((label, level) in listOf(
+                "easy" to hold.easyLevel, "medium" to hold.mediumLevel, "hard" to hold.hardLevel,
+            )) {
+                assertTrue(
+                    "${hold.slug} $label start points at level $level, outside its own " +
+                        "ladder of ${hold.levelValues.size}",
+                    level == null || level in 1..hold.levelValues.size,
+                )
+            }
+        }
+    }
+
+    /** A hold is a hold: no row in the pool prescribes reps for one. */
+    @Test
+    fun aHoldCarriesNoRomanPattern() {
+        for (hold in ExerciseProgression.ENTRIES.filter { it.unit == "seconds" }) {
+            if (hold.romanStages.isNotEmpty()) {
+                continue // Olympic lifts keep a pattern - they are trained at 1-5 reps.
+            }
+            assertTrue(
+                "${hold.slug} is a hold and must not prescribe per-set reps",
+                hold.easyReps.isEmpty() && hold.mediumReps.isEmpty() && hold.hardReps.isEmpty(),
+            )
+        }
     }
 
     // --- Roman-stage rep progression ------------------------------------------
@@ -213,7 +289,13 @@ class ProgressionEngineTest {
         assertEquals(1, ProgressionEngine.clampLevel(be, -3))
         assertEquals(1, ProgressionEngine.clampLevel(be, 0))
         assertEquals(4, ProgressionEngine.clampLevel(be, 4))
-        assertEquals(6, ProgressionEngine.clampLevel(be, 9))
+        // Back Extension is a REP LADDER now, so its ceiling is the rep climb
+        // (floor 8 -> 50 = 43 levels), not the 6 rungs its variation ladder had.
+        // The clamp has to land on THAT or a user could park on a level the app
+        // has no data for.
+        val top = ProgressionEngine.effectiveMaxLevel(be)
+        assertEquals(ProgressionEngine.repRungs(be), top)
+        assertEquals(top, ProgressionEngine.clampLevel(be, 999))
     }
 
     // --- Display helpers (the My-Workout UI path) ------------------------------
@@ -238,17 +320,17 @@ class ProgressionEngineTest {
         assertEquals(ProgressionEngine.LoadUnit.STACK_STEP, dipsRx.loadUnit)
         assertEquals(3.0, dipsRx.value!!, 0.001)
 
-        // Variation ladder.
+        // Variation ladder: a REP LADDER prescribes no variation, because its level
+        // counts reps and no longer selects a movement. The reps are its value.
         val pushup = entry("Push-Up")
-        val pushupRx = ProgressionEngine.prescribedValueAtLevel(pushup, 1)!!
-        assertEquals(ProgressionEngine.ValueKind.VARIATION, pushupRx.kind)
-        assertEquals("Incline Push-Up", pushupRx.variation)
+        assertTrue(ProgressionEngine.isRepLadder(pushup))
+        assertNull(ProgressionEngine.prescribedValueAtLevel(pushup, 1))
 
         // Duration (cardio).
         val bike = entry("Air Bike")
         val bikeRx = ProgressionEngine.prescribedValueAtLevel(bike, 1)!!
         assertEquals(ProgressionEngine.ValueKind.DURATION, bikeRx.kind)
-        assertEquals(30.0, bikeRx.value!!, 0.001)
+        assertEquals(15.0, bikeRx.value!!, 0.001)
     }
 
     @Test
@@ -263,11 +345,12 @@ class ProgressionEngineTest {
 
     @Test
     fun prescriptionChangesDetectsWhetherALevelUpAltersTheValue() {
+        // A rep ladder has no value to compare - its level is reps, so every
+        // level-up changes the prescription. Reading it off the value would
+        // report "nothing changed" for every level in the pool.
         val be = entry("Back Extension")
-        // Ladder levels 1→2→3 all change the variation.
         assertTrue(ProgressionEngine.prescriptionChangesAt(be, 1, 2))
-        // The top of the ladder repeats the last variation.
-        assertFalse(ProgressionEngine.prescriptionChangesAt(be, 3, 4))
+        assertTrue(ProgressionEngine.prescriptionChangesAt(be, 8, 9))
         // A 1-step load ladder always changes.
         val bench = entry("Barbell Bench Press")
         assertTrue(ProgressionEngine.prescriptionChangesAt(bench, 1, 2))
@@ -366,10 +449,55 @@ class ProgressionEngineTest {
         assertTrue("easy=$easy medium=$medium hard=$hard", easy < medium && medium < hard)
     }
 
-    /** Exercises outside the level system have no rung, so the picker shows none. */
+    /**
+     * The level-system gap, locked down on both sides.
+     *
+     * This test USED to assert that "Ab Wheel Rollout" had no starting level —
+     * it was written to pin the gap, and it is the assertion the owner's
+     * 2026-10-02 report ("lots of exercises have no level system") was really
+     * about. The pipeline now installs a curated ladder on the 109 rows the v5
+     * CSV left at `manual_review`, so that assertion is the bug.
+     *
+     * Both halves matter. The first is the fix: 102 of the 109 rows now have a
+     * ladder, and a hold carries SECONDS rather than reps, which is the wrist
+     * stretch's whole answer. The second is the honest remainder — the 7 rows
+     * with no universal measure are listed by name, so the list cannot grow
+     * silently and the test fails if the pipeline ever stops producing it.
+     */
     @Test
     fun exercisesOutsideTheLevelSystemHaveNoStartingLevel() {
-        assertNull(ProgressionEngine.startingLevel("Ab Wheel Rollout", ProgressionEngine.Difficulty.MEDIUM))
+        // The gap the owner reported is closed: a stretch is a hold in seconds,
+        // a skill hold is a hold in seconds, and an implement-weighted row is a
+        // kg ladder. None of them prescribe reps any more.
         assertNull(ProgressionEngine.startingLevel("", ProgressionEngine.Difficulty.HARD))
+
+        assertTrue(
+            "Ab Wheel Rollout should be level-managed now",
+            ProgressionEngine.startingLevel("Ab Wheel Rollout", ProgressionEngine.Difficulty.MEDIUM) != null,
+        )
+        val wrist = requireNotNull(ProgressionEngine.entryFor("Kneeling Wrist Stretch"))
+        assertEquals("a stretch has no load, so its measure is hold seconds", wrist.unit, "seconds")
+        assertTrue(ProgressionEngine.isDurationBased(wrist))
+
+        // The remainder, with the reason each one is trainer-defined. If the
+        // pool ever grows or shrinks this list, this test says so.
+        val stillNoLevel = listOf(
+            "Box Jump", "Jump Squat", "Plyo Lunge", "Plyo Push-Up",
+            "Nordic Hamstring Curl", "Rope Climb", "Wrist Roller",
+        )
+        for (name in stillNoLevel) {
+            assertNull(
+                "$name is on the documented no-level-system list and should have no starting level",
+                ProgressionEngine.startingLevel(name, ProgressionEngine.Difficulty.MEDIUM),
+            )
+        }
+        // ...and nothing ELSE is quietly outside the system. Without this half
+        // the test would still pass if the gap reopened on some other row.
+        for (catalogEntry in ExerciseCatalog.ENTRIES) {
+            val name = catalogEntry.name
+            if (name in stillNoLevel || name.isBlank()) continue
+            val entry = ProgressionEngine.entryFor(name)
+            assertTrue("$name lost its level system", ProgressionEngine.isProgressionReady(entry))
+        }
     }
 }

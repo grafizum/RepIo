@@ -71,7 +71,7 @@ RETRO_BRIGHTNESS_REF = "HEAD:composeApp/src/main/res/drawable-xxxhdpi/ic_launche
 
 # Every dark theme that still needs the artwork, in grid order.
 DARK_THEMES = [
-    "azure", "crimson", "emerald", "beige",
+    "royal_blue", "crimson", "emerald", "beige",
     "ocean", "rose", "purple", "retro",
 ]
 
@@ -134,7 +134,7 @@ def neon_target(helpers, palette: tuple[int, int, int] | None):
     hue, and the historical palette is far darker than the approved render:
 
         render (approved)      value 97.6%, saturation 90%
-        azure  (0,91,184)      value 72%
+        royal_blue  (0,91,184)      value 72%
         emerald(0,144,125)     value 57%
         purple (80,62,130)     value 51%
 

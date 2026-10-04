@@ -19,7 +19,7 @@ from PIL import Image
 
 RES = Path(__file__).resolve().parents[1] / "composeApp/src/main/res"
 DENSITY = "xxxhdpi"
-THEMES = ["ocean", "crimson", "emerald", "azure", "flame", "orange", "purple", "rose", "beige", "retro"]
+THEMES = ["ocean", "crimson", "emerald", "royal_blue", "flame", "orange", "purple", "rose", "beige", "retro"]
 
 
 def classify(r, g, b, a):

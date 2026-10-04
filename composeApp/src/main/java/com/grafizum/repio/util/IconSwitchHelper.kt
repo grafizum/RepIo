@@ -15,7 +15,7 @@ object IconSwitchHelper {
     private const val FLAME_ICON_FQN = "com.grafizum.repio.MainActivityFlame"
     private const val EMERALD_ICON_FQN = "com.grafizum.repio.MainActivityEmerald"
     private const val CRIMSON_ICON_FQN = "com.grafizum.repio.MainActivityCrimson"
-    private const val AZURE_ICON_FQN = "com.grafizum.repio.MainActivityAzure"
+    private const val ROYAL_BLUE_ICON_FQN = "com.grafizum.repio.MainActivityRoyalBlue"
     private const val OCEAN_ICON_FQN = "com.grafizum.repio.MainActivityOcean"
     private const val ROSE_ICON_FQN = "com.grafizum.repio.MainActivityRose"
     private const val DEVELOPER_ICON_FQN = "com.grafizum.repio.MainActivityRetro"
@@ -35,17 +35,37 @@ object IconSwitchHelper {
     const val MANIFEST_DEFAULT_THEME = "BEIGE"
 
     /**
-     * The theme a fresh install should start on: Flame on a dark system, Beige on
-     * a light one.
+     * The theme a fresh install should start on.
      *
-     * This only decides the APP THEME. It does not decide whether the icon has a
-     * dark or a light plate - Android does that, from the system night setting,
-     * by resolving `mipmap-night-anydpi-v26/` over `mipmap-anydpi-v26/`. On a
-     * dark phone EVERY theme shows its dark-plate icon, which is correct and is
-     * not something a theme choice can override.
+     * OWNER RULING 2026-10-04: "change the base theme of the app to be the light
+     * beige one no matter if the system is dark or light". The parameter is still
+     * taken and still named `isSystemDark`, but it NO LONGER CHANGES THE ANSWER -
+     * Beige is the base theme in both appearances.
+     *
+     * Keeping the parameter rather than deleting it is deliberate. The two callers
+     * (`RepIoApplication`, which repairs the launcher component, and
+     * `WorkoutTrackerTheme`, which picks the scheme) both already have the system
+     * appearance in hand and both pass it here, and ThemeRenameTest asserts
+     * against this function for a retired id rather than hardcoding a theme.
+     * Removing the argument would mean rewriting all of them to import a constant
+     * instead, for no behavioural gain.
+     *
+     * WHAT THIS DOES NOT CHANGE, and it is the part worth being precise about:
+     *  - A user who has ALREADY chosen a theme keeps it. This is the fresh-install
+     *    default and the retired-id fallback, not a forced override - the stored
+     *    `theme_option` still wins in `WorkoutTrackerTheme`.
+     *  - Whether the icon gets a dark or a light plate is NOT decided by the
+     *    system night setting, and that decoupling is what makes this ruling safe
+     *    on a dark phone. Beige is a LIGHT theme, so it takes the
+     *    `ic_launcher_beige_light` plate; because the light icons have no
+     *    `mipmap-night-anydpi-v26/` counterpart, Android has nothing to override
+     *    and the phone being dark cannot substitute the dark plate. That was the
+     *    owner's 2026-10-02 report ("on light beige it shows dark") and it is why
+     *    `tools/icons/split_launcher_icons.py` exists. See
+     *    `LauncherIconNightVariantTest`.
      */
-    fun defaultThemeFor(isSystemDark: Boolean): String =
-        if (isSystemDark) "FLAME" else MANIFEST_DEFAULT_THEME
+    fun defaultThemeFor(@Suppress("UNUSED_PARAMETER") isSystemDark: Boolean): String =
+        MANIFEST_DEFAULT_THEME
 
     fun switchIcon(context: Context, themeKey: String, killApp: Boolean = true) {
         val packageManager = context.packageManager
@@ -57,7 +77,7 @@ object IconSwitchHelper {
             "FLAME" -> FLAME_ICON_FQN
             "EMERALD" -> EMERALD_ICON_FQN
             "CRIMSON" -> CRIMSON_ICON_FQN
-            "AZURE" -> AZURE_ICON_FQN
+            "ROYAL_BLUE" -> ROYAL_BLUE_ICON_FQN
             "OCEAN" -> OCEAN_ICON_FQN
             "ROSE" -> ROSE_ICON_FQN
             "DEVELOPER" -> DEVELOPER_ICON_FQN
@@ -66,7 +86,7 @@ object IconSwitchHelper {
 
         val aliases = arrayOf(
             PURPLE_ICON_FQN, BEIGE_ICON_FQN, FLAME_ICON_FQN, EMERALD_ICON_FQN,
-            CRIMSON_ICON_FQN, AZURE_ICON_FQN,
+            CRIMSON_ICON_FQN, ROYAL_BLUE_ICON_FQN,
             OCEAN_ICON_FQN, ROSE_ICON_FQN, DEVELOPER_ICON_FQN
         )
 

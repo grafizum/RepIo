@@ -19,16 +19,16 @@
     <string name="overall_level_format">L.%1$.1f</string>
     <string name="overall_level_none">—</string>
     <string name="overall_level_not_ready">Train 5+ exercises to unlock</string>
-    <string name="overall_level_help">Your overall level is the average of the strength exercises you train, weighted by how recently you trained them. Train at least 5 different exercises to unlock it.</string>
+    <string name="overall_level_help">Your rank comes from how far through each of your own exercises you have got, compared against that exercise\'s full range. The typical exercise decides it, and recent training counts for more than old training. Train at least 5 different exercises to unlock it.</string>
     <!-- The one-line version, used by the rank tooltip and the first-run walkthrough. -->
-    <string name="overall_level_short">This is your average exercise level across all the strength exercises you train. Higher means you are training at harder levels.</string>
+    <string name="overall_level_short">This is your rank across all the strength exercises you train, measured by how far through each one you have got. Higher means you are training at harder levels.</string>
     <!-- The long version shown in Settings ▸ Instructions ▸ Overall Level. -->
-    <string name="overall_level_gpa_lead">Your overall level is like a GPA for strength training. It is worked out by:</string>
+    <string name="overall_level_gpa_lead">Your rank works out like a GPA for strength training. It is worked out by:</string>
     <string name="overall_level_gpa_step_1">Looking at every strength exercise you have trained.</string>
-    <string name="overall_level_gpa_step_2">Taking your current level for each one — a level 5 bench press, a level 3 squat.</string>
-    <string name="overall_level_gpa_step_3">Averaging them together, with the exercises you trained most recently counting for more.</string>
-    <string name="overall_level_gpa_example">The five examples below average to L.%1$.1f.</string>
-    <string name="overall_level_gpa_outro">This number shows your overall progress at a glance. As you train more exercises and move them up, it rises.</string>
+    <string name="overall_level_gpa_step_2">Measuring how far through its own range each one is — exercises have very different lengths, so this compares progress, not raw levels.</string>
+    <string name="overall_level_gpa_step_3">Taking the middle exercise, with the ones you trained most recently counting for more.</string>
+    <string name="overall_level_gpa_example">The middle of the five examples below sits at %1$d%% of its own ladder, which puts you at Rank %2$s.</string>
+    <string name="overall_level_gpa_outro">This is your overall progress at a glance. As you move your exercises further up their own ranges, it rises.</string>
     <string name="level_system_off_title">Turn off the level system?</string>
     <string name="level_system_off_msg">All level prescriptions will be hidden and sets, reps and weights become fully manual. Your current levels are kept and will be waiting if you turn the system back on.</string>
     <string name="level_system_off_confirm">Turn Off</string>
@@ -41,10 +41,12 @@
     <string name="rank_system_guide_title">Ranks (E → SS+)</string>
     <string name="rank_system_guide_desc">Every rank in one picture</string>
     <string name="rank_label_format">Rank %1$s</string>
+    <!-- The Overall Level card prints the LEVEL, with the rank letter as a badge beside it -->
+    <string name="overall_level_value_format">Lvl. %1$d</string>
     <string name="rank_badge_content_desc">Overall rank %1$s</string>
     <string name="rank_range">%1$s – %2$s</string>
     <string name="rank_range_open">%1$s+</string>
-    <string name="rank_tooltip_level">Overall Level: %1$.1f (Rank %2$s)</string>
+    <string name="rank_tooltip_level">Overall Level: Rank %1$s</string>
     <string name="rank_tooltip_progress">%1$d%% to Rank %2$s</string>
     <string name="rank_tooltip_top">Top rank reached</string>
     <plurals name="overall_level_exercises_pl" tools:ignore="UnusedResources">
@@ -211,6 +213,12 @@
     <string name="notification_countdown_text">Resting between sets…</string>
     <string name="notification_title">Rest Pause Ended! 💪</string>
     <string name="notification_text">Time to smash your next set!</string>
+    <!-- A TIMED EXERCISE is not a rest. Ending one used to fire "Rest Pause
+         Ended! Time to smash your next set!", which tells the user the pause
+         is over when what actually happened is that their hold/plank interval
+         ran out. Separate strings, not a reused rest message. -->
+    <string name="notification_exercise_title">Time\'s Up! ⏱️</string>
+    <string name="notification_exercise_text">Great work, keep that form.</string>
     <string name="in_app_rest_ended_message">Rest time has ended. Continue the next workout!</string>
     <string name="replace">Replace</string>
     <string name="alternative_exercises">Alternative Exercises</string>
@@ -281,6 +289,15 @@
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
     <string name="rest_recovery_recommendation">No scheduled lifting for %1$s. Active walking or light mobility recommended!</string>
     <string name="workout_completed_title">Workout Completed! 🎉</string>
+    <!-- The session recap under the completed-workout title. -->
+    <string name="recap_title">Session recap</string>
+    <string name="recap_exercises">Exercises</string>
+    <string name="recap_sets">Sets</string>
+    <string name="recap_volume">Volume</string>
+    <string name="recap_duration">Duration</string>
+    <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_duration_format">%1$d min</string>
+    <string name="recap_split_title">Where the work went</string>
     <plurals name="workout_completed_text" tools:ignore="UnusedResources">
         <item quantity="one">You saved %1$d total set for %2$s!</item>
         <item quantity="other">You saved %1$d total sets for %2$s!</item>
@@ -308,6 +325,7 @@
     <string name="band_tension_heavy">Heavy</string>
     <string name="band_tension_very_heavy">Very heavy</string>
     <string name="progression_load_pin">Pin %1$s</string>
+    <string name="progression_load_seconds">%1$s s</string>
     <string name="progression_load_band">%1$s band</string>
     <string name="reps_completed">Reps Completed</string>
     <plurals name="reps_count" tools:ignore="UnusedResources">
@@ -583,7 +601,7 @@
     <string name="flame_orange">Flame Orange</string>
     <string name="ocean_teal">Ocean Teal</string>
     <string name="rose_pink">Rose Pink</string>
-    <string name="azure_sky">Azure Sky</string>
+    <string name="royal_blue">Royal Blue</string>
 
     <string name="monday">Monday</string>
     <string name="tuesday">Tuesday</string>
@@ -692,12 +710,14 @@
 
     <!-- The evolution offer: "what it was" and "what it can become", both
          drawn from the ladder the engine actually prescribes from. -->
-    <string name="evolution_title">This Exercise Has Evolved</string>
-    <string name="evolution_subtitle">You have finished this one. Here is where you are, and where it can go next.</string>
+    <string name="evolution_title">New exercise progression!</string>
+    <string name="evolution_subtitle">An exercise can be progressed once you reach its top level — pick what it can become next.</string>
     <string name="evolution_heading_before">You are here</string>
     <string name="evolution_heading_after">It becomes</string>
     <string name="evolution_level_of_max">Level %1$d of %2$d</string>
     <string name="evolution_path_ahead">Path ahead:</string>
+    <string name="evolution_trunk_mastered">Finished — top level reached</string>
+    <string name="evolution_new_branch">New</string>
     <string name="evolution_accept">Evolve</string>
     <string name="evolution_not_now">Not now</string>
     <string name="evolution_decline">Keep this exercise, lock it here</string>
@@ -758,11 +778,11 @@
     <string name="workout_goal">Workout Goal</string>
     <string name="choose_workout_goal">What is your primary training goal?</string>
     <string name="workout_goal_desc">Sets the rep range, the rest between sets, and which exercises get picked. Difficulty stays in charge of how many sets you do.</string>
-    <string name="goal_bodybuilding">Hypertrophy</string>
-    <string name="goal_strength">Strength</string>
-    <string name="goal_calisthenics">Calisthenics</string>
-    <string name="goal_endurance">Endurance</string>
-    <string name="goal_general">General Fitness</string>
+    <string name="goal_bodybuilding">Muscle Building (Hypertrophy)</string>
+    <string name="goal_strength">Strength Training (Max Strength)</string>
+    <string name="goal_calisthenics">Calisthenics (Bodyweight Training)</string>
+    <string name="goal_endurance">Endurance (Cardio &amp; Conditioning)</string>
+    <string name="goal_general">General Fitness (Overall Health)</string>
     <string name="goal_olympic">Olympic Weightlifting</string>
     <string name="goal_powerbuilding">Powerbuilding</string>
     <string name="goal_crossfit">CrossFit / Hybrid</string>
@@ -911,6 +931,7 @@
     <string name="level_fields_locked_hint">Managed by the level system. Switch to custom to make changes here.</string>
     <string name="level_fields_locked_toast">Switch to custom to change this.</string>
     <string name="level_pencil_hint">Tap the pencil first to edit this level.</string>
+    <string name="progression_available">Progression available</string>
 
     <!-- Level guide onboarding -->
     <string name="level_guide_onboarding_title">New! Level System</string>

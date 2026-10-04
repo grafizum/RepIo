@@ -40,21 +40,41 @@ class MasteryAndCeilingTest {
     }
 
     @Test
-    fun ladderWithNoCeilingIsUnchanged() {
-        // A ready variation-laddered bodyweight row: no load ceiling to
-        // stretch, so the effective max is the declared one. (The headline
-        // variation rows like Push-Up / Pistol Squat are coach-review-flagged
-        // and never progress — their own case is asserted elsewhere.)
+    fun aRepLadderClimbsToTheRepCeilingNotTheDeclaredRungCount() {
+        // Owner ruling 2026-10-03: "changing the position of exercise i want
+        // removed, instead increase the reps". A bodyweight row's declared max
+        // level was the length of its VARIATION ladder - how many substitute
+        // movements it had - which stops being the level's meaning the moment
+        // the level counts reps. Its length is now the rep climb.
         val e = entry("Glute Bridge")
-        assertEquals(ProgressionEngine.maxLevel(e), ProgressionEngine.effectiveMaxLevel(e))
+        assertTrue(ProgressionEngine.isRepLadder(e))
+        assertEquals(
+            ProgressionEngine.repRungs(e),
+            ProgressionEngine.effectiveMaxLevel(e)
+        )
+        // The top rung lands within one step of the row's own ceiling - the
+        // rungs step, so it does not have to land exactly on it.
+        assertTrue(
+            ProgressionEngine.repsAtLevel(e, ProgressionEngine.effectiveMaxLevel(e)) >=
+                ProgressionEngine.repCeilingFor(e) - ProgressionEngine.repStepFor(e)
+        )
     }
 
     @Test
-    fun variationCapCeilingKeepsDeclaredMax() {
-        // Pistol Squat's ceiling is the variation cap (its own ladder top), so
-        // the effective max stays the declared one.
+    fun aRepLaddersTopLevelPrescribesTheCeilingRepsAndNotAVariation() {
+        // The level names no movement any more, so there is no variation to
+        // prescribe at the top of it - the reps are the whole answer.
         val e = entry("Pistol Squat")
-        assertEquals(ProgressionEngine.maxLevel(e), ProgressionEngine.effectiveMaxLevel(e))
+        val top = ProgressionEngine.effectiveMaxLevel(e)
+        assertNull(ProgressionEngine.prescribedValueAtLevel(e, top))
+        assertEquals(
+            ProgressionEngine.repsAtLevel(e, top),
+            ProgressionEngine.prescribedReps(e, top, 1)!!.first()
+        )
+        assertTrue(
+            ProgressionEngine.repsAtLevel(e, top) >=
+                ProgressionEngine.repCeilingFor(e) - ProgressionEngine.repStepFor(e)
+        )
     }
 
     // --- Mastery detection ---------------------------------------------------
@@ -85,8 +105,9 @@ class MasteryAndCeilingTest {
 
     @Test
     fun bodyweightLadderCompletesWithLadderReason() {
-        // Glute Bridge tops its 2-step variation ladder at level 6; at the top
-        // stage the reason is LADDER_COMPLETE (no load ceiling was crossed).
+        // A rep ladder is "at the offer" from its first checkpoint, not only at
+        // the top: at the top there is nothing left to climb, so the reason is
+        // LADDER_COMPLETE (no load ceiling was crossed).
         val e = entry("Glute Bridge")
         val max = ProgressionEngine.effectiveMaxLevel(e)
         val state = ProgressionEngine.ProgressionState(max, ProgressionEngine.patternLength(e))
@@ -104,8 +125,15 @@ class MasteryAndCeilingTest {
         assertTrue(ProgressionEngine.branchesFor(entry("Barbell Back Squat")).size >= 1)
         assertTrue(ProgressionEngine.branchesFor(entry("Dumbbell Bicep Curl")).size >= 2)
         assertTrue(ProgressionEngine.branchesFor(entry("Pull-Up")).size >= 1)
-        // A random isolation exercise has none.
-        assertTrue(ProgressionEngine.branchesFor(entry("Preacher Curl")).isEmpty())
+        // Isolation work used to be the one family with no branches at all -
+        // it was hand-written data, and a curl genuinely does not "become"
+        // another exercise. The ladder tables (2026-10-02) gave the isolation
+        // families their published orderings, so Preacher Curl now has both a
+        // destination (Preacher Hammer Curl) and its own path forward. What
+        // stays true is that a row with NO rung above it in any ladder has no
+        // branches; the top of every ladder is that row.
+        assertTrue(ProgressionEngine.branchesFor(entry("Preacher Curl")).isNotEmpty())
+        assertTrue(ProgressionEngine.branchesFor(entry("Front Squat")).isNotEmpty())
     }
 
     @Test

@@ -176,7 +176,7 @@ open class MainActivity : AppCompatActivity() {
             "com.grafizum.repio.MainActivityFlame" -> "FLAME"
             "com.grafizum.repio.MainActivityEmerald" -> "EMERALD"
             "com.grafizum.repio.MainActivityCrimson" -> "CRIMSON"
-            "com.grafizum.repio.MainActivityAzure" -> "AZURE"
+            "com.grafizum.repio.MainActivityRoyalBlue" -> "ROYAL_BLUE"
             "com.grafizum.repio.MainActivityOcean" -> "OCEAN"
             "com.grafizum.repio.MainActivityRose" -> "ROSE"
             "com.grafizum.repio.MainActivityRetro" -> "DEVELOPER"
@@ -294,6 +294,26 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var showInAppRestNotification by remember { mutableStateOf(false) }
+    // The app-level top banner (locked-field refusals). Null = nothing showing.
+    var topBannerMessage by remember { mutableStateOf<String?>(null) }
+
+    LaunchedEffect(Unit) {
+        com.grafizum.repio.util.AppEventBus.topBanner.collect { message ->
+            topBannerMessage = message
+        }
+    }
+    // Auto-dismiss. Keyed on the message so two refusals in a row restart the
+    // clock rather than letting the second inherit the first one's remaining
+    // time and vanishing while the user is still looking at it.
+    LaunchedEffect(topBannerMessage) {
+        if (topBannerMessage != null) {
+            delay(2000)
+            topBannerMessage = null
+        }
+    }
+    // Which timer produced the banner above. False = a rest, true = a timed
+    // exercise whose interval ran out.
+    var inAppTimerWasExercise by remember { mutableStateOf(false) }
 
     var easterEggUnlocked by remember { mutableStateOf(false) }
     var navSequence by remember { mutableStateOf(emptyList<Int>()) }
@@ -392,11 +412,14 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     // Listen for rest timer events
     LaunchedEffect(Unit) {
-        com.grafizum.repio.util.AppEventBus.restTimerEnded.collect {
+        com.grafizum.repio.util.AppEventBus.restTimerEnded.collect { wasExerciseTimer ->
             // Show custom notification ONLY if not in Workout tab
             val currentRoute = com.grafizum.repio.util.AppEventBus.currentRoute.value
             if (currentRoute != Screen.Workout.route) {
+                // The banner says rest or "time is up" depending on which timer
+                // ended - the same split the system notification uses.
                 showInAppRestNotification = true
+                inAppTimerWasExercise = wasExerciseTimer
             }
         }
     }
@@ -905,13 +928,19 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                 modifier = Modifier.weight(1f)
                             ) {
                                 Text(
-                                    text = stringResource(R.string.notification_title),
+                                    text = stringResource(
+                                    if (inAppTimerWasExercise) R.string.notification_exercise_title
+                                    else R.string.notification_title
+                                ),
                                     style = MaterialTheme.typography.titleMedium,
                                     fontWeight = FontWeight.Bold,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer
                                 )
                                 Text(
-                                    text = stringResource(R.string.in_app_rest_ended_message),
+                                    text = stringResource(
+                                        if (inAppTimerWasExercise) R.string.notification_exercise_text
+                                        else R.string.in_app_rest_ended_message
+                                    ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
                                 )
@@ -924,6 +953,61 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                         if (showInAppRestNotification) {
                             delay(2500)
                             showInAppRestNotification = false
+                        }
+                    }
+                }
+
+                // APP-LEVEL TOP BANNER — the last thing drawn, so it sits ABOVE
+                // a dialog and above the tab content both.
+                //
+                // This is the "show it at the top with a swift snappy drop in
+                // and drop out" the owner asked for the "switch to custom"
+                // refusal. It lives here rather than inside the exercise editor
+                // because a dialog cannot draw outside its own bounds, so a
+                // notice rendered in there scrolls with the form and can end up
+                // off-screen at the moment the user taps a locked field.
+                AnimatedVisibility(
+                    visible = topBannerMessage != null,
+                    enter = slideInVertically(
+                        initialOffsetY = { -it },
+                        animationSpec = tween(durationMillis = 220)
+                    ) + fadeIn(animationSpec = tween(durationMillis = 160)),
+                    exit = slideOutVertically(
+                        targetOffsetY = { -it },
+                        animationSpec = tween(durationMillis = 180)
+                    ) + fadeOut(animationSpec = tween(durationMillis = 180)),
+                    modifier = Modifier
+                        .padding(top = 12.dp, start = 16.dp, end = 16.dp)
+                        .align(androidx.compose.ui.Alignment.TopCenter)
+                ) {
+                    Surface(
+                        onClick = { topBannerMessage = null },
+                        shape = RoundedCornerShape(12.dp),
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        // A refusal, not a note: it keeps the red rim so it does
+                        // not read as an informational banner.
+                        border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                        tonalElevation = 6.dp,
+                        shadowElevation = 6.dp,
+                        modifier = Modifier.fillMaxWidth(0.86f)
+                    ) {
+                        androidx.compose.foundation.layout.Row(
+                            verticalAlignment = androidx.compose.ui.Alignment.CenterVertically,
+                            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ErrorOutline,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.onErrorContainer,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            androidx.compose.foundation.layout.Spacer(modifier = Modifier.width(8.dp))
+                            Text(
+                                text = topBannerMessage.orEmpty(),
+                                style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.SemiBold),
+                                color = MaterialTheme.colorScheme.onErrorContainer
+                            )
                         }
                     }
                 }

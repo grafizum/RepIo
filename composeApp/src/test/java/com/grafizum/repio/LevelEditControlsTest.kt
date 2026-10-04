@@ -1,8 +1,10 @@
 package com.grafizum.repio
 
 import com.grafizum.repio.ui.screens.LevelPillBlocked
+import com.grafizum.repio.ui.screens.LevelPillFill
 import com.grafizum.repio.ui.screens.levelEditControls
 import com.grafizum.repio.ui.screens.levelPillBlockedReason
+import com.grafizum.repio.ui.screens.levelPillStyle
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
@@ -170,5 +172,109 @@ class LevelEditControlsTest {
             LevelPillBlocked.NEEDS_CUSTOM_MODE,
             levelPillBlockedReason(locked = false, levelSystemOn = false)
         )
+    }
+
+    /**
+     * "Level button design needs to be changed so it shows its clickable WHEN
+     * PRESSING ON THE PENCIL" — board task_2e5a3f4f5y6z515d3p6l3g0a, 2026-10-02.
+     *
+     * This corrects the 2026-10-01 fix rather than reporting a new bug. That work
+     * raised the pill to 2dp in EVERY state because the owner had said it did not
+     * look pressable, and it forced 0dp on the outlined one on the reasoning that
+     * "an edit slot is not a button, the ring is the affordance". Both halves were
+     * deliberate, and together they made the two states read EQUALLY — so the pill
+     * was flattest at the exact moment the pencil was open and the user was about
+     * to press it.
+     *
+     * The word doing the work is "when", and it is why this asserts a DIRECTION
+     * rather than a difference. "Editing and idle are not the same" is satisfied by
+     * an edit pill that sits BELOW idle, which would be a new flatness rather than
+     * a fix; the requirement is that the affordance GROWS when the pencil opens.
+     *
+     * SUPERSEDED BY THE 2026-10-04 INVERSION, which reversed this direction: "no
+     * i want the current edit design to be 'none edit' and the 'none edit' design
+     * to be the edit design, invert them". The edit pill is now the SOLID one and
+     * the committed pill carries the 6dp. The assertion below therefore pins the
+     * OPPOSITE relation, and is kept rather than deleted because the trap is
+     * precisely that both versions of this test are satisfied by "the states
+     * differ" - only the direction tells them apart.
+     */
+    @Test
+    fun theEditPillIsTheSolidOneAndTheCommittedPillTheOutlinedOne() {
+        for (progressionAvailable in listOf(true, false)) {
+            val idle = levelPillStyle(editing = false, progressionAvailable = progressionAvailable)
+            val editing = levelPillStyle(editing = true, progressionAvailable = progressionAvailable)
+
+            // FILL: the owner's inversion, stated as a mapping in both directions.
+            assertEquals(
+                "an OPEN edit pass is the solid fill (progressionAvailable=$progressionAvailable)",
+                LevelPillFill.SOLID,
+                editing.fill
+            )
+            assertEquals(
+                "a COMMITTED level is the outlined ring (progressionAvailable=$progressionAvailable)",
+                LevelPillFill.OUTLINED,
+                idle.fill
+            )
+
+            // ELEVATION follows the design rather than the state, which is the
+            // part that is easy to get backwards on a re-read: the outlined pill
+            // is the raised one, and outlined is now the resting state.
+            assertEquals(
+                "the outlined pill is the lifted one",
+                6,
+                idle.shadowElevationDp
+            )
+            assertEquals(
+                "the solid pill keeps the 2026-10-01 'raised with a rim' fix",
+                2,
+                editing.shadowElevationDp
+            )
+        }
+    }
+
+    /**
+     * The two states must not be able to drift into looking alike again, which is
+     * what the 2026-10-02 complaint was in the first place. Asserted on the
+     * rendered surface properties rather than on the fill enum alone, because the
+     * border is what actually differs on screen once both states are drawn.
+     */
+    @Test
+    fun theTwoPillStatesStayVisiblyDifferent() {
+        val idle = levelPillStyle(editing = false, progressionAvailable = false)
+        val editing = levelPillStyle(editing = true, progressionAvailable = false)
+
+        assertTrue(
+            "the committed ring must stay stronger than the editing hairline",
+            idle.borderWidthDp > editing.borderWidthDp
+        )
+        assertTrue(
+            "the committed pill must stay lifted above the editing pill",
+            idle.shadowElevationDp > editing.shadowElevationDp
+        )
+    }
+
+    /**
+     * The pending progression compacts the pill so it can stop taking the row's
+     * whole vertical height. That must not quietly become a second way for the
+     * pill to read as un-pressable — the compactness is padding and type, never
+     * elevation, in BOTH states.
+     */
+    @Test
+    fun aPendingProgressionCompactsThePillWithoutFlatteningIt() {
+        for (editing in listOf(true, false)) {
+            val roomy = levelPillStyle(editing = editing, progressionAvailable = false)
+            val compact = levelPillStyle(editing = editing, progressionAvailable = true)
+
+            assertEquals(
+                "elevation is an affordance, not a compaction knob (editing=$editing)",
+                roomy.shadowElevationDp,
+                compact.shadowElevationDp
+            )
+            assertTrue(
+                "the compact pill gives up padding (editing=$editing)",
+                compact.verticalPaddingDp < roomy.verticalPaddingDp
+            )
+        }
     }
 }

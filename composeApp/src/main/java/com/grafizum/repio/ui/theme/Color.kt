@@ -84,9 +84,9 @@ val BrightLime = Color(0xFFD0BCFF)
 val CrimsonRed = Color(0xFFFF1744)
 val CrimsonLight = Color(0xFFFF8A80)
 
-// Azure Sky
-val AzureSkyPrimary = Color(0xFF007AFF)
-val AzureSkySecondary = Color(0xFF5856D6)
+// RoyalBlue Sky
+val RoyalBluePrimary = Color(0xFF007AFF)
+val RoyalBlueSecondary = Color(0xFF5856D6)
 
 // Ocean
 val OceanPrimary = Color(0xFF00B8D4)

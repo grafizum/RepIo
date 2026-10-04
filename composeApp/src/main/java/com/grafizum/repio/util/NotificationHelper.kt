@@ -227,11 +227,15 @@ object NotificationHelper {
      * [alert] is false for a silent timer, which ends without a sound, a vibration or a
      * notification — the session still hears about it either way.
      */
-    fun showRestTimerEndedNotification(context: Context, alert: Boolean = true) {
+    fun showRestTimerEndedNotification(
+        context: Context,
+        alert: Boolean = true,
+        wasExerciseTimer: Boolean = false
+    ) {
         val isInForeground = AppEventBus.isAppInForeground.value
 
         // Always trigger in-app event so it's ready when user returns or is inside
-        AppEventBus.onRestTimerEnded()
+        AppEventBus.onRestTimerEnded(wasExerciseTimer)
 
         if (!alert) return
 
@@ -269,8 +273,26 @@ object NotificationHelper {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notification_title))
-            .setContentText(context.getString(R.string.notification_text))
+            .setContentTitle(
+                context.getString(
+                    // A TIMED EXERCISE is not a rest. One function fired both
+                    // alerts with the rest wording, so finishing a 45-second
+                    // plank announced "Rest Pause Ended! Time to smash your next
+                    // set!" - the owner reported it as "wrong, i want it to show
+                    // some other message to say the time finished but not rest
+                    // time". The KIND of timer is the only thing that decides
+                    // these two strings, so it is a parameter rather than a
+                    // second notification method that could drift.
+                    if (wasExerciseTimer) R.string.notification_exercise_title
+                    else R.string.notification_title
+                )
+            )
+            .setContentText(
+                context.getString(
+                    if (wasExerciseTimer) R.string.notification_exercise_text
+                    else R.string.notification_text
+                )
+            )
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(pendingIntent)

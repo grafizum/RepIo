@@ -28,10 +28,20 @@ var playStoreVersion = (versionProps.getProperty("VERSION_CODE") ?: "9").toInt()
 // bundle/APK claims a fresh version code, so each Play upload stays unique
 // without touching VERSION_NAME. Deliberately NOT triggered by intermediate
 // tasks like compileReleaseKotlin (verification compiles must not burn codes).
+//
+// `--dry-run` MUST NOT burn a code. It builds nothing at all - it prints the task
+// graph and stops - so charging it for a release is a silent mutation of a
+// TRACKED file (version.properties is committed) for work that never happened.
+// That was measured: two `./gradlew assembleRelease --dry-run` calls took
+// VERSION_CODE from 48 to 50 with nothing built.
+//
+// This is a configuration-time side effect, so it runs once per invocation and a
+// second build in the same session legitimately claims another code. That is the
+// intended "one code per signed build" behaviour, not the bug above.
 val releaseBuildRequested = gradle.startParameter.taskNames.any {
     it.contains("bundleRelease", true) || it.contains("assembleRelease", true)
 }
-if (releaseBuildRequested) {
+if (releaseBuildRequested && !gradle.startParameter.isDryRun) {
     playStoreVersion++
     versionProps.setProperty("VERSION_CODE", playStoreVersion.toString())
     versionPropsFile.outputStream().use { versionProps.store(it, null) }
@@ -143,6 +153,14 @@ secrets {
     ignoreList.add("GRAFIZUM_DASHBOARD_TOKEN")
     // Optional override for the dashboard project the bump is reported against.
     ignoreList.add("GRAFIZUM_PROJECT_ID")
+    // The dashboard SYNC key, used only by the sync CLI when mirroring TODO.md
+    // to the command center. It lives in .env for the same reason the token
+    // does, and for the same hazard if it is forgotten here: `propertiesFileName
+    // = ".env"` turns every listed key into a BuildConfig field, so an ACTIVE
+    // value that is not ignored is compiled into the APK and ships. Never add
+    // it to .env.example either - the plugin reads that as the default set, and
+    // an empty active value emits invalid Java (`= ;`) and breaks compilation.
+    ignoreList.add("GRAFIZUM_SYNC_KEY")
 }
 
 dependencies {

@@ -33,6 +33,34 @@ def load_env() -> dict[str, str]:
     return env
 
 
+def fetch_all_tasks(path: str, env: dict[str, str]) -> list[dict]:
+    """Read every page of a task list.
+
+    `GET /v1/tasks` PAGINATES: the default page is 50 and the RepIo project
+    holds 77. A single unpaginated read returns exactly 50 and silently drops
+    the rest - which is how "5 open tasks" looked plausible while a sixth open
+    item existed, and how seven tasks filed on the board stayed invisible to a
+    session that read only this tool. Always loop until offset >= meta.total.
+    """
+    separator = "&" if "?" in path else "?"
+    offset = 0
+    collected: list[dict] = []
+    while True:
+        page = api_get(f"{path}{separator}limit=50&offset={offset}", env)
+        batch = rows(page)
+        if not batch:
+            break
+        collected.extend(batch)
+        meta = page.get("meta") if isinstance(page, dict) else None
+        total = meta.get("total") if isinstance(meta, dict) else None
+        offset += len(batch)
+        # A missing meta must not loop forever: stop as soon as a short page
+        # comes back, which is the server saying there is nothing more.
+        if len(batch) < 50 or (isinstance(total, int) and offset >= total):
+            break
+    return collected
+
+
 def api_get(path: str, env: dict[str, str]) -> object:
     base = env.get("GRAFIZUM_DASHBOARD_URL", "https://api.grafizum.com/v1").rstrip("/")
     # .env points GRAFIZUM_DASHBOARD_URL at the events route (.../v1/events), which
@@ -105,7 +133,7 @@ def main() -> None:
     if project:
         path = f"tasks?project_id={project}"
 
-    tasks = rows(api_get(path, env))
+    tasks = fetch_all_tasks(path, env)
     if args.json:
         print(json.dumps(tasks, indent=2, ensure_ascii=False))
         return
