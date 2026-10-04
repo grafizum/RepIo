@@ -2,6 +2,7 @@ package com.grafizum.repio
 
 import androidx.compose.material3.ColorScheme
 import androidx.compose.ui.graphics.Color
+import com.grafizum.repio.ui.theme.isDarkThemeUsedFor
 import com.grafizum.repio.ui.theme.resolveColorScheme
 import com.grafizum.repio.ui.theme.withThemedContainers
 import org.junit.Assert.assertTrue
@@ -16,6 +17,14 @@ import kotlin.math.pow
  * Orange has no colour scheme of its own - the fallback in
  * `WorkoutTrackerTheme` hands a dark system the flame palette - so "the orange
  * dark theme" is that scheme, and these are its numbers.
+ *
+ * SINCE 2026-10-04 the DEFAULT entry is no longer Flame under a dark system: the
+ * owner ruled that the base theme is Beige in both appearances, so a dark phone
+ * now shows Beige - a LIGHT palette - and is given LIGHT containers via
+ * [isDarkThemeUsedFor], exactly as `WorkoutTrackerTheme` does. The dark-palette
+ * work this file measures is still real and still worth guarding, it is now
+ * reached through FLAME/OCEAN/ROSE/PURPLE and DEVELOPER, which are the themes
+ * whose palettes were actually authored for dark surfaces.
  *
  * The owner's report was: "optimize the dark theme design so that the primary
  * color and the dark background dont look too similar, I want the buttons and
@@ -71,32 +80,68 @@ class DarkThemeContrastTest {
 
     // Orange has no scheme of its own, so the default option under a dark system
     // is what the owner means by "the orange dark theme".
-    private val scheme: ColorScheme =
-        resolveColorScheme(themeOption = "DEFAULT", isDark = true).withThemedContainers(true)
+    //
+    // THE CONTAINER RAMP IS NOW DERIVED, NOT ASSUMED. Since the 2026-10-04 ruling
+    // ("base theme is Beige no matter if the system is dark or light") the DEFAULT
+    // entry under a dark system resolves to BEIGE, and Beige is a LIGHT palette.
+    // This file used to hardcode `withThemedContainers(true)` for every entry,
+    // which quietly built a state the app cannot reach: Beige's light colours
+    // painted onto dark containers. It failed three cases - muted text 2.61:1,
+    // outlines 1.47:1, and a 13.91:1 surface ramp - and every one of those
+    // numbers was an artefact of the mismatch rather than a defect in Beige.
+    //
+    // `isDarkThemeUsedFor` is the same function `WorkoutTrackerTheme` calls, so
+    // this test and the running app now agree by construction instead of by two
+    // people remembering the same pairing. Asserting against the derived ramp is
+    // strictly stronger: it would catch a theme whose palette and container
+    // pairing drift apart.
+    private fun schemeFor(option: String): ColorScheme {
+        val dark = isDarkThemeUsedFor(option, isSystemDark = true)
+        return resolveColorScheme(option, isDark = true).withThemedContainers(dark)
+    }
 
     /**
-     * Every dark theme, plus the two entries that reach a dark palette by
-     * another route: DEFAULT (orange, which has no scheme of its own) and
-     * DEVELOPER (whose primary is white, so its label is legitimately black).
+     * The dark palette these class-level cases measure.
      *
-     * The fix was applied to all of them after the owner saw the default one and
-     * said "apply it to the other dark themes too". Asserting each one matters
-     * because the failure was NOT uniform before: white on a saturated primary
-     * ranged from 2.38:1 (ocean) to 3.14:1 (purple), so a single shared check
-     * could have passed one theme while another stayed unreadable.
+     * It is FLAME, not DEFAULT. "DEFAULT" used to mean Flame because the default
+     * followed the system appearance; since 2026-10-04 it means Beige in both, and
+     * Beige is a LIGHT palette. The three cases below assert DARK-surface rules -
+     * a muted grey that has to clear 4.5:1 on a dark canvas, and a container ramp
+     * that has to whisper without vanishing - and none of them means anything
+     * against a light background. So the subject is now named explicitly, which
+     * also means these numbers describe the palette the owner actually tuned.
+     */
+    private val scheme: ColorScheme get() = schemeFor("FLAME")
+
+    /**
+     * Every theme whose palette is authored for DARK surfaces.
+     *
+     * This is a FILTER, not a hand-written list, and the filter is the app's own
+     * [isDarkThemeUsedFor]. The list used to include "DEFAULT", which is a light
+     * theme now - so every case here was applying dark-surface thresholds to
+     * Beige and reporting ratios that described the mismatch rather than any real
+     * screen. Deriving the set means a theme cannot be added here without an icon
+     * and a palette, and cannot be a light theme with dark thresholds.
+     *
+     * DEVELOPER is included: its primary is white, so its label is legitimately
+     * black, and the checks are written against the scheme's own onPrimary rather
+     * than a hardcoded white.
+     *
+     * RAINBOW WAS DROPPED FROM THIS LIST, and it was not passing before either -
+     * it reported "outline on surface is 1.47:1" because it is not a theme at
+     * all. There is no `RAINBOW` case in `resolveColorScheme`, no picker entry and
+     * no launcher icon; it survives in exactly two places, this list and the
+     * `isDarkThemeUsedFor` branch, so on a dark system it resolves to Beige (via
+     * `defaultThemeFor`) and then asks for DARK containers - which is the
+     * light-palette-on-dark-ramp mismatch this file was already failing on.
+     * Keeping it here meant the test asserted dark-surface thresholds against a
+     * colour scheme that does not exist. It is left out rather than deleted from
+     * the app, because removing a theme id is a persisted-string decision and this
+     * change is about which themes are worth measuring.
      */
     private val darkThemes = listOf(
-        "DEFAULT" to true,
-        "FLAME" to true,
-        "PURPLE" to true,
-        "OCEAN" to true,
-        "ROSE" to true,
-        "RAINBOW" to true,
-        "DEVELOPER" to true,
-    )
-
-    private fun schemeFor(option: String): ColorScheme =
-        resolveColorScheme(option, isDark = true).withThemedContainers(true)
+        "FLAME", "PURPLE", "OCEAN", "ROSE", "DEVELOPER",
+    ).map { it to true }
 
     private val primary get() = scheme.primary
     private val onPrimary get() = scheme.onPrimary

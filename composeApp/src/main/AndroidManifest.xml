@@ -40,7 +40,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_flame"
+            android:icon="@mipmap/ic_launcher_flame_dark"
             android:theme="@style/Theme.App.Starting.Flame">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -54,7 +54,7 @@
             android:enabled="true"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_beige"
+            android:icon="@mipmap/ic_launcher_beige_light"
             android:theme="@style/Theme.App.Starting.Beige">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -68,7 +68,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_purple"
+            android:icon="@mipmap/ic_launcher_purple_dark"
             android:theme="@style/Theme.App.Starting.Purple">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -82,7 +82,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_emerald"
+            android:icon="@mipmap/ic_launcher_emerald_light"
             android:theme="@style/Theme.App.Starting.Emerald">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -96,7 +96,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_crimson"
+            android:icon="@mipmap/ic_launcher_crimson_light"
             android:theme="@style/Theme.App.Starting.Crimson">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -104,14 +104,14 @@
             </intent-filter>
         </activity>
 
-        <!-- Azure Entry Point -->
+        <!-- RoyalBlue Entry Point -->
         <activity
-            android:name="com.grafizum.repio.MainActivityAzure"
+            android:name="com.grafizum.repio.MainActivityRoyalBlue"
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_azure"
-            android:theme="@style/Theme.App.Starting.Azure">
+            android:icon="@mipmap/ic_launcher_royal_blue_light"
+            android:theme="@style/Theme.App.Starting.RoyalBlue">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
                 <category android:name="android.intent.category.LAUNCHER" />
@@ -124,7 +124,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_ocean"
+            android:icon="@mipmap/ic_launcher_ocean_dark"
             android:theme="@style/Theme.App.Starting.Ocean">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -138,7 +138,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_rose"
+            android:icon="@mipmap/ic_launcher_rose_dark"
             android:theme="@style/Theme.App.Starting.Rose">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />
@@ -152,7 +152,7 @@
             android:enabled="false"
             android:exported="true"
             android:windowSoftInputMode="adjustResize"
-            android:icon="@mipmap/ic_launcher_retro"
+            android:icon="@mipmap/ic_launcher_retro_dark"
             android:theme="@style/Theme.App.Starting.Retro">
             <intent-filter>
                 <action android:name="android.intent.action.MAIN" />

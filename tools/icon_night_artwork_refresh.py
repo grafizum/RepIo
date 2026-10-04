@@ -18,7 +18,7 @@ WHERE EACH THEME'S DARK ICON LIVES (this is the part that is easy to get wrong)
 -------------------------------------------------------------------------------
 Two different storage shapes, because of the plate:
 
-  * The five LIGHT-plate themes (orange, azure, crimson, emerald, beige) got a
+  * The five LIGHT-plate themes (orange, royal_blue, crimson, emerald, beige) got a
     night FOREGROUND from tools/icon_night_variants.py. Their dark icon is
     `drawable-night-<d>/ic_launcher_fg_<theme>.png` plus the legacy
     `mipmap-night-<d>/ic_launcher_<theme>.png`, and their LIGHT assets are
@@ -80,7 +80,7 @@ SOURCE_THEME = "orange"
 # LauncherIconNightVariantTest holds all ten in place, including the rule that
 # no theme may serve both modes from one asset.
 NIGHT_ONLY_THEMES = [
-    "orange", "azure", "crimson", "emerald", "beige",
+    "orange", "royal_blue", "crimson", "emerald", "beige",
     "flame", "ocean", "rose", "purple", "retro",
 ]
 

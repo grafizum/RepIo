@@ -62,7 +62,7 @@ PLATE_BOTTOM = 38.0
 SATURATION_ARTWORK = 0.25
 
 DENSITIES = {"mdpi": 108, "hdpi": 162, "xhdpi": 216, "xxhdpi": 324, "xxxhdpi": 432}
-THEMES = ["orange", "azure", "crimson", "emerald", "beige"]  # the light-plate themes
+THEMES = ["orange", "royal_blue", "crimson", "emerald", "beige"]  # the light-plate themes
 
 
 def plate_for(size: int) -> np.ndarray:

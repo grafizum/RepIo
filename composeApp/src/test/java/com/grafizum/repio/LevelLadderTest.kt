@@ -173,10 +173,14 @@ class LevelLadderTest {
         assertEquals(ProgressionEngine.PICKER_LEVEL_LIMIT, rungs.size)
         val program = rungs.take(ProgressionEngine.effectiveMaxLevel(pushup))
         assertTrue(program.none { it.beyondPlan })
+        // A coach-reviewed bodyweight row is a REP LADDER, so every rung of its
+        // program prescribes REPS and none of them names a movement. It used to
+        // open on "Incline Push-Up" - the level was a rung of the variation
+        // ladder, which is the thing the owner removed on 2026-10-03.
         assertEquals(
-            ProgressionEngine.prescribedValueAtLevel(pushup, 1),
-            program.first().prescribed
+            ProgressionEngine.repFloorOf(pushup),
+            program.first().stageReps.max()
         )
-        assertEquals("Incline Push-Up", program.first().prescribed?.variation)
+        assertTrue(program.none { it.prescribed?.variation != null })
     }
 }

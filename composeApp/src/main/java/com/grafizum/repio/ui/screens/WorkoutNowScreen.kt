@@ -63,9 +63,10 @@ import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
+import com.grafizum.repio.ui.components.getMuscleGroupColor
 import com.grafizum.repio.ui.components.bandTensionLabel
 import com.grafizum.repio.ui.components.loggedLoadSummary
-import com.grafizum.repio.ui.components.EvolutionDialog
+import com.grafizum.repio.ui.components.EvolutionTreeDialog
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.ThemedToast
@@ -105,12 +106,13 @@ fun WorkoutNowScreen(
     var levelDetailsFor by remember { mutableStateOf<String?>(null) }
     var editingExercise by remember { mutableStateOf<RoutineExerciseEntity?>(null) }
 
-    // The evolution popup. A QUEUE of whole offers rather than a pair of
-    // names, so the before/after the user reads is the same object the engine
-    // built, and three exercises finishing their ladders in one session are
-    // three decisions rather than three stacked modals or two silent drops.
+    // The evolution popup. A QUEUE of whole trees rather than a pair of names,
+    // so three exercises finishing their ladders in one session are three
+    // decisions rather than three stacked modals or two silent drops. Each item
+    // carries the mastered card plus EVERY branch it offers, because the popup
+    // draws a fork and a one-branch list cannot show one.
     var evolutionQueue by remember {
-        mutableStateOf<List<com.grafizum.repio.data.ProgressionEngine.EvolutionOffer>>(emptyList())
+        mutableStateOf<List<com.grafizum.repio.ui.viewmodel.EvolutionTreeItem>>(emptyList())
     }
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
     val themeKey by viewModel.themeOption.collectAsState()
@@ -161,15 +163,16 @@ fun WorkoutNowScreen(
     // The evolution popup: "here is where you are, here is what it becomes".
     // Accepting re-levels the target; declining LOCKS the exercise at its cap
     // and nothing re-offers it except the editor.
-    evolutionQueue.firstOrNull()?.let { offer ->
-        EvolutionDialog(
-            offer = offer,
-            onEvolve = {
-                viewModel.acceptEvolution(offer.from.exerciseName, offer.targetName)
+    evolutionQueue.firstOrNull()?.let { tree ->
+        EvolutionTreeDialog(
+            card = tree.card,
+            offers = tree.offers,
+            onEvolve = { target ->
+                viewModel.acceptEvolution(tree.card.exerciseName, target)
                 evolutionQueue = evolutionQueue.drop(1)
             },
             onDecline = {
-                viewModel.declineEvolution(offer.from.exerciseName)
+                viewModel.declineEvolution(tree.card.exerciseName)
                 evolutionQueue = evolutionQueue.drop(1)
             },
             onDismiss = { evolutionQueue = evolutionQueue.drop(1) },
@@ -402,6 +405,13 @@ fun WorkoutNowScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
                                     )
+                                    // The graphical recap. Everything the user
+                                    // just did, read off the sets they logged -
+                                    // see WorkoutRecap.
+                                    workoutState.workoutRecap?.let { recap ->
+                                        Spacer(modifier = Modifier.height(20.dp))
+                                        WorkoutRecapCard(recap = recap)
+                                    }
                                     Spacer(modifier = Modifier.height(24.dp))
 
                                     if (targetDay == today) {
@@ -431,7 +441,7 @@ fun WorkoutNowScreen(
                             // the thing that does not do that, so the branch
                             // cards are gone from here.
                             LaunchedEffect(workoutState.evolutionToken) {
-                                evolutionQueue = workoutState.evolutionOffers
+                                evolutionQueue = workoutState.evolutionTrees
                             }
 
                             // A TRUE CEILING with no branch has no evolution to
@@ -451,7 +461,26 @@ fun WorkoutNowScreen(
                         val exerciseIndex = workoutState.currentExerciseIndex.coerceIn(0, dayExercises.size - 1)
                         val currentExercise = dayExercises[exerciseIndex]
                         
-                        val isTimeBased = currentExercise.targetReps.contains("sec", ignoreCase = true)
+                        // WHETHER THIS EXERCISE MEASURES IN SECONDS comes from the
+                        // PROGRESSION ENGINE, not from the routine's rep string.
+                        //
+                        // It used to be `currentExercise.targetReps.contains("sec")`,
+                        // a sniff of a user-visible string. That is wrong in both
+                        // directions and both were visible on the device: a timed
+                        // exercise whose routine row does not literally say "sec"
+                        // was read as a REP exercise and rendered with rep pills,
+                        // while a rep exercise whose text happened to contain those
+                        // three letters would have been read as a hold. The owner's
+                        // report - "some exercises dont show the nice level card
+                        // style and only show rep range" - is the first case.
+                        //
+                        // The engine already knows, from the row's own `unit`, and
+                        // reading it from there means the card's body cannot
+                        // disagree with the prescription printed on it. The routine
+                        // string is a rendering of the prescription, not its source.
+                        val isTimeBased = ProgressionEngine.entryFor(currentExercise.name)
+                            ?.let { ProgressionEngine.isDurationBased(it) }
+                            ?: currentExercise.targetReps.contains("sec", ignoreCase = true)
                         val totalExercises = dayExercises.size
 
                         val nextExercise = if (exerciseIndex + 1 < dayExercises.size) {
@@ -882,7 +911,30 @@ fun WorkoutNowScreen(
                                             LevelPillBlocked.NEEDS_EDIT_PASS -> pencilBlockedHint
                                             LevelPillBlocked.NEEDS_CUSTOM_MODE -> customBlockedHint
                                         }
-                                }
+                                },
+                                // "Progression available" beside the level. The
+                                // owner asked for this label explicitly: the offer
+                                // used to exist ONLY as an end-of-workout popup, so
+                                // a user mid-session had no way to know one was
+                                // waiting. These two come from one question in the
+                                // view model - the same one the post-workout card
+                                // asks - so the label cannot promise an offer the
+                                // workout would not make.
+                                progressionAvailable = viewModel.isProgressionAvailable(
+                                    currentExercise.name
+                                ) && viewModel.hasSeenProgressionOffer(
+                                    // The label waits until the offer has
+                                    // ACTUALLY been shown. See
+                                    // hasSeenProgressionOffer: the pending
+                                    // question alone flips true the moment a
+                                    // level hits a checkpoint, which is mid
+                                    // session and before the workout that will
+                                    // offer it has finished.
+                                    currentExercise.name
+                                ),
+                                progressionTarget = viewModel.pendingProgressionTarget(
+                                    currentExercise.name
+                                )?.let { translateExerciseName(it) }
                             )
 
                         }
@@ -1004,13 +1056,16 @@ fun WorkoutNowScreen(
     // WHY-THE-PILL-DID-NOTHING notice. The pill is drawn pressable in every state,
     // so a press while the level is ticked in has to answer for itself instead of
     // being swallowed - the same failure the greyed level fields had.
-    blockedLevelNotice?.let { notice ->
-        ThemedToast(
-            message = notice,
-            themeKey = themeKey,
-            visible = true,
-            onDismiss = { blockedLevelNotice = null }
-        )
+    //
+    // It goes to the SAME app-level top banner as the edit dialog's refusal,
+    // because the owner's rule for the level editing is "do this error message
+    // design for the level editing as well" - two different presentations for
+    // one refusal is the thing that was being asked to go away.
+    LaunchedEffect(blockedLevelNotice) {
+        blockedLevelNotice?.let { notice ->
+            com.grafizum.repio.util.AppEventBus.showTopBanner(notice)
+            blockedLevelNotice = null
+        }
     }
 
     // LEVEL DETAILS DIALOG — jump levels with full weight/reps overview.
@@ -1039,13 +1094,25 @@ fun WorkoutNowScreen(
             // exercise, and this badge is the only way to reopen the offer.
             evolutionLocked = viewModel.isEvolutionDeclined(exercise.name),
             onUpgrade = {
-                // Reopening from the editor: clear the lock, then put the
-                // preferred offer straight back on the queue so the same
-                // popup opens again.
+                // Reopening from the editor: clear the lock, then put the whole
+                // fork back on the queue so the same popup opens again.
+                //
+                // The card is rebuilt from the mastered list rather than passed
+                // in, because the queue item needs the card to draw its trunk.
+                // A lock can be cleared on an exercise that is no longer in the
+                // post-workout list at all (the user reopens it days later), so
+                // when no card matches there is simply nothing to reopen - the
+                // badge stops offering a door to a popup that cannot be built.
                 viewModel.reopenEvolution(exercise.name)
                 editingExercise = null
-                viewModel.preferredEvolutionOffer(exercise.name)?.let {
-                    evolutionQueue = listOf(it)
+                val card = viewModel.masteryCardFor(exercise.name)
+                if (card != null) {
+                    val offers = viewModel.evolutionOffersFor(card)
+                    if (offers.isNotEmpty()) {
+                        evolutionQueue = listOf(
+                            com.grafizum.repio.ui.viewmodel.EvolutionTreeItem(card, offers)
+                        )
+                    }
                 }
             },
             onRequestCustomMode = { confirmCustom = true },
@@ -1234,6 +1301,154 @@ fun levelPillBlockedReason(
     if (locked || levelSystemOn) LevelPillBlocked.NEEDS_EDIT_PASS
     else LevelPillBlocked.NEEDS_CUSTOM_MODE
 
+/**
+ * How the level pill is DRAWN: a solid fill, or a hollow ring.
+ *
+ * The owner's ruling: "dont put a background color as box and only show a border
+ * of the theme color around the level when editing with the edit pencil". So the
+ * two states are deliberately different surfaces, not one surface at two alphas:
+ *
+ *  - **idle / committed** — see the 2026-10-04 swap below; this was the solid
+ *    primary fill, and is now the outlined ring.
+ *  - **editing** — likewise swapped; this was the outlined slot, and is now the
+ *    solid primary fill.
+ *
+ * THE OWNER HAS SINCE INVERTED THE PAIR (2026-10-04). Asked which of four looks
+ * they wanted for a single merged design, the answer was not one of them: "no i
+ * want the current edit design to be 'none edit' and the 'none edit' design to be
+ * the edit design, invert them". So the two appearances SWAP PLACES — the outlined
+ * ring is now what a COMMITTED level looks like, and the solid fill is what an
+ * OPEN edit pass looks like. Neither design changed; only which one means what.
+ *
+ * That is the opposite direction from the previous ruling in this file. The
+ * 2026-10-02 ask was "show it clickable WHEN PRESSING ON THE PENCIL", answered by
+ * lifting the editing pill to 6dp so the affordance grew with the pencil. Under the
+ * swap the editing pill is the SOLID one again, so it is the committed pill that
+ * carries the 6dp. The distinction that survives is still real — the two states do
+ * not look alike — and it is still signalled by fill and ring; only the direction
+ * flipped. [LevelPillStyleTest] pins the mapping in BOTH directions rather than
+ * asserting "they differ", because "they differ" was true before the swap too, and
+ * an assertion that cannot tell which way round is one that would have passed the
+ * exact regression it was written for.
+ *
+ * [progressionAvailable] makes the pill COMPACT either way (smaller type, less
+ * padding), so the pending progression can have the row's vertical space. It is
+ * folded in here rather than re-decided at the call site, so "compact" cannot
+ * mean one thing for the padding and another for the type.
+ */
+enum class LevelPillFill { SOLID, OUTLINED }
+
+/**
+ * Elevation for the OUTLINED pill, in dp.
+ *
+ * 6dp lifts it clearly off the card, and since the 2026-10-04 swap it is the
+ * COMMITTED level that wears it — which reads as odd next to the 2026-10-01 rule
+ * ("the level doesnt look pressable", answered by raising the resting pill) and
+ * is deliberate: the owner chose the swap over both that rule and the elevation
+ * that implemented the "when pressing on the pencil" correction. It is a named
+ * constant because the two elevations now differ per STYLE rather than per state,
+ * and a bare 6 beside a bare 2 is how the next reader swaps them back by accident.
+ */
+private const val OUTLINED_PILL_ELEVATION_DP = 6
+
+/** Elevation for the SOLID pill: the 2026-10-01 "raised, with a rim, always" fix. */
+private const val SOLID_PILL_ELEVATION_DP = 2
+
+data class LevelPillStyle(
+    val fill: LevelPillFill,
+    val borderWidthDp: Int,
+    val horizontalPaddingDp: Int,
+    val verticalPaddingDp: Int,
+    /**
+     * How far the pill is lifted off the card. Decided HERE, beside the fill and
+     * the ring, because the three are one affordance: an editor changing the
+     * elevation at the call site is how the pill ends up raised in one state and
+     * flat in the other again — the regression this function exists to prevent,
+     * and the one the 2026-10-04 swap proves is easy to reintroduce.
+     */
+    val shadowElevationDp: Int,
+)
+
+fun levelPillStyle(editing: Boolean, progressionAvailable: Boolean): LevelPillStyle =
+    if (editing) {
+        // The SOLID fill is what an open edit pass looks like as of 2026-10-04 -
+        // the design that used to mean "committed".
+        LevelPillStyle(
+            fill = LevelPillFill.SOLID,
+            borderWidthDp = 1,
+            horizontalPaddingDp = if (progressionAvailable) 9 else 12,
+            verticalPaddingDp = if (progressionAvailable) 4 else 7,
+            shadowElevationDp = SOLID_PILL_ELEVATION_DP,
+        )
+    } else {
+        // And the OUTLINED ring is what a committed level looks like - the design
+        // that used to mean "editing".
+        LevelPillStyle(
+            fill = LevelPillFill.OUTLINED,
+            borderWidthDp = 2,
+            horizontalPaddingDp = if (progressionAvailable) 9 else 12,
+            verticalPaddingDp = if (progressionAvailable) 4 else 7,
+            shadowElevationDp = OUTLINED_PILL_ELEVATION_DP,
+        )
+    }
+
+/** Which of the card's two body layouts the level prescription uses. */
+enum class LevelCardBody {
+    /** The tinted action banner: "SET 2 OF 3 - do 10 reps" plus per-set pills. */
+    BANNER,
+
+    /**
+     * The same banner, but the headline is a DURATION ("45 s") instead of a rep
+     * count. A time-based exercise used to fall through to [SUMMARY], which is
+     * the plain custom-mode presentation - the owner's report was that time-based
+     * exercises "look like custom exercises even though level system is on".
+     * Different headline text is not a different card: it is the same card
+     * wearing the unit the exercise actually measures in.
+     */
+    BANNER_DURATION,
+
+    /** The plain summary line. Only for an exercise outside the level system. */
+    SUMMARY
+}
+
+/**
+ * Which body the level card wears.
+ *
+ * [inSystem] is the whole decision for the "dismiss the level system card"
+ * complaint: the owner's words were "i want no exercise to dismiss the level
+ * system display card design", so an exercise that HAS a level gets a banner
+ * whatever it measures. Time-based exercises used to be excluded by
+ * `!isTimeBased`, which is exactly the split the owner saw and disliked.
+ *
+ * A time-based exercise ALWAYS gets [LevelCardBody.BANNER_DURATION], including when
+ * the engine could not resolve a duration ([durationText] == null).
+ *
+ * It used to fall back to [LevelCardBody.SUMMARY] in that case, on the reasoning
+ * that there would be no headline to print. That reasoning produced the owner's
+ * second report on the same card: "some exercises dont show the nice level card
+ * style and only show rep range". SUMMARY renders `primaryText ?: fallbackReps`,
+ * so a timed exercise with an unresolved duration fell back to printing the
+ * routine's REP string - which is worse than an empty headline, because a plank
+ * showing "12 reps" is not a missing value, it is a wrong prescription. The
+ * banner's headline is null-safe upstream, so an unresolvable duration prints no
+ * number rather than the wrong one.
+ *
+ * IT SAYS SO HERE RATHER THAN AT THE CALL SITE. The banner used to be gated on
+ * `cardBody == BANNER_DURATION || activeReps != null`, so this function answered
+ * BANNER for a timed exercise with no duration and the summary was reached by a
+ * second condition two hundred lines away, in a different layer. One decision
+ * taken in two places is how "no exercise wears the custom card" stops being
+ * true: someone tightening the call-site guard has no idea this function
+ * promised a banner it cannot deliver.
+ */
+fun levelCardBody(inSystem: Boolean, isTimeBased: Boolean, durationText: String?): LevelCardBody = when {
+    !inSystem -> LevelCardBody.SUMMARY
+    // `durationText` is deliberately NOT consulted. See above: reading it here is
+    // what let a timed exercise out of the banner and into a rep summary.
+    isTimeBased -> LevelCardBody.BANNER_DURATION
+    else -> LevelCardBody.BANNER
+}
+
 @OptIn(ExperimentalMaterial3Api::class) // Surface(onClick) for the level pill
 @Composable
 private fun LevelPrescriptionCard(
@@ -1257,7 +1472,9 @@ private fun LevelPrescriptionCard(
     onBeginEdit: () -> Unit,
     onCommitEdit: () -> Unit,
     onOpenDetails: () -> Unit,
-    onBlockedTap: () -> Unit
+    onBlockedTap: () -> Unit,
+    progressionAvailable: Boolean,
+    progressionTarget: String?
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val inSystem = level != null && stage != null
@@ -1267,13 +1484,41 @@ private fun LevelPrescriptionCard(
     // pill work, the tick freezes it at whatever the user chose. The +/- hide
     // and the pill goes inert the moment it is committed.
     var editing by remember(exerciseName) { mutableStateOf(false) }
+    // The pill's shape/palette, decided once by [levelPillStyle] so the fill,
+    // the ring and the padding cannot drift apart.
+    val pillStyle = levelPillStyle(editing = editing, progressionAvailable = progressionAvailable)
+    // Logging a set commits the edit and closes it. The owner's rule: "when
+    // pressed to edit mode and pressing on next set, save the changes and exit
+    // edit mode automatically".
+    //
+    // Keyed on `currentSetNumber` rather than on a callback, because the card
+    // does not own the log action — the button lives in the session view, and
+    // threading a lambda through just to toggle a local flag would put the same
+    // transition in two places. Every path that advances the set (the button,
+    // the timer log for a time-based exercise) moves this value, so all of them
+    // close the edit.
+    //
+    // It COMMITS rather than merely closing: the level the user picked is the
+    // one the next session should use, which is what the tick does by hand.
+    // `locked` only gates the stepper; the stored progression state is what
+    // actually carries the choice forward.
+    LaunchedEffect(currentSetNumber) {
+        if (editing) {
+            editing = false
+            onCommitEdit()
+        }
+    }
     // One place decides what the stepper, the level pill and the pencil may do -
     // see [levelEditControls] for why the three used to be separate expressions.
     val controls = levelEditControls(adjustable = adjustable, locked = locked, editing = editing)
     // The per-set action banner is LEVEL-MODE ONLY: it narrates the system's
     // prescription. Custom mode keeps the classic read — one big target line,
     // plan summary beside it — so the two modes look and feel different.
-    val showChips = inSystem && !isTimeBased && primaryText == null && repTargets.size in 1..3
+    val cardBody = levelCardBody(inSystem = inSystem, isTimeBased = isTimeBased, durationText = primaryText)
+    // A DURATION banner needs no per-set rep targets - the seconds ARE the
+    // headline - so it is not gated on them the way the reps banner is.
+    val showChips = cardBody == LevelCardBody.BANNER_DURATION ||
+        (cardBody == LevelCardBody.BANNER && repTargets.size in 1..3)
 
     Surface(
         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
@@ -1296,6 +1541,60 @@ private fun LevelPrescriptionCard(
             // rides at the far right. Skipped for exercises outside the level
             // system — those get a plain "this set" strip with no level chrome.
             if (level != null && stage != null) {
+            // The "progression available" caption sits ABOVE the row rather than
+            // inside it. Inside, it would have to compete with the stage dots
+            // and the stepper for a phone's width, and the stepper is the one
+            // control that must never be pushed off the edge. Above, it costs
+            // one line and the header row's geometry is untouched whether or
+            // not an offer is pending - which is the "doesnt break any
+            // graphics" the owner asked for.
+            if (progressionAvailable) {
+                // ONE line: the caption and the exercise it can become, with
+                // the arrow joining THOSE TWO rather than sitting between the
+                // level pill and the name.
+                //
+                // That was the owner's other complaint: "have the label be shown
+                // somehow that its progression and doesnt look like it would
+                // indicate the next exercise". An arrow pointing from the LEVEL
+                // at an exercise name reads as "your next exercise is X", which
+                // is a different promise from "this can become X". Moving the
+                // arrow inside the caption line makes it join "progression" to
+                // its target instead, and it also removes a row from the card.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { testTag = "progression_available_label" }
+                ) {
+                    Text(
+                        text = getString("progression_available").uppercase(),
+                        style = MaterialTheme.typography.labelSmall.copy(
+                            fontWeight = FontWeight.ExtraBold,
+                            letterSpacing = 1.sp
+                        ),
+                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                    if (progressionTarget != null) {
+                        Icon(
+                            imageVector = Icons.AutoMirrored.Filled.ArrowForward,
+                            contentDescription = null,
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier
+                                .padding(horizontal = 5.dp)
+                                .size(13.dp)
+                        )
+                        Text(
+                            text = progressionTarget,
+                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis,
+                            modifier = Modifier.weight(1f, fill = false)
+                        )
+                    }
+                }
+            }
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(8.dp),
@@ -1322,17 +1621,63 @@ private fun LevelPrescriptionCard(
                     },
                     enabled = true,
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                    color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                    // Solid while committed, an outlined ring while the pencil is
+                    // open — see [levelPillStyle].
+                    color = when {
+                        isDeveloper -> Color.Black
+                        pillStyle.fill == LevelPillFill.SOLID -> MaterialTheme.colorScheme.primary
+                        else -> Color.Transparent
+                    },
                     contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onPrimary,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.White)
-                             else BorderStroke(1.dp, MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)),
-                    shadowElevation = if (isDeveloper) 0.dp else 2.dp,
+                    border = when {
+                        isDeveloper -> BorderStroke(1.dp, Color.White)
+                        pillStyle.fill == LevelPillFill.OUTLINED ->
+                            BorderStroke(pillStyle.borderWidthDp.dp, MaterialTheme.colorScheme.primary)
+                        else -> BorderStroke(
+                            1.dp,
+                            MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)
+                        )
+                    },
+                    shadowElevation = when {
+                        isDeveloper -> 0.dp
+                        // Read the elevation off [levelPillStyle] rather than
+                        // re-deciding it here. This branch used to force 0.dp on
+                        // every outlined pill on the grounds that "an edit slot is
+                        // not a button, the ring is the affordance" — which is why
+                        // edit mode was the FLATTEST state on the card, the exact
+                        // opposite of the owner's "show it clickable when pressing
+                        // on the pencil".
+                        else -> pillStyle.shadowElevationDp.dp
+                    },
                     modifier = Modifier.semantics { testTag = "level_chip" }
                 ) {
                     Text(
                         text = getString("level_word_n", level),
-                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        modifier = Modifier.padding(horizontal = 12.dp, vertical = 7.dp),
+                        // A pending progression makes the pill COMPACT: the
+                        // owner's words were that the level should stop taking
+                        // the row's whole vertical height and give the space to
+                        // the progression it can become. Height comes off the
+                        // pill's padding and type size rather than from a fixed
+                        // height, so nothing can clip at a large font scale.
+                        style = if (progressionAvailable) {
+                            MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold)
+                        } else {
+                            MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
+                        },
+                        // Outlined means the label has to read on the CARD's
+                        // background, so onPrimary (white on primary) would be
+                        // white-on-near-white. That was the whole reason the
+                        // outlined variant could not simply reuse the filled
+                        // pill's colours.
+                        color = if (pillStyle.fill == LevelPillFill.OUTLINED && !isDeveloper) {
+                            MaterialTheme.colorScheme.primary
+                        } else {
+                            Color.Unspecified
+                        },
+                        modifier = Modifier.padding(
+                            horizontal = pillStyle.horizontalPaddingDp.dp,
+                            vertical = pillStyle.verticalPaddingDp.dp
+                        ),
                         maxLines = 1
                     )
                 }
@@ -1429,10 +1774,19 @@ private fun LevelPrescriptionCard(
                 // as the old lock icon's did — the change is the flow around it,
                 // not a new storage.
                 if (controls.showPencil) {
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 32.dp) {
+                    // The owner asked for the pencil to sit further right. The
+                    // row's own spacing put it a fixed 8dp from the card edge
+                    // through the parent Row's arrangement, which left it looking
+                    // tucked in beside the stepper. A small negative offset on the
+                    // trailing side moves the GLYPH toward the edge without
+                    // changing the touch target, so the tap area still clears the
+                    // 48dp minimum - shrinking the target to move a 20dp icon
+                    // would trade accessibility for a pixel.
+                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
                         Box(
                             modifier = Modifier
-                                .size(32.dp)
+                                .size(48.dp)
+                                .offset(x = 6.dp)
                                 .clip(CircleShape)
                                 .clickable {
                                     if (editing) {
@@ -1458,7 +1812,11 @@ private fun LevelPrescriptionCard(
                                 // disabled is the opposite of the truth.
                                 tint = if (isDeveloper) Color.White
                                        else MaterialTheme.colorScheme.primary,
-                                modifier = Modifier.size(18.dp)
+                                // 18 -> 20dp: "make the edit pencil slightly
+                                // bigger". The 48dp target around it is what the
+                                // user actually presses, so the glyph can grow
+                                // without the control growing.
+                                modifier = Modifier.size(20.dp)
                             )
                         }
                     }
@@ -1474,7 +1832,13 @@ private fun LevelPrescriptionCard(
                 // filled ticks, upcoming ones stay visible but quiet.
                 val activeSet = currentSetNumber.coerceIn(1, targetSets)
                 val activeReps = repTargets.getOrNull(activeSet - 1)
-                if (activeReps != null) {
+                // A REP banner needs a rep target to headline and a DURATION banner needs its
+                // seconds; [levelCardBody] has already resolved which of the two
+                // this card is, so the guard below is only "do I have the number
+                // that card headlines with".
+                if (cardBody != LevelCardBody.SUMMARY &&
+                    (cardBody == LevelCardBody.BANNER_DURATION || activeReps != null)
+                ) {
                     Surface(
                         shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
                         color = if (isDeveloper) Color.White.copy(alpha = 0.10f)
@@ -1500,22 +1864,40 @@ private fun LevelPrescriptionCard(
                                 )
                                 Row(verticalAlignment = Alignment.Bottom) {
                                     Text(
-                                        text = activeReps.toString(),
+                                        // The unit decides the words, not the card:
+                                        // a duration says "45 s" and a rep-based
+                                        // exercise says "10 reps".
+                                        text = if (cardBody == LevelCardBody.BANNER_DURATION) {
+                                            primaryText.orEmpty()
+                                        } else {
+                                            activeReps.toString()
+                                        },
                                         style = MaterialTheme.typography.displaySmall.copy(fontWeight = FontWeight.ExtraBold),
                                         color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
                                         maxLines = 1
                                     )
-                                    Text(
-                                        text = " " + getString("reps"),
-                                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isDeveloper) Color.White.copy(alpha = 0.7f)
-                                                else MaterialTheme.colorScheme.onSurfaceVariant,
-                                        maxLines = 1,
-                                        modifier = Modifier.padding(bottom = 3.dp)
-                                    )
+                                    if (cardBody != LevelCardBody.BANNER_DURATION) {
+                                        Text(
+                                            text = " " + getString("reps"),
+                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                            color = if (isDeveloper) Color.White.copy(alpha = 0.7f)
+                                                    else MaterialTheme.colorScheme.onSurfaceVariant,
+                                            maxLines = 1,
+                                            modifier = Modifier.padding(bottom = 3.dp)
+                                        )
+                                    }
                                 }
                             }
-                            Column(horizontalAlignment = Alignment.End) {
+                            Column(
+                                // One even rhythm for every line in this stack.
+                                // The rows used to be laid out by whatever each
+                                // one happened to be (a centred dots row, a
+                                // padded load line, a padded reps line), which is
+                                // what made the card read as text scattered at
+                                // random rather than as one column.
+                                horizontalAlignment = Alignment.End,
+                                verticalArrangement = Arrangement.spacedBy(5.dp)
+                            ) {
                                 // One pill per set: filled = done, wide = current,
                                 // faint = upcoming. The week's shape at a glance.
                                 Row(
@@ -1546,21 +1928,24 @@ private fun LevelPrescriptionCard(
                                         style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                                         color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
                                         maxLines = 1,
-                                        overflow = TextOverflow.Ellipsis,
-                                        modifier = Modifier.padding(top = 4.dp)
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 // Small label with EVERY set's target, so the stage's
                                 // whole shape ("9 / 8 / 8") reads next to the pills and
                                 // nobody has to guess what the remaining sets will ask.
-                                if (repTargets.size > 1) {
+                                if (repTargets.size > 1 && cardBody != LevelCardBody.BANNER_DURATION) {
+                                    // A duration banner already states the seconds in
+                                    // its headline; listing per-set REP targets beside
+                                    // it would mix two units on one card, which is
+                                    // the thing a plank must never do.
                                     Text(
                                         text = repTargets.joinToString(" / ") + " " + getString("reps"),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = if (isDeveloper) Color.White.copy(alpha = 0.7f)
                                                 else MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
-                                        modifier = Modifier.padding(top = 2.dp)
+                                        overflow = TextOverflow.Ellipsis
                                     )
                                 }
                             }
@@ -1615,6 +2000,144 @@ private fun LevelPrescriptionCard(
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis
                 )
+            }
+        }
+    }
+}
+
+/**
+ * What the session just achieved, graphically.
+ *
+ * The owner's ask: "instead of having the 'workout completed' screen simply put
+ * like that, add graphical information of a quick recap for what was made
+ * today". A trophy and a set count is not a recap.
+ *
+ * Three deliberate choices:
+ *
+ *  - **Volume is omitted, not zeroed.** A bodyweight or timed-only session has
+ *    no honest tonnage, and a "0 kg" tile would read as "you did nothing" for a
+ *    session that did three sets of chin-ups. The tile is simply absent, and the
+ *    remaining tiles stay in the same order rather than closing the gap - a
+ *    shifting row of tiles is harder to read than a stable one.
+ *  - **The split bar uses the app's own muscle colours.** `getMuscleGroupColor`
+ *    is the same function the legend, the cards and the analytics screen use, so
+ *    a muscle cannot be one colour here and another there.
+ *  - **The bar is sets, not load.** Sets are the unit every exercise shares -
+ *    a pin count and a minute of planking are both "a set" - so the segments
+ *    are comparable in a way kilograms are not.
+ */
+@Composable
+private fun WorkoutRecapCard(recap: com.grafizum.repio.ui.viewmodel.WorkoutRecap) {
+    val durationMinutes = (recap.durationSeconds / 60).toInt()
+    val volumeText = recap.volumeKg?.let { kg ->
+        val clean = if (kg % 1.0 == 0.0) kg.toInt().toString() else String.format("%.1f", kg)
+        getString("recap_volume_kg", clean)
+    }
+    val tiles = buildList {
+        add(getString("recap_exercises") to recap.exercises.toString())
+        add(getString("recap_sets") to recap.sets.toString())
+        if (volumeText != null) add(getString("recap_volume") to volumeText)
+        if (durationMinutes > 0) add(getString("recap_duration") to getString("recap_duration_format", durationMinutes))
+    }
+    val totalSets = recap.setsByMuscle.values.sum().coerceAtLeast(1)
+
+    Surface(
+        shape = RoundedCornerShape(18.dp),
+        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
+        modifier = Modifier.fillMaxWidth()
+    ) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(12.dp),
+            modifier = Modifier.padding(14.dp)
+        ) {
+            Text(
+                text = getString("recap_title"),
+                style = MaterialTheme.typography.labelSmall.copy(
+                    fontWeight = FontWeight.ExtraBold,
+                    letterSpacing = 1.sp
+                ),
+                color = MaterialTheme.colorScheme.primary
+            )
+            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                tiles.forEach { (label, value) ->
+                    Column(
+                        horizontalAlignment = Alignment.CenterHorizontally,
+                        modifier = Modifier.weight(1f)
+                    ) {
+                        Text(
+                            text = value,
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
+                            color = MaterialTheme.colorScheme.onSurface,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        Text(
+                            text = label,
+                            style = MaterialTheme.typography.labelSmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                    }
+                }
+            }
+            if (recap.setsByMuscle.isNotEmpty()) {
+                Text(
+                    text = getString("recap_split_title"),
+                    style = MaterialTheme.typography.labelSmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+                // The distribution bar. Proportional widths from ONE total, so
+                // the segments always sum to the full width and a muscle can
+                // never be drawn wider than the bar it shares.
+                Row(
+                    horizontalArrangement = Arrangement.spacedBy(2.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(10.dp)
+                        .clip(RoundedCornerShape(5.dp))
+                ) {
+                    recap.setsByMuscle.forEach { (muscle, sets) ->
+                        Box(
+                            modifier = Modifier
+                                .weight(sets.toFloat() / totalSets.toFloat())
+                                .fillMaxHeight()
+                                .background(getMuscleGroupColor(muscle))
+                        )
+                    }
+                }
+                // The legend, so the colours mean something. Sorted like the bar,
+                // so reading down the list matches reading across it.
+                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                    recap.setsByMuscle.entries.forEach { (muscle, sets) ->
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(6.dp)
+                        ) {
+                            Box(
+                                modifier = Modifier
+                                    .size(8.dp)
+                                    .clip(CircleShape)
+                                    .background(getMuscleGroupColor(muscle))
+                            )
+                            Text(
+                                text = muscle,
+                                style = MaterialTheme.typography.labelSmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.weight(1f, fill = false)
+                            )
+                            Text(
+                                text = sets.toString(),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
+                    }
+                }
             }
         }
     }

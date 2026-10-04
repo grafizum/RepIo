@@ -4,7 +4,7 @@
     <color name="bg_beige">#FDFCFB</color>
     <color name="bg_emerald">#FBFFFF</color>
     <color name="bg_crimson">#FFFBFA</color>
-    <color name="bg_azure">#FFFFFF</color>
+    <color name="bg_royal_blue">#FFFFFF</color>
     <color name="bg_purple">#121212</color>
     <color name="bg_flame">#121212</color>
     <color name="bg_ocean">#121212</color>
@@ -19,4 +19,4 @@
          play, which stays visible on the dark ground and preserves the 3D
          effect the light-theme icon has. -->
     <color name="icon_bg_dark">#121212</color>
-</resources>
+</resources>

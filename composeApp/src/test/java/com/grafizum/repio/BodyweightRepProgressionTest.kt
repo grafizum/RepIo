@@ -91,20 +91,72 @@ class BodyweightRepProgressionTest {
 
     @Test
     fun repsStayInsideTheRowsOwnCeiling() {
-        // Reps are clamped to the row's declared repMin..repMax: the level can
-        // scale them, but never past what the data says the exercise allows.
+        // Reps run from the row's own floor up to the ladder's rep ceiling.
+        //
+        // NOT up to the row's repMax: that was the variation-era ceiling (12 for
+        // most bodyweight rows) and the owner raised the ceiling on 2026-10-03
+        // ("you can increase the count up to 25 or even 50"). What still has to
+        // hold is the upper bound, because the Roman cascade adds up to four
+        // reps to the set the user reaches last - without a cap, the top level
+        // asked for more reps than the ladder's own ceiling says exist.
         for (entry in repProgressedEntries()) {
-            val min = entry.repMin
-            val max = entry.repMax
-            if (min == null || max == null) continue
+            val min = ProgressionEngine.repFloorOf(entry)
+            val ceiling = ProgressionEngine.repCeilingFor(entry)
             val levels = ProgressionEngine.effectiveMaxLevel(entry)
             for (level in 1..levels) {
                 for (stage in 1..ProgressionEngine.patternLength(entry)) {
                     val reps = ProgressionEngine.prescribedReps(entry, level, stage) ?: continue
                     reps.forEach { rep ->
-                        assertTrue("${entry.id} L$level S$stage rep $rep < repMin $min", rep >= min)
-                        assertTrue("${entry.id} L$level S$stage rep $rep > repMax $max", rep <= max)
+                        assertTrue("${entry.id} L$level S$stage rep $rep < floor $min", rep >= min)
+                        assertTrue("${entry.id} L$level S$stage rep $rep > ceiling $ceiling", rep <= ceiling)
                     }
+                }
+            }
+        }
+    }
+
+    /**
+     * The Roman stage DISTRIBUTES the level's reps across the sets - the shape
+     * the pool already carries (extra reps walk forward, one set at a time) -
+     * rather than being flattened into the same number three times.
+     */
+    @Test
+    fun theRomanStageDistributesTheLevelsRepsAcrossTheSets() {
+        val entry = ProgressionEngine.entryFor("Crunches")!!
+        // Mid-pattern is where the cascade lives. The pattern's LAST stage is
+        // [12,12,12] - flat - because by then every set has caught up, so the
+        // top stage is not where a distribution is visible. Asserting it there
+        // would have been asserting against the shape the data actually has.
+        val atLevel5 = ProgressionEngine.prescribedReps(entry, 5, 5)!!
+        // Crunches is core, so its ladder steps by 4 from a floor of 8: level 5
+        // asks 24 reps. The pattern's own stage-5 row [10,9,9] minus stage I's
+        // [8,8,8] is [2,1,1] - the extra reps walking forward onto the first
+        // set - so the sets read 26 / 25 / 25.
+        val levelReps = ProgressionEngine.repsAtLevel(entry, 5)
+        assertEquals(24, levelReps)
+        // Every set is at least the level's own count: the stage adds work, it
+        // never takes any away.
+        assertTrue("stage 5 took reps away: $atLevel5", atLevel5.all { it >= levelReps })
+        // And it is genuinely a DISTRIBUTION, not three identical numbers.
+        assertEquals(listOf(26, 25, 25), atLevel5)
+    }
+
+    /**
+     * The cascade's shape holds at EVERY stage of the pool's own pattern: the
+     * sets never ascend left to right, because the growth front is a property
+     * of the row and a pattern that inverted it would read as a typo.
+     */
+    @Test
+    fun noStageAsksMoreOfALaterSetThanOfAnEarlierOne() {
+        for (entry in repProgressedEntries()) {
+            if (!ProgressionEngine.isRepLadder(entry)) continue
+            for (stage in 1..ProgressionEngine.patternLength(entry)) {
+                val reps = ProgressionEngine.prescribedReps(entry, 1, stage) ?: continue
+                for (i in 0 until reps.size - 1) {
+                    assertTrue(
+                        "${entry.id} stage $stage ascends: $reps",
+                        reps[i] >= reps[i + 1]
+                    )
                 }
             }
         }

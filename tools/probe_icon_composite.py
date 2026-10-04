@@ -29,7 +29,7 @@ NS = "{http://schemas.android.com/apk/res/android}"
 GROUND_DARK = 18.0
 SAT_ART = 25.0
 THEMES = ["ocean", "flame", "rose", "purple", "retro",
-          "azure", "crimson", "emerald", "orange", "beige"]
+          "royal_blue", "crimson", "emerald", "orange", "beige"]
 
 
 def color_value(name: str) -> float:

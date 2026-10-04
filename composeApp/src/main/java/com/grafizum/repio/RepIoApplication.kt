@@ -4,6 +4,7 @@ import android.app.Application
 import android.content.res.Configuration
 import androidx.core.content.edit
 import com.grafizum.repio.util.FirebaseInitializer
+import com.grafizum.repio.ui.theme.isRetiredThemeOption
 import com.grafizum.repio.util.IconSwitchHelper
 
 class RepIoApplication : Application() {
@@ -12,6 +13,31 @@ class RepIoApplication : Application() {
         
         // Handle Launcher Activity Icon and Splash Screen based on saved theme or system theme
         val prefs = getSharedPreferences("app_settings", MODE_PRIVATE)
+        // FAILSAFE: a RETIRED theme id is cleared outright, which hands the user
+        // to the fresh-install path below exactly as if they had never chosen a
+        // theme. This has to happen here, at the earliest reader, for TWO reasons:
+        //
+        //  - this is the only place that can decide the system-appropriate
+        //    default before anything else reads the value; and
+        //  - writing a valid id to the preference does NOT fix the icon. A user
+        //    who had AZURE selected has `MainActivityAzure` enabled, and that
+        //    component no longer exists, so NO launcher activity resolves at all
+        //    and the app has no icon. Only switchIcon() repairs that, and only the
+        //    fresh-install path calls it.
+        //
+        // `auto_theme_selected` is cleared WITH the id, because otherwise the
+        // fresh-install branch below is skipped by its `!hasAutoSelected` guard
+        // and the icon is never repaired - the exact failure this is here to
+        // prevent. Clearing it is safe: it only means "this device has not been
+        // given a theme yet", which is now true.
+        val storedTheme = prefs.getString("theme_option", null)
+        val isRetired = isRetiredThemeOption(storedTheme)
+        if (isRetired) {
+            prefs.edit {
+                remove("theme_option")
+                putBoolean("auto_theme_selected", false)
+            }
+        }
         val savedTheme = prefs.getString("theme_option", null)
         val hasAutoSelected = prefs.getBoolean("auto_theme_selected", false)
         

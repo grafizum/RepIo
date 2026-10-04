@@ -56,14 +56,14 @@ RES = REPO / "composeApp" / "src" / "main" / "res"
 OWNER_RENDER = Path.home() / "Downloads" / "ic_launcher_fg_orange_dark_1296.png"
 
 THEMES = [
-    "orange", "azure", "crimson", "emerald", "beige",
+    "orange", "royal_blue", "crimson", "emerald", "beige",
     "flame", "ocean", "rose", "purple", "retro",
 ]
 
 # The commit whose artwork each theme's LIGHT icon is taken from. See the module
 # docstring: b7d0ec4 gave four themes a dark plate, so those predate it.
 LIGHT_SOURCE = {
-    "orange": "b7d0ec4", "azure": "b7d0ec4", "crimson": "b7d0ec4",
+    "orange": "b7d0ec4", "royal_blue": "b7d0ec4", "crimson": "b7d0ec4",
     "emerald": "b7d0ec4", "beige": "b7d0ec4", "retro": "b7d0ec4",
     "flame": "f09bf58", "ocean": "f09bf58", "rose": "f09bf58", "purple": "f09bf58",
 }

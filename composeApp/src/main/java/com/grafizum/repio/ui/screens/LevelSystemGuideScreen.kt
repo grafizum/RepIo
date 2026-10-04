@@ -1,5 +1,6 @@
 package com.grafizum.repio.ui.screens
 
+import kotlin.math.roundToInt
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
 import androidx.compose.foundation.layout.Arrangement
@@ -405,29 +406,54 @@ private fun GuideDifficultyPill(label: String, selected: Boolean, modifier: Modi
 // ------------------------------------------------------------------
 
 /**
- * The worked example the Overall Level graphic teaches with: five per-exercise
- * levels, and the average they produce.
+ * The worked example the Overall Level graphic teaches with: five exercises,
+ * each shown as a percentage of its OWN ladder, and the median they produce.
  *
- * The average is *derived* from the levels rather than written out beside them,
- * and step 3 reuses the same value for its mini Home card. That way the three
- * steps cannot show numbers that disagree with each other or with their own
- * arithmetic — an illustration whose figures do not actually average together
- * teaches the wrong thing.
+ * Every figure is *derived* rather than written out beside it, and step 3
+ * reuses the result for its mini Home card. That way the three steps cannot
+ * show numbers that disagree with each other or with their own arithmetic — an
+ * illustration whose figures do not actually work out teaches the wrong thing.
+ *
+ * The percentages are deliberately chosen to make the point the model exists
+ * for: the first exercise is at level 5 of a 6-level ladder (a long way
+ * through) and the second is at level 5 of a 30-level ladder (barely started).
+ * Averaging those two RAW levels would call them identical, which is the
+ * defect the per-exercise percentage fixes.
  */
 object OverallLevelExample {
-    /** Decimals the level is shown with, matching the app's own `L.x` format. */
+    /** Decimals a percentage is shown with in the guide. */
     const val DECIMALS = 1
 
     /**
-     * Five exercises, as they would read on five level chips. These are the
-     * worked example the prose quotes (a bench press, a squat, a row, a press
-     * and a deadlift), so they are deliberately ordinary numbers a reader can
-     * add up in their head rather than a flattering score.
+     * Five exercises as level chips read them, paired with each one's own ladder
+     * length. Deliberately ordinary movements a reader would recognise, and
+     * deliberately NOT all the same ladder length — that contrast is the lesson.
      */
     val levels = listOf(5, 4, 5, 3, 6)
 
-    /** 5+4+5+3+6 = 23, over five exercises, is 4.6. */
-    val average: Double = levels.average()
+    /** Each exercise's own top rung, so the same level means different things. */
+    val ladderLengths = listOf(6, 30, 8, 15, 20)
+
+    /**
+     * Where each exercise sits on its own ladder, 0-100: 83, 10, 57, 13, 26.
+     * Sorted, that is 10 · 13 · 26 · 57 · 83, so the median — the middle one —
+     * is 26.
+     */
+    val percents: List<Double> = levels.zip(ladderLengths) { level, max ->
+        ((level - 1).toDouble() / (max - 1) * 100.0)
+    }
+
+    /** The median of [percents]: the middle exercise of the five. */
+    val median: Double = percents.sorted()[percents.size / 2]
+
+    /**
+     * The rank that median lands in — what the app actually shows the user,
+     * because the percentage itself is backend-only (owner, 2026-10-02).
+     * Derived through the real rank table rather than hardcoded, so the guide
+     * cannot advertise a letter the app would not give.
+     */
+    val medianRank: String =
+        OverallLevelRank.of(median)?.letter ?: OverallLevelRank.Letter.E.label
 }
 
 /**
@@ -515,7 +541,11 @@ fun OverallLevelProse(detailed: Boolean) {
         }
 
         Text(
-            text = getString("overall_level_gpa_example", OverallLevelExample.average),
+            text = getString(
+                "overall_level_gpa_example",
+                OverallLevelExample.median.roundToInt(),
+                OverallLevelExample.medianRank
+            ),
             style = MaterialTheme.typography.bodyMedium,
             color = MaterialTheme.colorScheme.onSurfaceVariant
         )
@@ -589,11 +619,15 @@ private fun OverallAverageGraphic() {
         horizontalArrangement = Arrangement.spacedBy(6.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        // These levels really do average to the number on the right, which is the
-        // whole point of the step — and it matches the "L.6.4" the mini Home card
-        // shows below, because both read OverallLevelExample.average.
-        OverallLevelExample.levels.forEach { level ->
-            OverallValueChip(text = level.toString(), modifier = Modifier.weight(1f))
+        // These really do reduce to the number on the right, which is the whole
+        // point of the step. They are percentages of each exercise's OWN ladder,
+        // not raw levels: the first is level 5 of 6 and the second level 5 of 30,
+        // and showing them as the same "5" is exactly the mistake the model avoids.
+        OverallLevelExample.percents.forEach { percent ->
+            OverallValueChip(
+                text = decimalText(percent, 0),
+                modifier = Modifier.weight(1f)
+            )
         }
         Icon(
             imageVector = Icons.AutoMirrored.Filled.ArrowForward,
@@ -602,7 +636,7 @@ private fun OverallAverageGraphic() {
             modifier = Modifier.size(16.dp)
         )
         OverallValueChip(
-            text = decimalText(OverallLevelExample.average, OverallLevelExample.DECIMALS),
+            text = decimalText(OverallLevelExample.median, 0),
             highlight = true,
             modifier = Modifier.weight(1f)
         )
@@ -740,7 +774,11 @@ private fun OverallHomeGraphic() {
                     overflow = TextOverflow.Ellipsis
                 )
                 Text(
-                    text = getString("overall_level_format", OverallLevelExample.average),
+                    // The RANK, not the percentage. The owner ruled (2026-10-02)
+                    // that the 0-100 figure is backend-only, so the card shows the
+                    // same letter a user sees on Home rather than the number that
+                    // produced it.
+                    text = getString("rank_label_format", OverallLevelExample.medianRank),
                     style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
                     color = MaterialTheme.colorScheme.onSurface,
                     maxLines = 1
@@ -805,11 +843,19 @@ fun RankTableContent() {
     }
 }
 
-/** "6.0 – 6.9" for a bounded tier, "8.0+" for the open-ended top one. */
+/**
+ * "14 – 27" for a bounded tier, "95+" for the open-ended top one.
+ *
+ * The figures are the tier's own floors and ceilings on the internal 0-100
+ * scale, rounded to whole points because the guide is explaining WHICH band a
+ * rank covers, not reproducing the figure the app computes. They are read from
+ * the rank table rather than written out, so re-tuning a threshold moves this
+ * text with it.
+ */
 @Composable
 private fun rankRangeText(rank: OverallLevelRank.Letter): String {
-    val min = decimalText(rank.minLevel, OverallLevelExample.DECIMALS)
+    val min = OverallLevelRank.displayPercent(rank.minPercent)
     val end = rank.rangeEnd
         ?: return getString("rank_range_open", min)
-    return getString("rank_range", min, decimalText(end, OverallLevelExample.DECIMALS))
+    return getString("rank_range", min, OverallLevelRank.displayPercent(end))
 }

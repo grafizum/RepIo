@@ -103,33 +103,77 @@ class OverallLevelGraphicTest {
     }
 
     @Test
-    fun theHomeMiniatureShowsTheFormattedLevel() {
+    fun theHomeMiniatureShowsTheRank() {
         renderNarrow()
 
-        // "L.4.6" is the whole point of step 3: it has to show the same format the
-        // Home stat uses, not a bare number.
-        val expected = context.getString(R.string.overall_level_format, OverallLevelExample.average)
+        // The miniature shows the RANK, not the figure (owner, 2026-10-02: the
+        // percentage is backend-only). It must be the same letter the real Home
+        // stat gives for the same data, which is what this reads.
+        val expected = context.getString(
+            R.string.rank_label_format,
+            OverallLevelExample.medianRank
+        )
         composeTestRule.onNodeWithText(expected).assertIsDisplayed()
     }
 
     @Test
-    fun theWorkedExampleAddsUpAndItsStepsAgree() {
-        // Step 1 claims "these five levels average into this number", so the five
-        // levels have to be the ones the graphic prints and their mean has to be
-        // the number beside them. The average is derived, so this pins the example
-        // itself: editing the levels without re-checking the caption fails here.
+    fun theOverallFigureNeverReachesTheScreenButTheTeachingExampleDoes() {
+        // The two halves of the owner's rule, which are easy to conflate:
+        //
+        //  - the PER-EXERCISE percentages are the lesson the guide exists to
+        //    teach, so they ARE shown, as chips;
+        //  - the OVERALL figure — the one the app computes and ranks — is
+        //    backend-only and must never be printed. The Home miniature shows the
+        //    RANK letter instead, which `theHomeMiniatureShowsTheRank` covers.
+        //
+        // What is pinned here is that the overall figure is absent while the
+        // per-exercise ones are present, so a future edit that swaps the rank
+        // back for "L.26.3" fails.
+        renderNarrow()
+
+        composeTestRule
+            .onNodeWithText(
+                context.getString(
+                    R.string.overall_level_format,
+                    OverallLevelExample.median
+                )
+            )
+            .assertDoesNotExist()
+    }
+
+    @Test
+    fun theWorkedExampleIsAMedianOfPerExercisePercents() {
+        // Step 1 claims these five sit at a percentage of their OWN ladder and
+        // that the middle one decides. Both are derived, so this pins the example
+        // itself: editing the levels or the ladder lengths without re-checking the
+        // caption fails here.
         assertEquals(listOf(5, 4, 5, 3, 6), OverallLevelExample.levels)
-        assertEquals(4.6, OverallLevelExample.average, 1e-9)
+        // Deliberately different lengths, which is the whole lesson: level 5 of 6
+        // and level 5 of 30 are the same raw number and not remotely the same
+        // progress.
+        assertEquals(listOf(6, 30, 8, 15, 20), OverallLevelExample.ladderLengths)
+
+        val expectedPercents = listOf(80.0, 10.3, 57.1, 14.3, 26.3)
+        assertEquals(expectedPercents.size, OverallLevelExample.percents.size)
+        expectedPercents.forEachIndexed { i, expected ->
+            assertEquals("percent of exercise $i", expected, OverallLevelExample.percents[i], 0.1)
+        }
+        // Sorted: 10.3 · 14.3 · 26.3 · 57.1 · 80.0 — the middle exercise decides.
+        assertEquals(26.3, OverallLevelExample.median, 0.1)
+        // And that median lands in a real rank, read through the real table
+        // rather than asserted as a literal: 26.3% is inside D (13.6-27.1).
+        assertEquals("D", OverallLevelExample.medianRank)
 
         renderNarrow()
 
-        // Step 1's result and step 3's Home card are the same number, printed once
-        // bare and once in the app's "L.x" format — they read one shared value, so
-        // they can never drift apart.
-        composeTestRule.onNodeWithText(OverallLevelExample.average.toString()).assertIsDisplayed()
+        // The per-exercise percentages are the lesson, so the chips carrying them
+        // must actually be on screen.
+        // assertExists, not assertIsDisplayed: the five chips sit inside a taller
+        // explainer and one of them can fall below the test window, which is
+        // still genuinely rendered.
         composeTestRule
-            .onNodeWithText(context.getString(R.string.overall_level_format, OverallLevelExample.average))
-            .assertIsDisplayed()
+            .onNodeWithText(Math.round(OverallLevelExample.percents[1]).toString())
+            .assertExists()
     }
 
     // --- The prose that now sits above the graphic ---------------------------
@@ -153,7 +197,11 @@ class OverallLevelGraphicTest {
         // be teaching something false. Both read OverallLevelExample.average.
         composeTestRule
             .onNodeWithText(
-                context.getString(R.string.overall_level_gpa_example, OverallLevelExample.average)
+                context.getString(
+                    R.string.overall_level_gpa_example,
+                    Math.round(OverallLevelExample.median).toInt(),
+                    OverallLevelExample.medianRank
+                )
             )
             .assertExists()
 

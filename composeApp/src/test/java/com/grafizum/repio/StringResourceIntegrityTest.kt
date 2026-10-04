@@ -244,6 +244,19 @@ class StringResourceIntegrityTest {
 
             // Units, where the symbol is the unit in every language.
             "weight_kg_intl", "progression_load_kg", "progression_duration_value",
+            "recap_volume_kg",
+
+            // The session recap's two pure formats. "kg" is the symbol in all
+            // three, and "min" is the abbreviation Italian prints anyway - which
+            // is exactly why the German one differs ("%1$d Min.") and its
+            // absence here is evidence the block was translated, not copied.
+            "recap_duration_format",
+
+            // "Volume" is the Italian word for training volume, not a leftover:
+            // Italian lifters say "volume" the way they say "scarico" for
+            // unloading. The German entry is "Volumen", which is the different
+            // word that check would otherwise force into the Italian file.
+            "recap_volume",
 
             // Training vocabulary the German and Italian gym scenes use in English:
             // RPE/RIR are abbreviations, "Tempo", "Standard", "Kettlebell", and the

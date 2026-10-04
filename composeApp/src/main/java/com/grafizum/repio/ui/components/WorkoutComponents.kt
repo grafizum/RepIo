@@ -2341,6 +2341,18 @@ fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String>
     }.map { it.first }
 }
 
+/**
+ * How long a toast stays up, and how wide it may get.
+ *
+ * The owner asked for 1.5 s and for a SMALL popup rather than the full-width
+ * banner this used to be: `fillMaxWidth()` made a two-word refusal ("press the
+ * pencil first") arrive as a full-screen slab that reflowed the card it was
+ * reporting on. `TOAST_WIDTH_FRACTION` caps it so a long sentence wraps inside
+ * a popup instead of stretching edge to edge on a tablet.
+ */
+private const val TOAST_VISIBLE_MS = 1500L
+private const val TOAST_WIDTH_FRACTION = 0.8f
+
 @Composable
 fun ThemedToast(
     message: String,
@@ -2350,7 +2362,7 @@ fun ThemedToast(
 ) {
     if (visible) {
         LaunchedEffect(visible) {
-            delay(2500L)
+            delay(TOAST_VISIBLE_MS)
             onDismiss()
         }
     }
@@ -2360,26 +2372,46 @@ fun ThemedToast(
         enter = fadeIn() + slideInVertically(initialOffsetY = { it / 2 }),
         exit = fadeOut() + slideOutVertically(targetOffsetY = { it / 2 })
     ) {
-        Surface(
-            color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
-            contentColor = MaterialTheme.colorScheme.onErrorContainer,
-            shape = RoundedCornerShape(12.dp),
-            border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.2f)),
-            tonalElevation = 6.dp,
+        Box(
             modifier = Modifier
-                .padding(bottom = 8.dp)
                 .fillMaxWidth()
+                .padding(bottom = 8.dp),
+            contentAlignment = Alignment.Center
         ) {
-            Row(
-                modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
-                verticalAlignment = Alignment.CenterVertically) {
-                // Placeholder for icon for now
-                Spacer(modifier = Modifier.width(12.dp))
-                Text(
-                    text = message,
-                    style = MaterialTheme.typography.bodySmall,
-                    fontWeight = FontWeight.Medium
-                )
+            Surface(
+                color = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.95f),
+                contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                shape = RoundedCornerShape(10.dp),
+                // A visible red rim is the point: this is a refusal, not an
+                // informational note, and at 20% opacity the old border read as
+                // a soft grey outline on the error container.
+                border = BorderStroke(1.5.dp, MaterialTheme.colorScheme.error),
+                tonalElevation = 6.dp,
+                modifier = Modifier
+                    .fillMaxWidth(TOAST_WIDTH_FRACTION)
+                    .widthIn(max = 360.dp)
+            ) {
+                Row(
+                    modifier = Modifier.padding(horizontal = 12.dp, vertical = 8.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.ErrorOutline,
+                        // Decorative: the toast's own text carries the meaning,
+                        // so a screen reader must not read the icon as a second
+                        // "error" on top of it.
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.error,
+                        modifier = Modifier
+                            .padding(end = 8.dp)
+                            .size(16.dp)
+                    )
+                    Text(
+                        text = message,
+                        style = MaterialTheme.typography.bodySmall,
+                        fontWeight = FontWeight.Medium
+                    )
+                }
             }
         }
     }
@@ -2572,6 +2604,25 @@ fun RepsRangeField(
     var minReps by remember(minVal) { mutableStateOf(minVal) }
     var maxReps by remember(maxVal) { mutableStateOf(maxVal) }
 
+    // What the LOCKED field prints, decided once so the label can never leak
+    // into the value slot.
+    //
+    // The owner's report was "fix its format so that the reps placeholder also
+    // moves away and doesnt stay glitched inside the input box". Two things
+    // were wrong and they are one bug: the locked branch printed
+    // `value.ifBlank { getString("reps") }`, so a row with no prescribed reps
+    // rendered the word "Reps" AS ITS VALUE - the label was being used as
+    // content, and it sat in the middle of the box instead of floating on the
+    // border where Material puts a label. And the DecorationBox below was
+    // handed `""` whenever the field was not expanded, so the label never
+    // floated at all: "Reps" appeared twice, once parked mid-box and once as
+    // the outline label.
+    //
+    // So: the locked row shows the VALUE or an em dash, never the label, and
+    // the DecorationBox is handed a non-blank string whenever there is
+    // something to show, which is what makes Material float the label.
+    val lockedDisplay = repsLockedDisplay(value)
+
     val minFocusRequester = remember { FocusRequester() }
     val maxFocusRequester = remember { FocusRequester() }
     var isMinFocused by remember { mutableStateOf(false) }
@@ -2594,8 +2645,15 @@ fun RepsRangeField(
 
     val interactionSource = remember { MutableInteractionSource() }
 
+    // Material floats the label as soon as the DecorationBox's `value` is
+    // non-blank. It was `if (isExpanded) " " else ""`, which is blank whenever
+    // the field is locked - so the label stayed parked mid-box over the value.
+    // One predicate now decides it: show SOMETHING whenever there is something
+    // to show.
+    val decorationValue = if (enabled) (if (isExpanded) " " else "") else " "
+
     BasicTextField(
-        value = if (isExpanded) " " else "",
+        value = decorationValue,
         onValueChange = {},
         // enabled=false greys the decoration out and stops the pointerInput below
         // from handing out focus, so a disabled field cannot be typed into.
@@ -2627,8 +2685,41 @@ fun RepsRangeField(
         ),
         decorationBox = { innerTextField ->
             OutlinedTextFieldDefaults.DecorationBox(
-                value = if (isExpanded) " " else "",
+                value = decorationValue,
                 innerTextField = {
+                    // A LOCKED reps field shows the WHOLE value, as one line.
+                    //
+                    // `isExpanded` is forced false when the field is disabled
+                    // (it gates the min/max editor), and the max half and the
+                    // "-" separator were gated on `isExpanded` too - so greying
+                    // a "8-12" field out rendered just "8". The value the level
+                    // system prescribes was therefore lost from a box whose
+                    // whole job is to show it. Editing is what needs the split;
+                    // reading does not, so the split is only for editing.
+                    if (!enabled) {
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            horizontalArrangement = Arrangement.spacedBy(4.dp),
+                            modifier = Modifier.fillMaxWidth().fillMaxHeight()
+                        ) {
+                            Text(
+                                text = lockedDisplay,
+                                style = LocalTextStyle.current.copy(
+                                    textAlign = TextAlign.Center,
+                                    fontSize = 16.sp,
+                                    // Material greys a disabled decoration; the
+                                    // value has to follow it or a locked field
+                                    // reads as ENABLED and looks editable.
+                                    color = MaterialTheme.colorScheme.onSurface.copy(alpha = 0.38f)
+                                ),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth(),
+                                textAlign = TextAlign.Center
+                            )
+                        }
+                        return@DecorationBox
+                    }
                     Row(
                         verticalAlignment = Alignment.CenterVertically,
                         horizontalArrangement = Arrangement.spacedBy(4.dp),
@@ -2771,6 +2862,32 @@ fun RepsRangeField(
             )
         }
     )
+}
+
+/**
+ * What a LOCKED reps field prints inside its box.
+ *
+ * The rule is that the LABEL is never the value. A greyed-out field with no
+ * prescribed reps used to print the word "Reps" as though the user had been
+ * prescribed eighty reps, and because the DecorationBox was handed a blank
+ * value at the same time, that word also stayed parked in the middle of the box
+ * instead of floating onto the outline - the owner's "the reps placeholder
+ * also moves away and doesnt stay glitched inside the input box".
+ *
+ * An em dash is the honest answer for "nothing prescribed here": it is what the
+ * rest of the app prints for an absent measurement (`overall_level_none` is
+ * exactly this character), so the box reads as empty rather than as a value.
+ *
+ * Pure, and in [WorkoutComponents.kt] rather than at the call site, because a
+ * Compose field's rendering is not reachable from a unit test - this is the part
+ * that can be.
+ */
+fun repsLockedDisplay(value: String): String {
+    val clean = value.replace('-', '–').trim()
+    // "No digits" rather than "blank text": a value that is just a separator
+    // ("-" or "–") is not blank, so a blank check would print the dash INSIDE
+    // the box as if it were a measurement. There is no rep count in it.
+    return if (clean.none { it.isDigit() }) "—" else clean
 }
 
 /**
@@ -2954,11 +3071,16 @@ fun ExerciseEditDialog(
 
     // One notice for every locked field: the level system prescribes the value,
     // so the box is read-only and says why in one short line instead of silently
-    // ignoring the tap. Deliberately a toast, not a modal - it fires on every
-    // attempt and a dialog per tap would be unusable.
+    // ignoring the tap.
+    //
+    // It goes to the APP-LEVEL top banner rather than a toast inside this card.
+    // Rendered here it sat in a scrolling Box, so on a long editor the notice
+    // could be off-screen when the user tapped, which is the "dont have it
+    // inside the popup card but show it at the top" the owner asked for. See
+    // AppEventBus.showTopBanner.
     val lockedFieldNoticeText = getString("level_fields_locked_toast")
     val lockedFieldNotice: () -> Unit = {
-        activeToastMessage = lockedFieldNoticeText
+        com.grafizum.repio.util.AppEventBus.showTopBanner(lockedFieldNoticeText)
     }
 
     val isRepsValid = remember(targetRepsValue, isTimeBased) {

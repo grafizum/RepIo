@@ -72,9 +72,16 @@ class RankStringsTest {
     @Test
     fun theTooltipFormatsItsOwnArguments() {
         // SAME argument shapes as the production call sites in OverallLevelTooltip:
-        // a Double then the letter, and an Int then the next letter.
-        val level = context.getString(R.string.rank_tooltip_level, 6.4, "S")
-        assertEquals("Overall Level: 6.4 (Rank S)", level)
+        // the rank letter ALONE, and an Int then the next letter.
+        //
+        // The level line takes only the letter. It used to take the 0-100 figure
+        // too ("Overall Level: 6.4 (Rank S)"), and the owner ruled on 2026-10-02
+        // that the figure and the weighted median behind it stay backend-only -
+        // so the argument was dropped and this call still passed the old pair.
+        // An unused extra argument is silently ignored by getString, which is why
+        // it rendered "Overall Level: Rank 6.4" instead of failing loudly.
+        val level = context.getString(R.string.rank_tooltip_level, "S")
+        assertEquals("Overall Level: Rank S", level)
 
         val progress = context.getString(R.string.rank_tooltip_progress, 40, "SS")
         assertEquals("40% to Rank SS", progress)

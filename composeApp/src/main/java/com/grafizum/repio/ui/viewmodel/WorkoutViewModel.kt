@@ -26,6 +26,7 @@ import com.grafizum.repio.data.UserStatsEntity
 import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.screens.remapTemplateToDays
+import com.grafizum.repio.ui.theme.isRetiredThemeOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -78,10 +79,53 @@ data class WorkoutNowState(
      */
     val evolutionOffers: List<ProgressionEngine.EvolutionOffer> = emptyList(),
     /**
+     * One entry per mastered exercise that HAS a branch, carrying EVERY way on
+     * rather than only the preferred one.
+     *
+     * The tree popup draws a fork, so it needs the whole fork; [evolutionOffers]
+     * is one-per-exercise (the preferred branch only) and cannot express "six
+     * ways on". Order is the card's own branch order, and the first entry is the
+     * engine's preferred branch, so the popup opens on the coach's choice rather
+     * than on whichever row happened to sort first.
+     */
+    val evolutionTrees: List<EvolutionTreeItem> = emptyList(),
+
+    /**
+     * The graphical recap of the session that just finished, or null while a
+     * session is still running. See [WorkoutRecap].
+     */
+    val workoutRecap: WorkoutRecap? = null,
+    /**
      * Bumped whenever [evolutionOffers] is recomputed, so the screen can seed
      * its queue once per change instead of on every recomposition.
      */
     val evolutionToken: Int = 0,
+)
+
+/**
+ * What the user actually did in the session that just finished.
+ *
+ * The owner asked for this as "instead of having the 'workout completed' screen
+ * simply put like that, add graphical information of a quick recap for what was
+ * made today" — and the honest answer is that the ONLY number the screen had was
+ * the set count. Everything here is accumulated from the sets the user actually
+ * logged, not read back and estimated, so a set logged against a stack pin does
+ * not add fake kilograms.
+ */
+data class WorkoutRecap(
+    /** Distinct exercises trained. */
+    val exercises: Int,
+    val sets: Int,
+    /**
+     * Total load volume in the exercises' own units, as a raw sum. Left as
+     * `null` when nothing weighted was trained: a rep-only or timed session has
+     * no honest volume figure, and printing "0 kg" would read as "you did
+     * nothing".
+     */
+    val volumeKg: Double?,
+    val durationSeconds: Long,
+    /** Muscle -> sets trained, most-trained first. Drives the distribution bar. */
+    val setsByMuscle: Map<String, Int>,
 )
 
 /**
@@ -102,6 +146,19 @@ data class MasteryCardData(
     val branches: List<ProgressionBranch>,
     /** Suggested focus exercises shown on a true-ceiling card. */
     val suggestions: List<String>
+)
+
+/**
+ * One mastered exercise plus every progression branch it offers, resolved.
+ *
+ * Holds the [MasteryCardData] itself so the popup can draw the trunk (the
+ * exercise that was just finished) alongside the legs, rather than receiving an
+ * already-paired before/after and losing the rest of the fork.
+ */
+data class EvolutionTreeItem(
+    val card: MasteryCardData,
+    /** Parallel to `card.branches`; an unrenderable branch drops out of both. */
+    val offers: List<ProgressionEngine.EvolutionOffer>,
 )
 
 /** Which confirmation dialog the Settings level-system toggle is asking for. */
@@ -157,6 +214,21 @@ class WorkoutViewModel(
     val defaultExerciseTimerSeconds: StateFlow<Int> = _defaultExerciseTimerSeconds.asStateFlow()
 
     private val _themeOption = MutableStateFlow(prefs.getString("theme_option", "DEFAULT") ?: "DEFAULT")
+
+    init {
+        // Drop a RETIRED theme id rather than translating it. RepIoApplication
+        // already cleared it before any UI exists, so in practice this is a
+        // belt-and-braces guard for a value that arrived some other way (a
+        // downgrade/upgrade cycle, a restored backup). Writing a translated id
+        // back here would be wrong on its own terms: the correct fallback is the
+        // system default, and this class cannot know the system appearance - the
+        // caller that can is RepIoApplication, which owns the repair.
+        val stored = prefs.getString("theme_option", null)
+        if (isRetiredThemeOption(stored)) {
+            prefs.remove("theme_option")
+            _themeOption.value = "DEFAULT"
+        }
+    }
     val themeOption: StateFlow<String> = _themeOption.asStateFlow()
 
     // Legacy stored values (goal_olympic, goal_crossfit, …) map onto one of
@@ -386,7 +458,7 @@ class WorkoutViewModel(
         // [AppEventBus.restTimerEnded], a skipped one through restTimerSkipped. Winding the
         // session up here is what keeps it in step when the app was closed at the time.
         viewModelScope.launch {
-            AppEventBus.restTimerEnded.collect { onRestTimerFinished() }
+            AppEventBus.restTimerEnded.collect { onRestTimerFinished() }  // payload: was a timed exercise
         }
         viewModelScope.launch {
             AppEventBus.restTimerSkipped.collect { stopTimer() }
@@ -1006,24 +1078,52 @@ class WorkoutViewModel(
      *
      * A REP-PROGRESSED row (bodyweight variation, hold, cardio) is the
      * exception, and it is not a small one. The extension grid is honest for a
-     * LOAD row because extrapolating a ladder gives a real weight — but a
-     * variation ladder has already run out: past its last rung
-     * [ProgressionEngine.variationAtLevel] repeats the hardest movement and the
-     * reps clamp to `repMax`. So Crunches (a 6-level ladder) showed 50 rows of
-     * which 44 were the SAME row, all reading "Dragon Flag / 15 reps" — the
-     * owner's "each level has to be more max reps" and "don't display Dragon
-     * Flag instead show the reps", both at once. There is nothing to extend TO,
-     * so the picker ends where the ladder does.
+     * LOAD row because extrapolating a ladder gives a real weight — but a rep
+     * ladder has already run out by the time anyone would want to extend it: a
+     * bodyweight row stops at its rep CEILING (50 reps, or the hold's own
+     * seconds ladder), and past that the rows would repeat. So the picker ends
+     * where the ladder does, at [ProgressionEngine.effectiveMaxLevel].
+     *
+     * This used to be justified differently and wrongly: the reason was that
+     * [ProgressionEngine.variationAtLevel] repeated the hardest movement past
+     * the last rung, so Crunches showed 50 rows of which 44 read "Dragon Flag".
+     * A rep ladder no longer names a movement at all, and the rows below its
+     * ceiling are genuinely distinct — but there is still nothing to extend TO,
+     * which is the part that decides this.
      */
     fun progressionMaxLevel(exerciseName: String): Int {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return 1
         if (!ProgressionEngine.isProgressionReady(entry)) return 1
-        if (ProgressionEngine.isRepProgressed(entry)) return ProgressionEngine.effectiveMaxLevel(entry)
-        return maxOf(
-            ProgressionEngine.maxLevel(entry),
-            ProgressionEngine.EXTENSION_CHUNK,
-            extensionLevelFor(exerciseName)
-        )
+        // OWNER RULING 2026-10-04: "for the max level create different max levels
+        // for each exercise based on when it cant be increased anymore ... i want
+        // each exercise to have their cealing to be humane and nothing over
+        // humanly possible. make the max level of each exercise realistic".
+        //
+        // THIS USED TO FLOOR EVERY EXERCISE AT [ProgressionEngine.EXTENSION_CHUNK]
+        // (50), whatever the row's own end was. Measured on the shipped pool: the
+        // declared maxLevel is the CSV ladder's LENGTH, not a ceiling - 6, 30, 4,
+        // 15, 40, 20, 10 - and it bears no relation to when an exercise stops
+        // progressing. So "50 for everything" was not a conservative default, it
+        // was an invented one, and the "extend" grid could push it to 500.
+        //
+        // WHAT REPLACES IT is the answer the row already carries, and it is not
+        // invented either: 478 of the 594 rows have a sourced [HumanCeiling]
+        // ("elite dumbbell curl ~45-50 kg/arm"), and
+        // [ProgressionEngine.effectiveMaxLevel] maps the ladder onto it. The
+        // remaining 116 are `variation_step` rows with no load at all, and for
+        // those the ceiling is the rep climb - [ProgressionEngine.repRungs], which
+        // tops out at the 50-rep end of the owner's checkpoint ladder. So every
+        // row now ends where its own evidence says it ends.
+        //
+        // THE SAFETY ARGUMENT, which is why this is not cosmetic: the old comment
+        // on [extendLevelList] claimed "with extrapolated ladders every level is
+        // genuinely selectable, so the added rows are real prescriptions". They
+        // were - real, and unreachable. `valueAtLevel` past the ladder extrapolates
+        // by the row's own increment with nothing stopping it, so level 300 of a
+        // barbell row is a weight no human lifts, and [setExerciseLevel] clamped to
+        // THIS function rather than to the ceiling, so it could be selected and
+        // logged. A ceiling the app will let you walk past is not a ceiling.
+        return ProgressionEngine.effectiveMaxLevel(entry)
     }
 
     /** The number of Roman stages in the exercise's rep pattern (its width). */
@@ -1072,10 +1172,15 @@ class WorkoutViewModel(
         if (!ProgressionEngine.isProgressionReady(entry)) return
         // A locked exercise stays where it is — manual jumps from the level
         // picker included. Unlock it from the card's lock icon first.
+        //
+        // The jump is still allowed, and still reaches any level the exercise
+        // genuinely has; what it can no longer reach is a level past the ceiling.
         if (isExerciseLockedNow(exerciseName)) return
-        // The ceiling is the extended grid, not the data's own max: extension
-        // rows carry real extrapolated prescriptions, so a jump to level 80 on
-        // a 40-level program is a genuine selection and must stick.
+        // The ceiling is the exercise's OWN humane end - see [progressionMaxLevel].
+        // It used to be the extension grid (>= 50, growable to 500), which meant a
+        // jump to a level past any humanly possible load was a valid selection and
+        // could be logged. [ProgressionEngine.effectiveMaxLevel] stops at the row's
+        // sourced HumanCeiling, or at the rep ceiling for a ladder with no load.
         val clamped = level.coerceIn(1, progressionMaxLevel(exerciseName))
         prefs.putString(progressionKey(exerciseName), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(clamped, 1)))
         refreshProgressionDisplayNow(exerciseName)
@@ -1101,7 +1206,11 @@ class WorkoutViewModel(
      * progression state the workout screens show, so the overall level can never
      * disagree with the individual ones. Each exercise's own (ceiling-aware)
      * ladder length goes with the sample, so every exercise lands on the shared
-     * 0–1 progress axis before averaging.
+     * 0-100 progress axis before the median is taken — without it a level 6 of 6
+     * would be counted level-for-level with a level 6 of 30.
+     *
+     * The stored figure is that 0-100 median and is backend-only: nothing in the
+     * UI prints it, and [OverallLevelRank] turns it into the letter the user sees.
      */
     private suspend fun recomputeOverallLevel() {
         val samples = OverallLevelCalculator.qualifyingSamples(
@@ -1375,27 +1484,35 @@ class WorkoutViewModel(
 
     /**
      * Grows the level list for [exerciseName] by one chunk of
-     * [ProgressionEngine.EXTENSION_CHUNK] levels (50 → 100 → … 500), capped at
-     * [ProgressionEngine.PICKER_LEVEL_LIMIT] and remembered across sessions.
-     * With extrapolated ladders every level is genuinely selectable, so the
-     * added rows are real prescriptions, not dead reference rows.
+     * [ProgressionEngine.EXTENSION_CHUNK] levels, and is now a NO-OP.
+     *
+     * It used to grow to [ProgressionEngine.PICKER_LEVEL_LIMIT] (500) on the
+     * stated reasoning that "with extrapolated ladders every level is genuinely
+     * selectable, so the added rows are real prescriptions". They were real, and
+     * beyond what a human can lift: `valueAtLevel` extrapolates by the row's own
+     * increment forever, with nothing stopping it. Since 2026-10-04
+     * [progressionMaxLevel] ends at the row's own humane ceiling, so there is
+     * nothing for this to unlock and the function is kept only so the call site
+     * still compiles - the button is hidden by [canExtendLevelList].
+     *
+     * The persisted `level_extension_*` keys are left alone rather than cleared:
+     * an exercise that HAD been extended keeps its stored level, and the clamp in
+     * [setExerciseLevel] pulls it back to the ceiling on the next change. Silently
+     * deleting a user's level is a worse outcome than letting the clamp do it.
      */
     fun extendLevelList(exerciseName: String) {
-        val next = (extensionLevelFor(exerciseName) + ProgressionEngine.EXTENSION_CHUNK)
-            .coerceAtMost(ProgressionEngine.PICKER_LEVEL_LIMIT)
-        if (next == extensionLevelFor(exerciseName)) return
-        prefs.putInt(extensionKey(exerciseName), next)
+        // Intentionally empty - see above.
     }
 
-    /** True while the list can still grow toward [ProgressionEngine.PICKER_LEVEL_LIMIT]. */
+    /**
+     * Always false since 2026-10-04: a ladder now ends at the exercise's own humane
+     * ceiling, so there is nothing to extend to and the button would only offer
+     * rows the app refuses to select.
+     */
     fun canExtendLevelList(exerciseName: String): Boolean {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
         if (!ProgressionEngine.isProgressionReady(entry)) return false
-        // A rep-progressed ladder has no extrapolatable tail (see
-        // progressionMaxLevel), so there is nothing to extend and offering the
-        // button would only produce duplicate rows.
-        if (ProgressionEngine.isRepProgressed(entry)) return false
-        return progressionMaxLevel(exerciseName) < ProgressionEngine.PICKER_LEVEL_LIMIT
+        return false
     }
 
     /**
@@ -1536,6 +1653,62 @@ class WorkoutViewModel(
     /** Prefs key holding the reviewed-at workout count for a mastered exercise. */
     private fun masteryReviewedKey(name: String) = "mastery_reviewed_$name"
 
+    // ------------------------------------------------------------------
+    // The session recap accumulator.
+    //
+    // Deliberately in-memory and deliberately cleared on reset rather than read
+    // back out of the log table: the recap describes THE SESSION the user just
+    // did, and the log table also holds yesterday's sets for the same exercise
+    // and cannot say which of them belong to this run.
+    // ------------------------------------------------------------------
+
+    /** When the first set of the current session was logged; 0 = not started. */
+    private var recapStartedAt: Long = 0L
+
+    /** Distinct exercise names trained this session. */
+    private val recapExercises = linkedSetOf<String>()
+
+    /** Total load volume this session, in the exercises' own units. */
+    private var recapVolumeKg: Double = 0.0
+
+    private fun clearRecap() {
+        recapStartedAt = 0L
+        recapExercises.clear()
+        recapVolumeKg = 0.0
+    }
+
+    /**
+     * The recap for the finished session.
+     *
+     * [setsLogged] is passed in rather than derived, because the caller's state
+     * update is what increments it and reading the pre-update value would be
+     * off by exactly the final set — the one set the recap exists to report.
+     *
+     * The muscle split counts SETS per muscle from the routine's own
+     * `muscleGroup`, so it cannot disagree with the rest of the app: the same
+     * field drives the badges on the cards.
+     */
+    private fun buildRecap(setsLogged: Int, exercises: List<RoutineExerciseEntity>): WorkoutRecap {
+        val byMuscle = linkedMapOf<String, Int>()
+        exercises.forEach { ex ->
+            val muscle = ex.muscleGroup.ifBlank { "Other" }
+            byMuscle[muscle] = (byMuscle[muscle] ?: 0) + ex.targetSets
+        }
+        val duration = if (recapStartedAt == 0L) 0L
+        else ((System.currentTimeMillis() - recapStartedAt) / 1000L).coerceAtLeast(0L)
+        return WorkoutRecap(
+            exercises = recapExercises.size,
+            sets = setsLogged,
+            // Null rather than 0.0: a bodyweight or timed session has no honest
+            // volume figure, and "0 kg" reads as "you did nothing".
+            volumeKg = recapVolumeKg.takeIf { it > 0.0 },
+            durationSeconds = duration,
+            setsByMuscle = byMuscle.entries
+                .sortedByDescending { it.value }
+                .associate { it.key to it.value },
+        )
+    }
+
     /** Workouts a reviewed card stays quiet before re-offering itself. */
     private val MASTERY_REVIEW_COOLDOWN = 5
 
@@ -1553,8 +1726,9 @@ class WorkoutViewModel(
             // A DECLINED evolution is locked, not snoozed. Without this the
             // five-workout cooldown would quietly re-offer it forever, which
             // is the nagging the lock exists to stop. Only the editor
-            // reopens it (reopenEvolution).
-            if (isEvolutionDeclined(ex.name)) return@mapNotNull null
+            // reopens it (reopenEvolution) - or, on a rep ladder, the next
+            // checkpoint the level climbs to.
+            if (!isProgressionAvailable(ex.name)) return@mapNotNull null
             // A reviewed-and-declined card rests before re-showing.
             val reviewedAt = prefs.getInt(masteryReviewedKey(ex.name), -1)
             if (reviewedAt >= 0 && workoutCount - reviewedAt < MASTERY_REVIEW_COOLDOWN) {
@@ -1567,7 +1741,11 @@ class WorkoutViewModel(
                 equipment = ExerciseCatalog.entryForId(entry.id)?.equipment ?: "",
                 level = state.level,
                 stageRoman = ProgressionEngine.stageName(state.stage),
-                load = ProgressionEngine.valueAtLevelWithCeiling(entry, state.level),
+                // A rep ladder carries no load at all: its value column is the ordinal of a
+                // variation, and a number that means nothing must not travel any
+                // further as if it were kilograms. The reps are the prescription.
+                load = if (ProgressionEngine.isRepLadder(entry)) null
+                else ProgressionEngine.valueAtLevelWithCeiling(entry, state.level),
                 unit = entry.unit,
                 reason = reason,
                 ceiling = entry.ceiling,
@@ -1615,15 +1793,105 @@ class WorkoutViewModel(
 
     private fun evolutionDeclinedKey(name: String) = "evolution_declined_$name"
 
+    /**
+     * The rep checkpoint a declined offer was made at, or null when nothing was
+     * declined. Owner ruling 2026-10-03: "if the user chooses no, the exercise
+     * could go on with the level higher... if he doesnt simply keep
+     * incrementing to maybe 50 and then a show progression again".
+     *
+     * So a decline is a REP COUNT, not a boolean. The old boolean meant the
+     * offer could never come back on its own, which was right for a LOAD row -
+     * its ladder genuinely ends - and wrong for a rep ladder, where the user
+     * has only said "not yet" at 12 reps and climbs on.
+     */
+    private fun declinedRepCheckpointKey(name: String) = "evolution_declined_reps_$name"
+
+    /** Whether this exercise's offer has already been put in front of the user. */
+    private fun evolutionOfferedKey(name: String) = "evolution_offered_$name"
+
+    /**
+     * Whether the progression offer for [name] has ALREADY been shown as a
+     * popup at least once.
+     *
+     * The owner's rule: "for the progression label when a level is reached, i
+     * want it to only show at the end of the workout first and not directly
+     * when selecting the new exercise. So only show it once the progression
+     * popup window came for the user."
+     *
+     * So this is deliberately NOT the same question as [isProgressionAvailable].
+     * That one asks "is an offer pending", which becomes true the instant a
+     * level reaches a checkpoint - which is precisely when the user would get
+     * the label mid-session, before the workout that will offer it has even
+     * finished. This asks the other half: has the offer actually been made
+     * yet. Both have to hold for the label to appear.
+     */
+    fun hasSeenProgressionOffer(name: String): Boolean =
+        prefs.getBoolean(evolutionOfferedKey(name), false)
+
+    private fun declinedRepCheckpoint(name: String): Int? =
+        prefs.getInt(declinedRepCheckpointKey(name), -1).takeIf { it >= 0 }
+
     /** True when [name]'s evolution offer has been declined and left locked. */
-    fun isEvolutionDeclined(name: String): Boolean = prefs.getBoolean(evolutionDeclinedKey(name), false)
+    fun isEvolutionDeclined(name: String): Boolean {
+        if (prefs.getBoolean(evolutionDeclinedKey(name), false)) return true
+        val declinedAt = declinedRepCheckpoint(name) ?: return false
+        // A declined rep checkpoint re-arms at the next one. Only the last
+        // checkpoint is final, because past it there is nowhere to climb to.
+        return ProgressionEngine.nextRepCheckpoint(declinedAt) == null
+    }
+
+    /**
+     * Whether [name] is currently OWED a progression offer - the state the
+     * "progression available" label next to the level pill reports.
+     *
+     * Same question the post-workout card asks, so the two cannot disagree: a
+     * label that says "available" while the workout ends without showing it
+     * would be the quiet version of the bug this whole flow is about.
+     */
+    fun isProgressionAvailable(name: String): Boolean {
+        val entry = ProgressionEngine.entryFor(name) ?: return false
+        val state = currentProgressionState(name) ?: return false
+        val declinedAt = declinedRepCheckpoint(name)
+        // A rep ladder's decline re-arms at the next checkpoint, so it is
+        // remembered as a REP COUNT and handed to the engine, which owns the
+        // rule. A loaded row keeps the old permanent boolean lock, and the
+        // engine cannot know about that flag, so it is applied here.
+        if (ProgressionEngine.isRepLadder(entry)) {
+            return ProgressionEngine.isProgressionPending(entry, state, declinedAt)
+        }
+        return ProgressionEngine.isProgressionPending(entry, state, null) &&
+            !isEvolutionDeclined(name)
+    }
+
+    /**
+     * The exercise [name] would be offered next, or null when nothing is
+     * pending. The label shows this so the user can see what the progression
+     * IS before opening the popup.
+     */
+    fun pendingProgressionTarget(name: String): String? {
+        if (!isProgressionAvailable(name)) return null
+        val entry = ProgressionEngine.entryFor(name) ?: return null
+        return ProgressionEngine.preferredBranch(entry)?.entry
+    }
 
     /**
      * Declines the offer: the exercise stays at its cap and is locked there.
      * The lock is per-exercise and permanent until [reopenEvolution].
+     *
+     * A REP LADDER records the checkpoint it was declined at instead, so the
+     * offer comes back at the next one once the level has climbed on.
      */
     fun declineEvolution(name: String) {
-        prefs.putBoolean(evolutionDeclinedKey(name), true)
+        val entry = ProgressionEngine.entryFor(name)
+        val state = currentProgressionState(name)
+        val checkpoint = entry?.let { e ->
+            state?.let { ProgressionEngine.repCheckpointAtLevel(e, it.level) }
+        }
+        if (entry != null && ProgressionEngine.isRepLadder(entry) && checkpoint != null) {
+            prefs.putInt(declinedRepCheckpointKey(name), checkpoint)
+        } else {
+            prefs.putBoolean(evolutionDeclinedKey(name), true)
+        }
         markMasteryReviewed(name)
         refreshMasteredCards()
     }
@@ -1634,6 +1902,7 @@ class WorkoutViewModel(
      */
     fun reopenEvolution(name: String) {
         prefs.remove(evolutionDeclinedKey(name))
+        prefs.remove(declinedRepCheckpointKey(name))
     }
 
     /** Accepts the offer and clears any lock in one step. */
@@ -1669,6 +1938,34 @@ class WorkoutViewModel(
         return evolutionOfferFor(sourceName, branch.entry)
     }
 
+    /**
+     * Every branch [card] offers, as resolved offers, in the card's own order.
+     *
+     * A branch whose target cannot be rendered (`evolutionOffer` returns null -
+     * the target has no level ladder, or the state is missing) is dropped rather
+     * than drawn as an option that does nothing when tapped. When that leaves
+     * nothing at all, the card has no evolution to show and the caller skips it.
+     */
+    fun evolutionOffersFor(card: MasteryCardData): List<ProgressionEngine.EvolutionOffer> =
+        card.branches.mapNotNull { branch ->
+            evolutionOfferFor(card.exerciseName, branch.entry)
+        }
+
+    /**
+     * The post-workout mastery card for [exerciseName], or null when there is
+     * none - the exercise is not mastered, is cooling down, or is locked.
+     *
+     * Used by the editor's "Upgrade" badge, which has to rebuild the tree from
+     * the current list rather than be handed one. Recomputing from the routine
+     * (rather than searching the already-built [workoutNowState] list) is what
+     * makes the badge work days later: the post-workout list is rebuilt on
+     * every completion, so a card from a previous session is not something to
+     * go looking for.
+     */
+    fun masteryCardFor(exerciseName: String): MasteryCardData? =
+        computeMasteredExercises(allRoutineExercises.value)
+            .firstOrNull { it.exerciseName == exerciseName }
+
     private fun markMasteryReviewed(name: String) {
         prefs.putInt(masteryReviewedKey(name), prefs.getInt("completed_workout_count", 0))
     }
@@ -1676,15 +1973,42 @@ class WorkoutViewModel(
     private fun refreshMasteredCards() {
         val exercises = allRoutineExercises.value
         if (exercises.isEmpty()) return
-        val cards = computeMasteredExercises(exercises)
+        applyMasteryCards(computeMasteredExercises(exercises))
+    }
+
+    /**
+     * Publishes [cards] as the post-workout mastery state: the cards themselves,
+     * the one-per-exercise preferred offers, the whole-fork trees the popup
+     * draws, and a bumped token so the screen seeds its queue once per change.
+     *
+     * The token is bumped even when the offers are unchanged, so the screen can
+     * tell "same list, recomposed" from "new decision to make".
+     *
+     * WHY THIS IS ITS OWN FUNCTION: the workout-completion path used to write
+     * only `masteredExercises` into the state, which left `evolutionTrees` at
+     * whatever it was (empty on a first completion). The screen seeds its popup
+     * queue from `evolutionTrees`, so an exercise that reached its ladder end on
+     * the very set that completed the workout got a card and NO POPUP — which
+     * is exactly the report "the progression popup is not shown for exercises
+     * that reached max level". Every path that produces mastery cards now goes
+     * through here, so the card and the popup it offers cannot disagree.
+     */
+    private fun applyMasteryCards(cards: List<MasteryCardData>) {
+        // Every card here is about to be put in front of the user as a popup,
+        // so record that the offer was actually MADE. The "progression
+        // available" label on the exercise card asks this before it says
+        // anything - see hasSeenProgressionOffer.
+        cards.forEach { card -> prefs.putBoolean(evolutionOfferedKey(card.exerciseName), true) }
         _workoutNowState.update {
             it.copy(
                 masteredExercises = cards,
                 evolutionOffers = cards.mapNotNull { card ->
                     preferredEvolutionOffer(card.exerciseName)
                 },
-                // Bumped even when the offers are unchanged, so the screen can
-                // tell "same list, recomposed" from "new decision to make".
+                evolutionTrees = cards.mapNotNull { card ->
+                    val offers = evolutionOffersFor(card)
+                    if (offers.isEmpty()) null else EvolutionTreeItem(card, offers)
+                },
                 evolutionToken = it.evolutionToken + 1,
             )
         }
@@ -1772,8 +2096,20 @@ class WorkoutViewModel(
             ))
 
             val nextSetNumber = currentState.currentSetNumber + 1
+
+            // Recap accumulation. Every number the finished-session card shows
+            // comes from a set the user really logged, so nothing here can
+            // disagree with the history on the analytics screen.
+            if (recapStartedAt == 0L) recapStartedAt = System.currentTimeMillis()
+            recapExercises.add(currentExercise.name)
+            recapVolumeKg += currentState.currentWeightKg * currentState.currentReps
             
             var isTransition = false
+            // Non-null only on the completing set; holds the cards so the
+            // completion branch below can hand them to applyMasteryCards without
+            // recomputing them (computeMasteredExercises reads prefs, and the
+            // workout counter it depends on has just been bumped).
+            var masteryCards: List<MasteryCardData>? = null
             _workoutNowState.update { state ->
                 if (nextSetNumber <= currentExercise.targetSets) {
                     state.copy(currentSetNumber = nextSetNumber, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
@@ -1787,16 +2123,24 @@ class WorkoutViewModel(
                         // and gather the mastery cards the spec's hub shows after
                         // the summary.
                         prefs.putInt("completed_workout_count", prefs.getInt("completed_workout_count", 0) + 1)
+                        val cards = computeMasteredExercises(exercises)
+                        masteryCards = cards
                         state.copy(
                             isWorkoutCompleted = true,
                             totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
                             restTimerSeconds = 0,
                             isTimerActive = false,
-                            masteredExercises = computeMasteredExercises(exercises)
+                            masteredExercises = cards,
+                            workoutRecap = buildRecap(state.totalSetsLoggedToday + 1, exercises)
                         )
                     }
                 }
             }
+            // The popup queue is its own state field, so writing only the cards
+            // above left it stale (empty on a first completion) and the offer
+            // never opened for an exercise that maxed out on the final set.
+            // Publish the cards AND their trees in one pass.
+            masteryCards?.let { applyMasteryCards(it) }
             val updatedState = _workoutNowState.value
             if (!updatedState.isWorkoutCompleted) {
                 if (isTransition) {
@@ -1814,7 +2158,8 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.deleteTodayLogs()
         }
-        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0) }
+        clearRecap()
+        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0, workoutRecap = null) }
         saveDayProgress(_workoutNowState.value.selectedDayOfWeek, _workoutNowState.value)
         saveWorkoutNowState(_workoutNowState.value)
     }
@@ -1844,6 +2189,10 @@ class WorkoutViewModel(
             // end time no longer matches and it reports nothing — the user
             // never gets a second alert.
             val silent = prefs.getBoolean("is_silent_timer", false)
+            // Read BEFORE clearing: this is what tells the alert apart from a
+            // rest, so a timed exercise no longer announces that rest time is
+            // over. See NotificationHelper.showRestTimerEndedNotification.
+            val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
             prefs.putLong("timer_end_time_millis", 0L)
             prefs.putBoolean("is_exercise_timer", false)
             prefs.putBoolean("is_silent_timer", false)
@@ -1854,7 +2203,11 @@ class WorkoutViewModel(
             }
             val context = com.grafizum.repio.util.getApplicationContext()
             if (context != null) {
-                NotificationHelper.showRestTimerEndedNotification(context, alert = !silent)
+                NotificationHelper.showRestTimerEndedNotification(
+                    context,
+                    alert = !silent,
+                    wasExerciseTimer = wasExerciseTimer
+                )
             }
             onRestTimerFinished()
         } else if (endTime <= 0L && _workoutNowState.value.isTimerActive) {

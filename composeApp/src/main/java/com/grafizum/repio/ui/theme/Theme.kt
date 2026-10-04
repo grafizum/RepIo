@@ -31,6 +31,7 @@ import androidx.compose.ui.Modifier
 import androidx.compose.runtime.remember
 import androidx.compose.runtime.State
 import com.grafizum.repio.R
+import com.grafizum.repio.util.IconSwitchHelper
 
 
 val LocalDeveloperSkin = staticCompositionLocalOf { false }
@@ -122,12 +123,12 @@ private val CrimsonColorScheme = lightColorScheme(
     outline = Color(0xFFE9B9BD)
 )
 
-private val AzureSkyColorScheme = lightColorScheme(
-    primary = AzureSkyPrimary,
+private val RoyalBlueColorScheme = lightColorScheme(
+    primary = RoyalBluePrimary,
     onPrimary = Color.White,
     primaryContainer = Color(0xFFE5F1FF),
     onPrimaryContainer = Color(0xFF003366),
-    secondary = AzureSkySecondary,
+    secondary = RoyalBlueSecondary,
     onSecondary = Color.White,
     background = Color.White,
     onBackground = Color(0xFF1C1C1E),
@@ -303,6 +304,65 @@ private fun androidx.compose.material3.Typography.scaledFor(scale: Float): andro
 }
 
 /**
+ * Theme ids that no longer exist, and which must therefore be treated as if the
+ * user had never chosen a theme at all.
+ *
+ * A theme id is a PERSISTED STRING (`theme_option` in SharedPreferences) and its
+ * launcher activity is a PERSISTED COMPONENT STATE. Retiring one therefore leaves
+ * two broken things on the device, and fixing only the first is the trap:
+ *
+ *  1. the stored id matches nothing in `resolveColorScheme`, so it falls through
+ *     to `else` and the user is silently moved to another theme;
+ *  2. the enabled component (`MainActivityAzure`) no longer exists, so NO
+ *     launcher activity resolves at all and the app has no icon. Writing a valid
+ *     theme id to the preference does nothing for this - only `switchIcon` can.
+ *
+ * So a retired id is deliberately resolved to null ("no stored choice") rather
+ * than to its successor. That routes the user through the SAME fresh-install path
+ * a new user takes, which picks the system-appropriate default AND repairs the
+ * launcher icon. Mapping `AZURE` -> `ROYAL_BLUE` would have looked tidier and
+ * fixed only problem 1.
+ *
+ * `AZURE` (2026-10-02): the theme's colour was always #007AFF, hue 211 deg - a
+ * vivid blue, not azure. True azure (#007FFF) is hue 210 deg, so "make it
+ * actually azure" was a 1-degree change that also moved the theme TOWARD OCEAN
+ * (hue 188 deg, only 75/441 away) and made the two harder to tell apart in the
+ * picker. The colour was fine; the NAME was wrong.
+ *
+ * Deliberately NOT retired here: anything a user can currently pick. Only ids
+ * removed by a rename belong in this set.
+ */
+private val RETIRED_THEME_OPTIONS = setOf("AZURE")
+
+/**
+ * Exposed so a test can assert the set's SHAPE - that it holds dead ids only and
+ * never a mapping to a successor - rather than inferring it from behaviour. A
+ * `mapOf(old to new)` slipped in here would still pass every behavioural case,
+ * because translating a retired id and resetting it both "resolve to something".
+ */
+internal fun retiredThemeOptions(): Set<String> = RETIRED_THEME_OPTIONS
+
+/**
+ * True when [stored] names a theme that has been retired, whatever its casing.
+ *
+ * Kept separate from [migrateThemeOption] because the two callers need different
+ * things: the preference layer must CLEAR the stale id (and the auto-selected
+ * flag with it, so the fresh-install path is allowed to run), while the scheme
+ * resolver just needs to stop honouring it.
+ */
+internal fun isRetiredThemeOption(stored: String?): Boolean =
+    stored != null && stored.uppercase() in RETIRED_THEME_OPTIONS
+
+/**
+ * Maps a stored theme option to the value the app should use for it. A RETIRED
+ * id becomes null - "no stored choice" - so every caller's own defaulting stays
+ * the single place that decides what an unknown value means. Anything else is
+ * returned unchanged, including ids that never existed.
+ */
+internal fun migrateThemeOption(stored: String?): String? =
+    if (isRetiredThemeOption(stored)) null else stored
+
+/**
  * Resolves the colour scheme for a theme option under a given system appearance.
  *
  * Extracted from the composable so the routing is TESTABLE. "The orange dark
@@ -312,19 +372,85 @@ private fun androidx.compose.material3.Typography.scaledFor(scale: Float): andro
  * opposite of what a contrast test is for.
  */
 internal fun resolveColorScheme(themeOption: String, isDark: Boolean): ColorScheme {
-    return when (themeOption.uppercase()) {
+    return when (migrateThemeOption(themeOption)?.uppercase()) {
         "BEIGE" -> BeigeColorScheme
         "FLAME" -> FlameColorScheme
         "EMERALD" -> EmeraldColorScheme
         "CRIMSON" -> CrimsonColorScheme
-        "AZURE" -> AzureSkyColorScheme
+        "ROYAL_BLUE" -> RoyalBlueColorScheme
         "OCEAN" -> OceanColorScheme
         "ROSE" -> RoseColorScheme
         "PURPLE" -> PurpleColorScheme
         "DEVELOPER" -> DeveloperColorScheme
-        else -> if (isDark) FlameColorScheme else BeigeColorScheme
+        // An unknown or RETIRED id resolves through the SAME default a fresh
+        // install gets, so this asks [IconSwitchHelper.defaultThemeFor] rather
+        // than repeating its rule inline.
+        //
+        // This used to be `if (isDark) FlameColorScheme else BeigeColorScheme` -
+        // a second, private copy of the fresh-install default. It was correct
+        // while the default followed the system, and it became WRONG the moment
+        // the owner ruled (2026-10-04) that the base theme is Beige in both
+        // appearances: this branch would have sent a retired id to Flame on a
+        // dark phone while every other path sent it to Beige, and the symptom
+        // would have been a user whose AZURE selection silently came back as a
+        // dark theme. ThemeRenameTest caught it, which is the only reason it is
+        // worth being honest that the inline copy was a latent second decision
+        // all along.
+        else -> when (IconSwitchHelper.defaultThemeFor(isDark).uppercase()) {
+            "FLAME" -> FlameColorScheme
+            else -> BeigeColorScheme
+        }
     }
 }
+
+/**
+ * Whether a theme's palette was authored for DARK surfaces.
+ *
+ * Extracted from [WorkoutTrackerTheme] so the answer is TESTABLE and so there is
+ * exactly one copy of it. It was inline `when` before 2026-10-04, and
+ * `LauncherIconNightVariantTest` had to scrape the branch out of the composable's
+ * source text to check the icon split against it - reading Kotlin with a regex,
+ * which passes happily when the composable is reformatted and silently checks
+ * nothing when it is not.
+ *
+ * The pairing matters more than it looks. A theme's palette and its container
+ * ramp are ONE decision: Beige's colours are authored for a light card, so
+ * giving it dark containers produces an unreadable screen - muted text at 2.61:1
+ * and outlines at 1.47:1, both under their thresholds. That is not a
+ * hypothetical pairing; it is exactly what the app did.
+ *
+ * THE `else` BRANCH IS THE BUG THIS SHAPE HIDES, and it is why this function
+ * exists rather than staying an inline `when`. An unrecognised key - and
+ * "DEFAULT", the composable's own parameter default, is the common one - used to
+ * fall through to `isSystemDark`. Since the 2026-10-04 ruling the palette for such
+ * a key comes from `resolveColorScheme`, whose own `else` resolves through
+ * `defaultThemeFor` and is therefore Beige. So on a dark phone the app paired
+ * BEIGE'S LIGHT PALETTE with DARK CONTAINERS: light-theme content colours painted
+ * onto dark surfaces. Every other call site looked fine, because each passed a
+ * real theme id, which is why it reached the device uncaught. `DarkThemeContrastTest`
+ * caught it by deriving the ramp instead of assuming it.
+ *
+ * So the fallback asks the same question [resolveColorScheme] asks. One rule, two
+ * answers was the defect.
+ */
+internal fun isDarkThemeUsedFor(themeKey: String, isSystemDark: Boolean): Boolean =
+    when (themeKey.uppercase()) {
+        "BEIGE", "EMERALD", "CRIMSON", "ROYAL_BLUE" -> false
+        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER" -> true
+        // Same default as resolveColorScheme: the fresh-install theme, which is
+        // Beige in both appearances. NOT isSystemDark - that is the line that put
+        // a light palette on a dark ramp.
+        //
+        // "RAINBOW" was on the `true` line here and is deliberately NOT restored.
+        // It is not a theme: there is no `RAINBOW` case in `resolveColorScheme`, no
+        // picker entry and no launcher icon, so naming it only guaranteed that an
+        // id nobody can select would be handed DARK containers - while the palette
+        // it resolved to (the fresh-install default) is light. That is the same
+        // mismatch one layer up. With the `else` branch below asking
+        // `defaultThemeFor`, any unrecognised id is handled by the one rule rather
+        // than by a stale entry.
+        else -> isDarkThemeUsedFor(IconSwitchHelper.defaultThemeFor(isSystemDark), isSystemDark)
+    }
 
 @Composable
 fun WorkoutTrackerTheme(
@@ -333,15 +459,20 @@ fun WorkoutTrackerTheme(
     content: @Composable () -> Unit
 ) {
     val isDark = isSystemInDarkTheme()
-    val isDeveloper = themeOption.uppercase() == "DEVELOPER"
+    // Migrated ONCE here rather than per branch, so the renamed id cannot resolve
+    // differently in `resolveColorScheme` than it does in the checks below it.
+    // A RETIRED id resolves to the SAME default resolveColorScheme would pick,
+    // rather than falling back to the retired id itself. Falling back to
+    // `themeOption` here would quietly undo the failsafe for this one branch:
+    // the colours would come from the default scheme while the status-bar
+    // appearance below was still derived from the dead id.
+    val themeKey = migrateThemeOption(themeOption)
+        ?: IconSwitchHelper.defaultThemeFor(isDark)
+    val isDeveloper = themeKey.uppercase() == "DEVELOPER"
 
     // A dark scheme is one whose palette was authored for dark surfaces — used
     // both for the container ramp and the status-bar appearance below.
-    val isDarkThemeUsed = when (themeOption.uppercase()) {
-        "BEIGE", "EMERALD", "CRIMSON", "AZURE" -> false
-        "FLAME", "OCEAN", "ROSE", "PURPLE", "DEVELOPER", "RAINBOW" -> true
-        else -> isDark
-    }
+    val isDarkThemeUsed = isDarkThemeUsedFor(themeKey, isDark)
 
     val isLightTheme = !isDarkThemeUsed
 

@@ -47,7 +47,7 @@ original. Composited over #121212, nothing neutral exceeds ~52 (retro: 92),
 so no residue can remain by construction.
 
 DARK_VARIANTS is the source of truth: the five themes Theme.kt reports as
-dark. Light variants (beige, emerald, crimson, azure) are never touched.
+dark. Light variants (beige, emerald, crimson, royal_blue) are never touched.
 
 Run from the repo root:  python tools/icon-dark-variants.py [--write]
 Without --write it prints reports and previews only (dry run).
@@ -61,7 +61,7 @@ from PIL import Image
 REPO = Path(__file__).resolve().parents[1]
 RES = REPO / "composeApp" / "src" / "main" / "res"
 
-# Theme.kt: BEIGE/EMERALD/CRIMSON/AZURE -> light; these five -> dark.
+# Theme.kt: BEIGE/EMERALD/CRIMSON/ROYAL_BLUE -> light; these five -> dark.
 DARK_COLORED = ["flame", "ocean", "rose", "purple"]
 DARK_INVERTED = ["retro"]  # grayscale line art: dark lines must become light
 DARK_VARIANTS = DARK_COLORED + DARK_INVERTED

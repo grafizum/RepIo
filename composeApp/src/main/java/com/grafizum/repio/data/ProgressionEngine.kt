@@ -127,28 +127,275 @@ object ProgressionEngine {
     fun isRepProgressed(entry: ProgressionEntry): Boolean =
         isProgressionReady(entry) && valueKindOf(entry) != ValueKind.LOAD
 
+    // ------------------------------------------------------------------
+    // Rep ladders — the LEVEL is the rep count
+    //
+    // Owner ruling 2026-10-03: "changing the position of exercise i want
+    // removed, instead increase the reps". A bodyweight row used to walk a
+    // ladder of SUBSTITUTION MOVEMENTS — level 2 was a different exercise —
+    // so the level said nothing about how much work the user was asked to do,
+    // and the exercise changed without the user ever choosing to change it.
+    //
+    // Now the movement is fixed and the level counts reps, one per level, and
+    // the row's variation ladder survives only as the BRANCH data the
+    // progression offer draws from. That is the same thing the owner asked
+    // for in the other direction: the exercise becomes something else only
+    // when an offer is made and accepted.
+    //
+    // A REP LADDER is exactly a progression-ready row whose value is a
+    // variation — the rows with no barbell and no clock. Duration rows (a
+    // hold, a plank timed in seconds) keep their own ladder: their level
+    // already means "longer hold", which is the same idea in another unit.
+    // ------------------------------------------------------------------
+
+    /** True when [entry]'s level counts reps rather than load, variation or seconds. */
+    fun isRepLadder(entry: ProgressionEntry): Boolean =
+        isProgressionReady(entry) && valueKindOf(entry) == ValueKind.VARIATION
+
+    /**
+     * The rep counts at which a rep ladder offers to become a harder movement.
+     *
+     * Grounded rather than picked: 8-12 is the range the hypertrophy
+     * literature actually supports (Schoenfeld et al. 2021, the source of the
+     * "8-12 hypertrophy zone"), so 12 is the first rung past which MORE REPS
+     * stop being the best lever and a harder movement is the better one.
+     * Above it ACSM's progression model puts local muscular endurance at high
+     * repetitions - 15-25 - which is the second rung, and 50 is the ceiling
+     * for work that has no load to raise at all.
+     */
+    val REP_CHECKPOINTS: List<Int> = listOf(12, 25, 50)
+    /**
+     * FALLBACK ceiling for a CORE rep ladder with no entry in [RepCeilings].
+     * Every row the table covers has its own authored number; see
+     * [repCeilingFor] for why the fallback still exists.
+     */
+    const val CORE_REP_CEILING = 50
+
+    /**
+     * FALLBACK ceiling for any other rep ladder with no entry in [RepCeilings].
+     */
+    const val STANDARD_REP_CEILING = 25
+
+    /** Roughly how many rungs a rep ladder should have. See [repStepFor]. */
+    private const val REP_LADDER_RUNGS = 10
+
+    /**
+     * A rung never adds fewer than this many reps ONCE THE LADDER HAS ROOM to
+     * do it. See [repStepFor].
+     */
+    private const val MIN_REPS_PER_STEP = 2
+
+    /**
+     * Below this span a one-rep step is allowed, because there is no room for
+     * anything else. A handstand push-up's authored ceiling is 12 against a
+     * floor of 8: four reps of span cannot produce a five-rung ladder that also
+     * steps by two. See [repStepFor].
+     */
+    private const val MIN_SPAN_FOR_A_BIGGER_STEP = MIN_REPS_PER_STEP * 3
+
+    /** Reps at level 1 when the row declares no floor of its own. */
+    private const val DEFAULT_REP_FLOOR = 8
+
+    /** The rep count the ladder starts at: the row's own declared minimum. */
+    fun repFloorOf(entry: ProgressionEntry): Int = entry.repMin ?: DEFAULT_REP_FLOOR
+
+    /**
+     * True when [entry] is core work, by the CATALOG's own primary muscle
+     * through the app's existing broad-topic mapping, never by the name. "Plank"
+     * and "Dead Bug" say nothing about the mover; the catalog does.
+     */
+    private fun isCoreRepRow(entry: ProgressionEntry): Boolean {
+        val muscle = ExerciseCatalog.entryForId(entry.id)?.muscle ?: return false
+        return WorkoutTemplates.getTopicForMuscle(muscle) == "Core"
+    }
+
+    /**
+     * The most reps this exercise's ladder will ever ask for, and it is NOT the
+     * same number for every row.
+     *
+     * [RepCeilings] carries an authored number for every one of the 116
+     * bodyweight rep ladders, because a flat cap was wrong at both ends: it sent
+     * a glute bridge to 25 reps when ordinary programming is 30-50, and a
+     * handstand push-up to the same 25 when the movement itself ends near 12.
+     *
+     * The muscle fallback behind it is only a FALLBACK now - for a row added to
+     * the pool after the table was written, or a user's own custom exercise,
+     * which has no catalog row to ask. It keeps the old core/non-core split:
+     * high-rep core work is how core training is ordinarily written, while 25
+     * strict pull-ups is already an elite bodyweight standard. A row that falls
+     * through is a row nobody authored a ceiling for, so the coverage test
+     * fails the build rather than letting one ship silently.
+     */
+    fun repCeilingFor(entry: ProgressionEntry): Int =
+        RepCeilings.forSlug(entry.slug)
+            ?: if (isCoreRepRow(entry)) CORE_REP_CEILING else STANDARD_REP_CEILING
+
+    /**
+     * True when [entry]'s ceiling came from the authored table rather than the
+     * muscle fallback. Exposed so the coverage test can name the rows that
+     * would silently get the flat cap.
+     */
+    fun hasAuthoredRepCeiling(entry: ProgressionEntry): Boolean =
+        RepCeilings.forSlug(entry.slug) != null
+
+    /**
+     * How many reps one level adds, which is not one for every row either.
+     *
+     * The rule is about the RUNG rather than the rep: the rung is what the user
+     * sees, counts and navigates, and a ladder of 43 rungs that each add a
+     * single rep is the defect that started this ("1 rep is basically
+     * nothing"). So every rep ladder is built to roughly [REP_LADDER_RUNGS]
+     * rungs and the step is whatever reaches the row's own ceiling in that
+     * many: 2 for an ordinary 8-to-25 span, 4 for core's 8-to-50. A ladder
+     * with no room for that rule - a skill row whose whole range is four reps
+     * wide - steps by one rather than collapsing to three rungs. It is derived
+     * from the row's own floor and its authored ceiling, never from its name.
+     */
+    fun repStepFor(entry: ProgressionEntry): Int {
+        val span = (repCeilingFor(entry) - repFloorOf(entry)).coerceAtLeast(1)
+        // ROUNDED, not floored: integer division turned the ordinary 17-rep
+        // span into a step of 1 (17 / 10 == 1), which is precisely the ladder
+        // of near-identical rungs this was meant to remove. Rounding gives 2
+        // there and 4 for core's 42-rep span.
+        val step = (span.toDouble() / REP_LADDER_RUNGS).roundToInt().coerceAtLeast(1)
+        // "One rep is basically nothing" is the user's own complaint about a
+        // 43-rung ladder, and it stays true wherever the ladder HAS ROOM to
+        // honour it. It is not true of a genuinely short one: the authored
+        // ceiling for a pseudo-planche push-up is 12 against a floor of 8, and
+        // forcing a two-rep step there would leave three rungs - 8, 10, 12 -
+        // for a movement whose whole range is four reps wide. Five
+        // distinguishable rungs of 8/9/10/11/12 say more than three say less.
+        return if (span >= MIN_SPAN_FOR_A_BIGGER_STEP) step.coerceAtLeast(MIN_REPS_PER_STEP) else step
+    }
+
+    /**
+     * The per-set rep target a rep ladder asks for at [level]: one STEP more
+     * than the level below, from the row's own floor to [repCeilingFor].
+     *
+     * The floor is the row's declared minimum, and a row that declares none
+     * starts at 8 rather than 1: one rep is not a prescription for anything,
+     * and the supported range begins at the bottom of the hypertrophy window.
+     */
+    fun repsAtLevel(entry: ProgressionEntry, level: Int): Int {
+        val floor = repFloorOf(entry)
+        val top = repCeilingFor(entry)
+        return (floor + repStepFor(entry) * (level - 1)).coerceIn(floor, top)
+    }
+
+    /** How many rungs the ladder has. */
+    fun repRungs(entry: ProgressionEntry): Int {
+        val span = (repCeilingFor(entry) - repFloorOf(entry)).coerceAtLeast(1)
+        val step = repStepFor(entry)
+        // CEILING, not floor: a span of 7 with a step of 2 is four rungs by
+        // integer division, whose top rung is 14 of a declared 15 - so the
+        // ladder stopped one rep short of the ceiling it was built to reach,
+        // and the ceiling itself was therefore unreachable. Rounding up makes
+        // the last rung land on it, which repsAtLevel's coerceIn then holds.
+        return ((span + step - 1) / step) + 1
+    }
+
+    /**
+     * The first level whose reps reach or pass [reps].
+     *
+     * This is the right inverse for a checkpoint, because the rungs are a STEP
+     * apart and a checkpoint usually does not land on one: with core's step of
+     * 4 the 25-rep checkpoint is first reached at 28. Asking for the NEAREST
+     * rung instead would hand back the level below it, 24 reps, and report
+     * that the checkpoint had been passed before it was.
+     */
+    fun levelReachingReps(entry: ProgressionEntry, reps: Int): Int {
+        val above = reps - repFloorOf(entry)
+        if (above <= 0) return 1
+        val step = repStepFor(entry)
+        val level = (above + step - 1) / step + 1
+        return level.coerceIn(1, repRungs(entry))
+    }
+
+    /**
+     * The checkpoint this level reaches, or null when it reaches none.
+     *
+     * "Reaches" means the level's reps have reached or passed the checkpoint:
+     * the user who declines at 12 and climbs on is owed the next one, not told
+     * the offer expired.
+     *
+     * AT THE TOP RUNG the next checkpoint is owed even when the rungs stop short
+     * of it, because that is where the user would otherwise be stuck with
+     * nothing to climb to and nothing offered: a non-core ladder tops out at
+     * 24 reps with the 25 checkpoint exactly one rung above it. This is also
+     * what makes the last decline final, because declining at the top records
+     * the last checkpoint and there is no rung above it to re-arm at.
+     */
+    fun repCheckpointAtLevel(entry: ProgressionEntry, level: Int): Int? {
+        if (!isRepLadder(entry)) return null
+        val reps = repsAtLevel(entry, level)
+        val reached = REP_CHECKPOINTS.lastOrNull { reps >= it }
+        if (level < repRungs(entry)) return reached
+        // AT THE TOP RUNG the final checkpoint is what is owed, even when the
+        // rungs stop short of it. Reporting the last one REACHED here would be
+        // the stale answer - a user on core's 48-rep top rung would be told the
+        // 25 checkpoint was still pending, long after they passed it - and it
+        // would make declining at the top look repeatable when there is nothing
+        // above to re-arm at.
+        return REP_CHECKPOINTS.last()
+    }
+
+    /** The first checkpoint strictly above [reps], where a declined offer returns. */
+    fun nextRepCheckpoint(afterReps: Int): Int? =
+        REP_CHECKPOINTS.firstOrNull { it > afterReps }
+
+    /**
+     * Whether [state] on [entry] is currently OWED a progression offer.
+     *
+     * This is the whole decline lifecycle in one pure function, and it lives
+     * here rather than in the view model because the rule is the engine's: the
+     * offer appears at a checkpoint, and declining at one checkpoint only
+     * silences THAT one - the next checkpoint re-arms it. The owner's words:
+     * "progressions dont have to only show at max level... and then if the user
+     * chooses no, the exercise could go on with the level higher, lets say max
+     * is 25 levels with reps 25, if the user then chooses the progression then
+     * change the exercise, if he doesnt simply keep incrementing to maybe 50
+     * and then a show progression again".
+     *
+     * [declinedAtReps] is the rep count the user last declined, or null when
+     * nothing was declined. It is deliberately NOT a boolean: a boolean cannot
+     * express "not yet", which is the whole point of the re-arm.
+     *
+     * For a LOAD row [declinedAtReps] is ignored and the answer is simply
+     * [isMastered] — its ladder genuinely ends, so there is nothing to re-arm.
+     */
+    fun isProgressionPending(
+        entry: ProgressionEntry,
+        state: ProgressionState,
+        declinedAtReps: Int?,
+    ): Boolean {
+        if (!isMastered(entry, state)) return false
+        val checkpoint = repCheckpointAtLevel(entry, state.level)
+            ?: return declinedAtReps == null
+        return declinedAtReps == null || declinedAtReps < checkpoint
+    }
+
     /**
      * The per-set reps to prescribe at a [level]/[stage] of [entry].
      *
      * For a LOAD row this is exactly the Roman stage's own row — the load
      * already carries the progression, so the reps stay put.
      *
-     * For a rep-progressed row (bodyweight variation, hold, cardio) the reps
-     * RISE with the level, which is what makes a level mean anything when
-     * there is no weight to add. Two properties this guarantees, both
-     * requested by the owner and both previously untrue:
+     * For a REP LADDER (a bodyweight row with no barbell) the LEVEL is the rep
+     * count — one more rep per level — and the Roman stage distributes that
+     * count across the sets using the row's own cascade shape. See
+     * [isRepLadder] for why the level stopped naming a different movement.
+     *
+     * For the remaining rep-progressed rows (holds, cardio, anything measured
+     * in seconds) the reps rise with the level on a linear scale between
+     * repMin and repMax, and the stage adds its own increment on top. Two
+     * properties this guarantees, both requested by the owner and both
+     * previously untrue:
      *
      *  - reps never DROP when the level changes. Stage I is the pattern's
      *    floor ([8,8,8]), so a level-up used to reset a set of 12s back to
      *    8s — a demotion the user could see on the card.
      *  - each level's ceiling is strictly higher than the level below, up to
      *    the row's own [repMax] ceiling. [repMin] is the floor at level 1.
-     *
-     * The scale is linear between repMin and repMax across the ladder's
-     * effective range, and the stage is still honoured *inside* a level: the
-     * stage adds its own increment on top, then the result is clamped to
-     * [repMax]. So a mid-level stage still asks for more than the level's
-     * base, exactly as it does on a loaded row.
      *
      * Returns null only for the data-error case (no pattern row at the
      * stage), matching [romanStageReps] so every caller keeps its existing
@@ -157,6 +404,27 @@ object ProgressionEngine {
     fun prescribedReps(entry: ProgressionEntry, level: Int, stage: Int): List<Int>? {
         val base = romanStageReps(entry, stage) ?: return null
         if (!isProgressionReady(entry) || valueKindOf(entry) == ValueKind.LOAD) return base
+
+        // A REP LADDER: the level IS the rep count, and the Roman stage
+        // distributes it across the sets using the row's OWN cascade shape —
+        // the extra reps walk forward, one set at a time, so the set the user
+        // reaches last is the one that grows. The shape is read off the stored
+        // pattern (each stage's row minus stage I's row) rather than
+        // re-derived by a formula, because the pattern is the published part
+        // and a formula that quietly disagreed with it would be invisible.
+        //
+        // This is what the owner chose between two readings of "the roman
+        // number changes the reps per set": cascading forward, the shape the
+        // pool already carries.
+        if (isRepLadder(entry)) {
+            val floorRow = romanStageReps(entry, 1) ?: return base
+            val target = repsAtLevel(entry, level)
+            val top = repCeilingFor(entry)
+            val deltas = base.indices.map { i -> base[i] - (floorRow.getOrNull(i) ?: base[i]) }
+            return base.indices.map { i ->
+                (target + (deltas.getOrNull(i) ?: 0)).coerceAtMost(top)
+            }
+        }
 
         val min = entry.repMin ?: base.minOrNull() ?: return base
         val max = entry.repMax ?: min
@@ -631,6 +899,12 @@ object ProgressionEngine {
      * max_level can exceed the ladder — e.g. 6 levels over 3 variations),
      * mirroring how [valueAtLevel] clamps loads. Null when the exercise has
      * no variation ladder or the level is below 1.
+     *
+     * NOT a rep ladder's identity any more: a rep ladder's level counts reps
+     * and the movement only changes when the user accepts a progression offer,
+     * so nothing may read a variation off a level. It stays readable as the
+     * row's own sequence — that is the data the offer draws its destinations
+     * from.
      */
     fun variationAtLevel(entry: ProgressionEntry, level: Int): String? {
         if (entry.variations.isEmpty() || level < 1) return null
@@ -644,8 +918,14 @@ object ProgressionEngine {
      */
     fun prescribedValueAtLevel(entry: ProgressionEntry, level: Int): PrescribedValue? {
         return when (valueKindOf(entry)) {
-            ValueKind.VARIATION -> variationAtLevel(entry, level)
-                ?.let { PrescribedValue(ValueKind.VARIATION, null, it, null) }
+            // A rep ladder's level no longer names a movement, so it has no
+            // separate value to prescribe: the reps ARE the prescription and
+            // they come from [prescribedReps]. Rendering a variation here
+            // would put "Dragon Flag" back next to a level that now only means
+            // "one more rep", which is exactly the confusion this removed.
+            ValueKind.VARIATION -> if (isRepLadder(entry)) null
+                else variationAtLevel(entry, level)
+                    ?.let { PrescribedValue(ValueKind.VARIATION, null, it, null) }
             ValueKind.DURATION -> valueAtLevelWithCeiling(entry, level)
                 ?.let { PrescribedValue(ValueKind.DURATION, it, null, null) }
             ValueKind.LOAD -> valueAtLevelWithCeiling(entry, level)
@@ -656,8 +936,17 @@ object ProgressionEngine {
     /**
      * True when the prescribed value at [level] differs from the one at
      * [fromLevel] — the level-up actually changed the load/variation.
+     *
+     * A REP LADDER is measured on its REPS, not on a value: its
+     * [prescribedValueAtLevel] is null at every level (the reps are the whole
+     * prescription), so comparing values would report that no level-up ever
+     * changed anything — which is the one answer this function must never
+     * give, because the level-up did happen.
      */
     fun prescriptionChangesAt(entry: ProgressionEntry, fromLevel: Int, level: Int): Boolean {
+        if (isRepLadder(entry)) {
+            return prescribedReps(entry, fromLevel, 1) != prescribedReps(entry, level, 1)
+        }
         val before = prescribedValueAtLevel(entry, fromLevel)
         val after = prescribedValueAtLevel(entry, level)
         return before != after
@@ -719,6 +1008,12 @@ object ProgressionEngine {
      *   == the ladder's own max value) keep their declared max level.
      */
     fun effectiveMaxLevel(entry: ProgressionEntry): Int {
+        // A REP LADDER's length is the number of rungs its rep climb has, not the
+        // CSV's declared rung count: that was the variation ladder's length,
+        // which is a different thing entirely now that the level no longer
+        // selects a movement.
+        if (isRepLadder(entry)) return repRungs(entry)
+
         val declared = maxLevel(entry)
         val ceiling = entry.ceiling?.load ?: return declared
         val base = entry.levelValues.firstOrNull()
@@ -740,9 +1035,17 @@ object ProgressionEngine {
      * True when [level] is the exercise's last: the ladder has run out or the
      * ceiling load has been reached. The caller (mastery flow) then shows the
      * branch/ceiling UI instead of another level-up.
+     *
+     * A REP LADDER is the exception, and it is the owner's ruling: it is
+     * "at the offer" from the first checkpoint, not only at the top. More reps
+     * stop being the better lever once the level passes the hypertrophy range,
+     * so that is where a harder movement is offered — and declining it does
+     * NOT end the exercise, it lets the level keep climbing to the next
+     * checkpoint (see [repCheckpointAtLevel]).
      */
     fun isMastered(entry: ProgressionEntry, state: ProgressionState): Boolean {
         if (!isProgressionReady(entry)) return false
+        if (isRepLadder(entry)) return repCheckpointAtLevel(entry, state.level) != null
         val effMax = effectiveMaxLevel(entry)
         if (state.level < effMax) return false
         if (state.level > effMax) return true
@@ -755,6 +1058,9 @@ object ProgressionEngine {
     /** Why [entry] is mastered at [state]; [MasteryReason] or null if not mastered. */
     fun masteryReason(entry: ProgressionEntry, state: ProgressionState): MasteryReason? {
         if (!isMastered(entry, state)) return null
+        // A rep ladder reaching a checkpoint is the ladder's own end for this
+        // stretch of it — there is no load ceiling to have hit.
+        if (isRepLadder(entry)) return MasteryReason.LADDER_COMPLETE
         val ceiling = entry.ceiling?.load
         val effMax = effectiveMaxLevel(entry)
         val reachedCeilingLoad = ceiling != null &&

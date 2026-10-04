@@ -242,8 +242,17 @@ fun AnalyticsScreen(
             ) {
                 StatCard(
                     title = getString("overall_level_label"),
-                    value = if (overallLevel != null) {
-                        getString("overall_level_format", overallLevel)
+                    // The LEVEL as a whole number, with the rank letter as the
+                    // leading badge — same as Home, and for the same reason: the
+                    // letter was already the badge, so printing "Rank E" as the
+                    // value said it twice and hid the one number that moves
+                    // every session. The raw 0-100 figure and the weighted
+                    // median behind it stay backend-only (owner, 2026-10-02).
+                    value = if (overallLevel != null && overallRank != null) {
+                        getString(
+                            "overall_level_value_format",
+                            com.grafizum.repio.data.OverallLevelRank.displayLevel(overallLevel)
+                        )
                     } else {
                         getString("overall_level_none")
                     },

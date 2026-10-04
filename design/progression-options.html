@@ -1,0 +1,298 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepIo — progression window: three options</title>
+<style>
+/* Real Beige palette, straight out of Theme.kt's BeigeColorScheme. */
+:root{
+  --primary:#8C6239; --onPrimary:#fff;
+  --primaryContainer:#F0EAE2; --onPrimaryContainer:#5D4037;
+  --secondary:#795548;
+  --background:#FDFCFB; --onBackground:#2C2520;
+  --surface:#F9F7F4; --onSurface:#2C2520;
+  --surfaceVariant:#F4F1ED; --onSurfaceVariant:#4E443F;
+  --outline:#D7CCC8;
+  --radius:18px;
+  --shadow:rgba(44,37,32,.10);
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--background); color:var(--onSurface);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+header{padding:26px 20px 6px; max-width:1240px; margin:0 auto}
+h1{font-size:20px; margin:0 0 6px; letter-spacing:-.01em}
+header p{margin:0; color:var(--onSurfaceVariant); font-size:14px; line-height:1.55}
+.controls{max-width:1240px; margin:0 auto; padding:14px 20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+select,button{
+  font:inherit; font-size:14px; padding:8px 12px; border-radius:10px;
+  border:1px solid var(--outline); background:var(--surface); color:var(--onSurface);
+}
+button{cursor:pointer}
+button.on{background:var(--primary); color:var(--onPrimary); border-color:var(--primary)}
+.wrap{max-width:1240px; margin:0 auto; padding:8px 20px 60px}
+.grid{display:grid; grid-template-columns:repeat(auto-fit,minmax(340px,1fr)); gap:20px}
+.opt{background:var(--surface); border:1px solid var(--outline); border-radius:var(--radius); overflow:hidden; display:flex; flex-direction:column}
+.opt header{padding:16px 18px 10px; max-width:none; margin:0}
+.opt h2{font-size:16px; margin:0 0 4px}
+.opt .sub{font-size:13px; color:var(--onSurfaceVariant); line-height:1.5; margin:0}
+.badge{display:inline-block; font-size:11px; font-weight:700; letter-spacing:.04em; text-transform:uppercase;
+  color:var(--onPrimaryContainer); background:var(--primaryContainer); padding:3px 8px; border-radius:999px; margin-bottom:8px}
+.stage{background:var(--background); border-top:1px solid var(--outline); border-bottom:1px solid var(--outline);
+  padding:18px; display:flex; justify-content:center; flex:1; min-height:520px; align-items:center}
+.notes{padding:12px 18px 16px; font-size:12.5px; color:var(--onSurfaceVariant); line-height:1.55; margin:0}
+.notes b{color:var(--onSurface)}
+
+/* ---- phone frame: all three options are the same window on the same phone ---- */
+.phone{width:320px; height:600px; border:9px solid #2C2520; border-radius:36px; background:var(--background);
+  overflow:hidden; position:relative; display:flex; flex-direction:column; box-shadow:0 10px 30px var(--shadow)}
+.scrim{position:absolute; inset:0; background:rgba(44,37,32,.34)}
+.sheet{position:relative; margin-top:auto; background:var(--surface); border-radius:22px 22px 0 0;
+  padding:16px 16px 14px; max-height:100%; overflow:auto; box-shadow:0 -6px 24px var(--shadow)}
+.full{position:relative; background:var(--surface); height:100%; overflow:auto; padding:16px}
+.bar{width:36px; height:4px; border-radius:2px; background:var(--outline); margin:0 auto 12px}
+.h{font-size:16px; font-weight:800; letter-spacing:-.01em; margin:0 0 2px}
+.sub{font-size:12.5px; color:var(--onSurfaceVariant); margin:0 0 12px; line-height:1.5}
+.btn{width:100%; text-align:center; padding:12px; border-radius:12px; font-weight:700; font-size:14px; cursor:pointer; border:none}
+.pri{background:var(--primary); color:var(--onPrimary)}
+.sec{background:transparent; color:var(--primary)}
+.warn{background:var(--surfaceVariant); border:1px solid var(--outline); border-radius:12px; padding:10px 12px;
+  font-size:11.5px; color:var(--onSurfaceVariant); line-height:1.5; margin:10px 0}
+
+/* ---- shared atoms ---- */
+.card{background:var(--background); border:1px solid var(--outline); border-radius:14px; padding:11px 12px}
+.card.sel{border-color:var(--primary); background:var(--primaryContainer)}
+.name{font-size:13.5px; font-weight:700; line-height:1.3}
+.lvl{font-size:11px; color:var(--onSurfaceVariant); margin-top:3px}
+.lvl b{color:var(--primary)}
+.tag{display:inline-block; font-size:10px; font-weight:700; padding:2px 6px; border-radius:999px;
+  background:var(--primaryContainer); color:var(--onPrimaryContainer); margin-left:5px; vertical-align:1px}
+.nodes{font-size:11px; color:var(--onSurfaceVariant); margin-top:6px; line-height:1.45}
+.bar2{height:7px; border-radius:4px; background:var(--surfaceVariant); overflow:hidden; margin-top:8px}
+.bar2 i{display:block; height:100%; background:var(--primary); border-radius:4px}
+.muted{background:var(--outline)}
+.note{font-size:11px; color:var(--onSurfaceVariant); line-height:1.5; margin-top:7px}
+
+/* ---- A: evolution tree ---- */
+.tree{font-family:ui-monospace,SFMono-Regular,Menlo,monospace}
+.trunk{width:2px; background:var(--outline); margin:0 0 0 8px}
+.leg{display:flex; align-items:center; gap:8px; padding:4px 0}
+.elbow{width:26px; height:12px; border-left:2px solid var(--outline); border-bottom:2px solid var(--outline);
+  border-bottom-left-radius:8px; flex:none; margin-bottom:12px}
+.bud{display:flex; align-items:center; gap:6px; padding:2px 0 2px 26px; font-size:10.5px; color:var(--onSurfaceVariant)}
+.dot{width:5px; height:5px; border-radius:50%; background:var(--outline); flex:none}
+
+/* ---- B: the fork ---- */
+.ladder{display:flex; flex-direction:column; gap:9px}
+.opt2{display:flex; align-items:center; gap:10px; background:var(--background); border:1px solid var(--outline);
+  border-radius:12px; padding:9px 11px}
+.opt2.sel{border-color:var(--primary); background:var(--primaryContainer)}
+.radio{width:17px; height:17px; border-radius:50%; border:2px solid var(--outline); flex:none; display:grid; place-items:center}
+.opt2.sel .radio{border-color:var(--primary)}
+.opt2.sel .radio:after{content:""; width:8px; height:8px; border-radius:50%; background:var(--primary)}
+.chev{margin-left:auto; color:var(--primary); font-size:15px; flex:none}
+
+/* ---- C: quiet inline ---- */
+.inlinecard{background:var(--surface); border:1px solid var(--outline); border-radius:16px; padding:12px; margin:10px 0}
+.q{display:flex; align-items:center; gap:10px}
+.q .card{flex:1}
+.ghostbtn{background:transparent; border:1px solid var(--outline); color:var(--onSurfaceVariant); border-radius:10px;
+  padding:8px 10px; font-size:12px; font-weight:600; cursor:pointer}
+</style>
+</head>
+<body>
+<header>
+  <h1>Progression window — three options</h1>
+  <p>All three draw the <b>same real branch data</b> (<code>design/_branches.js</code>, generated from
+  <code>progression_v5.json</code> — the same file that becomes <code>ExerciseProgression.kt</code>).
+  Pick the picker below to inspect any of the 334. Nothing here is invented.</p>
+</header>
+
+<div class="controls">
+  <label style="font-size:13px;color:var(--onSurfaceVariant)">Exercise</label>
+  <select id="ex"></select>
+  <span id="meta" style="font-size:13px;color:var(--onSurfaceVariant)"></span>
+</div>
+
+<div class="wrap"><div class="grid" id="grid"></div></div>
+
+<script src="_branches.js"></script>
+<script>
+const B = window.__BRANCHES__;
+// Bail out HERE, before anything reads B. A guard placed at the bottom of the
+// script is too late: the picker-building code above already called
+// Object.keys(B) and thrown, so the page died blank before the guard could
+// say why. Every line below this point assumes B exists.
+if(!B){
+  const gridEl = document.getElementById('grid');
+  if(gridEl) gridEl.innerHTML = '<p style="padding:20px;color:#4E443F">Could not load _branches.js. Run <code>tools/exercise-db/export_branches_js.py</code> first.</p>';
+  throw new Error('design/_branches.js did not load');
+}
+const sel = document.getElementById('ex');
+const meta = document.getElementById('meta');
+const grid = document.getElementById('grid');
+
+// Sorted so the widest forks are easy to find; the picker is over every row.
+const names = Object.keys(B).sort((a,b)=> B[b].branches.length - B[a].branches.length || a.localeCompare(b));
+names.forEach(n => { const o=document.createElement('option'); o.value=n; o.textContent=n; sel.appendChild(o); });
+
+const esc = s => String(s).replace(/[&<>"]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;'}[c]));
+
+// One shared set of atoms, so the three options cannot drift on the DATA even
+// though they differ completely on the presentation.
+// Four of the 334 branched rows (jump-squat, plyo-lunge, plyo-push-up,
+// nordic-hamstring-curl) carry NO ladder at all: they are the pool's
+// manual_review_required rows, which the app deliberately refuses to
+// level. As a branch source they have no max to have reached, so the
+// mockup says "no ladder" rather than printing "max null levels".
+function levelChip(maxLevel){
+  if(maxLevel==null) return `<div class="lvl">no level ladder (review-flagged)</div>`;
+  return `<div class="lvl">max <b>${maxLevel}</b> levels</div>`;
+}
+function nodesLine(nodes){
+  if(!nodes || !nodes.length) return '';
+  return `<div class="nodes">then ${nodes.map(esc).join(' › ')}</div>`;
+}
+function warnDecline(){
+  return `<div class="warn">Declining <b>locks this exercise permanently</b>. You can reopen this from the exercise editor.</div>`;
+}
+
+/* ---------- A: bottom sheet, evolution tree ---------- */
+function optionA(name){
+  const d = B[name], bs = d.branches;
+  const picked = bs[0];
+  const legs = bs.map((b,i)=>`
+    <div class="leg">
+      <div class="elbow"></div>
+      <div class="card ${i===0?'sel':''}" style="flex:1">
+        <div class="name">${esc(b.entry)}${b.tag==='new'?'<span class="tag">NEW</span>':''}</div>
+        ${nodesLine(b.nodes)}
+        ${i===0?`<div class="note">${esc(b.note)}</div>`:''}
+      </div>
+    </div>`).join('');
+  return `<div class="phone">
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="bar"></div>
+      <p class="h">You've mastered ${esc(name)}</p>
+      <p class="sub">${levelChip(d.maxLevel)}${bs.length>1?` &middot; <b>${bs.length} ways on</b>`:' &middot; one way on'}</p>
+      <div class="tree">
+        <div style="display:flex;align-items:center;gap:8px;margin-bottom:6px">
+          <div style="width:10px;height:10px;border-radius:50%;background:var(--primary)"></div>
+          <div class="name">${esc(name)}</div>
+        </div>
+        <div class="trunk" style="height:${Math.max(10,bs.length*8)}px"></div>
+        ${legs}
+      </div>
+      ${bs.length>1?`<p class="note" style="text-align:center">Tap another branch to switch</p>`:''}
+      ${warnDecline()}
+      <button class="btn pri">Become ${esc(picked.entry)}</button>
+      <button class="btn sec">Not now</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- B: bottom sheet, explicit fork ---------- */
+function optionB(name){
+  const d = B[name], bs = d.branches;
+  const rows = bs.map((b,i)=>`
+    <div class="opt2 ${i===0?'sel':''}">
+      <div class="radio"></div>
+      <div style="flex:1;min-width:0">
+        <div class="name">${esc(b.entry)}${b.tag==='new'?'<span class="tag">NEW</span>':''}</div>
+        ${nodesLine(b.nodes)}
+      </div>
+      <div class="chev">&rsaquo;</div>
+    </div>`).join('');
+  return `<div class="phone">
+    <div class="scrim"></div>
+    <div class="sheet">
+      <div class="bar"></div>
+      <p class="h">Level up</p>
+      <p class="sub">${d.maxLevel==null
+          ? `${esc(name)} has no level ladder. Pick what comes next.`
+          : `${esc(name)} is maxed at <b>${d.maxLevel}</b>. Pick what comes next.`}</p>
+      <div class="ladder">${rows}</div>
+      ${bs[0].note?`<div class="note" style="margin-top:10px">${esc(bs[0].note)}</div>`:''}
+      ${warnDecline()}
+      <button class="btn pri">Confirm</button>
+      <button class="btn sec">Stay here</button>
+    </div>
+  </div>`;
+}
+
+/* ---------- C: no modal at all, a card in the session ---------- */
+function optionC(name){
+  const d = B[name], bs = d.branches;
+  const picked = bs[0];
+  const more = bs.length>1
+    ? `<div class="q" style="margin-top:9px;gap:6px">
+         <span style="font-size:11.5px;color:var(--onSurfaceVariant)">${bs.length-1} other option${bs.length>2?'s':''}:</span>
+         ${bs.slice(1,4).map(b=>`<span class="tag">${esc(b.entry)}</span>`).join('')}
+       </div>` : '';
+  return `<div class="phone">
+    <div class="full">
+      <p class="h" style="margin-bottom:10px">Session complete</p>
+      <div style="background:var(--surfaceVariant);border:1px solid var(--outline);border-radius:12px;padding:10px 12px;margin-bottom:4px">
+        <div class="name">Bench Press</div>
+        <div class="lvl">3 sets &middot; 8 reps &middot; 60 kg</div>
+      </div>
+      <div class="inlinecard">
+        <div class="q">
+          <div class="card sel">
+            <div class="name">${esc(picked.entry)}</div>
+            ${levelChip(d.maxLevel)}
+            <div class="bar2"><i style="width:14%"></i></div>
+            <div class="nodes">starts at level 1 of ${esc(picked.entry)}</div>
+          </div>
+          <button class="ghostbtn">Take<br>it</button>
+        </div>
+        ${more}
+        <div class="note">${esc(picked.note)}</div>
+        <div class="note">${d.maxLevel==null
+          ? `${esc(name)} has no ladder. Declining locks it \u2014 reopen any time from the editor.`
+          : `${esc(name)} is maxed. Declining locks it \u2014 reopen any time from the editor.`}</div>
+      </div>
+      <div class="inlinecard" style="opacity:.5">
+        <div class="q"><div class="card"><div class="name">Lat Pulldown</div><div class="lvl">3 sets &middot; 10 reps &middot; 45 kg</div></div>
+          <div class="bar2"><i style="width:52%"></i></div></div>
+      </div>
+    </div>
+  </div>`;
+}
+
+const OPTS = [
+  {id:'A', name:'Bottom sheet — evolution tree', sub:'The fork drawn as a trunk with branches and buds. Reads as growth, and shows where a choice leads.',
+   notes:'<b>Where:</b> modal, bottom sheet, over the finished session.<br><b>Shape:</b> the shape you already saw in the first mockup — best when there are several ways on.<br><b>Watch:</b> the deepest fork (6 branches) makes a tall sheet; it scrolls.',
+   render:optionA},
+  {id:'B', name:'Bottom sheet — explicit fork', sub:'A plain list with one selected row. No metaphor; the numbers and the path ahead do the talking.',
+   notes:'<b>Where:</b> same modal, same place.<br><b>Shape:</b> one row per branch, tapping switches. The least to misread, and the easiest to build from what ships today.<br><b>Watch:</b> loses the "this is an evolution" feeling the owner asked for.',
+   render:optionB},
+  {id:'C', name:'No modal — a card in the session', sub:'Nothing interrupts. The offer lands as a card under the last exercise, and the session just ends.',
+   notes:'<b>Where:</b> inline in the session list, not a popup at all.<br><b>Shape:</b> one recommended branch plus the others as tags.<br><b>Watch:</b> the lock decision is made in passing, and a user who scrolls past never sees it — the permanent part. Also the weakest at showing a fork.',
+   render:optionC},
+];
+
+function draw(){
+  const name = sel.value;
+  const d = B[name];
+  meta.textContent = `${d.branches.length} branch${d.branches.length>1?'es':''} · max ${d.maxLevel} levels`;
+  grid.innerHTML = OPTS.map(o=>`
+    <section class="opt">
+      <header>
+        <span class="badge">Option ${o.id}</span>
+        <h2>${o.name}</h2>
+        <p class="sub">${o.sub}</p>
+      </header>
+      <div class="stage">${o.render(name)}</div>
+      <p class="notes">${o.notes}</p>
+    </section>`).join('');
+}
+sel.addEventListener('change', draw);
+draw();
+</script>
+</body>
+</html>
