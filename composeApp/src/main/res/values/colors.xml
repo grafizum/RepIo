@@ -10,6 +10,7 @@
     <color name="bg_ocean">#121212</color>
     <color name="bg_rose">#121212</color>
     <color name="bg_retro">#121212</color>
+    <color name="bg_royal_blue">#007AFF</color>
 
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>

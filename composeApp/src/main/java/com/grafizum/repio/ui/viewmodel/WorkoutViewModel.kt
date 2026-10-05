@@ -622,8 +622,6 @@ class WorkoutViewModel(
         }
     }
 
-<<<<<<< Updated upstream
-=======
     /** The display name of the exercise's current level/stage, for the debug skin. */
     fun progressionLabel(exerciseName: String): String? {
         val state = currentProgressionState(exerciseName) ?: return null
@@ -998,7 +996,6 @@ class WorkoutViewModel(
 
     /** The level-adjust visibility flag for the current UI context. */
 
->>>>>>> Stashed changes
     /**
      * Arms the background timer. Called when the session starts and every time the app
      * comes back to the foreground, so a process restarted mid-rest picks the timer up
