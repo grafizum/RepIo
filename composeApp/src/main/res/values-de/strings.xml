@@ -907,6 +907,10 @@
     <string name="level_fields_locked_hint">Vom Level-System verwaltet. Wechsle zu „Eigene“, um hier Änderungen zu machen.</string>
     <string name="level_fields_locked_toast">Wechsle zu „Eigene“, um das zu ändern.</string>
     <string name="level_pencil_hint">Tippe zuerst auf den Stift, um dieses Level zu bearbeiten.</string>
+    <string name="level_editor_title">Level</string>
+    <string name="level_editor_open_ladder">Alle Level ansehen</string>
+    <string name="level_step_down_desc">Vorheriges Level</string>
+    <string name="level_step_up_desc">Nächstes Level</string>
     <string name="progression_available">Progression verfügbar</string>
     <string name="level_guide_onboarding_title">Neu! Level-System</string>
     <string name="level_guide_cta_got_it">Verstanden</string>

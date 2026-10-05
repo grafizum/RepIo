@@ -94,6 +94,19 @@ android {
                 keyAlias = System.getenv("KEY_ALIAS") ?: env.getProperty("KEY_ALIAS") ?: "upload_key"
                 keyPassword = System.getenv("KEY_PASSWORD") ?: env.getProperty("KEY_PASSWORD") ?: "android"
             }
+        } else {
+            // No `release` signing config was created above, so `buildTypes.release`
+            // would otherwise fall back to the DEBUG key below - and a debug-signed
+            // bundle is not merely "a different signature", it is one Play will
+            // reject, so the failure surfaces at upload time with nothing pointing
+            // back here. The upload key lives outside the repo (see .env
+            // KEYSTORE_PATH), which makes "the path is wrong / the file is gone"
+            // a realistic cause rather than a hypothetical one.
+            logger.warn(
+                "No upload keystore at '$keystorePath' (KEYSTORE_PATH from the " +
+                    "environment or .env), so NO 'release' signing config exists. " +
+                    "Debug builds and unit tests are unaffected."
+            )
         }
     }
 
@@ -109,6 +122,18 @@ android {
             val relConfig = signingConfigs.findByName("release")
             if (relConfig != null) {
                 signingConfig = relConfig
+            } else if (releaseBuildRequested) {
+                // Only when a release artifact was actually asked for. This block is
+                // evaluated for EVERY build - including `testDebugUnitTest` and
+                // `assembleDebug` - so throwing unconditionally would break the
+                // tasks that legitimately do not need an upload key.
+                throw GradleException(
+                    "A release build was requested but no upload keystore was found, " +
+                        "so there is no 'release' signing config. Falling back to the " +
+                        "debug key would produce a bundle Play cannot accept.\n" +
+                        "Point KEYSTORE_PATH (in .env or the environment) at the upload " +
+                        "key. It is expected at ~/.grafizum/keys/repio-upload.jks."
+                )
             } else {
                 signingConfig = signingConfigs.getByName("debug")
             }
@@ -153,6 +178,33 @@ secrets {
     ignoreList.add("GRAFIZUM_DASHBOARD_TOKEN")
     // Optional override for the dashboard project the bump is reported against.
     ignoreList.add("GRAFIZUM_PROJECT_ID")
+    // The SIGNING secrets are read by `signingConfigs` above to sign the release,
+    // but the secrets plugin does not know that: `propertiesFileName = ".env"`
+    // turns EVERY listed key into a BuildConfig field, so the upload key's
+    // passwords were being generated into BuildConfig.java for release too.
+    //
+    // Measured before this change: KEY_PASSWORD, STORE_PASSWORD and KEY_ALIAS were
+    // all present in the generated release BuildConfig. They did NOT reach any
+    // shipped artifact - all 20 historical AABs and the release dex are clean -
+    // because R8 drops the constants as unreferenced dead code. That is a
+    // side effect of shrinking, not a guarantee: nothing here prevents a future
+    // reflective read, a -keep, or `isMinifyEnabled = false` from shipping the
+    // upload key's passwords to every Play install. Ignore them at the source
+    // instead of relying on the stripper to save us.
+    //
+    // Like the GRAFIZUM_* keys above, these belong in .env ONLY and must never be
+    // added to .env.example (an active key with an empty value emits invalid Java).
+    ignoreList.add("STORE_PASSWORD")
+    ignoreList.add("KEY_PASSWORD")
+    ignoreList.add("KEY_ALIAS")
+    // The keystore's PATH is the same class of value: it is read by
+    // `signingConfigs` above, and the key itself now lives outside the repo at
+    // ~/.grafizum/keys/repio-upload.jks. It is a filesystem location to this
+    // machine, not a build input, so it must not become a BuildConfig field
+    // either - that would publish the developer's home directory layout to every
+    // Play install.
+    ignoreList.add("KEYSTORE_PATH")
+
     // The dashboard SYNC key, used only by the sync CLI when mirroring TODO.md
     // to the command center. It lives in .env for the same reason the token
     // does, and for the same hazard if it is forgotten here: `propertiesFileName

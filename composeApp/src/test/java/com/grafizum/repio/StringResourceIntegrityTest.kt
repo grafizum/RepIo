@@ -274,7 +274,9 @@ class StringResourceIntegrityTest {
             "equipment_tag_smith",
 
             // "Level" is the word German lifters use, including this app's own guide.
-            "level_word_n", "adjust_levels_n", "intensity_level_value",
+            // The editor's own level-row heading joins them; Italian does translate
+            // it ("Livello"), and the list is per KEY so it applies to both.
+            "level_word_n", "adjust_levels_n", "intensity_level_value", "level_editor_title",
 
             // Weekday and split abbreviations: the two-letter forms are the local
             // convention in both languages, and PPL is the acronym everywhere.

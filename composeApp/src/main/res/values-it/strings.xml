@@ -916,6 +916,10 @@
     <string name="level_fields_locked_hint">Gestito dal sistema di livelli. Passa al personalizzato per modificare qui.</string>
     <string name="level_fields_locked_toast">Passa al personalizzato per modificarlo.</string>
     <string name="level_pencil_hint">Tocca prima la matita per modificare questo livello.</string>
+    <string name="level_editor_title">Livello</string>
+    <string name="level_editor_open_ladder">Vedi tutti i livelli</string>
+    <string name="level_step_down_desc">Livello precedente</string>
+    <string name="level_step_up_desc">Livello successivo</string>
     <string name="progression_available">Progressione disponibile</string>
     <string name="level_guide_onboarding_title">Novità! Sistema di livelli</string>
     <string name="level_guide_cta_got_it">Capito</string>

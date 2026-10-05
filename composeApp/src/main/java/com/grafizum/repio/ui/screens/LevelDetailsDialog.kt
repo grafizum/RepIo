@@ -81,13 +81,27 @@ import kotlinx.coroutines.withContext
 fun LevelDetailsDialog(
     viewModel: WorkoutViewModel,
     exerciseName: String,
-    onDismiss: () -> Unit
+    onDismiss: () -> Unit,
+    /**
+     * True when this picker was opened FROM AN EXERCISE EDITOR, which is an edit
+     * pass in itself: the exercise editor now carries its own level control, so
+     * a level chosen here has to land exactly as it would on the card.
+     *
+     * Without it the rungs would refuse every tap on a committed exercise, and
+     * the editor's "change the level" would be a door to a list that cannot be
+     * used — the "greyed field swallows the tap" failure this project has paid
+     * for twice. The lock is cleared by the writer
+     * ([WorkoutViewModel.setExerciseLevelFromEditor]) rather than here, so
+     * opening the picker and changing nothing still leaves the exercise locked.
+     */
+    fromEditorEditPass: Boolean = false
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val lockEnabled by viewModel.levelLockEnabled.collectAsState()
     // A locked exercise (routine_exercises.locked) pins its level: the rungs
     // render but refuse taps — unlock from the card's lock icon first.
     val exerciseLocked = remember { viewModel.isExerciseLockedNow(exerciseName) }
+    val rungsSelectable = fromEditorEditPass || !exerciseLocked
     var details by remember { mutableStateOf(viewModel.levelDetails(exerciseName)) }
     var canExtend by remember { mutableStateOf(viewModel.canExtendLevelList(exerciseName)) }
     val listState = rememberLazyListState(
@@ -184,9 +198,13 @@ fun LevelDetailsDialog(
                         LevelDetailRowItem(
                             row = details[index],
                             maxSelectableLevel = details.size,
-                            enabled = !exerciseLocked
+                            enabled = rungsSelectable
                         ) { level ->
-                            viewModel.setExerciseLevel(exerciseName, level)
+                            if (fromEditorEditPass) {
+                                viewModel.setExerciseLevelFromEditor(exerciseName, level)
+                            } else {
+                                viewModel.setExerciseLevel(exerciseName, level)
+                            }
                             onDismiss()
                         }
                     }
@@ -194,8 +212,8 @@ fun LevelDetailsDialog(
                     item(key = "ladder_hint") {
                         Text(
                             text = getString(
-                                if (exerciseLocked) "level_details_locked_hint"
-                                else "level_details_tap_hint"
+                                if (rungsSelectable) "level_details_tap_hint"
+                                else "level_details_locked_hint"
                             ),
                             style = MaterialTheme.typography.labelSmall,
                             color = if (isDeveloper) Color.White

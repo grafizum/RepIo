@@ -622,6 +622,383 @@ class WorkoutViewModel(
         }
     }
 
+<<<<<<< Updated upstream
+=======
+    /** The display name of the exercise's current level/stage, for the debug skin. */
+    fun progressionLabel(exerciseName: String): String? {
+        val state = currentProgressionState(exerciseName) ?: return null
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+        val stage = ProgressionEngine.stageName(state.stage)
+        return "L${state.level} · $stage"
+    }
+
+    /**
+     * The highest level the picker and arrows may offer: the program's own
+     * ladder end, lifted to the extension grid (50, then 100 … up to 500) the
+     * user has unlocked for this exercise.
+     *
+     * A REP-PROGRESSED row (bodyweight variation, hold, cardio) is the
+     * exception, and it is not a small one. The extension grid is honest for a
+     * LOAD row because extrapolating a ladder gives a real weight — but a rep
+     * ladder has already run out by the time anyone would want to extend it: a
+     * bodyweight row stops at its rep CEILING (50 reps, or the hold's own
+     * seconds ladder), and past that the rows would repeat. So the picker ends
+     * where the ladder does, at [ProgressionEngine.effectiveMaxLevel].
+     *
+     * This used to be justified differently and wrongly: the reason was that
+     * [ProgressionEngine.variationAtLevel] repeated the hardest movement past
+     * the last rung, so Crunches showed 50 rows of which 44 read "Dragon Flag".
+     * A rep ladder no longer names a movement at all, and the rows below its
+     * ceiling are genuinely distinct — but there is still nothing to extend TO,
+     * which is the part that decides this.
+     */
+    fun progressionMaxLevel(exerciseName: String): Int {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return 1
+        if (!ProgressionEngine.isProgressionReady(entry)) return 1
+        // OWNER RULING 2026-10-04: "for the max level create different max levels
+        // for each exercise based on when it cant be increased anymore ... i want
+        // each exercise to have their cealing to be humane and nothing over
+        // humanly possible. make the max level of each exercise realistic".
+        //
+        // THIS USED TO FLOOR EVERY EXERCISE AT [ProgressionEngine.EXTENSION_CHUNK]
+        // (50), whatever the row's own end was. Measured on the shipped pool: the
+        // declared maxLevel is the CSV ladder's LENGTH, not a ceiling - 6, 30, 4,
+        // 15, 40, 20, 10 - and it bears no relation to when an exercise stops
+        // progressing. So "50 for everything" was not a conservative default, it
+        // was an invented one, and the "extend" grid could push it to 500.
+        //
+        // WHAT REPLACES IT is the answer the row already carries, and it is not
+        // invented either: 478 of the 594 rows have a sourced [HumanCeiling]
+        // ("elite dumbbell curl ~45-50 kg/arm"), and
+        // [ProgressionEngine.effectiveMaxLevel] maps the ladder onto it. The
+        // remaining 116 are `variation_step` rows with no load at all, and for
+        // those the ceiling is the rep climb - [ProgressionEngine.repRungs], which
+        // tops out at the 50-rep end of the owner's checkpoint ladder. So every
+        // row now ends where its own evidence says it ends.
+        //
+        // THE SAFETY ARGUMENT, which is why this is not cosmetic: the old comment
+        // on [extendLevelList] claimed "with extrapolated ladders every level is
+        // genuinely selectable, so the added rows are real prescriptions". They
+        // were - real, and unreachable. `valueAtLevel` past the ladder extrapolates
+        // by the row's own increment with nothing stopping it, so level 300 of a
+        // barbell row is a weight no human lifts, and [setExerciseLevel] clamped to
+        // THIS function rather than to the ceiling, so it could be selected and
+        // logged. A ceiling the app will let you walk past is not a ceiling.
+        return ProgressionEngine.effectiveMaxLevel(entry)
+    }
+
+    /** The number of Roman stages in the exercise's rep pattern (its width). */
+    fun patternStageCount(exerciseName: String): Int {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return 1
+        return ProgressionEngine.patternLength(entry).coerceAtLeast(1)
+    }
+
+    /**
+     * The exercise's level for display: the stored one, or the starting
+     * prescription of the active difficulty when nothing is stored yet. This
+     * is what the adjustment UI should show as the current rung.
+     */
+    fun progressionDisplayLevel(exerciseName: String): Int? {
+        val state = currentProgressionState(exerciseName) ?: return null
+        return state.level
+    }
+
+    /**
+     * The prescribed value at a level for display, or null outside the system.
+     * Used by the level-adjust UI to preview what a rung means in kg/variation.
+     */
+    fun progressionPrescribedAt(exerciseName: String, level: Int): ProgressionEngine.PrescribedValue? {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+        if (!ProgressionEngine.isProgressionReady(entry)) return null
+        return ProgressionEngine.prescribedValueAtLevel(entry, level)
+    }
+
+    /**
+     * True when the exercise participates in the level system and can be
+     * level-adjusted. Non-ready rows (coach review, manual review) stay fixed.
+     */
+    fun isLevelAdjustable(exerciseName: String): Boolean {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
+        return ProgressionEngine.isProgressionReady(entry)
+    }
+
+    /**
+     * Persists the user's chosen level for an exercise. The stage resets to I
+     * — a manual move is a fresh start at the new rung, matching the CSV's
+     * rep_reset policy. Never touches history; affects future sessions only.
+     * The reactive loader recomputes the display fields from the stored state.
+     */
+    fun setExerciseLevel(exerciseName: String, level: Int) {
+        // A locked exercise stays where it is — manual jumps from the level
+        // picker included. Unlock it from the card's lock icon first.
+        //
+        // The jump is still allowed, and still reaches any level the exercise
+        // genuinely has; what it can no longer reach is a level past the ceiling.
+        if (isExerciseLockedNow(exerciseName)) return
+        applyExerciseLevel(exerciseName, level)
+    }
+
+    /**
+     * The level write itself, with no lock gate. [setExerciseLevel] adds the
+     * gate; [setExerciseLevelFromEditor] deliberately does not.
+     */
+    private fun applyExerciseLevel(exerciseName: String, level: Int) {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        // The ceiling is the exercise's OWN humane end - see [progressionMaxLevel].
+        // It used to be the extension grid (>= 50, growable to 500), which meant a
+        // jump to a level past any humanly possible load was a valid selection and
+        // could be logged. [ProgressionEngine.effectiveMaxLevel] stops at the row's
+        // sourced HumanCeiling, or at the rep ceiling for a ladder with no load.
+        val clamped = level.coerceIn(1, progressionMaxLevel(exerciseName))
+        prefs.putString(progressionKey(exerciseName), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(clamped, 1)))
+        refreshProgressionDisplayNow(exerciseName)
+        // A manual jump changes an input of the overall level without touching
+        // the logged history, so the cached value has to be refreshed by hand.
+        refreshOverallLevel()
+    }
+
+    /**
+     * Set the level FROM AN EXERCISE EDITOR, which is an edit pass in itself.
+     *
+     * Owner's ask: "the editing of an exercise, allow the user to edit the level
+     * while in level system mode". The editor already owns the pencil's job — it
+     * is where the user goes to change an exercise — so it has to be able to
+     * change the level, and the greyed sets/reps/weight fields beside it are
+     * exactly the thing that read as "you cannot edit this here".
+     *
+     * WHY THIS IS NOT JUST [setExerciseLevel]: that one returns early on a
+     * locked exercise, which is the pin the card's tick writes. Routing the
+     * editor through it would mean the control silently does nothing on every
+     * exercise the user has ever committed - the "greyed field swallows the tap"
+     * failure this project has now paid for twice (the level fields, the level
+     * pill). Opening an edit pass from the editor therefore UNLOCKS the exercise
+     * and writes the level in the same call, so the two cannot disagree.
+     *
+     * The unlock is a Room write and therefore asynchronous, which is why the
+     * level write goes first and does not wait for it: the value the user chose
+     * has to be visible on the next frame, and the lock catches up a moment
+     * later. Level 1 is a real level, so no clamping of the user's choice - only
+     * [progressionMaxLevel]'s humane ceiling applies, inside [applyExerciseLevel].
+     */
+    fun setExerciseLevelFromEditor(exerciseName: String, level: Int) {
+        applyExerciseLevel(exerciseName, level)
+        setExerciseLocked(exerciseName, false)
+    }
+
+    /**
+     * Recomputes the cached overall level from the newest history. Called
+     * automatically when the history changes; call it directly after an edit
+     * that changes a per-exercise level without logging anything.
+     */
+    fun refreshOverallLevel() {
+        viewModelScope.launch { recomputeOverallLevel() }
+    }
+
+    /**
+     * Recomputes [OverallLevelCalculator]'s result and stores it in user_stats.
+     *
+     * Qualifying exercises are strength exercises the level system can rate and
+     * the user has logged at least once; the level comes from the same per-exercise
+     * progression state the workout screens show, so the overall level can never
+     * disagree with the individual ones. Each exercise's own (ceiling-aware)
+     * ladder length goes with the sample, so every exercise lands on the shared
+     * 0-100 progress axis before the median is taken — without it a level 6 of 6
+     * would be counted level-for-level with a level 6 of 30.
+     *
+     * The stored figure is that 0-100 median and is backend-only: nothing in the
+     * UI prints it, and [OverallLevelRank] turns it into the letter the user sees.
+     */
+    private suspend fun recomputeOverallLevel() {
+        val samples = OverallLevelCalculator.qualifyingSamples(
+            loggedSets = latestLoggedSets,
+            levelFor = { name -> currentProgressionState(name)?.level }
+        )
+        val now = currentTimeMillis()
+        val result = OverallLevelCalculator.compute(samples, now)
+        repository.saveUserStats(
+            UserStatsEntity(
+                overallStrengthLevel = result.level,
+                overallLevelReady = result.ready,
+                overallLevelLastComputed = now,
+                exercisesCountForLevel = result.exerciseCount
+            )
+        )
+    }
+
+    /** Adjusts the current level by [delta], clamped to the ladder. Locked exercises do not move. */
+    fun adjustExerciseLevel(exerciseName: String, delta: Int) {
+        if (isExerciseLockedNow(exerciseName)) return
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val current = progressionDisplayLevel(exerciseName) ?: return
+        setExerciseLevel(exerciseName, current + delta)
+    }
+
+    /**
+     * Manual stage stepping WITHIN the current level — what the chip's
+     * arrows do. The stage walks I → II → III … up to the pattern's last
+     * stage; the arrows move through these Roman stages one at a time and
+     * clamp at the ends (the level itself only moves through earned
+     * progression or the level-details dialog).
+     */
+    fun adjustExerciseStage(exerciseName: String, delta: Int) {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val state = currentProgressionState(exerciseName) ?: return
+        val lastStage = ProgressionEngine.patternLength(entry).coerceAtLeast(1)
+        val next = (state.stage + delta).coerceIn(1, lastStage)
+        if (next == state.stage) return
+        prefs.putString(progressionKey(exerciseName), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(state.level, next)))
+        refreshProgressionDisplayNow(exerciseName)
+    }
+
+    /**
+     * One Roman stage forward, rolling over into the NEXT level's stage I
+     * when the pattern's last stage is already showing. The card's inner
+     * single-chevron button drives this: Roman numbers move one at a time,
+     * and at the last Roman number the level itself steps up.
+     */
+    fun advanceStageOrLevel(exerciseName: String) {
+        if (isExerciseLockedNow(exerciseName)) return
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val state = currentProgressionState(exerciseName) ?: return
+        val lastStage = ProgressionEngine.patternLength(entry).coerceAtLeast(1)
+        if (state.stage < lastStage) {
+            adjustExerciseStage(exerciseName, +1)
+        } else {
+            // Clamped by setExerciseLevel, and the reset to stage I is exactly
+            // what the roll-over means.
+            setExerciseLevel(exerciseName, state.level + 1)
+        }
+    }
+
+    /**
+     * One Roman stage back; from stage I it rolls into the PREVIOUS level's
+     * last stage, so walking down replays the same ladder the walk up built.
+     */
+    fun retreatStageOrLevel(exerciseName: String) {
+        if (isExerciseLockedNow(exerciseName)) return
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val state = currentProgressionState(exerciseName) ?: return
+        val lastStage = ProgressionEngine.patternLength(entry).coerceAtLeast(1)
+        when {
+            state.stage > 1 -> adjustExerciseStage(exerciseName, -1)
+            state.level > 1 -> {
+                prefs.putString(
+                    progressionKey(exerciseName),
+                    ProgressionEngine.serialize(ProgressionEngine.ProgressionState(state.level - 1, lastStage))
+                )
+                refreshProgressionDisplayNow(exerciseName)
+            }
+        }
+    }
+
+    /**
+     * One row of the level-details list: what a rung trains at.
+     *
+     * [isBeyondPlan] is legacy: extrapolated ladders give every level a real
+     * prescription, so no row is inert any more — it stays false for every
+     * row the dialog builds.
+     */
+    data class LevelDetailRow(
+        val level: Int,
+        val prescribed: ProgressionEngine.PrescribedValue?,
+        val stageReps: List<Int>,
+        val isCurrent: Boolean,
+        val isBeyondPlan: Boolean,
+        /**
+         * True when this row's prescription is reps rather than a load, so the
+         * picker shows the reps instead of the variation name. A bodyweight
+         * ladder's variation ("Bicycle Crunch" for "Crunches") is the
+         * substitution, not the work — the owner asked to see reps there.
+         */
+        val repProgressed: Boolean = false
+    )
+
+    /**
+     * The ladder for an exercise as the picker should show it: every level up
+     * to the extension grid (see [progressionMaxLevel]) with its real —
+     * explicit or extrapolated — prescription and the stage-I reps. This is
+     * the data behind the level-details dialog: the user sees what weight and
+     * reps each level carries before jumping there, and every row is
+     * selectable because [setExerciseLevel] accepts the same range.
+     */
+    fun levelDetails(exerciseName: String): List<LevelDetailRow> {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return emptyList()
+        if (!ProgressionEngine.isProgressionReady(entry)) return emptyList()
+        val current = progressionDisplayLevel(exerciseName) ?: return emptyList()
+        val shown = progressionMaxLevel(exerciseName)
+        return (1..shown).map { level ->
+            LevelDetailRow(
+                level = level,
+                prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level),
+                stageReps = ProgressionEngine.prescribedReps(entry, level, 1).orEmpty(),
+                isCurrent = level == current,
+                isBeyondPlan = false,
+                repProgressed = ProgressionEngine.isRepProgressed(entry)
+            )
+        }
+    }
+
+    /**
+     * Recomputes the CURRENT exercise's progression display fields in place.
+     * Level adjustments land through the persisted prefs, but the reactive
+     * loader only re-runs when its change key (exercise, level, stage)
+     * changes — which a same-exercise re-set does not. Calling this after a
+     * write keeps the card and the adjust dialogs in sync immediately.
+     */
+    private fun refreshProgressionDisplayNow(exerciseName: String) {
+        val state = _workoutNowState.value
+        if (currentExerciseName() != exerciseName) return
+        val progState = currentProgressionState(exerciseName) ?: return
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        val stageTargetReps = ProgressionEngine.prescribedReps(entry, progState.level, progState.stage).orEmpty()
+        val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level)
+        val setTarget = targetRepsForCurrentSet(exerciseName, state.currentSetNumber)
+        _workoutNowState.update {
+            it.copy(
+                progressionLevel = progState.level,
+                progressionStage = progState.stage,
+                progressionStageTargetReps = stageTargetReps,
+                progressionPrescribed = prescribed,
+                progressionIsFirstSession = false,
+                currentSetTargetReps = setTarget,
+                currentReps = setTarget ?: it.currentReps
+            )
+        }
+    }
+
+    /**
+     * Recomputes the progression display fields for whichever exercise is
+     * currently active. Used by the custom-mode switches, whose effect on the
+     * display does not flow through the reactive loader's change key. When no
+     * state resolves (custom mode, non-ready row) the fields are cleared so
+     * the level chip and target pills disappear immediately.
+     */
+    private fun refreshCurrentExerciseDisplay() {
+        val name = currentExerciseName() ?: return
+        if (currentProgressionState(name) == null) {
+            _workoutNowState.update {
+                it.copy(
+                    progressionLevel = null,
+                    progressionStage = null,
+                    progressionStageTargetReps = emptyList(),
+                    progressionPrescribed = null,
+                    progressionIsFirstSession = false,
+                    currentSetTargetReps = null
+                )
+            }
+            return
+        }
+        refreshProgressionDisplayNow(name)
+    }
+
+    /** The level-adjust visibility flag for the current UI context. */
+
+>>>>>>> Stashed changes
     /**
      * Arms the background timer. Called when the session starts and every time the app
      * comes back to the foreground, so a process restarted mid-rest picks the timer up

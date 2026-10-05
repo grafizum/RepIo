@@ -2978,6 +2978,185 @@ fun loggedLoadSummary(exerciseName: String, value: Double): String {
     }
 }
 
+/**
+ * What the exercise editor's LEVEL row is allowed to do.
+ *
+ * Owner, 2026-10-05: "also the editing of an exercise, allow the user to edit
+ * the level while in level system mode". Until then the editor greyed out every
+ * value the level owns and offered exactly one way out — "switch to Custom" —
+ * which reads as *this exercise cannot be edited here* rather than as *these
+ * three numbers belong to the level*. The level itself is the one thing in that
+ * dialog the user is entitled to move, so it gets its own control.
+ *
+ * It is one pure function for the same reason [levelEditControls] is: the row's
+ * visibility and its three affordances were four conditions, and four conditions
+ * in a composable are four chances for the row to appear with its arrows dead.
+ */
+data class LevelEditorControls(
+    val showLevelRow: Boolean,
+    val canStepDown: Boolean,
+    val canStepUp: Boolean,
+    val canOpenLadder: Boolean
+)
+
+fun levelEditorControls(
+    levelsManaged: Boolean,
+    isExistingExercise: Boolean,
+    currentLevel: Int?,
+    maxLevel: Int,
+    canWriteLevel: Boolean
+): LevelEditorControls {
+    // A NEW exercise has no level yet (there is nothing prescribed to move), and
+    // a custom-mode editor has no level system at all. A host that gives no
+    // writer shows nothing rather than a row whose taps go nowhere - the same
+    // lesson as the pill that looked pressable and refused.
+    val level = currentLevel
+    val show = levelsManaged && isExistingExercise && level != null && canWriteLevel
+    return LevelEditorControls(
+        showLevelRow = show,
+        // Level 1 is the bottom of every ladder, so "down" has no rung below it.
+        canStepDown = show && level!! > 1,
+        // maxLevel <= 0 means the host does not know the ceiling; the writer
+        // clamps to [WorkoutViewModel.progressionMaxLevel] anyway, so stepping
+        // up is honest there and a permanently dead "+" would not be.
+        canStepUp = show && (maxLevel <= 0 || level!! < maxLevel),
+        canOpenLadder = show
+    )
+}
+
+/**
+ * The editor's level row: "LEVEL" on the left, a − / + stepper around the
+ * current rung on the right, and a line that opens the whole ladder.
+ *
+ * The stepper walks LEVELS, deliberately, not the card's Roman stages. The card
+ * has two controls for two different things — the pill jumps to any rung and the
+ * arrows walk stages — and this row is the "I want a different weight" control,
+ * which is a level. The ladder line is there for the jump, so nothing the card
+ * can do is unreachable from the editor.
+ */
+@Composable
+private fun ExerciseLevelEditorRow(
+    level: Int,
+    stageCaption: String?,
+    controls: LevelEditorControls,
+    onStep: (Int) -> Unit,
+    onOpenLadder: () -> Unit,
+    modifier: Modifier = Modifier
+) {
+    val stepDownDesc = getString("level_step_down_desc")
+    val stepUpDesc = getString("level_step_up_desc")
+    Surface(
+        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
+        shape = RoundedCornerShape(12.dp),
+        modifier = modifier.fillMaxWidth()
+    ) {
+        Column(
+            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Text(
+                    text = getString("level_editor_title").uppercase(),
+                    style = MaterialTheme.typography.labelSmall.copy(
+                        fontWeight = FontWeight.ExtraBold,
+                        letterSpacing = 1.sp
+                    ),
+                    color = MaterialTheme.colorScheme.primary
+                )
+                Spacer(modifier = Modifier.weight(1f))
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.semantics { testTag = "exercise_level_stepper" }
+                ) {
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .clickable(enabled = controls.canStepDown) { onStep(level - 1) }
+                            .semantics { testTag = "level_step_down" },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Remove,
+                            contentDescription = stepDownDesc,
+                            tint = if (controls.canStepDown) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                    // The rung itself opens the ladder, exactly as the pill on the
+                    // live card does — one gesture means one thing in both places.
+                    Surface(
+                        onClick = onOpenLadder,
+                        enabled = controls.canOpenLadder,
+                        shape = RoundedCornerShape(10.dp),
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
+                        contentColor = MaterialTheme.colorScheme.primary,
+                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
+                        modifier = Modifier.semantics { testTag = "level_open_ladder" }
+                    ) {
+                        Text(
+                            text = getString("level_word_n", level),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
+                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
+                            maxLines = 1
+                        )
+                    }
+                    Box(
+                        modifier = Modifier
+                            .size(32.dp)
+                            .clip(CircleShape)
+                            .clickable(enabled = controls.canStepUp) { onStep(level + 1) }
+                            .semantics { testTag = "level_step_up" },
+                        contentAlignment = Alignment.Center
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Add,
+                            contentDescription = stepUpDesc,
+                            tint = if (controls.canStepUp) MaterialTheme.colorScheme.primary
+                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            modifier = Modifier.size(16.dp)
+                        )
+                    }
+                }
+            }
+            if (stageCaption != null) {
+                Text(
+                    text = stageCaption,
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 2,
+                    overflow = TextOverflow.Ellipsis
+                )
+            }
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                modifier = Modifier
+                    .clip(RoundedCornerShape(8.dp))
+                    .clickable(enabled = controls.canOpenLadder, onClick = onOpenLadder)
+            ) {
+                Icon(
+                    imageVector = Icons.Default.ExpandMore,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.size(16.dp)
+                )
+                Spacer(modifier = Modifier.width(4.dp))
+                Text(
+                    text = getString("level_editor_open_ladder"),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.primary
+                )
+            }
+        }
+    }
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun ExerciseEditDialog(
@@ -3000,6 +3179,19 @@ fun ExerciseEditDialog(
      * switch to Custom; returning true unlocks the fields in place.
      */
     onRequestCustomMode: (() -> Unit)? = null,
+    /**
+     * The exercise's current level, when the level system prescribes it, and the
+     * ceiling to stop the stepper at (0 = unknown, the writer clamps anyway).
+     * Null hides the level row entirely — see [levelEditorControls].
+     */
+    currentLevel: Int? = null,
+    /** "Stage III · 20 kg": what the current rung asks for. */
+    levelCaption: String? = null,
+    maxLevel: Int = 0,
+    /** Called with the ABSOLUTE level the user stepped to. */
+    onLevelChange: ((Int) -> Unit)? = null,
+    /** Opens the full level ladder for this exercise. */
+    onOpenLevelLadder: (() -> Unit)? = null,
     /**
      * The equipment the user said they have, as coarse categories. The
      * recommendation filters START on it — an unrestricted-feeling "all
@@ -3226,6 +3418,34 @@ fun ExerciseEditDialog(
                             }
                         }
                     }
+                }
+
+                // THE LEVEL IS EDITABLE HERE, even in level-system mode. Owner,
+                // 2026-10-05: "the editing of an exercise, allow the user to edit
+                // the level while in level system mode".
+                //
+                // It sits ABOVE the locked-fields notice on purpose. That notice
+                // says sets/reps/weight belong to the level system, which is true
+                // and is why they stay greyed — but read on its own it says the
+                // exercise cannot be edited here at all, which is now false: the
+                // one value that decides what those numbers WILL BE is a control
+                // on this same screen.
+                val levelControls = levelEditorControls(
+                    levelsManaged = levelsManaged,
+                    isExistingExercise = exercise != null,
+                    currentLevel = currentLevel,
+                    maxLevel = maxLevel,
+                    canWriteLevel = onLevelChange != null
+                )
+                if (levelControls.showLevelRow && currentLevel != null) {
+                    ExerciseLevelEditorRow(
+                        level = currentLevel,
+                        stageCaption = levelCaption,
+                        controls = levelControls,
+                        onStep = { target -> onLevelChange?.invoke(target) },
+                        onOpenLadder = { onOpenLevelLadder?.invoke() },
+                        modifier = Modifier.semantics { testTag = "exercise_level_row" }
+                    )
                 }
 
                 // When the level system prescribes this exercise, the values it

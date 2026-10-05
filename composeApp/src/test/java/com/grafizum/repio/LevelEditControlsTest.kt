@@ -194,10 +194,13 @@ class LevelEditControlsTest {
      * SUPERSEDED BY THE 2026-10-04 INVERSION, which reversed this direction: "no
      * i want the current edit design to be 'none edit' and the 'none edit' design
      * to be the edit design, invert them". The edit pill is now the SOLID one and
-     * the committed pill carries the 6dp. The assertion below therefore pins the
-     * OPPOSITE relation, and is kept rather than deleted because the trap is
+     * the committed pill is the ring. The assertion below pins the mapping in
+     * both directions, and is kept rather than deleted because the trap is
      * precisely that both versions of this test are satisfied by "the states
      * differ" - only the direction tells them apart.
+     *
+     * AND BY THE 2026-10-05 RULING, which took the elevation out of both states
+     * entirely - see [neitherPillStateCastsAShadow].
      */
     @Test
     fun theEditPillIsTheSolidOneAndTheCommittedPillTheOutlinedOne() {
@@ -217,19 +220,54 @@ class LevelEditControlsTest {
                 idle.fill
             )
 
-            // ELEVATION follows the design rather than the state, which is the
-            // part that is easy to get backwards on a re-read: the outlined pill
-            // is the raised one, and outlined is now the resting state.
+            // ELEVATION is not part of the distinction any more: it is 0 in both
+            // states, because a Material3 Surface casts a shadow from the shape's
+            // OUTLINE and the ring has no fill to lift. See
+            // [neitherPillStateCastsAShadow] for the owner's report and the
+            // two earlier rounds of this same parameter.
             assertEquals(
-                "the outlined pill is the lifted one",
-                6,
+                "the committed ring casts no shadow (progressionAvailable=$progressionAvailable)",
+                0,
                 idle.shadowElevationDp
             )
             assertEquals(
-                "the solid pill keeps the 2026-10-01 'raised with a rim' fix",
-                2,
+                "the solid fill casts no shadow either (progressionAvailable=$progressionAvailable)",
+                0,
                 editing.shadowElevationDp
             )
+        }
+    }
+
+    /**
+     * The pill must not cast a shadow in EITHER state.
+     *
+     * Owner, on the phone: "the level button / label has a weird white line under
+     * it and a shadow i want that fixed". That is not a styling preference, it is
+     * two bugs in one report:
+     *
+     *  - a Material3 `Surface` turns `shadowElevation` into
+     *    `Modifier.graphicsLayer(shadowElevation = ..., shape = shape)`, which
+     *    casts from the shape's outline. The committed pill is a ring, so it threw
+     *    a full rounded-rect shadow with nothing behind it to lift;
+     *  - and the layer's ambient/spot colours default to black rather than to the
+     *    theme, so even the solid pill's 2dp was not the app's own colour.
+     *
+     * So this asserts the ABSENCE, per state and per progression flag. A single
+     * "elevation == 0" over the idle pill would have passed while the editing
+     * pill still cast 2dp, which is the half the owner saw.
+     */
+    @Test
+    fun neitherPillStateCastsAShadow() {
+        for (editing in listOf(true, false)) {
+            for (progressionAvailable in listOf(true, false)) {
+                val style = levelPillStyle(editing = editing, progressionAvailable = progressionAvailable)
+                assertEquals(
+                    "a shadow under the level label is the defect being fixed " +
+                        "(editing=$editing, progressionAvailable=$progressionAvailable)",
+                    0,
+                    style.shadowElevationDp
+                )
+            }
         }
     }
 
@@ -238,19 +276,32 @@ class LevelEditControlsTest {
      * what the 2026-10-02 complaint was in the first place. Asserted on the
      * rendered surface properties rather than on the fill enum alone, because the
      * border is what actually differs on screen once both states are drawn.
+     *
+     * ELEVATION CAN NO LONGER CARRY ANY WEIGHT HERE - it is 0 in both states by
+     * the 2026-10-05 ruling - so the two properties that still differ are fill
+     * and ring. That is a real constraint on this test rather than a formality:
+     * it used to assert `idle.shadow > editing.shadow`, which is now satisfied by
+     * `0 > 0` being false, so leaving it would have quietly stopped testing
+     * anything at all.
      */
     @Test
     fun theTwoPillStatesStayVisiblyDifferent() {
         val idle = levelPillStyle(editing = false, progressionAvailable = false)
         val editing = levelPillStyle(editing = true, progressionAvailable = false)
 
+        assertEquals(
+            "the committed level is the ring, the open edit pass is the fill",
+            LevelPillFill.OUTLINED,
+            idle.fill
+        )
+        assertEquals(
+            "the committed level is the ring, the open edit pass is the fill",
+            LevelPillFill.SOLID,
+            editing.fill
+        )
         assertTrue(
             "the committed ring must stay stronger than the editing hairline",
             idle.borderWidthDp > editing.borderWidthDp
-        )
-        assertTrue(
-            "the committed pill must stay lifted above the editing pill",
-            idle.shadowElevationDp > editing.shadowElevationDp
         )
     }
 
@@ -258,7 +309,7 @@ class LevelEditControlsTest {
      * The pending progression compacts the pill so it can stop taking the row's
      * whole vertical height. That must not quietly become a second way for the
      * pill to read as un-pressable — the compactness is padding and type, never
-     * elevation, in BOTH states.
+     * the shape or the ring, in BOTH states.
      */
     @Test
     fun aPendingProgressionCompactsThePillWithoutFlatteningIt() {

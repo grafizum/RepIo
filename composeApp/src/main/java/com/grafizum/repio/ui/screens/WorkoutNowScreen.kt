@@ -114,6 +114,17 @@ fun WorkoutNowScreen(
     var evolutionQueue by remember {
         mutableStateOf<List<com.grafizum.repio.ui.viewmodel.EvolutionTreeItem>>(emptyList())
     }
+    // The exercises this pass has ALREADY put in front of the user, whether they
+    // accepted, declined or dismissed. Without it a re-published
+    // `evolutionTrees` queues the same exercise again — the owner's "earlier i
+    // had 2 popups to progress the same exercise". See [seedEvolutionQueue].
+    var evolutionShown by remember { mutableStateOf<Set<String>>(emptySet()) }
+    // One place retires a popup, whatever ended it: drop it from the queue AND
+    // remember that it was shown, so a later re-publish cannot queue it again.
+    val markEvolutionShown: (String) -> Unit = { name ->
+        evolutionShown = evolutionShown + name
+        evolutionQueue = evolutionQueue.drop(1)
+    }
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
     val themeKey by viewModel.themeOption.collectAsState()
     // Why the last press of the level pill did not open the ladder. Null = no
@@ -169,13 +180,13 @@ fun WorkoutNowScreen(
             offers = tree.offers,
             onEvolve = { target ->
                 viewModel.acceptEvolution(tree.card.exerciseName, target)
-                evolutionQueue = evolutionQueue.drop(1)
+                markEvolutionShown(tree.card.exerciseName)
             },
             onDecline = {
                 viewModel.declineEvolution(tree.card.exerciseName)
-                evolutionQueue = evolutionQueue.drop(1)
+                markEvolutionShown(tree.card.exerciseName)
             },
-            onDismiss = { evolutionQueue = evolutionQueue.drop(1) },
+            onDismiss = { markEvolutionShown(tree.card.exerciseName) },
         )
     }
 
@@ -441,7 +452,17 @@ fun WorkoutNowScreen(
                             // the thing that does not do that, so the branch
                             // cards are gone from here.
                             LaunchedEffect(workoutState.evolutionToken) {
-                                evolutionQueue = workoutState.evolutionTrees
+                                // MERGED, not assigned: the token bumps on every
+                                // mastery refresh, and each refresh re-publishes
+                                // every pending offer. Assigning the list is what
+                                // produced the owner's "2 popups to progress the
+                                // same exercise" — the second one arrived from the
+                                // refresh the first popup's own Accept kicked off.
+                                evolutionQueue = seedEvolutionQueue(
+                                    pending = evolutionQueue,
+                                    incoming = workoutState.evolutionTrees,
+                                    alreadyShown = evolutionShown
+                                )
                             }
 
                             // A TRUE CEILING with no branch has no evolution to
@@ -1082,6 +1103,11 @@ fun WorkoutNowScreen(
         // Touching a level-owned field (sets/reps/weight/intensity) offers the
         // switch to Custom — never silently switches the mode.
         var confirmCustom by remember { mutableStateOf(false) }
+        // The ladder opened FROM the editor. Separate from the card's own
+        // `levelDetailsFor` because this one runs as an edit pass: the editor
+        // is where the user changes an exercise, so the level it offers has to
+        // be reachable even for an exercise the card's tick committed.
+        var editorLevelLadder by remember { mutableStateOf<String?>(null) }
         ExerciseEditDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = exercise,
@@ -1109,13 +1135,30 @@ fun WorkoutNowScreen(
                 if (card != null) {
                     val offers = viewModel.evolutionOffersFor(card)
                     if (offers.isNotEmpty()) {
-                        evolutionQueue = listOf(
-                            com.grafizum.repio.ui.viewmodel.EvolutionTreeItem(card, offers)
-                        )
+                        // APPENDED, not assigned: this badge is the way back into
+                        // an offer the user declined, and a decision already
+                        // waiting in the queue must not be thrown away by it.
+                        // Deliberately NOT filtered by [evolutionShown] — reopening
+                        // from the editor is exactly the case where an exercise
+                        // that was shown before has to be shown again.
+                        evolutionQueue = (
+                            evolutionQueue +
+                                com.grafizum.repio.ui.viewmodel.EvolutionTreeItem(card, offers)
+                            ).distinctBy { it.card.exerciseName }
                     }
                 }
             },
             onRequestCustomMode = { confirmCustom = true },
+            // The level itself, editable here in level-system mode (owner,
+            // 2026-10-05). The write unlocks the exercise, because a committed
+            // lock is what used to make this control silently do nothing.
+            currentLevel = viewModel.currentProgressionState(exercise.name)?.level,
+            levelCaption = levelEditorCaption(viewModel, exercise.name),
+            maxLevel = viewModel.progressionMaxLevel(exercise.name),
+            onLevelChange = { level ->
+                viewModel.setExerciseLevelFromEditor(exercise.name, level)
+            },
+            onOpenLevelLadder = { editorLevelLadder = exercise.name },
             onDismiss = { editingExercise = null },
             onSave = { updated ->
                 viewModel.saveExercise(updated)
@@ -1138,6 +1181,17 @@ fun WorkoutNowScreen(
                         Text(getString("cancel"))
                     }
                 }
+            )
+        }
+        // The editor's own ladder, stacked over the editor: the editor stays
+        // open behind it, so a level chosen here lands and the user lands back
+        // where they were rather than on the workout screen.
+        editorLevelLadder?.let { name ->
+            LevelDetailsDialog(
+                viewModel = viewModel,
+                exerciseName = name,
+                fromEditorEditPass = true,
+                onDismiss = { editorLevelLadder = null }
             )
         }
     }
@@ -1165,6 +1219,31 @@ fun prescriptionDisplayText(rx: ProgressionEngine.PrescribedValue): String = whe
             null -> ""
         }
     }
+}
+
+/**
+ * The one line the exercise editor's level row prints under the stepper:
+ * "Stage III · 20 kg".
+ *
+ * It is built from the SAME two sources the live card uses - the stored stage
+ * and the engine's prescription for the current rung - so the editor cannot
+ * quote a different number from the card for the same level. That matters
+ * because the editor's whole point is "this level is too heavy/too light":
+ * a caption that disagreed with the card would make the stepper feel broken.
+ *
+ * It reads the prescription rather than the display fields, so it also answers
+ * for a row measured in pins, bands, seconds or reps - the unit bug this
+ * project has already paid for once.
+ */
+@Composable
+fun levelEditorCaption(viewModel: WorkoutViewModel, exerciseName: String): String? {
+    val state = viewModel.currentProgressionState(exerciseName) ?: return null
+    val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+    val stage = getString("stage_current_format", ProgressionEngine.stageName(state.stage))
+    val value = ProgressionEngine.prescribedValueAtLevel(entry, state.level)
+        ?.let { prescriptionDisplayText(it) }
+        .orEmpty()
+    return if (value.isBlank()) stage else "$stage · $value"
 }
 
 @Composable
@@ -1230,10 +1309,12 @@ private fun HeaderActionPill(
  * surface, a primary border) rather than a neutral one, so it reads as part of
  * the app's colour system instead of a detached grey box.
  *
- * The level pill between the arrows is an actual raised button — tonal fill,
- * border, chevron — so "this opens the level picker" is visible instead of a
- * hint the user has to be told. The set the user is on renders bold (and
- * filled); sets already saved are tinted, the rest outlined.
+ * The level pill between the arrows is an actual button — a tonal fill or a
+ * ring, plus a border — so "this opens the level picker" is visible instead of a
+ * hint the user has to be told. It casts NO shadow: see
+ * [PILL_SHADOW_ELEVATION_DP] for why a label with no fill behind it must not
+ * pretend to be lifted. The set the user is on renders bold (and filled); sets
+ * already saved are tinted, the rest outlined.
  *
  * [level]/[stage] null (exercise outside the level system: custom mode, or a
  * row the engine cannot rate) drop the header and stage dots; the card then
@@ -1271,6 +1352,45 @@ fun levelEditControls(adjustable: Boolean, locked: Boolean, editing: Boolean): L
         levelPillEnabled = adjustable && editing && !locked,
         showPencil = adjustable || locked || editing
     )
+
+/**
+ * Builds the evolution popup queue from a freshly published list, and the whole
+ * reason it MERGES instead of assigning.
+ *
+ * Owner's report: "earlier i had 2 popups to progress the same exercise". The
+ * queue was assigned from `evolutionTrees` on every `evolutionToken` bump, and
+ * the token bumps on every mastery refresh — including the refresh the FIRST
+ * popup's own Accept triggers. So the exercise the user had just decided about
+ * was still in the new list (it only leaves the list once it is marked reviewed
+ * and the refresh that follows that), and it came straight back as popup #2.
+ *
+ * Two rules, and both are needed:
+ *
+ *  - **Pending wins.** A decision already waiting must not be reordered or
+ *    replaced by a re-publish, or the queue is not a queue.
+ *  - **Shown is finished.** An exercise already put in front of the user in this
+ *    pass is not queued again by a re-publish. This is the fix; dropping the
+ *    duplicate from `incoming` alone would only hide it until the next bump.
+ *
+ * Deliberately NOT applied to the editor's "upgrade" badge, which exists to
+ * re-show an exercise that was shown and declined — see the call site.
+ *
+ * One popup per exercise, and only the pending list decides what is next.
+ */
+fun seedEvolutionQueue(
+    pending: List<com.grafizum.repio.ui.viewmodel.EvolutionTreeItem>,
+    incoming: List<com.grafizum.repio.ui.viewmodel.EvolutionTreeItem>,
+    alreadyShown: Set<String>
+): List<com.grafizum.repio.ui.viewmodel.EvolutionTreeItem> {
+    val taken = alreadyShown + pending.map { it.card.exerciseName }
+    val fresh = incoming.filterNot { it.card.exerciseName in taken }
+    // The published list is built from distinct cards, so `fresh` cannot contain
+    // a duplicate of ITSELF — but `pending` and `fresh` are two lists joined
+    // here, and an exercise can be in both (accepted above, re-published below).
+    // Keying the whole result on the name is what makes "one popup per exercise"
+    // true rather than nearly true.
+    return (pending + fresh).distinctBy { it.card.exerciseName }
+}
 
 /** Why the level pill refused a press, so the toast can say the useful thing. */
 enum class LevelPillBlocked {
@@ -1323,12 +1443,14 @@ fun levelPillBlockedReason(
  * That is the opposite direction from the previous ruling in this file. The
  * 2026-10-02 ask was "show it clickable WHEN PRESSING ON THE PENCIL", answered by
  * lifting the editing pill to 6dp so the affordance grew with the pencil. Under the
- * swap the editing pill is the SOLID one again, so it is the committed pill that
- * carries the 6dp. The distinction that survives is still real — the two states do
- * not look alike — and it is still signalled by fill and ring; only the direction
- * flipped. [LevelPillStyleTest] pins the mapping in BOTH directions rather than
- * asserting "they differ", because "they differ" was true before the swap too, and
- * an assertion that cannot tell which way round is one that would have passed the
+ * swap the editing pill is the SOLID one again, and the committed ring inherited
+ * the 6dp — which is the version the owner then reported as "a weird white line
+ * under it and a shadow". The elevation is gone from both states now; see
+ * [PILL_SHADOW_ELEVATION_DP]. The distinction that survives is still real — the
+ * two states do not look alike — and it is signalled by fill and ring alone.
+ * [LevelPillStyleTest] pins the mapping in BOTH directions rather than asserting
+ * "they differ", because "they differ" was true before the swap too, and an
+ * assertion that cannot tell which way round is one that would have passed the
  * exact regression it was written for.
  *
  * [progressionAvailable] makes the pill COMPACT either way (smaller type, less
@@ -1339,20 +1461,32 @@ fun levelPillBlockedReason(
 enum class LevelPillFill { SOLID, OUTLINED }
 
 /**
- * Elevation for the OUTLINED pill, in dp.
+ * The pill casts NO shadow, in either state.
  *
- * 6dp lifts it clearly off the card, and since the 2026-10-04 swap it is the
- * COMMITTED level that wears it — which reads as odd next to the 2026-10-01 rule
- * ("the level doesnt look pressable", answered by raising the resting pill) and
- * is deliberate: the owner chose the swap over both that rule and the elevation
- * that implemented the "when pressing on the pencil" correction. It is a named
- * constant because the two elevations now differ per STYLE rather than per state,
- * and a bare 6 beside a bare 2 is how the next reader swaps them back by accident.
+ * It used to: 6dp on the outlined ring (since the 2026-10-04 swap made the
+ * outlined ring the COMMITTED level) and 2dp on the solid fill (the 2026-10-01
+ * "the level doesnt look pressable" fix). The owner saw the result on the phone
+ * and reported "the level button / label has a weird white line under it and a
+ * shadow" — which is what a Material3 `Surface` does with these two settings:
+ *
+ *  - `shadowElevation` becomes `Modifier.graphicsLayer(shadowElevation = …,
+ *    shape = shape)`, and that casts from the shape's OUTLINE. A ring has an
+ *    outline but no fill, so the pill still threw a full rounded-rect shadow
+ *    while having no mass to lift — a smudge sitting under a label.
+ *  - the layer's ambient/spot colours default to plain black, not the theme, so
+ *    the smudge is not even the app's own colour.
+ *
+ * A shadow cannot be rescued by dialling it down here: on a 12dp-tall pill any
+ * visible lift reads as a rendering artefact rather than as depth. So the honest
+ * answer is that neither state has one, and the two states stay apart by FILL and
+ * RING WEIGHT alone — which is what told them apart before 2026-10-02 added
+ * elevation in the first place.
+ *
+ * It stays a field on [LevelPillStyle] rather than a `0.dp` at the call site,
+ * because the call site is precisely where the two elevations used to be
+ * re-decided, and a test has to be able to pin "no state lifts the pill".
  */
-private const val OUTLINED_PILL_ELEVATION_DP = 6
-
-/** Elevation for the SOLID pill: the 2026-10-01 "raised, with a rim, always" fix. */
-private const val SOLID_PILL_ELEVATION_DP = 2
+private const val PILL_SHADOW_ELEVATION_DP = 0
 
 data class LevelPillStyle(
     val fill: LevelPillFill,
@@ -1360,11 +1494,14 @@ data class LevelPillStyle(
     val horizontalPaddingDp: Int,
     val verticalPaddingDp: Int,
     /**
-     * How far the pill is lifted off the card. Decided HERE, beside the fill and
-     * the ring, because the three are one affordance: an editor changing the
-     * elevation at the call site is how the pill ends up raised in one state and
-     * flat in the other again — the regression this function exists to prevent,
-     * and the one the 2026-10-04 swap proves is easy to reintroduce.
+     * How far the pill is lifted off the card — 0 in both states, because a
+     * shadow on a shape with no fill is an artefact rather than an affordance.
+     * See [PILL_SHADOW_ELEVATION_DP] for what it looked like and why.
+     *
+     * Decided HERE, beside the fill and the ring, because the three are one
+     * affordance: an editor changing the elevation at the call site is how the
+     * pill ended up raised in one state and flat in the other — twice — and the
+     * owner had to report the result as a stray line under the label.
      */
     val shadowElevationDp: Int,
 )
@@ -1378,7 +1515,7 @@ fun levelPillStyle(editing: Boolean, progressionAvailable: Boolean): LevelPillSt
             borderWidthDp = 1,
             horizontalPaddingDp = if (progressionAvailable) 9 else 12,
             verticalPaddingDp = if (progressionAvailable) 4 else 7,
-            shadowElevationDp = SOLID_PILL_ELEVATION_DP,
+            shadowElevationDp = PILL_SHADOW_ELEVATION_DP,
         )
     } else {
         // And the OUTLINED ring is what a committed level looks like - the design
@@ -1388,7 +1525,7 @@ fun levelPillStyle(editing: Boolean, progressionAvailable: Boolean): LevelPillSt
             borderWidthDp = 2,
             horizontalPaddingDp = if (progressionAvailable) 9 else 12,
             verticalPaddingDp = if (progressionAvailable) 4 else 7,
-            shadowElevationDp = OUTLINED_PILL_ELEVATION_DP,
+            shadowElevationDp = PILL_SHADOW_ELEVATION_DP,
         )
     }
 
@@ -1621,8 +1758,11 @@ private fun LevelPrescriptionCard(
                     },
                     enabled = true,
                     shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                    // Solid while committed, an outlined ring while the pencil is
-                    // open — see [levelPillStyle].
+                    // An outlined ring while committed, a solid fill while the
+                    // pencil is open — see [levelPillStyle], which is where that
+                    // pair was inverted on 2026-10-04. This comment used to state
+                    // the mapping the other way round, which is a large part of
+                    // why the pair got inverted twice.
                     color = when {
                         isDeveloper -> Color.Black
                         pillStyle.fill == LevelPillFill.SOLID -> MaterialTheme.colorScheme.primary
@@ -1638,17 +1778,15 @@ private fun LevelPrescriptionCard(
                             MaterialTheme.colorScheme.onPrimary.copy(alpha = 0.22f)
                         )
                     },
-                    shadowElevation = when {
-                        isDeveloper -> 0.dp
-                        // Read the elevation off [levelPillStyle] rather than
-                        // re-deciding it here. This branch used to force 0.dp on
-                        // every outlined pill on the grounds that "an edit slot is
-                        // not a button, the ring is the affordance" — which is why
-                        // edit mode was the FLATTEST state on the card, the exact
-                        // opposite of the owner's "show it clickable when pressing
-                        // on the pencil".
-                        else -> pillStyle.shadowElevationDp.dp
-                    },
+                    // Read the elevation off [levelPillStyle] rather than
+                    // re-deciding it here. This branch used to force 0.dp on
+                    // every outlined pill on the grounds that "an edit slot is
+                    // not a button, the ring is the affordance", which is also
+                    // where the 6dp went when the pair was inverted and the ring
+                    // became the resting state. Both halves shipped a shadow that
+                    // had nothing to lift: the owner's "a weird white line under
+                    // it and a shadow" was this parameter, not the ring.
+                    shadowElevation = pillStyle.shadowElevationDp.dp,
                     modifier = Modifier.semantics { testTag = "level_chip" }
                 ) {
                     Text(

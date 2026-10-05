@@ -53,6 +53,20 @@ import kotlin.math.min
 import kotlin.math.roundToInt
 
 /**
+ * How much further right than the trunk the progression cards sit.
+ *
+ * The owner's number: "the progression exercise to upgrade it to be under it
+ * like it is but more offset lets say x there would be 10px". It is a NAMED step
+ * rather than a bare 10 because it is also what the connector hangs back from -
+ * the spine is drawn half a step in from the branch lane, which is what keeps
+ * the elbow visible instead of collapsing it into the card's own edge.
+ *
+ * Ten is a step, not the whole indent: the branch lane is the dialog's own
+ * gutter PLUS this, so the cards still clear the spine on a 320dp phone.
+ */
+private val BRANCH_INSET_STEP = 10.dp
+
+/**
  * The end-of-workout evolution popup, drawn as a TREE.
  *
  * The owner rejected three flat presentations (two side-by-side bars, a list,
@@ -95,19 +109,31 @@ fun EvolutionTreeDialog(
     var selected by remember(card.exerciseName) { mutableStateOf(0) }
     val chosen = offers.getOrNull(selected) ?: offers.firstOrNull()
 
-    // Geometry. Drawn from the window tokens rather than fixed dp so the gutter
+    // Geometry, drawn from the window tokens rather than fixed dp so the gutter
     // and the cards scale with the rest of the dialog.
     //
-    // The whole tree lives in a LEFT GUTTER: the spine runs down the middle of
-    // it and every card starts at its right edge. It used to be drawn the other
-    // way round - the trunk card was flush to x=0 with the spine a few dp inside
-    // it - so the fork appeared to sprout from the trunk card's own body and
-    // each arm ran back under it. That is what read as lines placed at random:
-    // the geometry was correct per-line and wrong as a diagram. Indenting the
-    // TRUNK card into the same lane as the branches is what makes it read as one
-    // connected structure.
+    // THE TRUNK SITS AT x = 0 and every progression sits BELOW it, one step
+    // further right (owner, 2026-10-05: "the current exercise shown in the popup
+    // to be lets say x 0px, and the progression exercise to upgrade it to be
+    // under it like it is but more offset lets say x there would be 10px, so its
+    // under and shifted to the right slightly").
+    //
+    // Both cards used to be indented by the SAME gutter, which is why the two
+    // states of the diagram were told apart only by the lines between them. A
+    // parent that is flush with its own content edge, and children that step in
+    // from it, read as parent and children before a single pixel of connector is
+    // drawn — the indent IS the hierarchy, and the lines only confirm it.
+    //
+    // The spine therefore has to move too: it used to run down the empty gutter
+    // to the LEFT of the trunk, which is not where the trunk is any more. It
+    // now hangs [BRANCH_INSET_STEP] in from the branch lane, so the drop leaves
+    // the trunk's own width and the arm runs right into each branch's edge.
     val gutter = window.cardPadding * 1.8f
-    val nodeInset = gutter
+    val trunkInset = 0.dp
+    val branchInset = gutter + BRANCH_INSET_STEP
+    // The spine's x, measured from the canvas's left edge (which is the trunk's
+    // left edge, because the trunk is flush).
+    val spineInset = branchInset - BRANCH_INSET_STEP / 2f
 
     var sourceRect by remember { mutableStateOf<Rect?>(null) }
     var rowRects by remember { mutableStateOf<List<Rect>>(emptyList()) }
@@ -133,7 +159,7 @@ fun EvolutionTreeDialog(
                 sourceRect = sourceRect,
                 rowRects = rowRects,
                 origin = canvasOrigin,
-                gutter = gutter,
+                spineInset = spineInset,
                 color = colors.outline,
                 modifier = Modifier
                     .fillMaxSize()
@@ -146,7 +172,7 @@ fun EvolutionTreeDialog(
             ) {
                 TrunkCard(
                     card = card,
-                    inset = nodeInset,
+                    inset = trunkInset,
                     modifier = Modifier.onGloballyPositioned { sourceRect = it.boundsInRoot() },
                 )
 
@@ -155,7 +181,7 @@ fun EvolutionTreeDialog(
                     BranchCard(
                         offer = offer,
                         selected = isSelected,
-                        inset = nodeInset,
+                        inset = branchInset,
                         onClick = { selected = index },
                         modifier = Modifier.onGloballyPositioned { coords ->
                             val rect = coords.boundsInRoot()
@@ -213,9 +239,11 @@ fun EvolutionTreeDialog(
  * is nothing left on it. That is the whole premise of the popup, and it is why
  * the branches below are drawn in the primary colour.
  *
- * It is indented by the same [inset] as the legs below it, so the connector's
- * gutter is empty at the trunk too and the fork leaves the card's edge rather
- * than its middle.
+ * It sits flush at x = 0 (owner, 2026-10-05) while every progression card below
+ * it steps in by [BRANCH_INSET_STEP], so the hierarchy is carried by the indent
+ * rather than only by the drawn lines. Its [inset] parameter therefore exists
+ * for the call site to state that flush placement explicitly — a diagram whose
+ * parent position is an implicit default is one refactor away from drifting.
  */
 @Composable
 private fun TrunkCard(
@@ -441,7 +469,7 @@ private fun TreeElbows(
     sourceRect: Rect?,
     rowRects: List<Rect>,
     origin: Offset,
-    gutter: androidx.compose.ui.unit.Dp,
+    spineInset: androidx.compose.ui.unit.Dp,
     color: Color,
     modifier: Modifier = Modifier,
 ) {
@@ -449,7 +477,7 @@ private fun TreeElbows(
         val sx = sourceRect ?: return@Canvas
         if (rowRects.isEmpty()) return@Canvas
 
-        val spineX = (gutter / 2).toPx()
+        val spineX = spineInset.toPx()
         val thickness = 2.dp.toPx()
         val dropTop = sx.bottom - origin.y
         // Pair each card's arm height with its OWN left edge: looking the edge

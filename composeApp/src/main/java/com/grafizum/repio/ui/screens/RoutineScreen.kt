@@ -762,6 +762,10 @@ fun WorkoutScreen(
     val themeOption by viewModel.themeOption.collectAsState()
 
     if (showAddDialog || editingExercise != null) {
+        // The ladder opened from this editor, as an edit pass — same contract as
+        // the live-workout editor (owner, 2026-10-05: the level is editable from
+        // an exercise editor even while the level system prescribes it).
+        var editorLevelLadder by remember { mutableStateOf<String?>(null) }
         ExerciseEditDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
@@ -783,12 +787,27 @@ fun WorkoutScreen(
                 showAddDialog = false
                 editingExercise = null
             },
+            currentLevel = editingExercise?.let { viewModel.currentProgressionState(it.name)?.level },
+            levelCaption = editingExercise?.let { levelEditorCaption(viewModel, it.name) },
+            maxLevel = editingExercise?.let { viewModel.progressionMaxLevel(it.name) } ?: 0,
+            onLevelChange = { level ->
+                editingExercise?.let { viewModel.setExerciseLevelFromEditor(it.name, level) }
+            },
+            onOpenLevelLadder = { editorLevelLadder = editingExercise?.name },
             onSave = { updatedExercise ->
                 viewModel.saveExercise(updatedExercise)
                 showAddDialog = false
                 editingExercise = null
             }
         )
+        editorLevelLadder?.let { name ->
+            LevelDetailsDialog(
+                viewModel = viewModel,
+                exerciseName = name,
+                fromEditorEditPass = true,
+                onDismiss = { editorLevelLadder = null }
+            )
+        }
     }
 
     exerciseToDelete?.let { exercise ->

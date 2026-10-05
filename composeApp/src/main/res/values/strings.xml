@@ -931,6 +931,10 @@
     <string name="level_fields_locked_hint">Managed by the level system. Switch to custom to make changes here.</string>
     <string name="level_fields_locked_toast">Switch to custom to change this.</string>
     <string name="level_pencil_hint">Tap the pencil first to edit this level.</string>
+    <string name="level_editor_title">Level</string>
+    <string name="level_editor_open_ladder">See every level</string>
+    <string name="level_step_down_desc">Previous level</string>
+    <string name="level_step_up_desc">Next level</string>
     <string name="progression_available">Progression available</string>
 
     <!-- Level guide onboarding -->
