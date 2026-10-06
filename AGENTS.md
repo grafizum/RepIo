@@ -1051,10 +1051,16 @@ The owner, 2026-10-06, on the progression popup: *"i want the lines not be going
 left but right inside the progression cards."* That part is a rule:
 
 - **The rail sits ON the branch cards' left edge (`spineInset = branchInset`), and each arm
-  travels 12dp INTO its card, drawn OVER the cards.** Behind them, an arm going anywhere past a
+  travels INTO its card, drawn OVER the cards.** Behind them, an arm going anywhere past a
   card's border is covered by the surface it points at — which is why the old arms stopped dead
   at the edge and the rail looked like something the cards were bolted onto from outside. The
-  `armInset` is the card's own 12dp content padding, so the line arrives where the text starts.
+  `armInset` is **half** the card's content padding (`CARD_CONTENT_PADDING / 2`, 6dp), NOT the
+  full 12dp: at the full padding the arm arrived exactly where the exercise name starts, so the
+  line touched the very text it points at — the owner's second pass on the same day: *"the
+  progress screen still has the lines too close to the exercises."* Half the padding keeps the
+  line visibly inside the card (the first ruling) while the name keeps its clearance. The
+  padding itself is one hoisted constant used by both the card and the connector, because two
+  hand-typed copies of the number is how the arm came to stop on the text in the first place.
 - Drawing the canvas AFTER the cards is load-bearing: move it back into the Box's first position
   and the arms silently disappear behind the cards, with nothing failing. The popup is verifiable
   only through `DebugEvolutionPreviewActivity` (see below) — there are no screenshot tests for it.
@@ -1070,7 +1076,12 @@ opposite of what the owner asked for, and it only showed up when the pixels were
 Measured on the SM-S906B on 2026-10-06 (Beige, Push-Up, 5 offers): before the fix the gutter at
 x=150 carried a 4px band at every card's centre-y in the row's accent colour and the cards had
 none; after it, x 217→251 (the card's left edge + its 12dp content padding) is the row's accent
-colour and the gutter is clean background at every y. `TreeElbows` now also refuses to draw an arm
+colour and the gutter is clean background at every y. **That second figure describes the
+SUPERSEDED state**: 251 was the text's own start, i.e. the arm ended ON the name, which is what
+the owner's "too close" report was about. The arm now stops at 6dp inside the card (18px at the
+SM-S906B's density), leaving half the padding as clearance before the text. NOT re-measured on
+device — the follow-up session had no `adb` on its machine (exit 127) — so the 6dp is reasoned
+from the same measured border, not observed. `TreeElbows` now also refuses to draw an arm
 that ends at or behind the spine, so the wrong-direction line cannot come back silently.
 
 **The colours are NOT depth-coded, and that is a settled decision, not an omission.** The same

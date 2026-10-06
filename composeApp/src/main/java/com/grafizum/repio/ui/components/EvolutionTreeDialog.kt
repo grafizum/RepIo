@@ -141,9 +141,13 @@ fun EvolutionTreeDialog(
     // rail they hang from, and every arm leaves it to the RIGHT.
     val spineInset = branchInset
     // How far INTO each card its arm travels, drawn over the card rather than
-    // stopping at its edge — the same 12dp the card's own content is inset by,
-    // so the line arrives where the text starts instead of at a border.
-    val armInset = 12.dp
+    // stopping at its edge. HALF the card's content padding on purpose (owner,
+    // 2026-10-06, second pass: "the progress screen still has the lines too
+    // close to the exercises"): at the full 12dp the arm arrived exactly where
+    // the exercise name starts, so the line touched the very text it points at.
+    // At half the padding the line is still visibly inside the card — which the
+    // owner asked for the same day — but the name keeps its clearance.
+    val armInset = CARD_CONTENT_PADDING / 2
 
     var sourceRect by remember { mutableStateOf<Rect?>(null) }
     var rowRects by remember { mutableStateOf<List<Rect>>(emptyList()) }
@@ -328,6 +332,16 @@ private fun TrunkCard(
 }
 
 /**
+ * The content padding inside a branch card.
+ *
+ * Hoisted because the connector's `armInset` is DERIVED from it (half), and a
+ * second hand-typed copy of the number is exactly how the arm came to stop
+ * precisely on the exercise name in the first place — the two halves of one
+ * rule that lived in two places.
+ */
+private val CARD_CONTENT_PADDING = 12.dp
+
+/**
  * One leg of the fork.
  *
  * [inset] is the card's own step in from the trunk, and it is ALSO where the
@@ -390,7 +404,7 @@ private fun BranchCard(
     ) {
         Column(
             verticalArrangement = Arrangement.spacedBy(5.dp),
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(horizontal = CARD_CONTENT_PADDING, vertical = 10.dp),
         ) {
             Row(verticalAlignment = Alignment.CenterVertically) {
                 Text(
@@ -528,9 +542,11 @@ private fun TreeElbows(
      * How far past a card's left edge its arm is drawn, on top of the card.
      *
      * Because the spine IS the card's left edge (`spineInset == branchInset`),
-     * this is also how far the arm travels to the right of the spine, and it is
-     * the card's own 12dp content padding - so the line arrives where the text
-     * starts rather than at a border.
+     * this is also how far the arm travels to the right of the spine. The call
+     * site passes HALF the card's content padding: at the full padding the arm
+     * arrived exactly where the exercise name starts (owner, 2026-10-06: "the
+     * lines too close to the exercises"), so the clearance is the point — the
+     * line enters the card but stops short of its text.
      */
     armInset: androidx.compose.ui.unit.Dp,
     /** One colour per row, in row order: the arm into a card is that card's own colour. */
