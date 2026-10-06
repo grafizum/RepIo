@@ -454,6 +454,31 @@ object ProgressionEngine {
      * stage), matching [romanStageReps] so every caller keeps its existing
      * "do not auto-progress on bad data" behaviour.
      */
+    /**
+     * The stage's per-set targets for a routine row carrying [setCount] sets.
+     *
+     * A published pattern is often narrower than the goal template's set
+     * count — the bent-over dumbbell row's pattern is [8, 8, 8] while the
+     * hypertrophy template stores 4 sets — and the workout card renders BOTH:
+     * the set pills and "Satz n von 4" come from the routine row, the per-set
+     * targets from the pattern. Beyond the pattern's width the last set's
+     * target repeats, which is the same rule the set-target resolver applies
+     * when it answers "what does set N ask" — so the banner that promises
+     * every set's target lists all of them instead of leaving the extra sets
+     * to be guessed. A [setCount] no larger than the pattern is returned
+     * untouched: a narrower row keeps its own published shape.
+     */
+    fun stageTargetsForSets(
+        entry: ProgressionEntry,
+        level: Int,
+        stage: Int,
+        setCount: Int
+    ): List<Int> {
+        val reps = prescribedReps(entry, level, stage).orEmpty()
+        if (reps.isEmpty() || setCount <= reps.size) return reps
+        return reps + List(setCount - reps.size) { reps.last() }
+    }
+
     fun prescribedReps(entry: ProgressionEntry, level: Int, stage: Int): List<Int>? {
         val base = romanStageReps(entry, stage) ?: return null
         if (!isProgressionReady(entry) || valueKindOf(entry) == ValueKind.LOAD) return base

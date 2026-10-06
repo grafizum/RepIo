@@ -58,7 +58,12 @@ data class WorkoutNowState(
      */
     val progressionLevel: Int? = null,
     val progressionStage: Int? = null,
-    /** The whole stage's per-set targets, e.g. [9, 8, 8] for "Target: 9 / 8 / 8". */
+    /**
+     * Every set's target for the current stage, e.g. [9, 8, 8] for
+     * "9 / 8 / 8 Wdh." — padded to the routine row's set count when the
+     * published pattern is narrower (see ProgressionEngine.stageTargetsForSets),
+     * so the banner and the set pills never disagree on how many sets there are.
+     */
     val progressionStageTargetReps: List<Int> = emptyList(),
     /** The prescribed load/variation/duration at the current level. */
     val progressionPrescribed: ProgressionEngine.PrescribedValue? = null,
@@ -581,7 +586,13 @@ class WorkoutViewModel(
                             val progState = currentProgressionState(it.name)
                             val progEntry = progState?.let { _ -> ProgressionEngine.entryFor(it.name) }
                             val stageTargetReps = if (progState != null && progEntry != null) {
-                                ProgressionEngine.prescribedReps(progEntry, progState.level, progState.stage).orEmpty()
+                                // Padded to the ROW's set count: the published pattern
+                                // may be narrower than the template's sets (a 3-wide
+                                // pattern under "Satz 1 von 4"), and the banner lists
+                                // every set the row actually asks for.
+                                ProgressionEngine.stageTargetsForSets(
+                                    progEntry, progState.level, progState.stage, it.targetSets
+                                )
                             } else emptyList()
                             val prescribed = if (progState != null && progEntry != null) {
                                 ProgressionEngine.prescribedValueAtLevel(progEntry, progState.level, _weightUnit.value)
@@ -1415,7 +1426,14 @@ class WorkoutViewModel(
         if (currentExerciseName() != exerciseName) return
         val progState = currentProgressionState(exerciseName) ?: return
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return
-        val stageTargetReps = ProgressionEngine.prescribedReps(entry, progState.level, progState.stage).orEmpty()
+        // Same padding rule as the reactive loader, so a same-exercise
+        // re-set cannot shrink the banner back to the pattern's width.
+        val targetSets = allRoutineExercises.value
+            .firstOrNull { it.name == exerciseName && it.dayOfWeek == state.selectedDayOfWeek }
+            ?.targetSets ?: 0
+        val stageTargetReps = ProgressionEngine.stageTargetsForSets(
+            entry, progState.level, progState.stage, targetSets
+        )
         val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level, _weightUnit.value)
         val setTarget = targetRepsForCurrentSet(exerciseName, state.currentSetNumber)
         _workoutNowState.update {

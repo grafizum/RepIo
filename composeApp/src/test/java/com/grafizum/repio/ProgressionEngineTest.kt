@@ -510,4 +510,59 @@ class ProgressionEngineTest {
             assertTrue("$name lost its level system", ProgressionEngine.isProgressionReady(entry))
         }
     }
+
+    // --- Set-target banner vs the row's set count ---------------------------
+
+    /**
+     * The workout card renders BOTH sources: the pills and "Satz n von 4"
+     * come from the routine row, the per-set targets from the published
+     * pattern — which is often narrower. Seen on the device (2026-10-06):
+     * the bent-over dumbbell row showed FOUR pills over "8 / 8 / 8 Wdh.",
+     * because its pattern is [8, 8, 8] while the hypertrophy template stores
+     * 4 sets. The padded list must equal what each set actually asks (the
+     * resolver repeats the last value past the pattern), or set 4 is a guess.
+     */
+    @Test
+    fun theSetTargetBannerListsEverySetTheRowAsksFor() {
+        val row = entry("Bent-Over Dumbbell Row")
+        val pattern = ProgressionEngine.prescribedReps(row, 1, 1)
+            ?: error("the row must carry a stage-1 pattern")
+        assertEquals("non-vacuous: this row's pattern is 3-wide", listOf(8, 8, 8), pattern)
+
+        for (setCount in pattern.size..pattern.size + 2) {
+            val padded = ProgressionEngine.stageTargetsForSets(row, 1, 1, setCount)
+            assertEquals("one target per set", setCount, padded.size)
+            padded.forEachIndexed { i, reps ->
+                // The resolver's own rule: set N takes pattern[N-1], and
+                // beyond the pattern the LAST set's target repeats.
+                assertEquals(
+                    "set ${i + 1} of $setCount",
+                    pattern[i.coerceAtMost(pattern.size - 1)],
+                    reps
+                )
+            }
+        }
+        // A count that matches the pattern is returned untouched.
+        assertEquals(pattern, ProgressionEngine.stageTargetsForSets(row, 1, 1, pattern.size))
+    }
+
+    /**
+     * The same rule over every progression-ready row: the published shape is
+     * never rewritten, and two extra template sets append the last value
+     * twice. Fails vacuously-proof: some row must actually need padding.
+     */
+    @Test
+    fun everyRowsSetTargetsPadWithoutRewritingThePattern() {
+        var paddedRows = 0
+        for (e in ExerciseProgression.ENTRIES.filter { ProgressionEngine.isProgressionReady(it) }) {
+            val pattern = ProgressionEngine.prescribedReps(e, 1, 1) ?: continue
+            if (pattern.isEmpty()) continue
+            val padded = ProgressionEngine.stageTargetsForSets(e, 1, 1, pattern.size + 2)
+            assertEquals("${e.slug}: one target per set", pattern.size + 2, padded.size)
+            assertEquals("${e.slug}: the published shape survives", pattern, padded.take(pattern.size))
+            assertEquals("${e.slug}: past the pattern the last target repeats", pattern.last(), padded.last())
+            if (padded.size > pattern.size) paddedRows++
+        }
+        assertTrue("non-vacuous: some row's template is wider than its pattern", paddedRows > 0)
+    }
 }
