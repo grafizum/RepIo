@@ -1,5 +1,20 @@
 # Agent Guide — RepIo
 
+## Git commits happen ONLY on the owner's say-so (owner rule, 2026-10-06)
+
+Do **not** commit automatically, no matter how complete or verified the work is. Finish
+the work, run the checks, report what changed and what was verified, and leave the edits
+in the working tree — staged or unstaged, either is fine — until the owner says to commit.
+A green suite is not permission to commit; neither is an end-of-task summary, a TODO.md
+ledger entry, or an earlier session having committed similar work.
+
+**Pushing already had this rule and it stands:** a push needs an explicit ask too, so a
+commit made on the owner's word still stays local until they say push.
+
+The one exception is a commit the owner has ALREADY authorized in the same exchange
+("commit this", "commit and push") — that authorization covers exactly what it names and
+nothing further.
+
 ## Versioning (bump ONCE per release, not per fix)
 
 **`version.properties` at the repo root is the single source of truth** for `VERSION_NAME`
