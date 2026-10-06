@@ -281,6 +281,7 @@
     <string name="recap_volume">Volumen</string>
     <string name="recap_duration">Dauer</string>
     <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_volume_lb">%1$s lb</string>
     <string name="recap_duration_format">%1$d Min.</string>
     <string name="recap_split_title">Verteilung der Belastung</string>
     <plurals name="workout_completed_text">
@@ -855,6 +856,12 @@
     <string name="progression_stage_target">Ziel: %1$s</string>
     <string name="progression_load_each">%1$s kg pro Hantel</string>
     <string name="progression_load_kg">%1$s kg</string>
+    <string name="progression_load_lb">%1$s lb</string>
+    <string name="progression_load_lb_each">%1$s lb pro Hantel</string>
+    <string name="weight_unit">Gewichtseinheit</string>
+    <string name="change_weight_unit">Wie Gewichte angezeigt und eingegeben werden</string>
+    <string name="weight_unit_kg">Kilogramm (kg)</string>
+    <string name="weight_unit_lbs">Pfund (lb)</string>
     <string name="progression_duration_value">%1$s s</string>
     <string name="level_system_guide_title">Wie Level &amp; Stufen funktionieren</string>
     <string name="level_system_guide_desc">Das Level-System in einem Bild</string>

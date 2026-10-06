@@ -504,6 +504,118 @@ progress by volume, then height, then intensity, and one ladder cannot express a
 Nordic Hamstring Curl (eccentric-only, load is trainer-designed from tempo), Rope Climb
 (bodyheight is a distance) and Wrist Roller (revolutions, a unit no other row uses).
 
+## A LOAD rung must be a weight the gym can set — the ladder walks the row's own increment
+
+The level picker read **"40.45454545454545 kg each"** on a dumbbell curl (owner report,
+2026-10-06: *"stuff like 40.43 kg should not exist"*). The cause was not the display path: the
+value the app SUGGESTED was off-grid, so the user was asked to load a weight that does not exist.
+`valueAtLevelWithCeiling`'s stretch zone — the rungs between a ladder's authored top and the
+researched human ceiling — divided the remaining growth by a rung count taken from a log ratio:
+
+| row | authored top | ceiling | stretch rungs | old step | now |
+| --- | --- | --- | --- | --- | --- |
+| Squat | 135 kg | 220 | 87 | 1.609 kg | **2.5 kg** × 34 |
+| Dumbbell Bicep Curl | 40 kg/hand | 45 | 11 | 0.4545 kg | **1 kg** × 5 |
+
+Three rules, each with its own way of failing quietly:
+
+- **The step is the row's OWN `increment`** (`ProgressionEngine.loadGridStep`) — barbell 2.5 kg
+  total (101 rows: 82 at 2.5, 19 at 5.0), dumbbell 1-2 kg per hand (76), one pin (64), one band
+  rung (17). That is the smallest change the *equipment* can make, which is why 0.5 kg is not a
+  universal answer: 0.5 kg on a barbell needs fractional plates no commercial gym stocks, and a
+  0.5 kg jump on a deadlift is not a lever. `kg_per_kettlebell` and bare `kg` rows take the same
+  path.
+- **Kilograms are quantised to a half-kilo, and that is a FLOOR, not a target.** Every rung is
+  x.0 or x.5 — but a 2.5 kg barbell row keeps 2.5, because a 1 kg jump is not what that row
+  progresses by. Pin and band counts stay whole: a fraction of a pin position does not exist.
+- **The rung count follows the grid, not a log ratio**: `extra = round((ceiling − ladderTop) /
+  step)`, so the researched ceiling is the ladder's LAST rung and no level exists past it. A
+  bench therefore ends at 58 levels of 2.5 kg (180 kg), not at 127 levels of 1.61 kg.
+
+**A DURATION ladder is deliberately excluded** — its rungs are seconds, have no increment to
+obey, and keep the even spread (`valueKindOf(entry) == ValueKind.LOAD` is the gate). The
+seconds/meters ladders were already normalized separately (see the hold section above).
+
+`formatLoadValue` (the display rounder added on the same report) is **not** the fix and does not
+make the suggestion loadable: it only stops the noise from reaching the eye. Both halves are
+needed because the displayed number and the stored number must be the same number.
+
+`LoadGridTest` (7 cases) sweeps **every one of the 338 load rows** rather than the two that were
+reported, asserting each rung is a half-kilo multiple, each stretch step equals the row's own
+increment, the ceiling is the top rung, and no stretch level repeats the one below. Verified
+non-vacuously by restoring the old arithmetic: it produces `137.125 kg` and two cases fail.
+
+**The mirror of this rule is still open, and it is bigger.** 287 of the 338 load rows have their
+authored ladder cut short by the ceiling rather than stretched past it, which CLAMPS every rung
+above the ceiling to the same number: **4,684 levels that change nothing** in total. An Arnold
+press walks 30 levels of 30 kg, because its ceiling is 30. The fix is the same rule applied in the
+other direction — a ladder should END where the ceiling is reached, so mastery fires at 30 kg
+rather than after twenty identical levels — but it moves `effectiveMaxLevel` for 287 rows and
+therefore every user's Overall Level, so it is an owner decision: reported, not slipped in.
+
+## A weight is STORED in kilograms and SHOWN in the user's unit
+
+Storage is kilograms, like the exercise pool storing canonical English names. A set logged at
+40 kg is 40 kg; the unit is a view of it, not a rewrite. Converting the stored rows would round
+every logged set a second time and make the same set read differently depending on when you
+looked. `WeightUnit` (`data/WeightUnit.kt`) is the whole model, `LocalWeightUnit`
+(`ui/components/WorkoutComponents.kt`) provides it, and `weight_unit` in prefs holds it.
+
+**The default comes from the phone's country, once, and is then persisted.** US, LR and MM get
+pounds; the UK deliberately does not — it weighs body mass in stones for people and gym plates in
+kilograms, so kg is the safer default and one tap fixes it. A choice the user made always wins,
+and the country is never re-read, or a trip would silently switch the numbers under them.
+
+### The pound ladder is GENERATED, never rounded onto a grid
+
+This was got wrong twice against real data, so the evidence is written down. A kilogram ladder
+steps 2.5 kg; that is 5.51 lb, and the pound rungs have to be pounds a US gym stocks:
+
+| kilogram step | pound step |
+| --- | --- |
+| 1 kg/hand | 2.5 lb |
+| 2 kg/hand, kettlebell | 5 lb |
+| 2.5 kg barbell | 5 lb |
+| 5 kg barbell (heavy compounds) | 10 lb |
+
+`ProgressionEngine.poundLadder(entry)` builds `baseLb + k x stepLb` up to the converted ceiling,
+**rung by rung**, and returns null for everything that is not a weight — a pin and a band rung are
+counts, and a bodyweight row has no load. Rung count, mastery and the level clamp all take a
+`unit` parameter defaulting to KG, so every existing caller and test is unchanged, and the display
+paths pass the user's unit.
+
+**Do not replace this with rounding each kilogram rung onto a pound grid.** Rounding is at the
+mercy of how the kilogram ladder happens to sit, and both attempts produced a level-up that
+changed nothing — the exact defect removed from the kilogram side:
+
+- a 2.5 lb grid put an **arnold press's levels 1 and 2 both on 10 lb** (its ladder steps 1 kg at
+  the bottom, 2.2 lb, which is narrower than the grid's rounding bucket);
+- a finer 1.25 lb grid merely **moved the repeat to level 11 (66.25 lb)**.
+
+A generated rung cannot repeat, because each one is the one below plus exactly one increment.
+`WeightUnitTest` sweeps **every pound ladder in the pool** — 250 of the 338 load rows carry a
+ceiling and a starting load — asserting rungs are on the grid, strictly increasing, and that the
+top rung IS the researched ceiling. It is non-vacuous: the rounding versions fail it.
+
+The honest cost, and it is deliberate: a pound ladder has a **different number of rungs** than the
+kilogram one (5 lb steps to the same ceiling is not 2.5 kg steps), so a level index means a
+slightly different load in each unit. `Overall Level` is computed from the kilogram ladder, so a
+user's progress figure does not move when they switch.
+
+### Two halves that both have to be right
+
+- **Values the engine prescribes** arrive already in the user's unit —
+  `prescribedValueAtLevel(entry, level, unit)` — so `prescriptionDisplayText` only writes them
+down. Converting there as well would convert twice.
+- **Values that are stored** (a logged set, `targetWeightKg`, the session tonnage) go through
+  `displayLoadForUnit`, and what the user TYPES comes back through `loadInputToKg`. Tonnage uses
+  `fromKg` with no grid at all: a session total is not a load anyone sets on a bar.
+- `progression_load_lb` / `recap_volume_lb` are in `StringResourceIntegrityTest`'s
+  `IDENTICAL_BY_DESIGN`: "lb" is the unit symbol in all three languages.
+- The **label strings must follow the unit too** — the field's suffix, the logged-set summary and
+the editor's own `loadField*` helpers are the one place a load becomes a word, so a hardcoded
+"kg" there reads as a bug on a phone that chose pounds.
+
 ## Every weighted exercise starts at level 4 — so the picker must not open ON it
 
 Every one of the 75 weighted progression rows has `mediumLevel = 4`, which is **2.0–2.5x its
@@ -933,6 +1045,50 @@ a weight" is false, because a `DURATION` row carries a number too (a count of
 seconds). It is the **unit** that makes a number a weight, and
 `prescribedValueAtLevel` sets `loadUnit` only on `LOAD`.
 
+## The evolution tree's connector runs INTO the card — and has exactly TWO colours
+
+The owner, 2026-10-06, on the progression popup: *"i want the lines not be going out
+left but right inside the progression cards."* That part is a rule:
+
+- **The rail sits ON the branch cards' left edge (`spineInset = branchInset`), and each arm
+  travels 12dp INTO its card, drawn OVER the cards.** Behind them, an arm going anywhere past a
+  card's border is covered by the surface it points at — which is why the old arms stopped dead
+  at the edge and the rail looked like something the cards were bolted onto from outside. The
+  `armInset` is the card's own 12dp content padding, so the line arrives where the text starts.
+- Drawing the canvas AFTER the cards is load-bearing: move it back into the Box's first position
+  and the arms silently disappear behind the cards, with nothing failing. The popup is verifiable
+  only through `DebugEvolutionPreviewActivity` (see below) — there are no screenshot tests for it.
+
+**The arm end is MEASURED, and where it is measured is load-bearing too.** `rowRects` are fed
+from `BranchCard`'s own `onGloballyPositioned`, placed **below** `.padding(start = inset)`. Handed
+in from the call site instead (the natural-looking `modifier = Modifier.onGloballyPositioned { … }`),
+it sits ABOVE that padding and reports the **full-width lane** rather than the card, so
+`rect.left` came back as the trunk's own edge, `rect.left - origin.x + armInset` fell 87px SHORT of
+the spine, and every arm was drawn **backwards into the empty gutter**. Nothing failed: the lines
+were still drawn, still two-colour, still attached to a spine sitting on a card's edge — the
+opposite of what the owner asked for, and it only showed up when the pixels were measured.
+Measured on the SM-S906B on 2026-10-06 (Beige, Push-Up, 5 offers): before the fix the gutter at
+x=150 carried a 4px band at every card's centre-y in the row's accent colour and the cards had
+none; after it, x 217→251 (the card's left edge + its 12dp content padding) is the row's accent
+colour and the gutter is clean background at every y. `TreeElbows` now also refuses to draw an arm
+that ends at or behind the spine, so the wrong-direction line cannot come back silently.
+
+**The colours are NOT depth-coded, and that is a settled decision, not an omission.** The same
+message also said *"i want the cards to light the color of the lines depending on how deep it
+is"*, so a ramp through three theme roles (primary → tertiary → secondary, cycling) was built and
+then rejected in the next message:
+
+> dont change the colors of the progression exercises, keep them greyed out ... and have the
+> selected exercise be colored actively still in the same primary theme color, not random other
+> colors.
+
+So `branchAccent(selected)` returns exactly two things — the theme's neutral for a row and the
+brand `primary` for the chosen one — and the connector takes the colour of the card it arrives at,
+so a line can never point at a differently coloured box. **Do not reintroduce a depth ramp:** a
+diagram that spends three hues on five options reads as decoration, and the only thing the colour
+has to say is which one is picked. Five branch rows repeating a hue is the tell — if a ramp ever
+returns, that is where it shows first.
+
 ## Verifying a Compose popup on THIS phone
 
 The SM-S906B is PIN-locked, which changes how on-device checks have to be done:
@@ -1020,6 +1176,47 @@ asserts *strict* decrease.
 Verified on device: **Chin-Ups runs 8/10/12/14/16/18/20 across seven levels and stops on its
 authored 20** — which confirms the ceiling *and* the `repRungs` fix, since floor division would
 have stopped at 18.
+
+### The step must hold the Roman climb, or a level-up DEMOTES the reps (2026-10-06)
+
+The step above was span-derived only, and that was a bug the owner found on the device:
+"when the rep is max of level 3 (lets say 12) and level 4 comes, it jumps from 12 to 8 as if the
+weight would have been increased, but since there is no weight to increase it makes no sense."
+
+The mechanism is the **stage reset**. A level ends on its LAST Roman stage and a level-up resets
+the stage to I, so the reps actually go from `repsAtLevel(L) + climb` to `repsAtLevel(L+1)`. When
+the span-derived step was SMALLER than the pattern's climb (climb is 4 for most rep rows; a
+25-ceiling Push-Up stepped by 2), that reset handed back **fewer** reps — 12+4=16 at the top of
+level 3, then 14 at level 4. Core rows happened to be safe only because their step of 4 matched
+their climb of 4.
+
+Two changes, and both are needed:
+
+- **`repStepFor` is at least `stageClimb + 1`.** That is what makes "1 level is 5 reps" (the
+owner's number) true for every roomy ladder, and the step is still derived per exercise from its
+own floor, ceiling and pattern — never its name. `stageClimb(entry)` is the largest
+within-level climb over stage I, across the sets.
+- **The climb is SCALED into the level's band** (`band = step - 1`) in `prescribedReps`, so the
+no-demotion promise holds even where the two disagree. A four-rep-wide skill row cannot hold a
+five-rep step AND four rungs, so `repStepCeiling` shrinks the step there and the climb is
+compressed to fit. The cascade SHAPE is still the pattern's own; only its magnitude is
+normalised.
+
+The two mechanisms cover different rows and each is load-bearing: reverting the step alone left
+the invariant tests green (the scaling still holds the band), while reverting the **scaling** made
+`levelingUpFromTheLastStageNeverDemotesTheReps` and `theRepCountNeverFallsAnywhereAlongTheLadder`
+fail. Both are swept across every rep ladder in the pool, not just Crunches, and both were
+verified non-vacuously by that revert.
+
+Two consequences worth keeping in mind:
+
+- **The ladders got SHORTER.** Chin-Ups is now 8/12/16/20 across four levels, not seven —
+  decline push-up 8/12/16/20 likewise. That is the owner's "bigger steps" ask, not a
+  regression, but the old on-device figure above is superseded by this one.
+- **A stored level can sit past its ladder's end**, because the length is derived and this
+  ruling shortened every rep ladder. `WorkoutViewModel.currentProgressionState` clamps a stored
+  level to `effectiveMaxLevel` at the READ path (the same bound the writer uses), or the device
+  shows "Level 7" over a picker that offers four rungs.
 
 ## Every key in `.env` becomes a `BuildConfig` field unless it is ignored
 

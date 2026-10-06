@@ -243,8 +243,8 @@ class StringResourceIntegrityTest {
             "duration_minutes",
 
             // Units, where the symbol is the unit in every language.
-            "weight_kg_intl", "progression_load_kg", "progression_duration_value",
-            "recap_volume_kg",
+            "weight_kg_intl", "progression_load_kg", "progression_load_lb",
+            "progression_duration_value", "recap_volume_kg", "recap_volume_lb",
 
             // The session recap's two pure formats. "kg" is the symbol in all
             // three, and "min" is the abbreviation Italian prints anyway - which

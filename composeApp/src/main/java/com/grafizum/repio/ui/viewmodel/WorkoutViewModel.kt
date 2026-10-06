@@ -1,5 +1,6 @@
 package com.grafizum.repio.ui.viewmodel
 
+import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.util.getPlatformSettings
 import com.grafizum.repio.util.AppEventBus
 import com.grafizum.repio.util.getTimerManager
@@ -7,21 +8,27 @@ import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.remainingRestSeconds
-import com.grafizum.repio.util.restTimerTick
-import com.grafizum.repio.util.RestTimerTick
-import com.grafizum.repio.util.NotificationHelper
-import com.grafizum.repio.util.appContext
 import com.grafizum.repio.util.startOfTodayMillis
 import androidx.compose.foundation.ScrollState
 import androidx.compose.foundation.lazy.LazyListState
 import androidx.lifecycle.ViewModel
 import androidx.lifecycle.viewModelScope
 import com.grafizum.repio.data.LoggedSetEntity
+import com.grafizum.repio.data.ExerciseCatalog
+import com.grafizum.repio.data.ExerciseEquipmentTags
+import com.grafizum.repio.data.HumanCeiling
+import com.grafizum.repio.data.ProgressionBranch
+import com.grafizum.repio.data.OverallLevelCalculator
+import com.grafizum.repio.data.ProgressionEngine
+import com.grafizum.repio.data.WeightUnit
+import java.util.Locale
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
+import com.grafizum.repio.data.UserStatsEntity
 import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.screens.remapTemplateToDays
+import com.grafizum.repio.ui.theme.isRetiredThemeOption
 import kotlinx.coroutines.Dispatchers
 import kotlinx.coroutines.flow.*
 import kotlinx.coroutines.launch
@@ -40,6 +47,23 @@ data class WorkoutNowState(
     val currentReps: Int = 10,
     val minReps: Int = 1,
     val maxReps: Int = 100,
+    /** The per-set target the progression engine prescribed for THIS set (null = none). */
+    val currentSetTargetReps: Int? = null,
+    /** True when the last logged set completed the stage and the level advanced. */
+    val lastSetLeveledUp: Boolean = false,
+    /**
+     * v5 level-system display fields for the CURRENT exercise (all null/empty
+     * when the exercise is outside the level system). The UI renders these;
+     * it never talks to the engine directly.
+     */
+    val progressionLevel: Int? = null,
+    val progressionStage: Int? = null,
+    /** The whole stage's per-set targets, e.g. [9, 8, 8] for "Target: 9 / 8 / 8". */
+    val progressionStageTargetReps: List<Int> = emptyList(),
+    /** The prescribed load/variation/duration at the current level. */
+    val progressionPrescribed: ProgressionEngine.PrescribedValue? = null,
+    /** True while no progression state is stored yet (the exercise's first session). */
+    val progressionIsFirstSession: Boolean = false,
     val isWorkoutCompleted: Boolean = false,
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
@@ -48,8 +72,99 @@ data class WorkoutNowState(
     val currentExerciseSeconds: Int = 30,
     val minExerciseSeconds: Int = 10,
     val maxExerciseSeconds: Int = 600,
-    val totalSetsLoggedToday: Int = 0
+    val totalSetsLoggedToday: Int = 0,
+    /** Exercises that reached their ladder end / human ceiling this workout. */
+    val masteredExercises: List<MasteryCardData> = emptyList(),
+    /**
+     * The evolution offers to put in front of the user, one per mastered
+     * exercise that has a branch. The screen shows them as a queue of popups.
+     */
+    val evolutionOffers: List<ProgressionEngine.EvolutionOffer> = emptyList(),
+    /**
+     * One entry per mastered exercise that HAS a branch, carrying EVERY way on
+     * rather than only the preferred one.
+     *
+     * The tree popup draws a fork, so it needs the whole fork; [evolutionOffers]
+     * is one-per-exercise (the preferred branch only) and cannot express "six
+     * ways on". Order is the card's own branch order, and the first entry is the
+     * engine's preferred branch, so the popup opens on the coach's choice rather
+     * than on whichever row happened to sort first.
+     */
+    val evolutionTrees: List<EvolutionTreeItem> = emptyList(),
+
+    /**
+     * The graphical recap of the session that just finished, or null while a
+     * session is still running. See [WorkoutRecap].
+     */
+    val workoutRecap: WorkoutRecap? = null,
+    /**
+     * Bumped whenever [evolutionOffers] is recomputed, so the screen can seed
+     * its queue once per change instead of on every recomposition.
+     */
+    val evolutionToken: Int = 0,
 )
+
+/**
+ * What the user actually did in the session that just finished.
+ *
+ * The owner asked for this as "instead of having the 'workout completed' screen
+ * simply put like that, add graphical information of a quick recap for what was
+ * made today" — and the honest answer is that the ONLY number the screen had was
+ * the set count. Everything here is accumulated from the sets the user actually
+ * logged, not read back and estimated, so a set logged against a stack pin does
+ * not add fake kilograms.
+ */
+data class WorkoutRecap(
+    /** Distinct exercises trained. */
+    val exercises: Int,
+    val sets: Int,
+    /**
+     * Total load volume in the exercises' own units, as a raw sum. Left as
+     * `null` when nothing weighted was trained: a rep-only or timed session has
+     * no honest volume figure, and printing "0 kg" would read as "you did
+     * nothing".
+     */
+    val volumeKg: Double?,
+    val durationSeconds: Long,
+    /** Muscle -> sets trained, most-trained first. Drives the distribution bar. */
+    val setsByMuscle: Map<String, Int>,
+)
+
+/**
+ * One card on the post-workout Mastery & Branch section: an exercise that hit
+ * its variation ladder's end or its researched human ceiling, with the branch
+ * choices (or the true-ceiling message when none exist).
+ */
+data class MasteryCardData(
+    val exerciseName: String,
+    val muscleGroup: String,
+    val equipment: String,
+    val level: Int,
+    val stageRoman: String,
+    val load: Double?,
+    val unit: String,
+    val reason: ProgressionEngine.MasteryReason,
+    val ceiling: HumanCeiling?,
+    val branches: List<ProgressionBranch>,
+    /** Suggested focus exercises shown on a true-ceiling card. */
+    val suggestions: List<String>
+)
+
+/**
+ * One mastered exercise plus every progression branch it offers, resolved.
+ *
+ * Holds the [MasteryCardData] itself so the popup can draw the trunk (the
+ * exercise that was just finished) alongside the legs, rather than receiving an
+ * already-paired before/after and losing the rest of the fork.
+ */
+data class EvolutionTreeItem(
+    val card: MasteryCardData,
+    /** Parallel to `card.branches`; an unrenderable branch drops out of both. */
+    val offers: List<ProgressionEngine.EvolutionOffer>,
+)
+
+/** Which confirmation dialog the Settings level-system toggle is asking for. */
+enum class LevelSystemConfirmation { NONE, DISABLE, ENABLE }
 
 data class SupportUiState(
     val isSubmitting: Boolean = false,
@@ -73,6 +188,16 @@ class WorkoutViewModel(
     val allRoutineExercises: StateFlow<List<RoutineExerciseEntity>>
     val allLoggedSets: StateFlow<List<LoggedSetEntity>>
 
+    /**
+     * The cached overall level for the home stat. Derived from the logged
+     * history and the per-exercise levels — see [recomputeOverallLevel] — so the
+     * UI only ever reads it, never recomputes it.
+     */
+    val userStats: StateFlow<UserStatsEntity?>
+
+    /** The newest history seen from the database; the recompute reads this. */
+    private var latestLoggedSets: List<LoggedSetEntity> = emptyList()
+
     private val prefs = getPlatformSettings("app_settings")
     private val timerManager = getTimerManager()
     private val supportManager = getSupportManager()
@@ -91,15 +216,30 @@ class WorkoutViewModel(
     val defaultExerciseTimerSeconds: StateFlow<Int> = _defaultExerciseTimerSeconds.asStateFlow()
 
     private val _themeOption = MutableStateFlow(prefs.getString("theme_option", "DEFAULT") ?: "DEFAULT")
+
+    init {
+        // Drop a RETIRED theme id rather than translating it. RepIoApplication
+        // already cleared it before any UI exists, so in practice this is a
+        // belt-and-braces guard for a value that arrived some other way (a
+        // downgrade/upgrade cycle, a restored backup). Writing a translated id
+        // back here would be wrong on its own terms: the correct fallback is the
+        // system default, and this class cannot know the system appearance - the
+        // caller that can is RepIoApplication, which owns the repair.
+        val stored = prefs.getString("theme_option", null)
+        if (isRetiredThemeOption(stored)) {
+            prefs.remove("theme_option")
+            _themeOption.value = "DEFAULT"
+        }
+    }
     val themeOption: StateFlow<String> = _themeOption.asStateFlow()
 
-    private val _minSets = MutableStateFlow(prefs.getInt("setup_min_sets", 0))
-    val minSets: StateFlow<Int> = _minSets.asStateFlow()
-
-    private val _maxSets = MutableStateFlow(prefs.getInt("setup_max_sets", 0))
-    val maxSets: StateFlow<Int> = _maxSets.asStateFlow()
-
-    private val _workoutGoal = MutableStateFlow(prefs.getString("workout_goal", "goal_bodybuilding") ?: "goal_bodybuilding")
+    // Legacy stored values (goal_olympic, goal_crossfit, …) map onto one of
+    // the five canonical goals at read time — no preference migration needed.
+    private val _workoutGoal = MutableStateFlow(
+        WorkoutTemplates.canonicalGoal(
+            prefs.getString("workout_goal", "goal_bodybuilding") ?: "goal_bodybuilding"
+        )
+    )
     val workoutGoal: StateFlow<String> = _workoutGoal.asStateFlow()
 
     private val _developerThemeEnabled = MutableStateFlow(prefs.getBoolean("developer_theme_enabled", false))
@@ -114,6 +254,20 @@ class WorkoutViewModel(
     private val _appLanguage = MutableStateFlow(prefs.getString("app_language", "system") ?: "system")
     val appLanguage: StateFlow<String> = _appLanguage.asStateFlow()
 
+    /**
+     * The unit weights are shown and entered in. Seeded once from the phone's
+     * own country — a US gym has pounds on the rack — and persisted there, so a
+     * later trip does not silently switch the numbers under the user. What they
+     * picked always wins from then on.
+     */
+    private val _weightUnit = MutableStateFlow(
+        WeightUnit.fromId(prefs.getString("weight_unit", null))
+            ?: WeightUnit.defaultFor(Locale.getDefault()).also {
+                prefs.putString("weight_unit", it.id)
+            }
+    )
+    val weightUnit: StateFlow<WeightUnit> = _weightUnit.asStateFlow()
+
     private val _workoutNowState = MutableStateFlow(WorkoutNowState())
     val workoutNowState: StateFlow<WorkoutNowState> = _workoutNowState.asStateFlow()
 
@@ -125,6 +279,173 @@ class WorkoutViewModel(
 
     private val _showRestartDialog = MutableStateFlow(false)
     val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
+
+    /**
+     * Onboarding gate for the v5 level system: shown once per install (fresh
+     * or after updating to this version) until the user completes the guide.
+     * Cleared when a new routine replaces the old one, so a rebuilt plan
+     * re-offers the walkthrough.
+     */
+    // Bumped from _v5 to _v6 when the Overall Level explainer joined the level
+    // guide: the walkthrough now teaches both systems, so an install that already
+    // dismissed the levels-only version is owed the combined one exactly once.
+    private val _shouldShowLevelGuide = MutableStateFlow(!prefs.getBoolean("has_seen_level_guide_v6", false))
+    val shouldShowLevelGuide: StateFlow<Boolean> = _shouldShowLevelGuide.asStateFlow()
+
+    /**
+     * Level lock: when on, the workout stays on the CURRENT level and stage
+     * no matter what is logged — for when the user could not progress
+     * (travel, deload, different equipment) and wants the same prescription
+     * next time. The engine's advancement is gated; manual stage stepping and
+     * level picks still work.
+     */
+    private val _levelLockEnabled = MutableStateFlow(prefs.getBoolean("level_lock_enabled", false))
+    val levelLockEnabled: StateFlow<Boolean> = _levelLockEnabled.asStateFlow()
+
+    fun setLevelLockEnabled(enabled: Boolean) {
+        prefs.putBoolean("level_lock_enabled", enabled)
+        _levelLockEnabled.value = enabled
+    }
+
+    /**
+     * Per-exercise lock, persisted in the routine_exercises table: a locked
+     * exercise is pinned to its current level and stage — the card's stepper
+     * grays out, the level picker refuses jumps, and automatic progression
+     * skips it. Every row of the same exercise (across days) flips together,
+     * because the progression state itself is keyed by name.
+     */
+    fun setExerciseLocked(exerciseName: String, locked: Boolean) {
+        viewModelScope.launch { repository.setExerciseLocked(exerciseName, locked) }
+    }
+
+    /**
+     * Synchronous lock check for UI gating and progression writes, read from
+     * the live routine flow (Room re-emits on any row change, so a toggle on
+     * the card is visible here immediately).
+     */
+    fun isExerciseLockedNow(exerciseName: String): Boolean =
+        allRoutineExercises.value.any {
+            it.name.equals(exerciseName, ignoreCase = true) && it.locked
+        }
+
+    /**
+     * The level system's master switch, exposed in Settings behind confirmations.
+     * When OFF the app runs in "custom" mode: every per-exercise level display is
+     * suppressed (the reactive loader clears the fields) and the routine editor's
+     * sets/reps/weight/intensity inputs unlock, because nothing prescribes them
+     * any more. Turning it back ON asks a second confirmation, then re-derives
+     * every exercise's level from the weights the user last actually used — so
+     * the prescriptions pick up where the free training left off instead of
+     * snapping back to the old levels.
+     */
+    private val _levelSystemEnabled = MutableStateFlow(prefs.getBoolean("level_system_enabled", true))
+    val levelSystemEnabled: StateFlow<Boolean> = _levelSystemEnabled.asStateFlow()
+
+    /** Which confirmation the Settings toggle must show before flipping, if any. */
+    val levelSystemConfirmation: StateFlow<LevelSystemConfirmation> =
+        MutableStateFlow(LevelSystemConfirmation.NONE)
+
+    /** Settings calls this on every toggle intent; the dialog asks via [confirmLevelSystemChange]. */
+    fun requestLevelSystemChange(enabled: Boolean) {
+        if (enabled == _levelSystemEnabled.value) return
+        (levelSystemConfirmation as MutableStateFlow<LevelSystemConfirmation>).value =
+            if (enabled) LevelSystemConfirmation.ENABLE else LevelSystemConfirmation.DISABLE
+    }
+
+    fun dismissLevelSystemConfirmation() {
+        (levelSystemConfirmation as MutableStateFlow<LevelSystemConfirmation>).value =
+            LevelSystemConfirmation.NONE
+    }
+
+    /** The confirmed flip: applies the change and, when re-enabling, re-syncs levels. */
+    fun confirmLevelSystemChange() {
+        val pending = levelSystemConfirmation.value
+        dismissLevelSystemConfirmation()
+        when (pending) {
+            LevelSystemConfirmation.DISABLE -> applyLevelSystemEnabled(false)
+            LevelSystemConfirmation.ENABLE -> {
+                applyLevelSystemEnabled(true)
+                resyncLevelsFromLastUsedWeights()
+            }
+            LevelSystemConfirmation.NONE -> Unit
+        }
+    }
+
+    /**
+     * Flip without confirmation — for the one in-app flow that already shows
+     * its own dialog (the custom-mode confirm on the live workout screen) and
+     * must not stack a second one.
+     */
+    fun setLevelSystemEnabled(enabled: Boolean) = applyLevelSystemEnabled(enabled)
+
+    private fun applyLevelSystemEnabled(enabled: Boolean) {
+        prefs.putBoolean("level_system_enabled", enabled)
+        _levelSystemEnabled.value = enabled
+        // The reactive loader's change key does not include this flag, so the
+        // display has to be refreshed by hand: turning the system off clears
+        // the level fields at once, turning it on re-derives them.
+        if (enabled) {
+            currentExerciseName()?.let { refreshProgressionDisplayNow(it) }
+        } else {
+            _workoutNowState.update {
+                it.copy(
+                    progressionLevel = null,
+                    progressionStage = null,
+                    progressionStageTargetReps = emptyList(),
+                    progressionPrescribed = null,
+                    progressionIsFirstSession = false,
+                    currentSetTargetReps = null
+                )
+            }
+        }
+    }
+
+    /**
+     * Re-derives every level-managed exercise's level from the weight the user
+     * LAST logged for it (the per-exercise "cache_weight_" memory). For each
+     * exercise the stored ladder is walked to the rung whose prescribed load is
+     * closest to that weight, and the state is rewritten there — so turning the
+     * system back on picks up at roughly the weights the user was training,
+     * rather than at the levels they happened to have when it was switched off.
+     * Exercises with no remembered weight keep their stored state untouched.
+     */
+    private fun resyncLevelsFromLastUsedWeights() {
+        val exercises = allRoutineExercises.value.map { it.name }.distinct()
+        var changed = false
+        exercises.forEach { name ->
+            val entry = ProgressionEngine.entryFor(name) ?: return@forEach
+            if (!ProgressionEngine.isProgressionReady(entry)) return@forEach
+            if (ProgressionEngine.isDurationBased(entry)) return@forEach
+            val lastWeight = prefs.getFloat("cache_weight_$name", Float.NaN)
+            if (lastWeight.isNaN() || lastWeight <= 0f) return@forEach
+            val target = lastWeight.toDouble()
+            val effMax = ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value)
+            var bestLevel = 1
+            var bestDiff = Double.MAX_VALUE
+            for (lvl in 1..effMax) {
+                val load = ProgressionEngine.valueAtLevelWithCeiling(entry, lvl) ?: continue
+                val diff = kotlin.math.abs(load - target)
+                if (diff < bestDiff) {
+                    bestDiff = diff
+                    bestLevel = lvl
+                }
+            }
+            val state = currentProgressionState(name)
+            if (state == null || state.level != bestLevel) {
+                prefs.putString(progressionKey(name), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(bestLevel, 1)))
+                changed = true
+            }
+        }
+        if (changed) {
+            refreshOverallLevel()
+            currentExerciseName()?.let { refreshProgressionDisplayNow(it) }
+        }
+    }
+
+    fun markLevelGuideSeen() {
+        prefs.putBoolean("has_seen_level_guide_v6", true)
+        _shouldShowLevelGuide.value = false
+    }
 
     private val _supportUiState = MutableStateFlow(SupportUiState())
     val supportUiState: StateFlow<SupportUiState> = _supportUiState.asStateFlow()
@@ -153,7 +474,7 @@ class WorkoutViewModel(
         // [AppEventBus.restTimerEnded], a skipped one through restTimerSkipped. Winding the
         // session up here is what keeps it in step when the app was closed at the time.
         viewModelScope.launch {
-            AppEventBus.restTimerEnded.collect { onRestTimerFinished() }
+            AppEventBus.restTimerEnded.collect { onRestTimerFinished() }  // payload: was a timed exercise
         }
         viewModelScope.launch {
             AppEventBus.restTimerSkipped.collect { stopTimer() }
@@ -177,6 +498,24 @@ class WorkoutViewModel(
             emptyList()
         )
 
+        userStats = repository.userStats.stateIn(
+            viewModelScope,
+            SharingStarted.WhileSubscribed(5000),
+            null
+        )
+
+        // The overall level is derived, so it is recomputed from its sources
+        // rather than updated by each write path. Collecting the raw DAO flow (no
+        // default value) means the first emission is the stored history, so an app
+        // start recomputes against real data and can never overwrite the cached
+        // row with a placeholder right before the real one arrives.
+        viewModelScope.launch {
+            repository.allLoggedSets.collect { sets ->
+                latestLoggedSets = sets
+                recomputeOverallLevel()
+            }
+        }
+
         viewModelScope.launch {
             repository.ensureDataSeeded()
         }
@@ -191,9 +530,15 @@ class WorkoutViewModel(
         viewModelScope.launch {
             combine(_workoutNowState, allRoutineExercises) { state, exercises ->
                 val currentDayExs = exercises.filter { it.dayOfWeek == state.selectedDayOfWeek }
-                currentDayExs.getOrNull(state.currentExerciseIndex)
+                val exercise = currentDayExs.getOrNull(state.currentExerciseIndex)
+                // The stored level/stage is part of the change key: when a
+                // level-up persists, the display fields must recompute even
+                // though the routine entity itself did not change. Levels
+                // default to 0 when the exercise has no progression state.
+                val prog = exercise?.let { currentProgressionState(it.name) }
+                Triple(exercise, prog?.level ?: 0, prog?.stage ?: 0)
             }.distinctUntilChanged()
-                .collect { exercise ->
+                .collect { (exercise, _, _) ->
                     exercise?.let {
                         val cachedWeight = getCachedWeightForExercise(it.name)
                         val cachedReps = getCachedRepsForExercise(it.name)
@@ -204,14 +549,22 @@ class WorkoutViewModel(
 
                         _workoutNowState.update { state ->
                             // Suggested weight, in priority order: the weight the plan set explicitly
-                            // (Edit screen), then what the user last used for this exercise, then an
-                            // estimate adapted to the chosen difficulty + training style. That estimate
-                            // is a fallback only — a remembered weight is never overwritten by it.
+                            // (Edit screen), then what the user last used for this exercise, then the
+                            // progression system's per-exercise starting prescription (v5), then the
+                            // legacy equipment-class estimate. A remembered weight is never overwritten
+                            // — EXCEPT a stale 0.0 on a loadable exercise: pre-v5 sessions stored
+                            // 0.0 for rows that were bodyweight-classified by the old pool ("Dumbbell
+                            // Shrug still shows bodyweight"), and nothing ever writes 0.0 for an
+                            // exercise the current catalog says is loadable, so ignoring it once
+                            // lets the prescription surface without erasing anything.
                             val templateWeight = it.targetWeightKg
                             val setupIntensity = prefs.getString("setup_intensity", "") ?: ""
+                            val staleZero = cachedWeight != null && cachedWeight == 0.0 && !isBodyweight &&
+                                templateWeight <= 0.0
+                            val effectiveCached = if (staleZero) null else cachedWeight
                             val suggestedWeight = when {
                                 templateWeight > 0.0 -> templateWeight
-                                cachedWeight != null -> cachedWeight
+                                effectiveCached != null -> effectiveCached
                                 isBodyweight -> 0.0
                                 else -> WorkoutTemplates
                                     .getStartingWeightKg(it.name, setupIntensity)
@@ -219,11 +572,31 @@ class WorkoutViewModel(
                             }
                             val showBodyweight = isBodyweight && suggestedWeight == 0.0
 
-                            // Auto-select reps/seconds: remember what the user last chose for this exercise
-                            // (clamped to the plan's range); otherwise the middle of the target rep range,
-                            // or the upper bound of the time range for time-based exercises.
+                            // The current set's prescribed target (v5 level system).
+                            val setTarget = targetRepsForCurrentSet(it.name, state.currentSetNumber)
+
+                            // Level-system display fields for the header chip and
+                            // prescription line (null when not in the system or
+                            // when training in custom mode).
+                            val progState = currentProgressionState(it.name)
+                            val progEntry = progState?.let { _ -> ProgressionEngine.entryFor(it.name) }
+                            val stageTargetReps = if (progState != null && progEntry != null) {
+                                ProgressionEngine.prescribedReps(progEntry, progState.level, progState.stage).orEmpty()
+                            } else emptyList()
+                            val prescribed = if (progState != null && progEntry != null) {
+                                ProgressionEngine.prescribedValueAtLevel(progEntry, progState.level, _weightUnit.value)
+                            } else null
+                            val isFirstSession = progState != null &&
+                                prefs.getString(progressionKey(it.name), null) == null
+
+                            // Auto-select reps/seconds: in level mode the progression
+                            // prescription leads; in custom mode it is the user's last
+                            // choice (clamped to the plan's range), else the middle of
+                            // the target rep range, or the upper time bound for time-based.
                             val nextReps = if (!isTimeBased) {
-                                cachedReps?.takeIf { it in minVal..maxVal } ?: WorkoutTemplates.getMiddleRep(it.targetReps)
+                                setTarget?.takeIf { it in minVal..maxVal }
+                                    ?: cachedReps?.takeIf { it in minVal..maxVal }
+                                    ?: WorkoutTemplates.getMiddleRep(it.targetReps)
                             } else {
                                 state.currentReps
                             }
@@ -237,6 +610,12 @@ class WorkoutViewModel(
                                 currentWeightKg = if (showBodyweight) 0.0 else suggestedWeight,
                                 recommendedWeightKg = if (showBodyweight) 0.0 else suggestedWeight,
                                 currentReps = nextReps,
+                                currentSetTargetReps = setTarget,
+                                progressionLevel = progState?.level,
+                                progressionStage = progState?.stage,
+                                progressionStageTargetReps = stageTargetReps,
+                                progressionPrescribed = prescribed,
+                                progressionIsFirstSession = isFirstSession,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
                                 currentExerciseSeconds = nextSeconds,
@@ -252,6 +631,15 @@ class WorkoutViewModel(
             while (true) {
                 kotlinx.coroutines.delay(1000L)
                 tickTimer()
+                // In-session level writes (arrow taps, bulk adjust) store the
+                // level even when no workout state is saved yet — the same
+                // path saveWorkoutNowState() covers after a logged set. The
+                // reactive loader's change key alone can miss it.
+                if (prefs.getLong("timer_end_time_millis", 0L) <= 0L &&
+                    prefs.getInt("saved_total_sets_logged", 0) > 0
+                ) {
+                    currentExerciseName()?.let { currentProgressionState(it) }
+                }
             }
         }
     }
@@ -427,19 +815,15 @@ class WorkoutViewModel(
         prefs.putString("app_language", languageCode)
     }
 
+    fun setWeightUnit(unit: WeightUnit) {
+        _weightUnit.value = unit
+        prefs.putString("weight_unit", unit.id)
+    }
+
     fun setWorkoutGoal(goal: String) {
-        _workoutGoal.value = goal
-        prefs.putString("workout_goal", goal)
-    }
-
-    fun setMinSets(value: Int) {
-        _minSets.value = value
-        prefs.putInt("setup_min_sets", value)
-    }
-
-    fun setMaxSets(value: Int) {
-        _maxSets.value = value
-        prefs.putInt("setup_max_sets", value)
+        val canonical = WorkoutTemplates.canonicalGoal(goal)
+        _workoutGoal.value = canonical
+        prefs.putString("workout_goal", canonical)
     }
 
     fun setRequestedWorkoutSubTab(tab: Int) {
@@ -455,19 +839,25 @@ class WorkoutViewModel(
         selectedDays: List<String> = emptyList(),
         intensity: String = "",
         templateId: String = "",
-        minSets: Int = 0,
-        maxSets: Int = 0,
-        equipment: List<String> = emptyList()
+        equipment: List<String> = emptyList(),
+        workoutDuration: String = WorkoutTemplates.DURATION_STANDARD,
+        splitStyle: String = WorkoutTemplates.SplitStyle.DEFAULT.id
     ) {
         viewModelScope.launch {
             // Completing a brand-new build from the Welcome screen replaces the routine,
             // so its memory (last-used weights/reps/seconds and the in-progress session) resets.
             val previousExerciseNames = repository.allRoutineExercises.first().map { it.name }
             // Premade builds can restrict which equipment the template may use.
-            val effectiveExercises = if (setupType == "PREMADE" && equipment.isNotEmpty()) {
-                mapToEquipmentFiltered(exercises, equipment, _workoutGoal.value)
-            } else {
-                exercises
+            // A hand-built (CUSTOM) routine is gated the same way: the default
+            // prefill and the picker pool both carry barbell staples, so a user
+            // who said they have no barbell must not see one saved into the
+            // routine either. Their own hand-set reps/rest are kept as-is.
+            val effectiveExercises = when {
+                setupType == "PREMADE" && equipment.isNotEmpty() ->
+                    mapToEquipmentFiltered(exercises, equipment, reparameterize = true)
+                setupType == "CUSTOM" && equipment.isNotEmpty() ->
+                    mapToEquipmentFiltered(exercises, equipment, reparameterize = false)
+                else -> exercises
             }
             repository.applyProgram(days, effectiveExercises)
             clearExerciseMemories((previousExerciseNames + effectiveExercises.map { it.name }).distinct())
@@ -484,8 +874,8 @@ class WorkoutViewModel(
             prefs.putString("setup_intensity", intensity)
             prefs.putString("setup_template_id", templateId)
             prefs.putString("setup_equipment", equipment.joinToString(","))
-            prefs.putInt("setup_min_sets", minSets)
-            prefs.putInt("setup_max_sets", maxSets)
+            prefs.putString("setup_duration", workoutDuration)
+            prefs.putString("setup_split_style", splitStyle)
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
@@ -494,15 +884,24 @@ class WorkoutViewModel(
     private fun mapToEquipmentFiltered(
         exercises: List<RoutineExerciseEntity>,
         equipment: List<String>,
-        goal: String
+        reparameterize: Boolean
     ): List<RoutineExerciseEntity> {
-        val selected = equipment.map { it.trim() }.filter { it.isNotEmpty() }.toSet()
-        val base = if (selected.isEmpty()) exercises
-                   else exercises.filter { WorkoutTemplates.getEquipmentForExercise(it.name) in selected }
+        // Fine-tag gate: null = unrestricted, empty granted set = strict
+        // bodyweight-only. No-kit movements pass any granted set, so pure
+        // bodyweight presets never strip a plan to zero.
+        val grantedTags = WorkoutTemplates.grantedTagsForPublic(equipment)
+        val base = if (grantedTags == null) exercises else exercises.mapNotNull { ex ->
+            if (ExerciseEquipmentTags.isAvailable(ex.name, grantedTags)) ex
+            else {
+                val sub = WorkoutTemplates.substituteExercise(ex.name, equipment)
+                sub?.let { ex.copy(name = it) }
+            }
+        }
+        if (!reparameterize) return base
         return base.map {
             it.copy(
-                targetReps = WorkoutTemplates.getGoalReps(it.name, goal),
-                restSeconds = WorkoutTemplates.getGoalRestSeconds(goal, it.name),
+                targetReps = WorkoutTemplates.getGoalReps(it.name, _workoutGoal.value),
+                restSeconds = WorkoutTemplates.getGoalRestSeconds(_workoutGoal.value, it.name),
                 tempo = ""
             )
         }
@@ -512,8 +911,59 @@ class WorkoutViewModel(
     private fun loadSetupEquipment(): List<String> {
         val raw = prefs.getString("setup_equipment", null) ?: return emptyList()
         if (raw.isBlank() || raw == WorkoutTemplates.EQUIPMENT_ALL) return emptyList()
-        return raw.split(",").map { it.trim() }.filter { it.isNotEmpty() }
+        // Pre-tag-era selections ("Dumbbell", "Bodyweight", …) normalize into
+        // the fine-tag model (preset ids / custom tag lists) on read.
+        return ExerciseEquipmentTags.migrateLegacy(raw.split(",").map { it.trim() }.filter { it.isNotEmpty() })
     }
+
+    /**
+     * The saved equipment as coarse categories ("Barbell", "Dumbbell", …),
+     * for picker defaults: an empty list means the user never restricted
+     * their kit. A no-barbell user's list simply has no "Barbell" in it —
+     * which is what the recommendation filters should start from.
+     */
+    fun userEquipmentCategories(): List<String> =
+        ExerciseEquipmentTags.coarseCategoriesFor(loadSetupEquipment())
+
+    /**
+     * The saved equipment EXACTLY as it was written, for pre-filling a picker.
+     *
+     * [userEquipmentCategories] and [userGrantedEquipmentTags] both go through
+     * [ExerciseEquipmentTags], which flattens the selection into other
+     * vocabularies — and the coarse one cannot express a chair, a bench or a
+     * pull-up bar at all. That is fine for gating, and wrong for a control that
+     * has to show the user's own tiles lit: it would open on a selection the
+     * user never made. This returns the stored list (preset id first, then fine
+     * tags) so the equipment block opens on what is actually saved.
+     */
+    fun savedEquipmentSelection(): List<String> = loadSetupEquipment()
+
+    /**
+     * The saved equipment as the user's granted FINE tags, for the pickers'
+     * equipment gate.
+     *
+     * [userEquipmentCategories] cannot drive that gate on its own: it is the
+     * coarse chip vocabulary, which has no category for a chair, a bench or a
+     * pull-up bar, so re-expanding it silently drops those grants. Null =
+     * unrestricted (the user never restricted their kit), which is a different
+     * thing from an empty set = strict bodyweight only.
+     */
+    fun userGrantedEquipmentTags(): Set<String>? =
+        WorkoutTemplates.grantedTagsForPublic(loadSetupEquipment())
+
+    /** The session length saved with the last build (defaults to the standard window). */
+    private fun loadSetupDuration(): String =
+        prefs.getString("setup_duration", null)
+            ?.takeIf { WorkoutTemplates.isValidDuration(it) }
+            ?: WorkoutTemplates.DURATION_STANDARD
+
+    /**
+     * The week style saved with the last build. An unknown or absent value
+     * falls back to the default rather than failing, so a build made before the
+     * style picker existed keeps working.
+     */
+    private fun loadSetupSplitStyle(): WorkoutTemplates.SplitStyle =
+        WorkoutTemplates.SplitStyle.fromId(prefs.getString("setup_split_style", null))
 
     fun regenerateProgramWithNewGoal(newGoal: String) {
         viewModelScope.launch {
@@ -525,6 +975,8 @@ class WorkoutViewModel(
             val intensity = prefs.getString("setup_intensity", "") ?: ""
             val templateId = prefs.getString("setup_template_id", "") ?: ""
             val equipment = loadSetupEquipment()
+            val duration = loadSetupDuration()
+            val splitStyle = loadSetupSplitStyle()
             
             when (setupType) {
                 "ASSISTED" -> {
@@ -533,9 +985,9 @@ class WorkoutViewModel(
                         selectedDays = selectedDays,
                         intensity = intensity,
                         workoutGoal = newGoal,
-                        minSets = prefs.getInt("setup_min_sets", 0),
-                        maxSets = prefs.getInt("setup_max_sets", 0),
-                        equipment = equipment
+                        equipment = equipment,
+                        duration = duration,
+                        splitStyle = splitStyle
                     )
                     repository.applyProgram(program.days, program.exercises)
                 }
@@ -545,7 +997,7 @@ class WorkoutViewModel(
                         // For premade, we need to know which days were selected. 
                         // setup_days should contain the selected week days.
                         val mapped = remapTemplateToDays(template, selectedDays)
-                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, newGoal)
+                        val filteredExercises = mapToEquipmentFiltered(mapped.second, equipment, reparameterize = true)
                         repository.applyProgram(mapped.first, filteredExercises)
                     }
                 }
@@ -567,9 +1019,19 @@ class WorkoutViewModel(
 
     fun applyWorkoutTemplate(template: com.grafizum.repio.data.WorkoutTemplate) {
         viewModelScope.launch {
+            // The equipment promise outlives the setup wizard: a template
+            // applied from the routine screen is gated by the SAME selection,
+            // so a no-barbell user picking a barbell-heavy premade gets its
+            // rows substituted down the nearest link they can actually load
+            // (Barbell Back Squat -> Dumbbell Squat -> …). The template's own
+            // sets/reps stay untouched — only the movements are gated.
+            val equipment = loadSetupEquipment()
+            val gated = if (equipment.isNotEmpty())
+                mapToEquipmentFiltered(template.exercises, equipment, reparameterize = false)
+            else template.exercises
             repository.applyProgram(template.dayTemplates.map {
                 RoutineDayEntity(it.dayOfWeek, it.dayOfWeek, "", it.isRestDay)
-            }, template.exercises)
+            }, gated)
             val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
@@ -682,7 +1144,7 @@ class WorkoutViewModel(
         // barbell row is a weight no human lifts, and [setExerciseLevel] clamped to
         // THIS function rather than to the ceiling, so it could be selected and
         // logged. A ceiling the app will let you walk past is not a ceiling.
-        return ProgressionEngine.effectiveMaxLevel(entry)
+        return ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value)
     }
 
     /** The number of Roman stages in the exercise's rep pattern (its width). */
@@ -708,7 +1170,7 @@ class WorkoutViewModel(
     fun progressionPrescribedAt(exerciseName: String, level: Int): ProgressionEngine.PrescribedValue? {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
         if (!ProgressionEngine.isProgressionReady(entry)) return null
-        return ProgressionEngine.prescribedValueAtLevel(entry, level)
+        return ProgressionEngine.prescribedValueAtLevel(entry, level, _weightUnit.value)
     }
 
     /**
@@ -932,7 +1394,7 @@ class WorkoutViewModel(
         return (1..shown).map { level ->
             LevelDetailRow(
                 level = level,
-                prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level),
+                prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level, _weightUnit.value),
                 stageReps = ProgressionEngine.prescribedReps(entry, level, 1).orEmpty(),
                 isCurrent = level == current,
                 isBeyondPlan = false,
@@ -954,7 +1416,7 @@ class WorkoutViewModel(
         val progState = currentProgressionState(exerciseName) ?: return
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return
         val stageTargetReps = ProgressionEngine.prescribedReps(entry, progState.level, progState.stage).orEmpty()
-        val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level)
+        val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level, _weightUnit.value)
         val setTarget = targetRepsForCurrentSet(exerciseName, state.currentSetNumber)
         _workoutNowState.update {
             it.copy(
@@ -1053,6 +1515,164 @@ class WorkoutViewModel(
         return if (exerciseWeight >= 0f) exerciseWeight.toDouble() else null
     }
 
+    // ------------------------------------------------------------------
+    // Progression state (v5 level-up system)
+    //
+    // One "level,stage" pair per exercise, stored under
+    // "progression_state_<name>". Written ONLY after a completed workout set
+    // that met the prescription; never rewritten by history edits, so logged
+    // workouts keep their historical loads untouched.
+    // ------------------------------------------------------------------
+
+    private fun progressionKey(exerciseName: String) = "progression_state_$exerciseName"
+
+    /** Prefs key for the extension grid an exercise's level list has grown to. */
+    private fun extensionKey(exerciseName: String) = "level_extension_$exerciseName"
+
+    /**
+     * The extension grid (50/100/150/… up to [ProgressionEngine.PICKER_LEVEL_LIMIT])
+     * unlocked for [exerciseName]; 0 means the list still shows the default.
+     * Persisted per exercise, so a grown ladder stays grown next session.
+     */
+    private fun extensionLevelFor(exerciseName: String): Int {
+        val stored = prefs.getInt(extensionKey(exerciseName), 0)
+        return stored.coerceIn(0, ProgressionEngine.PICKER_LEVEL_LIMIT)
+    }
+
+    /**
+     * Grows the level list for [exerciseName] by one chunk of
+     * [ProgressionEngine.EXTENSION_CHUNK] levels, and is now a NO-OP.
+     *
+     * It used to grow to [ProgressionEngine.PICKER_LEVEL_LIMIT] (500) on the
+     * stated reasoning that "with extrapolated ladders every level is genuinely
+     * selectable, so the added rows are real prescriptions". They were real, and
+     * beyond what a human can lift: `valueAtLevel` extrapolates by the row's own
+     * increment forever, with nothing stopping it. Since 2026-10-04
+     * [progressionMaxLevel] ends at the row's own humane ceiling, so there is
+     * nothing for this to unlock and the function is kept only so the call site
+     * still compiles - the button is hidden by [canExtendLevelList].
+     *
+     * The persisted `level_extension_*` keys are left alone rather than cleared:
+     * an exercise that HAD been extended keeps its stored level, and the clamp in
+     * [setExerciseLevel] pulls it back to the ceiling on the next change. Silently
+     * deleting a user's level is a worse outcome than letting the clamp do it.
+     */
+    fun extendLevelList(exerciseName: String) {
+        // Intentionally empty - see above.
+    }
+
+    /**
+     * Always false since 2026-10-04: a ladder now ends at the exercise's own humane
+     * ceiling, so there is nothing to extend to and the button would only offer
+     * rows the app refuses to select.
+     */
+    fun canExtendLevelList(exerciseName: String): Boolean {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
+        if (!ProgressionEngine.isProgressionReady(entry)) return false
+        return false
+    }
+
+    /**
+     * True when an exercise is prescribed by the level system AND the user has
+     * not switched the system off in Settings. This is the one gate every
+     * "is this exercise level-managed?" check in the UI reads.
+     */
+    fun isExerciseLevelManaged(exerciseName: String): Boolean {
+        if (!_levelSystemEnabled.value) return false
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
+        return ProgressionEngine.isProgressionReady(entry)
+    }
+
+    /** The stored level/stage for an exercise, or its starting prescription. */
+    fun currentProgressionState(exerciseName: String): ProgressionEngine.ProgressionState? {
+        if (!_levelSystemEnabled.value) return null
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+        if (!ProgressionEngine.isProgressionReady(entry)) return null
+        val stored = ProgressionEngine.deserialize(prefs.getString(progressionKey(exerciseName), null))
+        if (stored != null) {
+            // A stored level can sit PAST its ladder's end. The ladder's length is
+            // derived (the rep step and the ceiling-aware max), so a ruling that
+            // changes either - the 2026-10-06 rep-step change SHORTENED every
+            // rep ladder - leaves an older number behind on the device. Read
+            // back unclamped it showed "Level 7" over a picker that offered four
+            // rungs, so the read clamps to the same bound the writer uses.
+            val max = ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value)
+            return stored.copy(level = stored.level.coerceIn(1, max))
+        }
+        // First session: derive the state from the difficulty chosen in setup.
+        val difficulty = when (com.grafizum.repio.data.WorkoutTemplates.classifyIntensity(
+            prefs.getString("setup_intensity", "") ?: ""
+        )) {
+            "Easy" -> ProgressionEngine.Difficulty.EASY
+            "Hard" -> ProgressionEngine.Difficulty.HARD
+            else -> ProgressionEngine.Difficulty.MEDIUM
+        }
+        val prescription = ProgressionEngine.startingPrescription(exerciseName, difficulty)
+            ?: return null
+        return ProgressionEngine.ProgressionState(prescription.level, prescription.stage)
+    }
+
+    /**
+     * The per-set target reps the progression system prescribes for the
+     * CURRENT set of [exerciseName], or null when the exercise is outside the
+     * level system (the caller keeps the routine's generic target).
+     */
+    private fun targetRepsForCurrentSet(exerciseName: String, setNumber: Int): Int? {
+        val state = currentProgressionState(exerciseName) ?: return null
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+        val stageReps = ProgressionEngine.prescribedReps(entry, state.level, state.stage) ?: return null
+        // The stage's reps list is per set: set 1 takes reps[0], set 2 reps[1]…
+        // beyond the pattern's set count the last set's target repeats.
+        return if (stageReps.isEmpty()) null
+        else stageReps[(setNumber - 1).coerceAtMost(stageReps.size - 1)]
+    }
+
+    /**
+     * Tracks how many sets of the current stage were completed at their target
+     * this session, keyed per exercise. Cleared when the exercise changes or a
+     * set misses its target (the CSV's completion rule requires EVERY set).
+     */
+    private val stageSetProgress = mutableMapOf<String, Int>()
+
+    /**
+     * Advances the progression state after a logged set. Stage completion is
+     * decided per the CSV's `meet_or_exceed_every_set` rule: the level/stage
+     * moves only when every set of the stage met its target; a missed set
+     * restarts the stage count (standard double progression).
+     * Called from [logCurrentSetAndAdvance] only — never rewrites history.
+     */
+    private fun advanceProgressionIfNeeded(exercise: RoutineExerciseEntity, loggedReps: Int) {
+        // The per-exercise lock (routine_exercises.locked) holds THIS exercise
+        // exactly where it is — the stepper grays out and the engine skips it.
+        if (exercise.locked) return
+        // The global lock (level details dialog) holds every exercise's
+        // prescription where it is. Manual stepping still works for both.
+        if (_levelLockEnabled.value) return
+        val name = exercise.name
+        val state = currentProgressionState(name) ?: return
+        val entry = ProgressionEngine.entryFor(name) ?: return
+        val stageReps = ProgressionEngine.prescribedReps(entry, state.level, state.stage) ?: return
+        if (stageReps.isEmpty()) return
+
+        val setNumber = _workoutNowState.value.currentSetNumber
+        val requiredReps = stageReps[(setNumber - 1).coerceAtMost(stageReps.size - 1)]
+        if (loggedReps < requiredReps) {
+            // A missed set resets the stage's completion count.
+            stageSetProgress[name] = 0
+            return
+        }
+
+        val completed = (stageSetProgress[name] ?: 0) + 1
+        stageSetProgress[name] = completed
+
+        // The stage is complete once every set of its pattern row was met.
+        if (completed >= stageReps.size) {
+            stageSetProgress[name] = 0
+            val next = ProgressionEngine.levelUp(entry, state) ?: return
+            prefs.putString(progressionKey(name), ProgressionEngine.serialize(next.newState))
+        }
+    }
+
     /** Returns the last rep count the user set for this exercise, or null when unknown. */
     private fun getCachedRepsForExercise(exerciseName: String): Int? {
         val reps = prefs.getInt("cache_reps_${exerciseName}", -1)
@@ -1079,7 +1699,391 @@ class WorkoutViewModel(
             prefs.remove("cache_weight_$name")
             prefs.remove("cache_reps_$name")
             prefs.remove("cache_seconds_$name")
+            // A replaced routine starts the level system over for its exercises.
+            prefs.remove(progressionKey(name))
         }
+        stageSetProgress.clear()
+    }
+
+    // ------------------------------------------------------------------
+    // Mastery & Branch: the post-workout progression hub.
+    //
+    // When an exercise finishes its ladder (variation end) or its load lands
+    // on the researched human ceiling, it stops leveling up and shows up as a
+    // mastery card after the workout summary: pick a branch, or acknowledge
+    // the ceiling. "Reviewed" cards rest for five workouts before re-showing
+    // (per the spec's anti-spam rule), and a chosen branch re-levels the
+    // exercise onto its new path immediately.
+    // ------------------------------------------------------------------
+
+    /** Prefs key holding the reviewed-at workout count for a mastered exercise. */
+    private fun masteryReviewedKey(name: String) = "mastery_reviewed_$name"
+
+    // ------------------------------------------------------------------
+    // The session recap accumulator.
+    //
+    // Deliberately in-memory and deliberately cleared on reset rather than read
+    // back out of the log table: the recap describes THE SESSION the user just
+    // did, and the log table also holds yesterday's sets for the same exercise
+    // and cannot say which of them belong to this run.
+    // ------------------------------------------------------------------
+
+    /** When the first set of the current session was logged; 0 = not started. */
+    private var recapStartedAt: Long = 0L
+
+    /** Distinct exercise names trained this session. */
+    private val recapExercises = linkedSetOf<String>()
+
+    /** Total load volume this session, in the exercises' own units. */
+    private var recapVolumeKg: Double = 0.0
+
+    private fun clearRecap() {
+        recapStartedAt = 0L
+        recapExercises.clear()
+        recapVolumeKg = 0.0
+    }
+
+    /**
+     * The recap for the finished session.
+     *
+     * [setsLogged] is passed in rather than derived, because the caller's state
+     * update is what increments it and reading the pre-update value would be
+     * off by exactly the final set — the one set the recap exists to report.
+     *
+     * The muscle split counts SETS per muscle from the routine's own
+     * `muscleGroup`, so it cannot disagree with the rest of the app: the same
+     * field drives the badges on the cards.
+     */
+    private fun buildRecap(setsLogged: Int, exercises: List<RoutineExerciseEntity>): WorkoutRecap {
+        val byMuscle = linkedMapOf<String, Int>()
+        exercises.forEach { ex ->
+            val muscle = ex.muscleGroup.ifBlank { "Other" }
+            byMuscle[muscle] = (byMuscle[muscle] ?: 0) + ex.targetSets
+        }
+        val duration = if (recapStartedAt == 0L) 0L
+        else ((System.currentTimeMillis() - recapStartedAt) / 1000L).coerceAtLeast(0L)
+        return WorkoutRecap(
+            exercises = recapExercises.size,
+            sets = setsLogged,
+            // Null rather than 0.0: a bodyweight or timed session has no honest
+            // volume figure, and "0 kg" reads as "you did nothing".
+            volumeKg = recapVolumeKg.takeIf { it > 0.0 },
+            durationSeconds = duration,
+            setsByMuscle = byMuscle.entries
+                .sortedByDescending { it.value }
+                .associate { it.key to it.value },
+        )
+    }
+
+    /** Workouts a reviewed card stays quiet before re-offering itself. */
+    private val MASTERY_REVIEW_COOLDOWN = 5
+
+    /**
+     * The mastery cards for [exercises]: every level-managed exercise that is
+     * mastered (ladder end / ceiling) and not currently cooling down. Pure —
+     * called when a workout completes.
+     */
+    private fun computeMasteredExercises(exercises: List<RoutineExerciseEntity>): List<MasteryCardData> {
+        val workoutCount = prefs.getInt("completed_workout_count", 0)
+        return exercises.distinctBy { it.name }.mapNotNull { ex ->
+            val state = currentProgressionState(ex.name) ?: return@mapNotNull null
+            val entry = ProgressionEngine.entryFor(ex.name) ?: return@mapNotNull null
+            if (!ProgressionEngine.isMastered(entry, state, _weightUnit.value)) return@mapNotNull null
+            // A DECLINED evolution is locked, not snoozed. Without this the
+            // five-workout cooldown would quietly re-offer it forever, which
+            // is the nagging the lock exists to stop. Only the editor
+            // reopens it (reopenEvolution) - or, on a rep ladder, the next
+            // checkpoint the level climbs to.
+            if (!isProgressionAvailable(ex.name)) return@mapNotNull null
+            // A reviewed-and-declined card rests before re-showing.
+            val reviewedAt = prefs.getInt(masteryReviewedKey(ex.name), -1)
+            if (reviewedAt >= 0 && workoutCount - reviewedAt < MASTERY_REVIEW_COOLDOWN) {
+                return@mapNotNull null
+            }
+            val reason = ProgressionEngine.masteryReason(entry, state, _weightUnit.value) ?: return@mapNotNull null
+            MasteryCardData(
+                exerciseName = ex.name,
+                muscleGroup = ex.muscleGroup,
+                equipment = ExerciseCatalog.entryForId(entry.id)?.equipment ?: "",
+                level = state.level,
+                stageRoman = ProgressionEngine.stageName(state.stage),
+                // A rep ladder carries no load at all: its value column is the ordinal of a
+                // variation, and a number that means nothing must not travel any
+                // further as if it were kilograms. The reps are the prescription.
+                load = if (ProgressionEngine.isRepLadder(entry)) null
+                else ProgressionEngine.valueAtLevelWithCeiling(entry, state.level),
+                unit = entry.unit,
+                reason = reason,
+                ceiling = entry.ceiling,
+                branches = ProgressionEngine.branchesFor(entry),
+                suggestions = if (reason == ProgressionEngine.MasteryReason.CEILING_REACHED) {
+                    ProgressionEngine.suggestedAlternatives(ex.name)
+                } else emptyList()
+            )
+        }
+    }
+
+    /**
+     * Accepts a branch: the source exercise is marked reviewed (its state stays
+     * as a completed history), and the TARGET exercise's stored state is set to
+     * the mapped starting level so the next session trains the new path. Both
+     * live as ordinary exercises in the routine, so no schema change is needed.
+     */
+    fun acceptBranch(sourceName: String, targetName: String) {
+        val sourceEntry = ProgressionEngine.entryFor(sourceName) ?: return
+        val targetEntry = ProgressionEngine.entryFor(targetName) ?: return
+        val sourceState = currentProgressionState(sourceName) ?: return
+        if (!ProgressionEngine.isProgressionReady(targetEntry)) return
+        val startLevel = ProgressionEngine.branchStartLevel(sourceEntry, sourceState, targetEntry)
+        prefs.putString(progressionKey(targetName), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(startLevel, 1)))
+        prefs.remove(extensionKey(targetName))
+        markMasteryReviewed(sourceName)
+        refreshMasteredCards()
+    }
+
+    /** Keeps an exercise at its cap and silences its card for the cooldown. */
+    fun keepExerciseAtCap(sourceName: String) {
+        markMasteryReviewed(sourceName)
+        refreshMasteredCards()
+    }
+
+    // ------------------------------------------------------------------
+    // The evolution offer, and the lock a declined one puts on.
+    //
+    // Declining is a decision, not a snooze. The old behaviour only silenced
+    // the card for five workouts, so the same offer came back on its own -
+    // which is the nagging the owner wanted gone. Declining now LOCKS the
+    // exercise at its cap until the user goes to that exercise in the editor
+    // and asks for the offer again. Nothing re-opens it by itself.
+    // ------------------------------------------------------------------
+
+    private fun evolutionDeclinedKey(name: String) = "evolution_declined_$name"
+
+    /**
+     * The rep checkpoint a declined offer was made at, or null when nothing was
+     * declined. Owner ruling 2026-10-03: "if the user chooses no, the exercise
+     * could go on with the level higher... if he doesnt simply keep
+     * incrementing to maybe 50 and then a show progression again".
+     *
+     * So a decline is a REP COUNT, not a boolean. The old boolean meant the
+     * offer could never come back on its own, which was right for a LOAD row -
+     * its ladder genuinely ends - and wrong for a rep ladder, where the user
+     * has only said "not yet" at 12 reps and climbs on.
+     */
+    private fun declinedRepCheckpointKey(name: String) = "evolution_declined_reps_$name"
+
+    /** Whether this exercise's offer has already been put in front of the user. */
+    private fun evolutionOfferedKey(name: String) = "evolution_offered_$name"
+
+    /**
+     * Whether the progression offer for [name] has ALREADY been shown as a
+     * popup at least once.
+     *
+     * The owner's rule: "for the progression label when a level is reached, i
+     * want it to only show at the end of the workout first and not directly
+     * when selecting the new exercise. So only show it once the progression
+     * popup window came for the user."
+     *
+     * So this is deliberately NOT the same question as [isProgressionAvailable].
+     * That one asks "is an offer pending", which becomes true the instant a
+     * level reaches a checkpoint - which is precisely when the user would get
+     * the label mid-session, before the workout that will offer it has even
+     * finished. This asks the other half: has the offer actually been made
+     * yet. Both have to hold for the label to appear.
+     */
+    fun hasSeenProgressionOffer(name: String): Boolean =
+        prefs.getBoolean(evolutionOfferedKey(name), false)
+
+    private fun declinedRepCheckpoint(name: String): Int? =
+        prefs.getInt(declinedRepCheckpointKey(name), -1).takeIf { it >= 0 }
+
+    /** True when [name]'s evolution offer has been declined and left locked. */
+    fun isEvolutionDeclined(name: String): Boolean {
+        if (prefs.getBoolean(evolutionDeclinedKey(name), false)) return true
+        val declinedAt = declinedRepCheckpoint(name) ?: return false
+        // A declined rep checkpoint re-arms at the next one. Only the last
+        // checkpoint is final, because past it there is nowhere to climb to.
+        return ProgressionEngine.nextRepCheckpoint(declinedAt) == null
+    }
+
+    /**
+     * Whether [name] is currently OWED a progression offer - the state the
+     * "progression available" label next to the level pill reports.
+     *
+     * Same question the post-workout card asks, so the two cannot disagree: a
+     * label that says "available" while the workout ends without showing it
+     * would be the quiet version of the bug this whole flow is about.
+     */
+    fun isProgressionAvailable(name: String): Boolean {
+        val entry = ProgressionEngine.entryFor(name) ?: return false
+        val state = currentProgressionState(name) ?: return false
+        val declinedAt = declinedRepCheckpoint(name)
+        // A rep ladder's decline re-arms at the next checkpoint, so it is
+        // remembered as a REP COUNT and handed to the engine, which owns the
+        // rule. A loaded row keeps the old permanent boolean lock, and the
+        // engine cannot know about that flag, so it is applied here.
+        if (ProgressionEngine.isRepLadder(entry)) {
+            return ProgressionEngine.isProgressionPending(entry, state, declinedAt)
+        }
+        return ProgressionEngine.isProgressionPending(entry, state, null) &&
+            !isEvolutionDeclined(name)
+    }
+
+    /**
+     * The exercise [name] would be offered next, or null when nothing is
+     * pending. The label shows this so the user can see what the progression
+     * IS before opening the popup.
+     */
+    fun pendingProgressionTarget(name: String): String? {
+        if (!isProgressionAvailable(name)) return null
+        val entry = ProgressionEngine.entryFor(name) ?: return null
+        return ProgressionEngine.preferredBranch(entry)?.entry
+    }
+
+    /**
+     * Declines the offer: the exercise stays at its cap and is locked there.
+     * The lock is per-exercise and permanent until [reopenEvolution].
+     *
+     * A REP LADDER records the checkpoint it was declined at instead, so the
+     * offer comes back at the next one once the level has climbed on.
+     */
+    fun declineEvolution(name: String) {
+        val entry = ProgressionEngine.entryFor(name)
+        val state = currentProgressionState(name)
+        val checkpoint = entry?.let { e ->
+            state?.let { ProgressionEngine.repCheckpointAtLevel(e, it.level) }
+        }
+        if (entry != null && ProgressionEngine.isRepLadder(entry) && checkpoint != null) {
+            prefs.putInt(declinedRepCheckpointKey(name), checkpoint)
+        } else {
+            prefs.putBoolean(evolutionDeclinedKey(name), true)
+        }
+        markMasteryReviewed(name)
+        refreshMasteredCards()
+    }
+
+    /**
+     * The owner opened a locked exercise's offer from the editor, so drop the
+     * lock and let the offer be made again.
+     */
+    fun reopenEvolution(name: String) {
+        prefs.remove(evolutionDeclinedKey(name))
+        prefs.remove(declinedRepCheckpointKey(name))
+    }
+
+    /** Accepts the offer and clears any lock in one step. */
+    fun acceptEvolution(sourceName: String, targetName: String) {
+        reopenEvolution(sourceName)
+        acceptBranch(sourceName, targetName)
+    }
+
+    /**
+     * Locked evolutions among [exercises]: mastered exercises whose offer the
+     * user declined. The editor shows an "Upgrade" affordance on exactly
+     * these, which is the only way a declined offer comes back.
+     */
+    fun evolutionLockedExercises(exercises: List<RoutineExerciseEntity>): List<String> =
+        exercises.distinctBy { it.name }
+            .filter { isEvolutionDeclined(it.name) }
+            .map { it.name }
+
+    /**
+     * The before/after for [sourceName] -> [targetName], or null when either
+     * side is missing. The popup opens on the branch the engine prefers and
+     * the section's cards can ask for a specific one.
+     */
+    fun evolutionOfferFor(sourceName: String, targetName: String): ProgressionEngine.EvolutionOffer? {
+        val state = currentProgressionState(sourceName) ?: return null
+        return ProgressionEngine.evolutionOffer(sourceName, targetName, state)
+    }
+
+    /** The branch the popup opens on for a mastered exercise, if any. */
+    fun preferredEvolutionOffer(sourceName: String): ProgressionEngine.EvolutionOffer? {
+        val entry = ProgressionEngine.entryFor(sourceName) ?: return null
+        val branch = ProgressionEngine.preferredBranch(entry) ?: return null
+        return evolutionOfferFor(sourceName, branch.entry)
+    }
+
+    /**
+     * Every branch [card] offers, as resolved offers, in the card's own order.
+     *
+     * A branch whose target cannot be rendered (`evolutionOffer` returns null -
+     * the target has no level ladder, or the state is missing) is dropped rather
+     * than drawn as an option that does nothing when tapped. When that leaves
+     * nothing at all, the card has no evolution to show and the caller skips it.
+     */
+    fun evolutionOffersFor(card: MasteryCardData): List<ProgressionEngine.EvolutionOffer> =
+        card.branches.mapNotNull { branch ->
+            evolutionOfferFor(card.exerciseName, branch.entry)
+        }
+
+    /**
+     * The post-workout mastery card for [exerciseName], or null when there is
+     * none - the exercise is not mastered, is cooling down, or is locked.
+     *
+     * Used by the editor's "Upgrade" badge, which has to rebuild the tree from
+     * the current list rather than be handed one. Recomputing from the routine
+     * (rather than searching the already-built [workoutNowState] list) is what
+     * makes the badge work days later: the post-workout list is rebuilt on
+     * every completion, so a card from a previous session is not something to
+     * go looking for.
+     */
+    fun masteryCardFor(exerciseName: String): MasteryCardData? =
+        computeMasteredExercises(allRoutineExercises.value)
+            .firstOrNull { it.exerciseName == exerciseName }
+
+    private fun markMasteryReviewed(name: String) {
+        prefs.putInt(masteryReviewedKey(name), prefs.getInt("completed_workout_count", 0))
+    }
+
+    private fun refreshMasteredCards() {
+        val exercises = allRoutineExercises.value
+        if (exercises.isEmpty()) return
+        applyMasteryCards(computeMasteredExercises(exercises))
+    }
+
+    /**
+     * Publishes [cards] as the post-workout mastery state: the cards themselves,
+     * the one-per-exercise preferred offers, the whole-fork trees the popup
+     * draws, and a bumped token so the screen seeds its queue once per change.
+     *
+     * The token is bumped even when the offers are unchanged, so the screen can
+     * tell "same list, recomposed" from "new decision to make".
+     *
+     * WHY THIS IS ITS OWN FUNCTION: the workout-completion path used to write
+     * only `masteredExercises` into the state, which left `evolutionTrees` at
+     * whatever it was (empty on a first completion). The screen seeds its popup
+     * queue from `evolutionTrees`, so an exercise that reached its ladder end on
+     * the very set that completed the workout got a card and NO POPUP — which
+     * is exactly the report "the progression popup is not shown for exercises
+     * that reached max level". Every path that produces mastery cards now goes
+     * through here, so the card and the popup it offers cannot disagree.
+     */
+    private fun applyMasteryCards(cards: List<MasteryCardData>) {
+        // Every card here is about to be put in front of the user as a popup,
+        // so record that the offer was actually MADE. The "progression
+        // available" label on the exercise card asks this before it says
+        // anything - see hasSeenProgressionOffer.
+        cards.forEach { card -> prefs.putBoolean(evolutionOfferedKey(card.exerciseName), true) }
+        _workoutNowState.update {
+            it.copy(
+                masteredExercises = cards,
+                evolutionOffers = cards.mapNotNull { card ->
+                    preferredEvolutionOffer(card.exerciseName)
+                },
+                evolutionTrees = cards.mapNotNull { card ->
+                    val offers = evolutionOffersFor(card)
+                    if (offers.isEmpty()) null else EvolutionTreeItem(card, offers)
+                },
+                evolutionToken = it.evolutionToken + 1,
+            )
+        }
+    }
+
+    /** Re-offers the level-guide onboarding when a new program replaces the old one. */
+    fun rearmLevelGuide() {
+        prefs.putBoolean("has_seen_level_guide_v6", false)
+        _shouldShowLevelGuide.value = true
     }
 
     /** Resets an in-progress session so a new program starts at exercise 1 of today. */
@@ -1139,6 +2143,16 @@ class WorkoutViewModel(
             }
             
             repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
+
+            // v5 progression: advance the level/stage state when the workout's
+            // sets met the prescription. Never touches the logged row itself.
+            advanceProgressionIfNeeded(currentExercise, currentState.currentReps)
+
+            // A level-up changes an input of the overall level without changing the
+            // logged history, and it lands in preferences after the set was
+            // inserted — so the history-driven recompute cannot be relied on to see
+            // it. Refresh explicitly rather than depending on that ordering.
+            recomputeOverallLevel()
             
             // Save current parameters back to template for next week (keep a full rep range, not a single value)
             repository.saveExercise(currentExercise.copy(
@@ -1148,8 +2162,20 @@ class WorkoutViewModel(
             ))
 
             val nextSetNumber = currentState.currentSetNumber + 1
+
+            // Recap accumulation. Every number the finished-session card shows
+            // comes from a set the user really logged, so nothing here can
+            // disagree with the history on the analytics screen.
+            if (recapStartedAt == 0L) recapStartedAt = System.currentTimeMillis()
+            recapExercises.add(currentExercise.name)
+            recapVolumeKg += currentState.currentWeightKg * currentState.currentReps
             
             var isTransition = false
+            // Non-null only on the completing set; holds the cards so the
+            // completion branch below can hand them to applyMasteryCards without
+            // recomputing them (computeMasteredExercises reads prefs, and the
+            // workout counter it depends on has just been bumped).
+            var masteryCards: List<MasteryCardData>? = null
             _workoutNowState.update { state ->
                 if (nextSetNumber <= currentExercise.targetSets) {
                     state.copy(currentSetNumber = nextSetNumber, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
@@ -1159,10 +2185,28 @@ class WorkoutViewModel(
                         isTransition = true
                         state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
                     } else {
-                        state.copy(isWorkoutCompleted = true, totalSetsLoggedToday = state.totalSetsLoggedToday + 1, restTimerSeconds = 0, isTimerActive = false)
+                        // Workout complete: count it (streaks, mastery cooldowns)
+                        // and gather the mastery cards the spec's hub shows after
+                        // the summary.
+                        prefs.putInt("completed_workout_count", prefs.getInt("completed_workout_count", 0) + 1)
+                        val cards = computeMasteredExercises(exercises)
+                        masteryCards = cards
+                        state.copy(
+                            isWorkoutCompleted = true,
+                            totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
+                            restTimerSeconds = 0,
+                            isTimerActive = false,
+                            masteredExercises = cards,
+                            workoutRecap = buildRecap(state.totalSetsLoggedToday + 1, exercises)
+                        )
                     }
                 }
             }
+            // The popup queue is its own state field, so writing only the cards
+            // above left it stale (empty on a first completion) and the offer
+            // never opened for an exercise that maxed out on the final set.
+            // Publish the cards AND their trees in one pass.
+            masteryCards?.let { applyMasteryCards(it) }
             val updatedState = _workoutNowState.value
             if (!updatedState.isWorkoutCompleted) {
                 if (isTransition) {
@@ -1180,7 +2224,8 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.deleteTodayLogs()
         }
-        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0) }
+        clearRecap()
+        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0, workoutRecap = null) }
         saveDayProgress(_workoutNowState.value.selectedDayOfWeek, _workoutNowState.value)
         saveWorkoutNowState(_workoutNowState.value)
     }
@@ -1193,41 +2238,50 @@ class WorkoutViewModel(
      */
     fun tickTimer() {
         val endTime = prefs.getLong("timer_end_time_millis", 0L)
-        when (restTimerTick(endTime, currentTimeMillis())) {
-            is RestTimerTick.Count -> {
-                _workoutNowState.update {
-                    it.copy(restTimerSeconds = remainingRestSeconds(endTime, currentTimeMillis()), isTimerActive = true)
-                }
+        if (endTime > currentTimeMillis()) {
+            _workoutNowState.update {
+                it.copy(restTimerSeconds = remainingRestSeconds(endTime), isTimerActive = true)
             }
-            is RestTimerTick.Finish -> {
-                // The end time has passed but the alarm backing it up has not reported (or can
-                // never report: Doze, a dropped alarm, a reboot). Waiting for that report is what
-                // used to park the countdown at "1s" forever, so the rest is finished here,
-                // through the same path the receiver takes.
-                //
-                // Clearing the stored end time first is what makes it happen exactly once: the
-                // tick runs every second, so a stored end time left in the past would report the
-                // same finished rest again and again. It also makes a late alarm a no-op, since
-                // the receiver drops a report whose end time no longer matches what is stored.
-                prefs.putLong("timer_end_time_millis", 0L)
-                try {
-                    NotificationHelper.showRestTimerEndedNotification(
-                        appContext(),
-                        alert = !prefs.getBoolean("is_silent_timer", false)
-                    )
-                } catch (e: Exception) {
-                    // An alert that cannot run (no context, no notification permission) must not
-                    // keep the session parked: finish it directly. A second finish is a no-op.
-                    onRestTimerFinished()
-                }
+        } else if (endTime > 0L && endTime <= currentTimeMillis()) {
+            // Expired but the alarm has not reported yet. Inexact alarms
+            // (Doze / battery optimization) can land seconds late, and the
+            // old behavior left the countdown parked at "1" the whole time —
+            // with the vibration and sound waiting on that late report.
+            // The tick is now the authority for an expired rest: it raises the
+            // same end-of-rest alert the receiver would, clears the stored end
+            // time (so the alert cannot re-fire on later ticks — there is no
+            // longer an end time to expire), and hands over to the report path
+            // for the advance. When the late alarm finally lands, the stored
+            // end time no longer matches and it reports nothing — the user
+            // never gets a second alert.
+            val silent = prefs.getBoolean("is_silent_timer", false)
+            // Read BEFORE clearing: this is what tells the alert apart from a
+            // rest, so a timed exercise no longer announces that rest time is
+            // over. See NotificationHelper.showRestTimerEndedNotification.
+            val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
+            prefs.putLong("timer_end_time_millis", 0L)
+            prefs.putBoolean("is_exercise_timer", false)
+            prefs.putBoolean("is_silent_timer", false)
+            try {
+                timerManager.cancelTimer()
+            } catch (_: Exception) {
+                // Already gone.
             }
-            is RestTimerTick.Abandon -> {
-                // Cleared without a report of ours: the rest ended while the app was away, so the
-                // session is only left with a stale countdown. Drop that, but leave the
-                // timed-exercise flags alone — the report may still be on its way, and it is what
-                // decides whether the session moves on.
-                _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
+            val context = com.grafizum.repio.util.getApplicationContext()
+            if (context != null) {
+                NotificationHelper.showRestTimerEndedNotification(
+                    context,
+                    alert = !silent,
+                    wasExerciseTimer = wasExerciseTimer
+                )
             }
+            onRestTimerFinished()
+        } else if (endTime <= 0L && _workoutNowState.value.isTimerActive) {
+            // Cleared without a report of ours: the rest ended while the app was away, so the
+            // session is only left with a stale countdown. Drop that, but leave the
+            // timed-exercise flags alone — the report may still be on its way, and it is what
+            // decides whether the session moves on.
+            _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false) }
         }
     }
 
@@ -1370,11 +2424,9 @@ class WorkoutViewModel(
     }
 
     /**
-     * A replacement row re-parameterized from the user's saved settings — goal,
-     * difficulty and sets allocation, exactly what the generator would have
-     * given the incoming exercise — instead of inheriting the old row's sets,
-     * reps and rest. The screens call this before [replaceExerciseWith] so the
-     * swap lands parameterized for the *new* exercise.
+     * A replacement row re-parameterized from the user's saved settings — goal
+     * (scheme: reps and rest) and difficulty label. Set count is the universal
+     * Guided-mode constant (3) and is not parameterized anymore.
      */
     fun parameterizedReplacement(
         original: RoutineExerciseEntity,
@@ -1387,8 +2439,6 @@ class WorkoutViewModel(
         newMuscleGroup = newMuscleGroup,
         workoutGoal = _workoutGoal.value,
         intensity = (prefs.getString("setup_intensity", "") ?: "").ifBlank { "Medium" },
-        minSets = _minSets.value,
-        maxSets = _maxSets.value,
         videoUrl = videoUrl
     )
 
@@ -1410,7 +2460,14 @@ class WorkoutViewModel(
         }
     }
 
-    fun resetToDefaultProgram() { viewModelScope.launch { repository.resetRoutineToDefault() } }
+    fun resetToDefaultProgram() {
+        viewModelScope.launch {
+            // The default program assumes a full gym; the user's saved kit
+            // (empty = unrestricted) gates its barbell rows down the same
+            // substitution chains every other path uses.
+            repository.resetRoutineToDefault(loadSetupEquipment())
+        }
+    }
 
     fun sendSupportTicket(subject: String, message: String) {
         if (subject.isBlank() || message.isBlank()) {

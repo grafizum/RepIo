@@ -2,6 +2,7 @@ package com.grafizum.repio
 
 import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.WorkoutTemplates
+import com.grafizum.repio.ui.components.formatLoadValue
 import com.grafizum.repio.ui.components.loadFieldPlaceholder
 import com.grafizum.repio.ui.components.loadFieldValueText
 import org.junit.Assert.assertEquals
@@ -163,6 +164,40 @@ class LoadUnitTest {
     @Test
     fun aFractionalCountIsPrintedInFullRatherThanRounded() {
         assertEquals("2.5", loadFieldValueText("Leg Press", 2.5))
+    }
+
+    /**
+     * The engine's ceiling-stretch math spreads a ladder's remaining growth over
+     * its extra rungs, so the levels above the ladder top carry values like
+     * 40.45454545454545. Printed raw, the level picker showed all sixteen digits
+     * (owner report 2026-10-06: "levels with an enormous amount of numbers after
+     * the sign"). The display path trims them to two decimals and drops a
+     * trailing ".0".
+     *
+     * Two decimals rather than one so a real 1.25 kg plate increment survives.
+     */
+    @Test
+    fun anInterpolatedLoadIsTrimmedToSomethingReadable() {
+        assertEquals("40.45", formatLoadValue(40.45454545454545))
+        assertEquals("40.91", formatLoadValue(40.90909090909091))
+        assertEquals("41.36", formatLoadValue(41.36363636363637))
+        // A whole value loses its decimal entirely.
+        assertEquals("40", formatLoadValue(40.0))
+        // Real prescriptions are untouched.
+        assertEquals("2.5", formatLoadValue(2.5))
+        assertEquals("62.5", formatLoadValue(62.5))
+        assertEquals("1.25", formatLoadValue(1.25))
+    }
+
+    /**
+     * The same trim on the way INTO the edit field, so seeding a stretched level
+     * cannot put "40.45454545454545" over the weight box either.
+     */
+    @Test
+    fun theLoadFieldNeverShowsInterpolationNoise() {
+        assertEquals("40.45", loadFieldValueText("Dumbbell Curl", 40.45454545454545))
+        // The weight field still keeps one decimal when whole.
+        assertEquals("40.0", loadFieldValueText("Dumbbell Curl", 40.0))
     }
 
     @Test

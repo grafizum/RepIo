@@ -24,6 +24,59 @@ class OverallLevelRankTest {
 
     private fun rank(percent: Double) = OverallLevelRank.of(percent)
 
+    /**
+     * The rank table the Overall Level card opens. It is a translation of the
+     * percent bands into LEVELS, so the one thing it must never do is leave a
+     * hole or an overlap between two ranks — that would make a level that
+     * belongs to no rank, or to two.
+     */
+    @Test
+    fun theLevelRangesTileTheWholeScaleWithNoGapAndNoOverlap() {
+        val ranges = OverallLevelRank.ORDERED.map { OverallLevelRank.levelRangeOf(it) }
+        assertEquals("one range per rank", OverallLevelRank.ORDERED.size, ranges.size)
+        assertEquals("the scale starts at level 1", 1, ranges.first().first)
+        assertTrue("only the top rank is open", ranges.last().isOpen)
+        assertTrue(
+            "every rank except the top one ends",
+            ranges.dropLast(1).none { it.isOpen }
+        )
+        ranges.zipWithNext { below, above ->
+            assertEquals(
+                "${below.last} must be followed by ${above.first}",
+                below.last!! + 1,
+                above.first
+            )
+        }
+        // The figure saturates at 100, so the open top band is what covers it.
+        assertEquals("the top band starts where the scale tops out", 95, ranges.last().first)
+    }
+
+    /**
+     * The card and the table must agree: the level the card prints is inside its
+     * own rank's range.
+     *
+     * To within ONE level, and that tolerance is the truth rather than a
+     * convenience: a level is a ROUNDED percent, so the two sides of a boundary
+     * round onto the same number. D starts at 13.571% and C at 27.143%, so 27.0%
+     * is still D and prints "Lvl. 27" while D's printed range ends at 26. The
+     * ranges have to stay contiguous to be readable as a scale, so the boundary
+     * level belongs to both by reachability and the table assigns it to one.
+     * The row the user is on is marked by RANK, so the highlight is never wrong.
+     */
+    @Test
+    fun theCardLevelAgreesWithItsOwnRanksRangeToWithinOneLevel() {
+        for (fiftieths in 0..500) {
+            val percent = fiftieths / 5.0
+            val info = rank(percent) ?: continue
+            val range = OverallLevelRank.levelRangeOf(info.rank)
+            val level = OverallLevelRank.displayLevel(percent)
+            assertTrue(
+                "level $level (at $percent%) is not in ${info.letter}'s $range",
+                level >= range.first - 1 && level <= (range.last ?: 100) + 1
+            )
+        }
+    }
+
     private fun letter(percent: Double): String =
         requireNotNull(rank(percent)) { "percent $percent must map to a rank" }.letter
 

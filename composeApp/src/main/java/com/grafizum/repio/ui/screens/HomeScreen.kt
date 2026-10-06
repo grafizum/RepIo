@@ -101,6 +101,9 @@ fun HomeScreen(
     }
 
     var hasAutoScrolled by remember { mutableStateOf(false) }
+    // The rank scale, opened from the Overall Level card: the card states one
+    // band, and the table is what makes it readable as a scale.
+    var showRankTable by remember { mutableStateOf(false) }
     LaunchedEffect(todayExercises) {
         if (todayExercises.isNotEmpty() && !hasAutoScrolled) {
             val indexToScroll = if (nextUpIndex == -1) todayExercises.size - 1 else nextUpIndex
@@ -356,7 +359,9 @@ fun HomeScreen(
                         // than leaving it empty.
                         icon = if (rank == null) Icons.Default.EmojiEvents else null,
                         iconColor = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.fillMaxWidth(),
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRankTable = true },
                         badgeText = if (level != null) {
                             null
                         } else {
@@ -374,6 +379,18 @@ fun HomeScreen(
                         } else {
                             null
                         }
+                    )
+                }
+
+                // Tapping the card opens the whole scale. Long-press already
+                // explains where the number comes from (the tooltip above); this
+                // answers the other question a bare letter raises — what the
+                // letters are, and which levels each one covers.
+                if (showRankTable) {
+                    OverallLevelRanksDialog(
+                        currentLevel = level?.let { OverallLevelRank.displayLevel(it) },
+                        currentRank = rank,
+                        onDismiss = { showRankTable = false }
                     )
                 }
             }

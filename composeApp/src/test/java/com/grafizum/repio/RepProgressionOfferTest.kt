@@ -97,31 +97,48 @@ class RepProgressionOfferTest {
     }
 
     /**
-     * Core and non-core get DIFFERENT ladders, which is the whole point of
-     * reading the ceiling off the row's own muscle rather than picking one
-     * number for everybody.
+     * Every ladder steps by enough to hold its OWN Roman climb.
+     *
+     * This replaced "a bigger span takes a bigger step", and the reason is the
+     * owner's 2026-10-06 report: the stage resets to I when the level advances,
+     * so the step has to cover the climb or a level-up demotes the reps. The
+     * climb is a property of the PATTERN, not the span, which is why Crunches
+     * and Push-Up now step alike - they carry the same pattern - and why the
+     * span only decides the rest.
      */
     @Test
-    fun aShortLadderGetsFewerBiggerStepsThanALongOne() {
+    fun everyLadderStepsByEnoughToHoldItsOwnRomanClimb() {
         val crunches = ProgressionEngine.entryFor("Crunches")!!
         val pushup = ProgressionEngine.entryFor("Push-Up")!!
         val planche = ProgressionEngine.entryFor("Pseudo Planche Push Ups")!!
-        // Ceilings are per exercise now (RepCeilings), so this is no longer a
-        // core-vs-rest rule: what has to hold is that a ladder climbing to 50
-        // takes bigger steps than one climbing to 25, and that a short skill
-        // ladder still advances rather than offering four identical rungs.
+        // Ceilings stay per exercise (RepCeilings).
         assertEquals(50, ProgressionEngine.repCeilingFor(crunches))
         assertEquals(25, ProgressionEngine.repCeilingFor(pushup))
         assertEquals(12, ProgressionEngine.repCeilingFor(planche))
 
-        // Bigger span, bigger step - the step is derived from the ceiling.
-        assertTrue(ProgressionEngine.repStepFor(crunches) > ProgressionEngine.repStepFor(pushup))
-        // And no ladder is ever a single rep per level.
+        // "1 level is 5 reps": the pattern's climb of 4 plus one, for every row
+        // with room for it.
+        assertEquals(5, ProgressionEngine.repStepFor(crunches))
+        assertEquals(5, ProgressionEngine.repStepFor(pushup))
+        assertTrue(
+            "a roomy ladder must step PAST its own climb",
+            ProgressionEngine.repStepFor(crunches) > ProgressionEngine.stageClimb(crunches)
+        )
+        // The skill row's whole range is four reps wide, so it cannot hold a
+        // five-rep step AND four rungs: its step shrinks and the climb is scaled
+        // into the band instead (see prescribedReps).
+        assertTrue(
+            "a four-rep-wide ladder must step smaller than a roomy one",
+            ProgressionEngine.repStepFor(planche) < ProgressionEngine.repStepFor(crunches)
+        )
         assertTrue(ProgressionEngine.repStepFor(planche) >= 1)
         // Every one of them stays short enough to read as a ladder.
-        assertTrue(ProgressionEngine.repRungs(crunches) <= 12)
-        assertTrue(ProgressionEngine.repRungs(pushup) <= 12)
-        assertTrue(ProgressionEngine.repRungs(planche) <= 12)
+        for (entry in listOf(crunches, pushup, planche)) {
+            assertTrue(
+                "${entry.slug} has ${ProgressionEngine.repRungs(entry)} rungs",
+                ProgressionEngine.repRungs(entry) in 4..12
+            )
+        }
     }
 
     @Test

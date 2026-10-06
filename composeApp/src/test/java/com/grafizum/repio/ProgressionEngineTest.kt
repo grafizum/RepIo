@@ -346,11 +346,21 @@ class ProgressionEngineTest {
     @Test
     fun prescriptionChangesDetectsWhetherALevelUpAltersTheValue() {
         // A rep ladder has no value to compare - its level is reps, so every
-        // level-up changes the prescription. Reading it off the value would
-        // report "nothing changed" for every level in the pool.
+        // level-up INSIDE its ladder changes the prescription. Reading it off
+        // the value would report "nothing changed" for every level in the pool.
+        //
+        // Walked against the row's own length rather than two fixed numbers:
+        // the ladder's step (and so its rung count) is derived from its ceiling
+        // and its Roman climb, and a fixed 8 -> 9 pair silently stops meaning
+        // anything the moment the step grows and the ladder gets shorter.
         val be = entry("Back Extension")
-        assertTrue(ProgressionEngine.prescriptionChangesAt(be, 1, 2))
-        assertTrue(ProgressionEngine.prescriptionChangesAt(be, 8, 9))
+        val top = ProgressionEngine.effectiveMaxLevel(be)
+        for (level in 1 until top) {
+            assertTrue(
+                "Back Extension did not change from level $level to ${level + 1} of $top",
+                ProgressionEngine.prescriptionChangesAt(be, level, level + 1)
+            )
+        }
         // A 1-step load ladder always changes.
         val bench = entry("Barbell Bench Press")
         assertTrue(ProgressionEngine.prescriptionChangesAt(bench, 1, 2))

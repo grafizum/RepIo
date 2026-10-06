@@ -175,4 +175,24 @@ object OverallLevelRank {
      */
     fun displayLevel(percent: Double): Int =
         percent.roundToInt().coerceIn(1, 100)
+
+    /**
+     * The span of LEVELS a rank covers, or [last] null for the open top band.
+     *
+     * A band is stored as a PERCENT (see [Letter.minPercent]); a user reads
+     * LEVELS, because that is the number the Home card prints and the number
+     * that moves every session. This is the one translation between the two,
+     * and it is DERIVED, so adding a rank cannot leave the scale with a gap or
+     * an overlap — `OverallLevelRankTest` sweeps for exactly that.
+     */
+    data class LevelRange(val first: Int, val last: Int?) {
+        val isOpen: Boolean get() = last == null
+    }
+
+    /** The levels a rank covers: its own floor up to the level below the next rank's. */
+    fun levelRangeOf(letter: Letter): LevelRange {
+        val first = displayLevel(letter.minPercent)
+        val end = letter.rangeEnd ?: return LevelRange(first, null)
+        return LevelRange(first, (displayLevel(end) - 1).coerceAtLeast(first))
+    }
 }

@@ -296,6 +296,7 @@
     <string name="recap_volume">Volume</string>
     <string name="recap_duration">Duration</string>
     <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_volume_lb">%1$s lb</string>
     <string name="recap_duration_format">%1$d min</string>
     <string name="recap_split_title">Where the work went</string>
     <plurals name="workout_completed_text" tools:ignore="UnusedResources">
@@ -877,6 +878,12 @@
     <string name="progression_stage_target">Target: %1$s</string>
     <string name="progression_load_each">%1$s kg each</string>
     <string name="progression_load_kg">%1$s kg</string>
+    <string name="progression_load_lb">%1$s lb</string>
+    <string name="progression_load_lb_each">%1$s lb each</string>
+    <string name="weight_unit">Weight unit</string>
+    <string name="change_weight_unit">How weights are shown and typed</string>
+    <string name="weight_unit_kg">Kilograms (kg)</string>
+    <string name="weight_unit_lbs">Pounds (lb)</string>
     <string name="progression_duration_value">%1$s s</string>
 
     <!-- Level system guide — Settings -->

@@ -4,13 +4,12 @@
     <color name="bg_beige">#FDFCFB</color>
     <color name="bg_emerald">#FBFFFF</color>
     <color name="bg_crimson">#FFFBFA</color>
-    <color name="bg_azure">#FFFFFF</color>
     <color name="bg_purple">#121212</color>
     <color name="bg_flame">#121212</color>
     <color name="bg_ocean">#121212</color>
     <color name="bg_rose">#121212</color>
     <color name="bg_retro">#121212</color>
-    <color name="bg_royal_blue">#007AFF</color>
+    <color name="bg_royal_blue">#FFFFFF</color>
 
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>

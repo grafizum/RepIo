@@ -60,6 +60,8 @@ import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.LocalWeightUnit
+import com.grafizum.repio.ui.components.loadInputToKg
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
@@ -2311,8 +2313,13 @@ fun AddExerciseDialog(
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
     // count, so it must not open the sheet as "20.0" (see the function's note).
+    // Read outside the remember: `remember`'s lambda is not a composable scope,
+    // so the unit has to be resolved here and captured.
+    val weightUnit = LocalWeightUnit.current
     var targetWeightValue by remember {
-        mutableStateOf(exercise?.targetWeightKg?.let { loadFieldValueText(name, it) } ?: "")
+        mutableStateOf(
+            exercise?.targetWeightKg?.let { loadFieldValueText(name, it, weightUnit) } ?: ""
+        )
     }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
@@ -2400,7 +2407,7 @@ fun AddExerciseDialog(
                 targetSets = targetSets.toIntOrNull() ?: 3, 
                 targetReps = finalReps, 
                 targetIntensity = targetIntensityStr, 
-                targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0,
+                targetWeightKg = loadInputToKg(name, targetWeightValue, weightUnit) ?: 0.0,
                 restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
                 videoUrl = videoUrl, 
                 orderIndex = exercise?.orderIndex ?: 99,

@@ -70,6 +70,67 @@ class BodyweightRepProgressionTest {
         }
     }
 
+    /**
+     * THE REAL PATH, and the one the cases above miss.
+     *
+     * A user finishes a level at its LAST Roman stage - the most reps that level
+     * ever asks for - and the level-up resets the stage to I. Those two states
+     * have to be compared, not two stage-I states: the Roman stage adds up to
+     * four reps on top of the level's own count, so a level that steps by fewer
+     * than its pattern climbs hands back FEWER reps the moment it advances.
+     *
+     * Owner report 2026-10-06: "when the rep is max of level 3 (lets say 12) and
+     * level 4 comes, it jumps from 12 to 8 as if the weight would have been
+     * increased, but since there is no weight to increase it makes no sense."
+     *
+     * Swept across every rep ladder in the pool, because the fix is in the
+     * engine and a single exercise would prove nothing.
+     */
+    @Test
+    fun levelingUpFromTheLastStageNeverDemotesTheReps() {
+        var checked = 0
+        for (entry in repProgressedEntries()) {
+            if (!ProgressionEngine.isRepLadder(entry)) continue
+            checked++
+            val max = ProgressionEngine.effectiveMaxLevel(entry)
+            val lastStage = ProgressionEngine.patternLength(entry)
+            for (level in 1 until max) {
+                val finishing = ProgressionEngine.prescribedReps(entry, level, lastStage)!!.max()
+                val nextStart = ProgressionEngine.prescribedReps(entry, level + 1, 1)!!.max()
+                assertTrue(
+                    "${entry.slug}: L$level last stage asks $finishing reps but L${level + 1} " +
+                        "opened on $nextStart - a level-up must never reduce the work",
+                    nextStart >= finishing
+                )
+            }
+        }
+        assertTrue("expected rep ladders to check, got $checked", checked > 100)
+    }
+
+    /**
+     * And the whole climb is monotonic, not just the level boundaries: walking
+     * level by level and stage by stage, the reps never fall anywhere.
+     */
+    @Test
+    fun theRepCountNeverFallsAnywhereAlongTheLadder() {
+        for (entry in repProgressedEntries()) {
+            if (!ProgressionEngine.isRepLadder(entry)) continue
+            val max = ProgressionEngine.effectiveMaxLevel(entry)
+            val stages = ProgressionEngine.patternLength(entry)
+            var previous = 0
+            for (level in 1..max) {
+                for (stage in 1..stages) {
+                    val reps = ProgressionEngine.prescribedReps(entry, level, stage)!!.max()
+                    assertTrue(
+                        "${entry.slug}: L$level S$stage asks $reps, below the previous step's $previous",
+                        reps >= previous
+                    )
+                    previous = reps
+                }
+            }
+        }
+    }
+
     @Test
     fun aLevelUpNeverDemotesTheReps() {
         // Walking the real level-up path from the top stage of each level must
@@ -128,17 +189,19 @@ class BodyweightRepProgressionTest {
         // top stage is not where a distribution is visible. Asserting it there
         // would have been asserting against the shape the data actually has.
         val atLevel5 = ProgressionEngine.prescribedReps(entry, 5, 5)!!
-        // Crunches is core, so its ladder steps by 4 from a floor of 8: level 5
-        // asks 24 reps. The pattern's own stage-5 row [10,9,9] minus stage I's
+        // Crunches is core from a floor of 8, and its ladder now steps by 5 -
+        // the Roman climb (4) plus one, so the level's band holds the whole
+        // stage climb and a level-up can never demote the reps. Level 5 asks
+        // 28 reps. The pattern's own stage-5 row [10,9,9] minus stage I's
         // [8,8,8] is [2,1,1] - the extra reps walking forward onto the first
-        // set - so the sets read 26 / 25 / 25.
+        // set - so the sets read 30 / 29 / 29.
         val levelReps = ProgressionEngine.repsAtLevel(entry, 5)
-        assertEquals(24, levelReps)
+        assertEquals(28, levelReps)
         // Every set is at least the level's own count: the stage adds work, it
         // never takes any away.
         assertTrue("stage 5 took reps away: $atLevel5", atLevel5.all { it >= levelReps })
         // And it is genuinely a DISTRIBUTION, not three identical numbers.
-        assertEquals(listOf(26, 25, 25), atLevel5)
+        assertEquals(listOf(30, 29, 29), atLevel5)
     }
 
     /**

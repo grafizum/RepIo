@@ -65,7 +65,11 @@ import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ExerciseVideoLinkButton
 import com.grafizum.repio.ui.components.getMuscleGroupColor
 import com.grafizum.repio.ui.components.bandTensionLabel
+import com.grafizum.repio.data.WeightUnit
+import com.grafizum.repio.ui.components.displayLoadForUnit
+import com.grafizum.repio.ui.components.LocalWeightUnit
 import com.grafizum.repio.ui.components.loggedLoadSummary
+import com.grafizum.repio.ui.components.formatLoadValue
 import com.grafizum.repio.ui.components.EvolutionTreeDialog
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
@@ -1206,15 +1210,25 @@ fun prescriptionDisplayText(rx: ProgressionEngine.PrescribedValue): String = whe
     ProgressionEngine.ValueKind.VARIATION -> rx.variation ?: ""
     ProgressionEngine.ValueKind.DURATION -> getString("progression_duration_value", rx.value?.toInt() ?: 0)
     ProgressionEngine.ValueKind.LOAD -> {
-        val v = rx.value ?: 0.0
-        val clean = if (v % 1.0 == 0.0) v.toInt().toString() else v.toString()
+        // Already in the user's unit: the engine builds the ladder in the unit
+        // asked for (see ProgressionEngine.poundLadder), so this only writes it
+        // down. Converting here as well would convert it twice.
+        val unit = LocalWeightUnit.current
+        val amount = rx.value ?: 0.0
+        val clean = formatLoadValue(amount)
         when (rx.loadUnit) {
-            ProgressionEngine.LoadUnit.KG_EACH -> getString("progression_load_each", clean)
-            ProgressionEngine.LoadUnit.KG -> getString("progression_load_kg", clean)
+            ProgressionEngine.LoadUnit.KG_EACH -> getString(
+                if (unit == WeightUnit.KG) "progression_load_each" else "progression_load_lb_each",
+                clean
+            )
+            ProgressionEngine.LoadUnit.KG -> getString(
+                if (unit == WeightUnit.KG) "progression_load_kg" else "progression_load_lb",
+                clean
+            )
             ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_pin", clean)
             ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString(
                 "progression_load_band",
-                bandTensionLabel(ProgressionEngine.bandTensionOf(v))
+                bandTensionLabel(ProgressionEngine.bandTensionOf(amount))
             )
             null -> ""
         }
@@ -2167,9 +2181,16 @@ private fun LevelPrescriptionCard(
 @Composable
 private fun WorkoutRecapCard(recap: com.grafizum.repio.ui.viewmodel.WorkoutRecap) {
     val durationMinutes = (recap.durationSeconds / 60).toInt()
+    // Tonnage follows the unit too, but WITHOUT the grid: it is a sum of many
+    // sets, not a load anyone sets on a bar, so it converts and rounds whole.
+    val volumeUnit = LocalWeightUnit.current
     val volumeText = recap.volumeKg?.let { kg ->
-        val clean = if (kg % 1.0 == 0.0) kg.toInt().toString() else String.format("%.1f", kg)
-        getString("recap_volume_kg", clean)
+        val shown = volumeUnit.fromKg(kg)
+        val clean = if (shown % 1.0 == 0.0) shown.toInt().toString() else String.format("%.1f", shown)
+        getString(
+            if (volumeUnit == WeightUnit.KG) "recap_volume_kg" else "recap_volume_lb",
+            clean
+        )
     }
     val tiles = buildList {
         add(getString("recap_exercises") to recap.exercises.toString())

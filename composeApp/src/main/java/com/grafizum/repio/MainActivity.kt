@@ -18,6 +18,7 @@ import androidx.activity.compose.setContent
 import androidx.activity.enableEdgeToEdge
 import androidx.activity.viewModels
 import androidx.compose.animation.*
+import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.animation.core.tween
 import androidx.compose.foundation.BorderStroke
 import androidx.compose.foundation.background
@@ -99,6 +100,7 @@ import com.grafizum.repio.util.AppUpdateChecker
 import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.ui.components.AdaptiveWidthContainer
 import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.LocalWeightUnit
 import kotlinx.coroutines.flow.MutableStateFlow
 import kotlinx.coroutines.flow.StateFlow
 import kotlinx.coroutines.flow.asStateFlow
@@ -241,7 +243,14 @@ open class MainActivity : AppCompatActivity() {
                 }
             }
 
-            MainAppStructure(viewModel = viewModel)
+            // One unit for the whole app. A load turns into a string in a dozen
+            // places — the picker, the live card, both editors, the logged-set
+            // summary — so it is provided here rather than passed to each, which
+            // is how one of them ends up printing kilograms to a US user.
+            val weightUnit by viewModel.weightUnit.collectAsState()
+            CompositionLocalProvider(LocalWeightUnit provides weightUnit) {
+                MainAppStructure(viewModel = viewModel)
+            }
         }
     }
 

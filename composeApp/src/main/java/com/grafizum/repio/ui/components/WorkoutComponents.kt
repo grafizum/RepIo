@@ -90,6 +90,7 @@ import com.grafizum.repio.data.ExercisePopularity
 import com.grafizum.repio.data.ExerciseSearch
 import com.grafizum.repio.data.ExerciseEquipmentTags
 import com.grafizum.repio.data.ProgressionEngine
+import com.grafizum.repio.data.WeightUnit
 import com.grafizum.repio.data.WorkoutTemplates
 import java.util.Calendar
 import kotlin.math.roundToInt
@@ -2925,8 +2926,79 @@ fun loadFieldSuffix(exerciseName: String): String =
     when (ProgressionEngine.loadUnitFor(exerciseName)) {
         ProgressionEngine.LoadUnit.STACK_STEP,
         ProgressionEngine.LoadUnit.RESISTANCE_STEP -> ""
-        else -> "kg"
+        else -> if (LocalWeightUnit.current == WeightUnit.KG) "kg" else "lb"
     }
+
+/**
+ * The unit the user reads and enters weights in.
+ *
+ * A CompositionLocal rather than a parameter because a load becomes a string in
+ * a dozen places — the level picker, the live card, both exercise editors, the
+ * logged-set summary, the evolution popup — and threading a unit through all of
+ * them by hand is how one of them ends up printing kilograms to a US user.
+ * Storage stays KILOGRAMS, like the exercise pool storing canonical English
+ * names: this decides only how a weight is written down and read back.
+ */
+val LocalWeightUnit = staticCompositionLocalOf { WeightUnit.KG }
+
+/** The row's own kilogram increment, or null for a row outside the level system. */
+private fun loadStepKg(exerciseName: String): Double? =
+    ProgressionEngine.entryFor(exerciseName)?.increment
+
+/**
+ * True for a row whose load is a weight; a pin or a band rung is a count.
+ *
+ * An unknown row (loadUnitFor returns null) counts as a WEIGHT: that is the
+ * default a user's own custom exercise gets, and reading it as a count is how a
+ * field stops showing "20.0".
+ */
+private fun isWeightLoaded(exerciseName: String): Boolean =
+    when (ProgressionEngine.loadUnitFor(exerciseName)) {
+        ProgressionEngine.LoadUnit.STACK_STEP,
+        ProgressionEngine.LoadUnit.RESISTANCE_STEP -> false
+        else -> true
+    }
+
+/**
+ * A stored KILOGRAM load as [unit] should read it, snapped onto that unit's own
+ * grid: 40 kg is 88 lb, and a 2.5 kg barbell row moves in 5 lb rungs rather than
+ * 5.51 — the pounds a US gym actually stocks, taken from the row's own
+ * increment. A pin or a band rung is not a weight and is returned untouched,
+ * because "pin 6" is not thirteen pounds.
+ */
+fun displayLoadForUnit(exerciseName: String, kg: Double, unit: WeightUnit): Double =
+    if (unit == WeightUnit.KG || !isWeightLoaded(exerciseName)) kg
+    else unit.display(kg, loadStepKg(exerciseName))
+
+/**
+ * The KILOGRAM value to store for what the user typed in their own unit, or null
+ * when the field is not a number. The stored rows never change unit, so the
+ * conversion happens exactly once, here.
+ */
+fun loadInputToKg(exerciseName: String, text: String, unit: WeightUnit): Double? {
+    val typed = text.trim().replace(',', '.').toDoubleOrNull() ?: return null
+    if (unit == WeightUnit.KG || !isWeightLoaded(exerciseName)) return typed
+    return unit.toKg(typed)
+}
+
+/**
+ * A load value as the user should read it: rounded to at most two decimals, with
+ * a trailing ".0" dropped.
+ *
+ * The engine's ceiling-stretch math spreads a ladder's remaining growth over its
+ * extra rungs, so it produces values like 40.45454545454545. Printing the raw
+ * Double put sixteen digits into the level picker — and the same noise into the
+ * live card and every logged set — for a number no user can act on. Two decimals
+ * keeps a real prescription intact (2.5, 62.5 and 1.25 kg all survive) while
+ * collapsing the interpolation noise to something readable.
+ *
+ * This is the ONE place a load becomes a string. A count (a pin, a band) and a
+ * weight share it so the card, the picker and the log cannot disagree.
+ */
+fun formatLoadValue(value: Double): String {
+    val rounded = Math.round(value * 100.0) / 100.0
+    return if (rounded % 1.0 == 0.0) rounded.toInt().toString() else rounded.toString()
+}
 
 /**
  * The stored load as the load field should print it.
@@ -2939,16 +3011,21 @@ fun loadFieldSuffix(exerciseName: String): String =
  * a field that reads back differently from the card that printed it is its own
  * small lie.
  *
- * A non-whole value is still printed in full: if the user typed a fraction into a
- * pin field, rounding it away would silently change what gets saved.
+ * The value is formatted through [formatLoadValue], so a fraction the user typed
+ * is preserved up to two decimals and only the engine's interpolation noise is
+ * trimmed. A kg field keeps one decimal even when whole ("20.0" is what a weight
+ * field shows); a count does not.
  */
-fun loadFieldValueText(exerciseName: String, value: Double): String {
+fun loadFieldValueText(
+    exerciseName: String,
+    value: Double,
+    unit: WeightUnit = WeightUnit.KG
+): String {
     if (value <= 0.0) return ""
-    val isCount = ProgressionEngine.loadUnitFor(exerciseName) in setOf(
-        ProgressionEngine.LoadUnit.STACK_STEP,
-        ProgressionEngine.LoadUnit.RESISTANCE_STEP
-    )
-    return if (isCount && value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+    val trimmed = formatLoadValue(displayLoadForUnit(exerciseName, value, unit))
+    if (!isWeightLoaded(exerciseName)) return trimmed
+    // A weight field keeps its decimal: "20.0", not "20".
+    return if (trimmed.contains('.')) trimmed else "$trimmed.0"
 }
 
 /** The empty-field hint, in the exercise's own unit: a count is not written "0.0". */
@@ -2967,14 +3044,18 @@ fun loadFieldPlaceholder(exerciseName: String): String =
 @Composable
 fun loggedLoadSummary(exerciseName: String, value: Double): String {
     if (value <= 0.0) return ""
-    val clean = if (value % 1.0 == 0.0) value.toInt().toString() else value.toString()
+    val unit = LocalWeightUnit.current
+    val clean = formatLoadValue(displayLoadForUnit(exerciseName, value, unit))
     return when (ProgressionEngine.loadUnitFor(exerciseName)) {
         ProgressionEngine.LoadUnit.STACK_STEP -> getString("progression_load_pin", clean)
         ProgressionEngine.LoadUnit.RESISTANCE_STEP -> getString(
             "progression_load_band",
             bandTensionLabel(ProgressionEngine.bandTensionOf(value))
         )
-        else -> "$clean kg"
+        else -> getString(
+            if (unit == WeightUnit.KG) "progression_load_kg" else "progression_load_lb",
+            clean
+        )
     }
 }
 
@@ -3239,8 +3320,13 @@ fun ExerciseEditDialog(
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
     // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
     // count, so it must not open the sheet as "20.0" (see the function's note).
+    // Read outside the remember: `remember`'s lambda is not a composable scope,
+    // so the unit has to be resolved here and captured.
+    val weightUnit = LocalWeightUnit.current
     var targetWeightValue by remember {
-        mutableStateOf(exercise?.targetWeightKg?.let { loadFieldValueText(name, it) } ?: "")
+        mutableStateOf(
+            exercise?.targetWeightKg?.let { loadFieldValueText(name, it, weightUnit) } ?: ""
+        )
     }
 
     // The suggestion filter popup was removed (dashboard task
@@ -3330,7 +3416,7 @@ fun ExerciseEditDialog(
                 // Whatever the user typed or picked, the row is stored under the canonical
                 // pool name when it is a pool exercise: that keeps the equipment table, the
                 // muscle table and previously logged sets all pointing at the same exercise.
-                onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
+                onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = loadInputToKg(name, targetWeightValue, weightUnit) ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
             }
         },
         dismissLabel = getString("cancel"),

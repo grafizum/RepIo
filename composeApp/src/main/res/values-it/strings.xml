@@ -285,6 +285,7 @@
     <string name="recap_volume">Volume</string>
     <string name="recap_duration">Durata</string>
     <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_volume_lb">%1$s lb</string>
     <string name="recap_duration_format">%1$d min</string>
     <string name="recap_split_title">Dove è andato il lavoro</string>
     <plurals name="workout_completed_text">
@@ -864,6 +865,12 @@
     <string name="progression_stage_target">Obiettivo: %1$s</string>
     <string name="progression_load_each">%1$s kg per manubrio</string>
     <string name="progression_load_kg">%1$s kg</string>
+    <string name="progression_load_lb">%1$s lb</string>
+    <string name="progression_load_lb_each">%1$s lb per manubrio</string>
+    <string name="weight_unit">Unità di peso</string>
+    <string name="change_weight_unit">Come vengono mostrati e inseriti i pesi</string>
+    <string name="weight_unit_kg">Chilogrammi (kg)</string>
+    <string name="weight_unit_lbs">Libbre (lb)</string>
     <string name="progression_duration_value">%1$s s</string>
     <string name="level_system_guide_title">Come funzionano livelli e stadi</string>
     <string name="level_system_guide_desc">Il sistema di livelli in un\'immagine</string>

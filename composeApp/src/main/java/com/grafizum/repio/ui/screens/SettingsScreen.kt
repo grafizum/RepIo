@@ -88,6 +88,7 @@ import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
+import com.grafizum.repio.data.WeightUnit
 import com.grafizum.repio.ui.components.appLanguageOptions
 import com.grafizum.repio.ui.components.TimersMergedCard
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
@@ -132,6 +133,7 @@ fun SettingsScreen(
     val defaultRestTimerSeconds by viewModel.defaultRestTimerSeconds.collectAsState()
     val defaultExerciseTimerSeconds by viewModel.defaultExerciseTimerSeconds.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
+    val weightUnit by viewModel.weightUnit.collectAsState()
     val showRestartDialog by viewModel.showRestartDialog.collectAsState()
     // val context = LocalContext.current
     var expandedLanguage by remember { mutableStateOf(false) }
@@ -389,6 +391,81 @@ fun SettingsScreen(
         // MAIN SETTINGS CONTENT
         Column(verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)) {
             
+            // WEIGHT UNIT CARD
+            //
+            // Defaulted from the phone's country, then whatever the user picks —
+            // the question is what plates are on their rack, and a US gym has
+            // pounds. Storage never changes: a set logged at 40 kg is 40 kg, so
+            // this changes how the numbers are written down, not anyone's
+            // history. That is why the choice is reversible in one tap.
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Column(modifier = Modifier.padding(16.dp)) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.FitnessCenter,
+                            contentDescription = null,
+                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(22.dp)
+                        )
+                        Spacer(modifier = Modifier.width(10.dp))
+                        Column {
+                            Text(
+                                text = getString("weight_unit"),
+                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                            )
+                            Text(
+                                text = getString("change_weight_unit"),
+                                style = MaterialTheme.typography.bodySmall,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                            )
+                        }
+                    }
+
+                    Spacer(modifier = Modifier.height(12.dp))
+
+                    Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
+                        WeightUnit.values().forEach { option ->
+                            val selected = option == weightUnit
+                            Button(
+                                onClick = {
+                                    focusManager.clearFocus()
+                                    viewModel.setWeightUnit(option)
+                                },
+                                shape = RoundedCornerShape(12.dp),
+                                colors = ButtonDefaults.buttonColors(
+                                    containerColor = if (selected) {
+                                        MaterialTheme.colorScheme.primary
+                                    } else {
+                                        MaterialTheme.colorScheme.surface
+                                    },
+                                    contentColor = if (selected) {
+                                        MaterialTheme.colorScheme.onPrimary
+                                    } else {
+                                        MaterialTheme.colorScheme.onSurfaceVariant
+                                    }
+                                ),
+                                modifier = Modifier.weight(1f)
+                            ) {
+                                Text(
+                                    text = getString(
+                                        if (option == WeightUnit.KG) "weight_unit_kg" else "weight_unit_lbs"
+                                    ),
+                                    style = MaterialTheme.typography.bodyMedium
+                                )
+                            }
+                        }
+                    }
+                }
+            }
+
             // LANGUAGE SELECTION CARD
             Card(
                 shape = RoundedCornerShape(16.dp),

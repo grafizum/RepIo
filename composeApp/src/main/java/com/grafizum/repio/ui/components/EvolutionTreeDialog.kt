@@ -133,7 +133,17 @@ fun EvolutionTreeDialog(
     val branchInset = gutter + BRANCH_INSET_STEP
     // The spine's x, measured from the canvas's left edge (which is the trunk's
     // left edge, because the trunk is flush).
-    val spineInset = branchInset - BRANCH_INSET_STEP / 2f
+    //
+    // ON the branch cards' own left edge, not half a step outside it (owner,
+    // 2026-10-06: "i want the lines not be going out left but right inside the
+    // progression cards"). Hanging it in the gutter made the rail read as
+    // something the cards were attached to from outside; on their edge it is the
+    // rail they hang from, and every arm leaves it to the RIGHT.
+    val spineInset = branchInset
+    // How far INTO each card its arm travels, drawn over the card rather than
+    // stopping at its edge — the same 12dp the card's own content is inset by,
+    // so the line arrives where the text starts instead of at a border.
+    val armInset = 12.dp
 
     var sourceRect by remember { mutableStateOf<Rect?>(null) }
     var rowRects by remember { mutableStateOf<List<Rect>>(emptyList()) }
@@ -155,17 +165,6 @@ fun EvolutionTreeDialog(
         )
 
         Box(modifier = Modifier.fillMaxWidth()) {
-            TreeElbows(
-                sourceRect = sourceRect,
-                rowRects = rowRects,
-                origin = canvasOrigin,
-                spineInset = spineInset,
-                color = colors.outline,
-                modifier = Modifier
-                    .fillMaxSize()
-                    .onGloballyPositioned { canvasOrigin = it.positionInRoot() },
-            )
-
             Column(
                 verticalArrangement = Arrangement.spacedBy(window.dialogGap / 2),
                 modifier = Modifier.fillMaxWidth(),
@@ -183,17 +182,34 @@ fun EvolutionTreeDialog(
                         selected = isSelected,
                         inset = branchInset,
                         onClick = { selected = index },
-                        modifier = Modifier.onGloballyPositioned { coords ->
-                            val rect = coords.boundsInRoot()
-                            rowRects = rowRects
-                                .let { old ->
-                                    (old.indices.maxOfOrNull { i -> if (i < index) i else -1 } ?: -1)
-                                        .let { keep -> old.take(keep + 1) }
-                                } + rect
-                        },
+                        // The rect must be measured INSIDE the card, i.e. below
+                        // its own inset padding — see BranchCard, where the
+                        // placement of this callback is the difference between
+                        // an arm that arrives in the card and one that runs off
+                        // into the empty gutter behind the spine.
+                        onBounds = { rect -> rowRects = rowRects.take(index) + rect },
                     )
                 }
             }
+
+            // Drawn AFTER the cards, so an arm can travel INSIDE a card and be
+            // seen doing it. Behind them it would be covered by the surface it is
+            // pointing at, which is what made the old arms stop at the border.
+            TreeElbows(
+                sourceRect = sourceRect,
+                rowRects = rowRects,
+                origin = canvasOrigin,
+                spineInset = spineInset,
+                armInset = armInset,
+                // The arm into a card IS that card's colour — the muted one, and
+                // the brand colour on the chosen row — so the line and the card it
+                // arrives at cannot disagree.
+                armColors = offers.indices.map { branchAccent(it == selected) },
+                spineColor = colors.outline,
+                modifier = Modifier
+                    .fillMaxSize()
+                    .onGloballyPositioned { canvasOrigin = it.positionInRoot() },
+            )
         }
 
         if (chosen != null && chosen.note.isNotBlank()) {
@@ -231,6 +247,23 @@ fun EvolutionTreeDialog(
         }
     }
 }
+
+/**
+ * The TWO states a progression row has, and they are the only two (owner,
+ * 2026-10-06: "dont change the colors of the progression exercises, keep them
+ * greyed out ... and have the selected exercise be colored actively still in the
+ * same primary theme color, not random other colors").
+ *
+ * A depth ramp through tertiary and secondary was tried and rejected: a diagram
+ * that spends three hues on five options reads as decoration rather than as one
+ * choice, and the only thing the colour has to say is WHICH ONE IS PICKED. So the
+ * muted row is the theme's own neutral and the chosen row is the brand colour —
+ * the same two the popup used before, and the connector takes the colour of the
+ * card it arrives at so the line can never point at a differently coloured box.
+ */
+@Composable
+private fun branchAccent(selected: Boolean): Color =
+    if (selected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.outline
 
 /**
  * The trunk: the exercise that was just finished.
@@ -297,8 +330,18 @@ private fun TrunkCard(
 /**
  * One leg of the fork.
  *
- * [inset] leaves room for the connector drawn underneath it, so the card never
- * sits on top of its own line.
+ * [inset] is the card's own step in from the trunk, and it is ALSO where the
+ * spine runs — so the card's left edge and the arm's start are the same line by
+ * construction, and the arm only has to travel right to be inside the card.
+ *
+ * [onBounds] is called from BELOW the inset padding, and that placement is
+ * load-bearing. A `Modifier.onGloballyPositioned` handed in from the call site
+ * sits ABOVE `.padding(start = inset)`, so it reports the full-width lane that
+ * holds the card rather than the card — `rect.left` came back as the trunk's
+ * own left edge, which made `rect.left - origin.x + armInset` land a whole
+ * inset-and-then-some to the LEFT of the spine. The arms were therefore drawn
+ * backwards, into the empty gutter, and nothing failed: they were still drawn,
+ * still the right colour, still attached to a spine on a card's edge.
  *
  * DELIBERATELY COMPACT. The owner's word was "ingombrant": this used to be six
  * stacked rows - name, level, ladder, prescription, reps, and what the branch
@@ -316,10 +359,11 @@ private fun BranchCard(
     selected: Boolean,
     inset: androidx.compose.ui.unit.Dp,
     onClick: () -> Unit,
-    modifier: Modifier = Modifier,
+    /** The card's OWN bounds in root coordinates, reported from below its inset. */
+    onBounds: (Rect) -> Unit,
 ) {
     val colors = MaterialTheme.colorScheme
-    val accent = if (selected) colors.primary else colors.outline
+    val accent = branchAccent(selected)
     val to = offer.to
     val name = translateExerciseName(to.exerciseName)
     val levelLabel = stringResource(R.string.evolution_level_of_max, to.level, to.maxLevel)
@@ -333,9 +377,13 @@ private fun BranchCard(
     Surface(
         shape = RoundedCornerShape(12.dp),
         color = if (selected) colors.primaryContainer else colors.surface,
-        modifier = modifier
+        modifier = Modifier
             .fillMaxWidth()
             .padding(start = inset)
+            // BELOW the padding, so this is the CARD's rect rather than the
+            // full-width lane's. Move it above and the connector silently draws
+            // away from the cards instead of into them.
+            .onGloballyPositioned { onBounds(it.boundsInRoot()) }
             .border(1.dp, accent.copy(alpha = if (selected) 0.9f else 0.45f), RoundedCornerShape(12.dp))
             .clickable(onClick = onClick)
             .semantics { contentDescription = "$name. $workLabel" },
@@ -463,6 +511,12 @@ private fun MiniLadder(level: Int, maxLevel: Int, accent: Color) {
  * Endpoints are MEASURED (`boundsInRoot` per node plus the canvas's own
  * `positionInRoot`), not derived from a guessed layout - a name that wraps, or
  * a larger font scale, moves the card and its arm with it.
+ *
+ * What is measured matters though: the arm end is the ROW CARD's own left edge
+ * plus [armInset], so each rect has to be the card's, taken below its inset
+ * padding. Measured above it, `left` is the trunk's edge, the arm end falls
+ * short of the spine and the line is drawn backwards - visible only on a
+ * render, because every number involved is still a plausible number.
  */
 @Composable
 private fun TreeElbows(
@@ -470,7 +524,18 @@ private fun TreeElbows(
     rowRects: List<Rect>,
     origin: Offset,
     spineInset: androidx.compose.ui.unit.Dp,
-    color: Color,
+    /**
+     * How far past a card's left edge its arm is drawn, on top of the card.
+     *
+     * Because the spine IS the card's left edge (`spineInset == branchInset`),
+     * this is also how far the arm travels to the right of the spine, and it is
+     * the card's own 12dp content padding - so the line arrives where the text
+     * starts rather than at a border.
+     */
+    armInset: androidx.compose.ui.unit.Dp,
+    /** One colour per row, in row order: the arm into a card is that card's own colour. */
+    armColors: List<Color>,
+    spineColor: Color,
     modifier: Modifier = Modifier,
 ) {
     Canvas(modifier = modifier) {
@@ -484,21 +549,32 @@ private fun TreeElbows(
         // up by index into a list of heights silently reuses the FIRST card's
         // edge whenever two cards share a y, which is exactly the misplaced
         // line this whole rewrite exists to remove.
-        val arms = rowRects.map { it.center.y - origin.y to (it.left - origin.x) }
+        val arms = rowRects.map {
+            it.center.y - origin.y to (it.left - origin.x + armInset.toPx())
+        }
+        // An arm that ends at or behind the spine points AWAY from the card it
+        // belongs to - the render a measurement taken above the card's inset
+        // padding produces. There is no right way to draw that, so draw nothing
+        // rather than draw it backwards.
+        if (arms.none { it.second > spineX }) return@Canvas
 
         // The drop: one stroke, out of the trunk's bottom edge, down to the
         // last arm.
         drawLine(
-            color = color,
+            color = spineColor,
             start = Offset(spineX, dropTop),
             end = Offset(spineX, arms.last().first),
             strokeWidth = thickness,
             cap = StrokeCap.Butt,
         )
-        // Then right into each progression, all from the same x.
-        arms.forEach { (armY, armEnd) ->
+        // Then right into each progression, all from the same x. Each arm takes
+        // its own row's colour, so a deeper card is reached by a line of the
+        // colour it lights in rather than by one shared grey.
+        arms.forEachIndexed { index, arm ->
+            val (armY, armEnd) = arm
+            if (armEnd <= spineX) return@forEachIndexed
             drawLine(
-                color = color,
+                color = armColors.getOrElse(index) { spineColor },
                 start = Offset(spineX, armY),
                 end = Offset(armEnd, armY),
                 strokeWidth = thickness,
@@ -507,7 +583,7 @@ private fun TreeElbows(
         }
         // The node the drop leaves from.
         drawCircle(
-            color = color,
+            color = spineColor,
             radius = thickness,
             center = Offset(spineX, dropTop),
         )
@@ -517,7 +593,8 @@ private fun TreeElbows(
 @Composable
 private fun prescriptionText(exerciseName: String, level: Int): String? {
     val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
-    val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level) ?: return null
+    val prescribed =
+        ProgressionEngine.prescribedValueAtLevel(entry, level, LocalWeightUnit.current) ?: return null
     return when (prescribed.kind) {
         ProgressionEngine.ValueKind.LOAD ->
             prescribed.value?.let { loggedLoadSummary(exerciseName, it) }?.ifBlank { null }
