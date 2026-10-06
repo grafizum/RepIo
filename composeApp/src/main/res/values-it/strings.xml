@@ -198,7 +198,9 @@
     <string name="balanced_workout_desc">Tutti i principali gruppi muscolari (Petto, Schiena, Gambe, Spalle, Braccia, Core) sono coperti!</string>
     <string name="missing_body_parts_warning">Avviso Gruppi Muscolari Mancanti</string>
     <string name="incomplete_workout_routine">Routine Non Equilibrata</string>
-    <string name="incomplete_workout_desc">Nessun esercizio per: %1$s. Aggiungere esercizi per questi gruppi muscolari assicurerà uno sviluppo equilibrato della forza.</string>
+    <string name="incomplete_workout_desc">Alcuni gruppi muscolari non rientrano in un intervallo settimanale sano. Ogni riga indica il gruppo, gli esercizi della settimana, i giorni di allenamento e i limiti sani.</string>
+    <string name="balance_issue_line">%1$s: %2$d esercizi per settimana (%3$s) — intervallo sano %4$d–%5$d</string>
+    <string name="balance_issue_line_no_days">%1$s: %2$d esercizi per settimana — intervallo sano %3$d–%4$d</string>
     <string name="tip">Suggerimento</string>
     <string name="missing_parts_desc">Il tuo allenamento personalizzato non ha esercizi per: %1$s. Aggiungere esercizi per questi gruppi assicurerà uno sviluppo equilibrato della forza.</string>
     <string name="notification_channel_name">Notifiche Timer Riposo</string>

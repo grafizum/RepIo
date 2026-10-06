@@ -113,7 +113,6 @@ import com.grafizum.repio.ui.components.WorkoutDayWheel
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.getExerciseDetails
-import com.grafizum.repio.ui.components.getMissingMuscleGroups
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.effectiveMuscleGroup
 import com.grafizum.repio.ui.components.translateMuscleGroup
@@ -175,7 +174,6 @@ fun WorkoutScreen(
     var copyTargetDay by remember { mutableStateOf("TUESDAY") }
     var copyReplaceExercises by remember { mutableStateOf(true) }
 
-    val missingMuscleGroups = remember(allExercises) { getMissingMuscleGroups(allExercises) }
     val focusManager = LocalFocusManager.current
     val window = LocalWindowSize.current
 

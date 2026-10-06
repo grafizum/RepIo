@@ -194,7 +194,9 @@
     <string name="balanced_workout_desc">Alle großen Muskelgruppen (Brust, Rücken, Beine, Schultern, Arme, Core) sind abgedeckt!</string>
     <string name="missing_body_parts_warning">Warnung: Fehlende Muskelgruppen</string>
     <string name="incomplete_workout_routine">Unausgewogene Routine</string>
-    <string name="incomplete_workout_desc">Keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Gruppen sorgt für eine ausgewogene Kraftentwicklung.</string>
+    <string name="incomplete_workout_desc">Einige Muskelgruppen liegen außerhalb ihres gesunden wöchentlichen Bereichs. Jede Zeile nennt Gruppe, Übungen in dieser Woche, die Trainingstage und den gesunden Bereich.</string>
+    <string name="balance_issue_line">%1$s: %2$d Übungen pro Woche (%3$s) — gesunder Bereich %4$d–%5$d</string>
+    <string name="balance_issue_line_no_days">%1$s: %2$d Übungen pro Woche — gesunder Bereich %3$d–%4$d</string>
     <string name="tip">Tipp</string>
     <string name="missing_parts_desc">Dein benutzerdefiniertes Workout enthält keine Übungen für: %1$s. Das Hinzufügen von Übungen für diese Gruppen sorgt für eine ausgewogene Kraftentwicklung.</string>
     <string name="notification_channel_name">Satzpausen-Benachrichtigungen</string>

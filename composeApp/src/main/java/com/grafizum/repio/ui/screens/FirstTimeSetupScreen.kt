@@ -73,7 +73,8 @@ import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.AppDialog
 import com.grafizum.repio.ui.components.getExerciseDetails
-import com.grafizum.repio.ui.components.getMissingMuscleGroups
+import com.grafizum.repio.ui.components.balanceGroupsForParts
+import com.grafizum.repio.ui.components.weeklyBalanceIssues
 import com.grafizum.repio.ui.components.loadFieldLabel
 import com.grafizum.repio.ui.components.loadFieldPlaceholder
 import com.grafizum.repio.ui.components.loadFieldSuffix
@@ -762,7 +763,11 @@ fun FirstTimeSetupScreen(
 
                                     // Warn about anything the chosen parts + equipment could not
                                     // actually cover, using the same build that will be saved.
-                                    val buildMissing = getMissingMuscleGroups(
+                                    // The balance card judges the week against healthy
+                                    // weekly ranges, scoped to the advanced tab's part
+                                    // selection — which DEFAULTS to every part, so an
+                                    // untouched selection checks every group.
+                                    val buildIssues = weeklyBalanceIssues(
                                         WorkoutTemplates.generateEngineProgram(
                                             bodyParts = assistedBodyParts.toList(),
                                             selectedDays = assistedSelectedDays.toList(),
@@ -773,18 +778,19 @@ fun FirstTimeSetupScreen(
                                             equipment = buildEquipment,
                                             duration = assistedDuration,
                                             splitStyle = assistedSplitStyle
-                                        ).exercises
+                                        ).exercises,
+                                        balanceGroupsForParts(assistedBodyParts)
                                     )
 
                                     AnimatedContent(
-                                        targetState = buildMissing,
+                                        targetState = buildIssues,
                                         transitionSpec = {
                                             (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
                                                 .togetherWith(fadeOut(animationSpec = tween(200)))
                                         },
                                         label = "BuildWarning"
-                                    ) { missing ->
-                                        MissingBodyPartsWarningCard(missingParts = missing)
+                                    ) { issues ->
+                                        MissingBodyPartsWarningCard(issues = issues)
                                     }
                                 }
                                 else -> {
@@ -974,14 +980,17 @@ fun FirstTimeSetupScreen(
                                         }
 
                                         AnimatedContent(
-                                            targetState = getMissingMuscleGroups(customExercises.toList()),
+                                            targetState = weeklyBalanceIssues(
+                                                customExercises.toList(),
+                                                balanceGroupsForParts(assistedBodyParts)
+                                            ),
                                             transitionSpec = {
                                                 (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
                                                     .togetherWith(fadeOut(animationSpec = tween(200)))
                                             },
                                             label = "CustomWarning"
                                         ) { missing ->
-                                            MissingBodyPartsWarningCard(missingParts = missing)
+                                            MissingBodyPartsWarningCard(issues = missing)
                                         }
                                     }
                                 }

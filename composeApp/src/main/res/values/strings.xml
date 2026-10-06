@@ -202,7 +202,9 @@
     <string name="balanced_workout_desc">All major muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) are covered!</string>
     <string name="missing_body_parts_warning">Missing Body Parts Warning</string>
     <string name="incomplete_workout_routine">Unbalanced Workout Routine</string>
-    <string name="incomplete_workout_desc">No exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
+    <string name="incomplete_workout_desc">Some muscle groups sit outside their healthy weekly range. Each line names the group, its exercises this week, the days it trains on, and the healthy range.</string>
+    <string name="balance_issue_line">%1$s: %2$d exercises per week (%3$s) — healthy range %4$d–%5$d</string>
+    <string name="balance_issue_line_no_days">%1$s: %2$d exercises per week — healthy range %3$d–%4$d</string>
     <string name="tip">Tip</string>
     <string name="missing_parts_desc">Your custom workout has no exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
     <string name="notification_channel_name">Rest Timer Notifications</string>

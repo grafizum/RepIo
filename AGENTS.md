@@ -819,6 +819,52 @@ slots conditional on the pool having a compound. 622 tests / 0 failures; the APK
 re-installed on the SM-S906B via `adb install -r` and relaunched clean — but NOT
 watched on screen (pattern lock).
 
+## The balance card judges HEALTHY RANGES anchored on the generator, never zero-presence (2026-10-06)
+
+Owner: *"also it says unbalanced workout routine when the suer didnt filter any
+muscle groups out, so remake the 'unbalanced' message based on healthy amount of
+exercises per week on which days and which muscle groups (by default all unless
+the user changes it from the advanced tab)"*.
+
+The old card was a BINARY PRESENCE CHECK per advanced-tab part — any group with
+ZERO exercises turned it red. That fired on every engine week under seven days
+(the prompt's full-body table has no direct core; only the 7-day split has a core
+day), even with nothing filtered. Remade:
+
+- `WeeklyBalanceIssue` + `weeklyBalanceIssues(exercises, scopeGroups)` in
+  `WorkoutComponents.kt`: seven balance groups (chest, back, legs, shoulders,
+  biceps, triceps, core), each with a healthy weekly RANGE of direct exercises.
+  Only out-of-range groups render — each as a line with the count, the DAYS it
+  trains on, and the range (`balance_issue_line`; `balance_issue_line_no_days`
+  when the count is 0, because a group with no exercises has no days to name).
+- **The ranges are anchored on the generator itself, and that IS the rule.**
+  Measured over all 315 no-filter engine weeks (1-7 days × three windows × five
+  goals × three difficulties): the thinnest week the templates produce is
+  1 chest / 1 back / 3 legs / 0 shoulders, arms and core (core is 0 in **270 of
+  315** weeks — only 7-day weeks get a core day), and the thickest is
+  6 / 12 / 24 / 18 / 12 / 8. So the floors are chest 1, back 1, legs 3, and
+  shoulders/biceps/triceps/core **0**, with the ceilings just above the thickest
+  template week (9 / 14 / 24 / 20 / 12 / 12 / 10). A floor of 0 is honest, not a
+  shrug: the app's own templates legitimately contain none of those groups in a
+  week, so "none" alone is not a defect — a pile past a ceiling still is.
+  **Do not "tighten" these floors back to 2-3**: that red-flags the app's own
+  default output, which is exactly the defect the owner reported.
+  `BalancedDefaultBuildTest.everyDefaultEngineWeekIsBalanced` sweeps the whole
+  matrix and fails on any such regression.
+- **Scope defaults to ALL groups and narrows with the advanced tab**:
+  `balanceGroupsForParts(parts)` maps the tab's 19 body parts onto the 7 groups
+  (Forearms have no group; an empty selection means all). The tab defaults to
+  every part, so an untouched selection checks everything — "all unless the user
+  changes it" falls out of the data, with no touched-flag anywhere.
+- The card still has teeth where a floor is non-zero: a custom week missing legs
+  (floor 3) or chest/back (floor 1) is named with its zero, and junk volume past
+  any ceiling is named with its count. The old binary checker's documented
+  bodyweight/bands biceps gap is no longer a RED verdict (biceps' floor is 0) —
+  it reads as a number inside the healthy band instead.
+- `incomplete_workout_desc` lost its `%1$s` (the description takes no argument
+  now — a leftover placeholder would throw at runtime), and the per-group detail
+  moved into the two line formats, translated in de/it.
+
 ## Muscle filters are broad, exercise data stays precise
 
 The filter a user picks a substitute exercise by offers **six broad body parts**

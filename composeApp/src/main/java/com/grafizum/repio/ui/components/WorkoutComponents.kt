@@ -2320,27 +2320,116 @@ fun SearchableExerciseField(
 }
 
 
-fun getMissingMuscleGroups(exercises: List<RoutineExerciseEntity>): List<String> {
-    val presentGroups = exercises.map { it.muscleGroup.lowercase().trim() }.toSet()
-
-    val requiredGroups = listOf(
-        // "pectoral" covers the precise "Pectorals" group the primary-muscle
-        // table stores, so a chest day built from it is not reported missing.
-        "chest" to listOf("chest", "pectoral"),
-        "back" to listOf("back", "lats", "upper back", "traps"),
-        "legs" to listOf("legs", "quads", "quadriceps", "hamstrings", "calves", "glutes", "adductors", "abductors"),
-        "shoulders" to listOf("shoulders", "delt", "deltoid"),
-        "biceps" to listOf("biceps", "bicep"),
-        "triceps" to listOf("triceps", "tricep"),
-        "core" to listOf("abs", "core", "abdominals", "obliques", "erectors")
-    )
-
-    return requiredGroups.filter { (_, keywords) ->
-        keywords.none { keyword -> 
-            presentGroups.any { it.contains(keyword) } 
-        }
-    }.map { it.first }
+/**
+ * One muscle group's standing in the generated week, against its healthy
+ * weekly RANGE. Owner, 2026-10-06: the card used to cry "Unbalanced Workout
+ * Routine" whenever a group had zero exercises — which fired on every
+ * engine week under seven days (no direct core) even when the user had
+ * filtered nothing out. The verdict is now a range with numbers and days,
+ * not a binary presence check.
+ *
+ * [days] holds the day-of-week keys the group actually trains on, so the
+ * message can say which days as well as how many exercises.
+ */
+data class WeeklyBalanceIssue(
+    val groupKey: String,
+    val perWeek: Int,
+    val days: List<String>,
+    val healthyMin: Int,
+    val healthyMax: Int
+) {
+    val isUndertrained: Boolean get() = perWeek < healthyMin
+    val isOvertrained: Boolean get() = perWeek > healthyMax
 }
+
+/**
+ * The seven balance groups: key, the muscleGroup spellings that count, and the
+ * healthy weekly range of DIRECT exercises. The ranges are anchored on the
+ * generator itself, because the owner's 2026-10-06 report was a FALSE
+ * "unbalanced" verdict on a week nothing had been filtered out of. Measured
+ * over all 315 no-filter engine weeks (1-7 days x three session windows x
+ * five goals x three difficulties): the thinnest week the templates produce
+ * is 1 chest / 1 back / 3 legs and 0 shoulders, arms and core — the prompt's
+ * full-body table has no direct core, and a short strength session fits no
+ * arm isolation — so those are the floors. The ceiling sits just above the
+ * THICKEST template week (6 chest / 12 back / 24 legs / 18 shoulders / 12
+ * arms / 8 core, at 6-7 days x full window); past it is junk volume the
+ * evidence (~10-20 hard sets per muscle per week, Schoenfeld; ~3 working
+ * sets per exercise) does not support.
+ *
+ * A floor of 0 is honest, not a shrug: a default week may legitimately
+ * contain none of those groups, so "none" alone is not a defect — a pile of
+ * them past the ceiling still is. The multi-head aggregates (legs = quads +
+ * hams + glutes + calves + hips; shoulders = three heads) carry the widest
+ * ranges because the count is over the aggregate, not per head.
+ */
+private val BALANCE_GROUPS: List<Triple<String, List<String>, IntRange>> = listOf(
+    // "pectoral" covers the precise "Pectorals" the primary-muscle table stores.
+    Triple("chest", listOf("chest", "pectoral"), 1..9),
+    // "erectors" sits with BACK here, matching the advanced tab's own taxonomy
+    // (Spinal Erectors is filed under Back there), so scope and count agree.
+    Triple("back", listOf("back", "lats", "upper back", "traps", "erectors"), 1..14),
+    Triple("legs", listOf("legs", "quads", "quadriceps", "hamstrings", "calves", "glutes", "adductors", "abductors"), 3..24),
+    Triple("shoulders", listOf("shoulders", "delt", "deltoid"), 0..20),
+    Triple("biceps", listOf("biceps", "bicep"), 0..12),
+    Triple("triceps", listOf("triceps", "tricep"), 0..12),
+    Triple("core", listOf("abs", "core", "abdominals", "obliques"), 0..10)
+)
+
+/** Every balance-group key — the DEFAULT scope ("all unless the user narrows it"). */
+val BALANCE_GROUP_KEYS: List<String> = BALANCE_GROUPS.map { it.first }
+
+/** Day-of-week key -> the abbreviation the balance lines print (locale-neutral, like the weekday chips). */
+private val DAY_ABBREV = mapOf(
+    "MONDAY" to "Mon", "TUESDAY" to "Tue", "WEDNESDAY" to "Wed", "THURSDAY" to "Thu",
+    "FRIDAY" to "Fri", "SATURDAY" to "Sat", "SUNDAY" to "Sun"
+)
+
+/**
+ * Maps the advanced tab's body-part selection onto balance-group keys. The
+ * DEFAULT selection is every part, which maps to every group — so callers
+ * pass the selection straight through and "narrowed by the user" falls out
+ * of the data rather than a separate touched-flag. Forearms have no balance
+ * group and are ignored; an empty selection means unrestricted → all groups.
+ */
+fun balanceGroupsForParts(parts: Collection<String>): Set<String> {
+    if (parts.isEmpty()) return BALANCE_GROUP_KEYS.toSet()
+    val lowered = parts.map { it.lowercase().trim() }.toSet()
+    return BALANCE_GROUPS.filter { (_, keywords, _) ->
+        keywords.any { kw -> lowered.any { it == kw || it.contains(kw) } }
+    }.map { it.first }.toSet()
+}
+
+/**
+ * The weekly balance report: for every group in [scopeGroups] (null = all),
+ * the exercises per week and the days they land on, kept only when the
+ * count falls OUTSIDE the group's healthy range. In-range groups are
+ * silence — the green card is what "everything fits" looks like. See
+ * [BALANCE_GROUPS] for where the ranges come from and why a floor of 0 is
+ * the honest number for four of the seven groups.
+ */
+fun weeklyBalanceIssues(
+    exercises: List<RoutineExerciseEntity>,
+    scopeGroups: Collection<String>? = null
+): List<WeeklyBalanceIssue> {
+    val scope = (scopeGroups ?: BALANCE_GROUP_KEYS).toSet()
+    return BALANCE_GROUPS.mapNotNull { (key, keywords, range) ->
+        if (key !in scope) return@mapNotNull null
+        val hits = exercises.filter { ex ->
+            val muscle = ex.muscleGroup.lowercase().trim()
+            keywords.any { muscle.contains(it) }
+        }
+        WeeklyBalanceIssue(
+            groupKey = key,
+            perWeek = hits.size,
+            days = hits.map { it.dayOfWeek }.distinct().sortedBy { DAY_ORDER.indexOf(it) },
+            healthyMin = range.first,
+            healthyMax = range.last
+        ).takeIf { it.isUndertrained || it.isOvertrained }
+    }
+}
+
+private val DAY_ORDER = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
 /**
  * How long a toast stays up, and how wide it may get.
@@ -2420,11 +2509,11 @@ fun ThemedToast(
 
 @Composable
 fun MissingBodyPartsWarningCard(
-    missingParts: List<String>,
+    issues: List<WeeklyBalanceIssue>,
     modifier: Modifier = Modifier
 ) {
     val isDeveloper = LocalDeveloperSkin.current
-    if (missingParts.isEmpty()) {
+    if (issues.isEmpty()) {
         Card(
             shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
@@ -2487,19 +2576,46 @@ fun MissingBodyPartsWarningCard(
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                         color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
                     )
-                    
-                    val translatedParts = mutableListOf<String>()
-                    for (part in missingParts) {
-                        translatedParts.add(translateMuscleGroup(part))
-                    }
-
-                    val warningText = getString("incomplete_workout_desc", translatedParts.joinToString(", "))
 
                     Text(
-                        text = warningText,
+                        text = getString("incomplete_workout_desc"),
                         style = MaterialTheme.typography.bodySmall,
                         color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
                     )
+
+                    // One line per out-of-range group: the number of exercises,
+                    // the days it lands on, and the healthy range — the owner's
+                    // "healthy amount of exercises per week on which days and
+                    // which muscle groups", said with numbers instead of a
+                    // scare headline. A group with NO exercises has no days to
+                    // name, so it takes the shorter format rather than a
+                    // dangling placeholder.
+                    issues.forEach { issue ->
+                        val text = if (issue.days.isEmpty()) {
+                            getString(
+                                "balance_issue_line_no_days",
+                                translateMuscleGroup(issue.groupKey),
+                                issue.perWeek,
+                                issue.healthyMin,
+                                issue.healthyMax
+                            )
+                        } else {
+                            getString(
+                                "balance_issue_line",
+                                translateMuscleGroup(issue.groupKey),
+                                issue.perWeek,
+                                issue.days.joinToString(", ") { DAY_ABBREV[it] ?: it },
+                                issue.healthyMin,
+                                issue.healthyMax
+                            )
+                        }
+                        Text(
+                            text = text,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer,
+                            modifier = Modifier.padding(top = 2.dp)
+                        )
+                    }
                 }
             }
         }
