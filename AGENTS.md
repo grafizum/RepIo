@@ -784,22 +784,40 @@ wins over the older rulings **on this path**:
 `generateEngineProgram` is the function; `generateAssistedProgram` stays and its tests
 still pin it. Three call sites moved: FirstTimeSetupScreen's `saveSelectedBuild`, its
 `buildMissing` preview (**must** stay the same generator as the save, or the warning
-lies about the build), and `WorkoutViewModel.regenerateProgramWithNewGoal`. Duration
-adjusts the slot count at ~1 exercise per 10 minutes (the duration windows' midpoints
-→ 4/5/6), the prompt's caps are enforced (≤6 exercises, ≤20 working sets — strength
-plus two top-ups would reach 21 sets, so the bottom slot is dropped), and exclusions
+lies about the build), and `WorkoutViewModel.regenerateProgramWithNewGoal`. Exclusions
 are case-insensitive partial matches resolved through `ExerciseLocalization.canonicalFor`.
-`bodyParts` and `splitStyle` are INERT on this path (persisted for prefs, no longer
-deciding the week); `includedExercises` pin to the head of their muscle's pool rather
-than force-slots. Equipment gate, canonical-English storage and the level system are
-all unchanged — the engine selects names, everything downstream is the app's.
 
-`EngineProgramTest` (7 cases) pins the table verbatim, the caps for every (day count ×
-goal), the slot schemes literally, exclusions non-vacuously (the unfiltered week MUST
-contain a squat), the dumbbell gate structurally, consecutive-day disjointness for 4-7
-days, and compound-first slots conditional on the pool having a compound (the biceps
-pool has none). 621 tests / 0 failures; the APK was installed on the SM-S906B via
-`adb install -r` and relaunched clean — but NOT watched on screen (pattern lock).
+**DURATION IS A TIME RULE, NOT AN EXERCISE COUNT — the owner's same-day correction
+(2026-10-06: "the session lenght the user inputs is not correctly applied").** The
+first version translated the prompt's "~1 exercise per 10 minutes" into a flat
+4/5/6 slots for quick/standard/full. That assumed every slot costs ~10 minutes; these
+templates cost very different amounts — a strength slot of 5×4-6 at 120s rest is ~13
+minutes, an endurance slot of 3×15-20 at 30s rest is ~5.6 — so a flat count produced
+21-minute "30-45 min" days and 31-minute "60-75 min" days. Slots are now added by
+`engineSlotsFor`: template first, then the goal's isolation top-up, while the running
+cost (`engineSlotCostSeconds`: sets × (reps-aware work + rest) + a 90s transition) is
+under the window's MIDPOINT and never past its END. Two bounds make it safe, and each
+resolves a conflict inside the prompt itself:
+
+- **The working-sets guard scales with the window** (`engineSetsGuard`: 20/24/28).
+  The prompt's flat 20 sets is what collapsed its own 60-75 window onto its 45-60
+  one — 20 hard sets of these templates cost ~40-45 minutes, full stop. The newer
+  duration instruction wins, exactly like the split table did.
+- **The prompt's flat 6-exercise cap is superseded on this path.** Six slots cannot
+  fill a 45-60 minute window at these slot costs; the counts now run 5-12 per day
+  (the old generator shipped 6-12 for the same windows). The caps test pins the
+  window-scaled guard instead of a count.
+
+Verified by `thePickedDurationVisiblyChangesTheWeek`: exercise counts must rise
+STRICTLY quick < standard < full for every goal (6/9/10, 5/7/8, 7/9/11, 7/10/12) —
+the defect was three durations producing the same week. `EngineProgramTest` (8 cases)
+pins the split table verbatim, the literal template PREFIX of every day (top-ups
+append, never reorder), the window fill through the SHARED cost function (public so
+test and generator cannot drift), the guard, exclusions non-vacuously, the dumbbell
+gate structurally, consecutive-day disjointness for 4-7 days, and compound-first
+slots conditional on the pool having a compound. 622 tests / 0 failures; the APK was
+re-installed on the SM-S906B via `adb install -r` and relaunched clean — but NOT
+watched on screen (pattern lock).
 
 ## Muscle filters are broad, exercise data stays precise
 

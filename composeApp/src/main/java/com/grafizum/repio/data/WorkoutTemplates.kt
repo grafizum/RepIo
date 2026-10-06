@@ -1616,10 +1616,18 @@ object WorkoutTemplates {
     //  - DAY-TYPE -> MUSCLES is the prompt's mapping (push = chest, front/
     //    side delts, triceps, ...), so picked body parts no longer decide
     //    which muscles a day trains; they stay recorded in prefs.
-    //  - DURATION (Step 4): ~1 exercise per 10 minutes — template slots
-    //    dropped from the bottom, isolation slots added on top, capped by
-    //    the prompt's own constraints of 6 exercises and 20 working sets
-    //    per day.
+    //  - DURATION (Step 4) is applied BY TIME, not by a flat exercise
+    //    count. The prompt's "~1 exercise per 10 minutes" assumed its own
+    //    slots cost ~10 minutes each; these templates cost very different
+    //    amounts (a strength slot of 5x4-6 at 120s rest is ~13 minutes, an
+    //    endurance slot of 3x15-20 at 30s rest is ~5.6), so a flat 4/5/6
+    //    produced 21-minute "30-45 min" days and 31-minute "60-75 min"
+    //    days — the owner's report (2026-10-06, "the session length the
+    //    user inputs is not correctly applied"). Slots are now added while
+    //    the running cost is under the window's MIDPOINT and never past its
+    //    END, and the working-sets guard scales with the window (20/24/28)
+    //    because the prompt's flat 20-set guard is what collapsed its own
+    //    long windows onto its short ones.
     //  - EXCLUSIONS (Step 2): case-insensitive partial match, resolved
     //    through ExerciseLocalization.canonicalFor so an old name still
     //    excludes the row the rename pipeline moved.
@@ -1724,16 +1732,82 @@ object WorkoutTemplates {
     }
 
     /**
-     * Per-day exercise count from the duration window (prompt Step 4: ~1
-     * exercise per 10 minutes). [durationRangeFor]'s windows map to roughly
-     * 30-45 / 45-60 / 60-75 minutes; their midpoints over 10 round to
-     * 4 / 5 / 7, and the prompt caps a day at 6.
+     * The session windows in MINUTES — the same mapping the duration labels
+     * show on the welcome screen ("30-45 min" / "45-60 min" / "60-75 min",
+     * see durationLabel). Exposed for the tests.
      */
-    private fun engineDayCount(duration: String): Int = when (duration) {
-        DURATION_QUICK -> 4
-        DURATION_FULL -> 6
-        else -> 5
-    }.coerceIn(2, 6)
+    fun engineWindowMinutes(duration: String): IntRange = when (duration) {
+        DURATION_QUICK -> 30..45
+        DURATION_FULL -> 60..75
+        else -> 45..60
+    }
+
+    /**
+     * The working-sets guard per window. The prompt's flat 20 is kept for
+     * the short and standard windows; the long window gets headroom (24/28)
+     * because 20 hard sets of these templates cost ~40-45 minutes and
+     * collapsed its own 60-75 minute window onto its 45-60 one — the
+     * owner's duration requirement is the newer instruction and wins.
+     */
+    fun engineSetsGuard(duration: String): Int = when (duration) {
+        DURATION_FULL -> 28
+        DURATION_STANDARD -> 24
+        else -> 20
+    }
+
+    /**
+     * What one engine slot COSTS in seconds: sets x (work + rest) plus the
+     * transition between exercises. Work time is reps-aware (~3 seconds per
+     * rep, floored at 20s because a heavy low-rep set carries setup too).
+     * Exposed for the tests so the fit assertions share ONE cost model
+     * instead of reimplementing it.
+     */
+    fun engineSlotCostSeconds(slotSets: Int, reps: String, restSeconds: Int): Int {
+        val repsList = reps.split("–").mapNotNull { it.toIntOrNull() }
+        val midReps = if (repsList.isEmpty()) 10.0 else (repsList.first() + repsList.last()) / 2.0
+        val work = (3.0 * midReps).toInt().coerceAtLeast(20)
+        return slotSets * (work + restSeconds) + ENGINE_TRANSITION_SECONDS
+    }
+
+    private const val ENGINE_TRANSITION_SECONDS = 90
+
+    /**
+     * The day's slots, built by TIME (prompt Step 4 adjusted for the
+     * owner's 2026-10-06 duration report). Slots are added — template
+     * first, then the goal's isolation top-up — while the running cost is
+     * under the window's midpoint; a slot that would overrun the window's
+     * END is not added, and the window-scaled sets guard stops the fill
+     * when the templates cannot spend more hard sets. A day never drops
+     * below two slots. Private: the tests pin its OUTPUT through the
+     * generated programs and share only the pure cost/window functions.
+     */
+    private fun engineSlotsFor(goalKey: String, duration: String): List<EngineSlot> {
+        val template = ENGINE_TEMPLATES.getValue(goalKey)
+        val topup = ENGINE_ISOLATION_TOPUP.getValue(goalKey)
+        val window = engineWindowMinutes(duration)
+        val targetSeconds = (window.first + window.last) * 30   // midpoint
+        val endSeconds = window.last * 60
+        val setsGuard = engineSetsGuard(duration)
+        val out = mutableListOf<EngineSlot>()
+        var cost = 0
+        var next = 0
+        var sets = 0
+        while (true) {
+            val slot = if (next < template.size) template[next] else topup
+            next++
+            val projected = cost + engineSlotCostSeconds(slot.sets, slot.reps, slot.rest)
+            if (out.isNotEmpty() && (projected > endSeconds || cost >= targetSeconds)) break
+            if (sets + slot.sets > setsGuard) break
+            out.add(slot)
+            cost = projected
+            sets += slot.sets
+        }
+        while (out.size < 2 && out.size < template.size + 4) {
+            val slot = template[minOf(out.size, template.lastIndex)]
+            out.add(slot)
+        }
+        return out
+    }
 
     /**
      * The welcome screen's exercise maker, per the owner's template-engine
@@ -1754,25 +1828,18 @@ object WorkoutTemplates {
     ): GeneratedProgram {
         val canonical = canonicalGoal(workoutGoal)
         val goalKey = engineGoalKey(canonical)
-        val template = ENGINE_TEMPLATES.getValue(goalKey)
-        val topup = ENGINE_ISOLATION_TOPUP.getValue(goalKey)
         val weekDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
         val orderedDays = weekDays.filter { it in selectedDays }
         if (orderedDays.isEmpty()) {
             return GeneratedProgram(emptyList(), emptyList(), emptyList(), emptyList())
         }
         val types = engineSplitFor(orderedDays.size)
-        // Slots: the goal template, trimmed from the bottom or topped up with
-        // isolation slots to hit the duration's count — then both prompt caps
-        // applied: at most 6 exercises and at most 20 working sets per day.
-        val slots = buildList {
-            addAll(template)
-            while (size < engineDayCount(duration)) add(topup)
-        }.let { raw ->
-            var out = if (raw.size > 6) raw.take(6) else raw
-            while (out.size > 2 && out.sumOf { it.sets } > 20) out = out.dropLast(1)
-            out
-        }
+        // Slots are built BY TIME from the goal template and the picked
+        // session window — see engineSlotsFor. The prompt's flat 6-exercise
+        // cap is superseded by the owner's duration requirement: these
+        // templates cost 5-13 minutes per slot, so 6 exercises cannot fill
+        // a 45-60 minute window, which is exactly the defect being fixed.
+        val slots = engineSlotsFor(goalKey, duration)
 
         val includedKeys = includedExercises
             .mapNotNull { raw -> ExerciseLocalization.canonicalFor(raw) ?: raw }
