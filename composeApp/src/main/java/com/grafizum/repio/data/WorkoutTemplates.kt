@@ -1596,6 +1596,291 @@ object WorkoutTemplates {
         )
     }
 
+    // =====================================================================
+    // THE ENGINE WEEK — the owner's pasted template-engine prompt applied
+    // to the welcome screen (owner, 2026-10-06: "apply the exercise making
+    // changes for the welcome screen with the things and information i gave
+    // you, and then update the app on my phone"). The prompt is the spec;
+    // this is its execution against the local 601-row pool. WHAT CHANGES
+    // versus [generateAssistedProgram] — each item is the prompt's own:
+    //
+    //  - THE SPLIT IS THE PROMPT'S TABLE (Step 1), not styleTemplates:
+    //    1-2 days full body, 3 full body, 4 upper/lower x2, 5
+    //    push/pull/legs/upper/lower, 6 PPL x2, 7 PPL/upper/lower/arms/core.
+    //  - THE GOAL OWNS SETS AS WELL AS REPS AND REST (Step 3): the old
+    //    generator pins 3 working sets everywhere ("the goal owns reps and
+    //    rest; it never touches set count") — the prompt's tables put
+    //    4x8-12, 5x4-6, 3x15-20 per SLOT. The prompt wins on this path.
+    //  - SLOT ROLES: compound leads slots 1-2, isolation closes the last
+    //    two slots (Step 2).
+    //  - DAY-TYPE -> MUSCLES is the prompt's mapping (push = chest, front/
+    //    side delts, triceps, ...), so picked body parts no longer decide
+    //    which muscles a day trains; they stay recorded in prefs.
+    //  - DURATION (Step 4): ~1 exercise per 10 minutes — template slots
+    //    dropped from the bottom, isolation slots added on top, capped by
+    //    the prompt's own constraints of 6 exercises and 20 working sets
+    //    per day.
+    //  - EXCLUSIONS (Step 2): case-insensitive partial match, resolved
+    //    through ExerciseLocalization.canonicalFor so an old name still
+    //    excludes the row the rename pipeline moved.
+    //
+    // WHAT DOES NOT CHANGE: the fine-tag equipment gate (the prompt's
+    // equipment filter IS the user's kit), canonical English storage with
+    // display-time localization, and the level system, which layers its own
+    // prescriptions over these stored rows. [generateAssistedProgram] is
+    // kept intact — the existing suite pins it and its tests call it
+    // directly — only the welcome screen and goal regeneration call THIS.
+    //
+    // INERT PARAMETERS: bodyParts and splitStyle are accepted so every
+    // call site keeps its shape (both are persisted for prefs/other
+    // consumers), but the engine's table decides the week. The prompt has
+    // no include list, so includedExercises are PINNED to the head of
+    // their muscle's pool rather than force-slotted — a forced slot would
+    // break the compound/isolation role order the prompt does specify.
+    // =====================================================================
+
+    /** One template slot: the prompt's sets x reps x rest (Step 3 tables). */
+    private data class EngineSlot(val sets: Int, val reps: String, val rest: Int)
+
+    /** The prompt's goal families mapped onto this app's canonical goal keys. */
+    private fun engineGoalKey(goal: String): String = when (canonicalGoal(goal)) {
+        "goal_strength" -> "strength"
+        "goal_endurance" -> "endurance"   // the prompt groups fat_loss with endurance
+        "goal_calisthenics", "goal_general" -> "general"
+        else -> "hypertrophy"
+    }
+
+    private val ENGINE_TEMPLATES: Map<String, List<EngineSlot>> = mapOf(
+        "hypertrophy" to listOf(
+            EngineSlot(4, "8–12", 90), EngineSlot(3, "8–12", 90), EngineSlot(3, "10–15", 60),
+            EngineSlot(3, "12–15", 45), EngineSlot(2, "12–15", 45)
+        ),
+        "strength" to listOf(
+            EngineSlot(5, "4–6", 120), EngineSlot(4, "5–8", 90),
+            EngineSlot(3, "8–10", 60), EngineSlot(3, "10–12", 45)
+        ),
+        "endurance" to listOf(
+            EngineSlot(3, "15–20", 30), EngineSlot(3, "15–20", 30),
+            EngineSlot(3, "15–20", 30), EngineSlot(2, "20–25", 30)
+        ),
+        "general" to listOf(
+            EngineSlot(3, "8–12", 90), EngineSlot(3, "8–12", 60),
+            EngineSlot(3, "10–15", 60), EngineSlot(2, "12–15", 45)
+        )
+    )
+
+    /** The isolation slot appended when duration asks for more than the template has. */
+    private val ENGINE_ISOLATION_TOPUP: Map<String, EngineSlot> = mapOf(
+        "hypertrophy" to EngineSlot(2, "12–15", 45),
+        "strength" to EngineSlot(3, "10–12", 45),
+        "endurance" to EngineSlot(2, "20–25", 30),
+        "general" to EngineSlot(2, "12–15", 45)
+    )
+
+    /** The prompt's split table (Step 1), verbatim. Exposed for the tests. */
+    fun engineSplitFor(dayCount: Int): List<String> = when (dayCount) {
+        in 1..2 -> List(dayCount) { "full_body" }
+        3 -> List(3) { "full_body" }
+        4 -> listOf("upper", "lower", "upper", "lower")
+        5 -> listOf("push", "pull", "legs", "upper", "lower")
+        6 -> listOf("push", "pull", "legs", "push", "pull", "legs")
+        7 -> listOf("push", "pull", "legs", "upper", "lower", "arms", "core")
+        else -> List(dayCount) { "full_body" }
+    }
+
+    private val ENGINE_PUSH_PARTS = listOf("Chest", "Front Deltoids", "Lateral Deltoids", "Triceps")
+    private val ENGINE_PULL_PARTS = listOf("Lats", "Upper Traps", "Rear Deltoids", "Biceps")
+    private val ENGINE_LEG_PARTS = listOf("Quadriceps", "Hamstrings", "Glutes", "Calves")
+
+    /** The prompt's body-part mapping per day type (Step 3). */
+    private fun enginePartsFor(type: String): List<String> = when (type) {
+        "push" -> ENGINE_PUSH_PARTS
+        "pull" -> ENGINE_PULL_PARTS
+        "legs" -> ENGINE_LEG_PARTS
+        "upper" -> ENGINE_PUSH_PARTS + ENGINE_PULL_PARTS
+        "lower" -> ENGINE_LEG_PARTS
+        "full_body" -> listOf(
+            "Chest", "Lats", "Quadriceps", "Hamstrings", "Glutes",
+            "Front Deltoids", "Biceps", "Triceps"
+        )
+        "arms" -> listOf("Biceps", "Triceps")
+        "core" -> listOf("Abs", "Obliques", "Spinal Erectors")
+        else -> emptyList()
+    }
+
+    private fun engineTypeLabel(type: String): String =
+        if (type == "full_body") "Full Body" else type.replaceFirstChar { it.uppercase() }
+
+    /** The prompt's exclusion filter (Step 2): partial, case-insensitive, rename-aware. */
+    private fun engineIsExcluded(name: String, excluded: List<String>): Boolean {
+        if (excluded.isEmpty()) return false
+        val canonical = (ExerciseLocalization.canonicalFor(name) ?: name).lowercase()
+        val raw = name.lowercase()
+        return excluded.any { entry ->
+            val needle = ExerciseLocalization.canonicalFor(entry.trim())?.lowercase()
+                ?: entry.trim().lowercase()
+            needle.isNotEmpty() && (canonical.contains(needle) || raw.contains(needle))
+        }
+    }
+
+    /**
+     * Per-day exercise count from the duration window (prompt Step 4: ~1
+     * exercise per 10 minutes). [durationRangeFor]'s windows map to roughly
+     * 30-45 / 45-60 / 60-75 minutes; their midpoints over 10 round to
+     * 4 / 5 / 7, and the prompt caps a day at 6.
+     */
+    private fun engineDayCount(duration: String): Int = when (duration) {
+        DURATION_QUICK -> 4
+        DURATION_FULL -> 6
+        else -> 5
+    }.coerceIn(2, 6)
+
+    /**
+     * The welcome screen's exercise maker, per the owner's template-engine
+     * prompt. See the section note above for what this path does differently
+     * from [generateAssistedProgram]; both produce the same
+     * [GeneratedProgram] shape the setup flow and goal regeneration consume.
+     */
+    fun generateEngineProgram(
+        bodyParts: List<String> = emptyList(),
+        selectedDays: List<String>,
+        intensity: String = "",
+        workoutGoal: String = "goal_bodybuilding",
+        includedExercises: List<String> = emptyList(),
+        excludedExercises: List<String> = emptyList(),
+        equipment: List<String> = emptyList(),
+        duration: String = DURATION_STANDARD,
+        splitStyle: SplitStyle = SplitStyle.DEFAULT
+    ): GeneratedProgram {
+        val canonical = canonicalGoal(workoutGoal)
+        val goalKey = engineGoalKey(canonical)
+        val template = ENGINE_TEMPLATES.getValue(goalKey)
+        val topup = ENGINE_ISOLATION_TOPUP.getValue(goalKey)
+        val weekDays = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+        val orderedDays = weekDays.filter { it in selectedDays }
+        if (orderedDays.isEmpty()) {
+            return GeneratedProgram(emptyList(), emptyList(), emptyList(), emptyList())
+        }
+        val types = engineSplitFor(orderedDays.size)
+        // Slots: the goal template, trimmed from the bottom or topped up with
+        // isolation slots to hit the duration's count — then both prompt caps
+        // applied: at most 6 exercises and at most 20 working sets per day.
+        val slots = buildList {
+            addAll(template)
+            while (size < engineDayCount(duration)) add(topup)
+        }.let { raw ->
+            var out = if (raw.size > 6) raw.take(6) else raw
+            while (out.size > 2 && out.sumOf { it.sets } > 20) out = out.dropLast(1)
+            out
+        }
+
+        val includedKeys = includedExercises
+            .mapNotNull { raw -> ExerciseLocalization.canonicalFor(raw) ?: raw }
+            .map { it.lowercase() }
+            .toSet()
+
+        val routineDays = mutableListOf<RoutineDayEntity>()
+        val routineExercises = mutableListOf<RoutineExerciseEntity>()
+        val unsatisfied = mutableListOf<String>()
+        val usedThisWeek = mutableSetOf<String>()
+        var prevDayParts: Set<String> = emptySet()
+
+        orderedDays.forEachIndexed { index, dayName ->
+            val type = types.getOrElse(index) { "full_body" }
+            val parts = enginePartsFor(type)
+            if (parts.isEmpty()) return@forEachIndexed
+            routineDays.add(
+                RoutineDayEntity(
+                    dayOfWeek = dayName,
+                    title = "$dayName — ${engineTypeLabel(type)}",
+                    description = "push_desc",
+                    isRestDay = false
+                )
+            )
+            val trainedToday = mutableSetOf<String>()
+            slots.forEachIndexed { slotIndex, slot ->
+                // Round-robin the day's mapped parts. When the day type repeats
+                // (the prompt's own 3-day full_body week), prefer a part not
+                // trained on the previous workout day — best effort, because a
+                // full-body day trains the same majors by construction.
+                val base = parts[slotIndex % parts.size]
+                val part = if (base in prevDayParts) {
+                    parts.firstOrNull { it !in prevDayParts && it !in trainedToday } ?: base
+                } else base
+
+                var pool = getExercisesForPart(part)
+                grantedTagsFor(equipment)?.let { allowed -> pool = widenWithSubstitutes(pool, allowed) }
+                pool = pool.filterNot { engineIsExcluded(it, excludedExercises) }
+                if (classifyIntensity(intensity) == "Easy") {
+                    val eligible = pool.filter { isBeginnerBuildEligible(it) }
+                    if (eligible.isNotEmpty()) pool = eligible
+                }
+                // Rank: pinned (included) exercises first, then the slot's role
+                // — compound leads slots 1-2, isolation closes the last two —
+                // with popularity order as the stable tiebreaker underneath.
+                val ranked = pool.sortedBy { name ->
+                    if (name.lowercase() in includedKeys) return@sortedBy -1
+                    val compound = ExerciseCatalog.entryFor(name)?.level == "compound"
+                    when {
+                        slotIndex < 2 -> if (compound) 0 else 1
+                        slots.size > 2 && slotIndex >= slots.size - 2 -> if (compound) 1 else 0
+                        else -> 0
+                    }
+                }
+                val pick = ranked.firstOrNull { it !in usedThisWeek } ?: ranked.firstOrNull()
+                if (pick == null) {
+                    unsatisfied.add("$part ($dayName): no exercise left in the gated pool")
+                    return@forEachIndexed
+                }
+                usedThisWeek.add(pick)
+                trainedToday.add(part)
+                routineExercises.add(
+                    RoutineExerciseEntity(
+                        dayOfWeek = dayName,
+                        name = pick,
+                        muscleGroup = part,
+                        targetSets = slot.sets,
+                        targetReps = slot.reps,
+                        targetIntensity = getGoalIntensity(canonical, intensity, pick),
+                        targetWeightKg = 0.0,
+                        restSeconds = slot.rest,
+                        transitionRestSeconds = 90,
+                        videoUrl = "",
+                        orderIndex = slotIndex + 1,
+                        tempo = "",
+                        locked = false
+                    )
+                )
+            }
+            prevDayParts = trainedToday
+        }
+
+        // Days the user did not pick stay rest days (prompt: "skip it").
+        weekDays.filter { it !in orderedDays }.forEach { day ->
+            routineDays.add(RoutineDayEntity(day, "$day — Rest", "rest_desc", true))
+        }
+
+        // The shipped validator still runs, report-only. The prompt's own
+        // adjacency rule ("never the same primary muscle two days running")
+        // cannot hold on its full_body weeks, and validatePlan's broad-day
+        // exemption is what lets Full Body / Push / Pull / Legs stand.
+        val plannedTopics = orderedDays.mapIndexed { index, day ->
+            day to enginePartsFor(types.getOrElse(index) { "full_body" })
+                .mapNotNull { getTopicForMuscle(it).takeIf { topic -> topic != "Other" } }
+                .distinct()
+        }.toMap()
+        validatePlan(plannedTopics, orderedDays.size).forEach { failure ->
+            unsatisfied.add(failure)
+        }
+
+        val insights = listOf(
+            ScienceInsight("insight_goal_title", "insight_${canonical}_desc", "ACSM Guidelines"),
+            ScienceInsight("insight_rest_title", "insight_rest_${canonical}_desc", "Henselmans et al. (2014)")
+        )
+
+        return GeneratedProgram(routineDays, routineExercises, unsatisfied.distinct(), insights)
+    }
+
     /**
      * Every exercise must span at least [MIN_REP_RANGE_SPAN] reps so the reps
      * control has a usable range. 4 keeps the real schemes intact — a strength

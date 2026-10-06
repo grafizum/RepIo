@@ -980,7 +980,7 @@ class WorkoutViewModel(
             
             when (setupType) {
                 "ASSISTED" -> {
-                    val program = WorkoutTemplates.generateAssistedProgram(
+                    val program = WorkoutTemplates.generateEngineProgram(
                         bodyParts = bodyParts,
                         selectedDays = selectedDays,
                         intensity = intensity,

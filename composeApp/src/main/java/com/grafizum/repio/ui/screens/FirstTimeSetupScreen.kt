@@ -300,7 +300,7 @@ fun FirstTimeSetupScreen(
             )
             return
         }
-        val program = WorkoutTemplates.generateAssistedProgram(
+        val program = WorkoutTemplates.generateEngineProgram(
             bodyParts = assistedBodyParts.toList(),
             selectedDays = assistedSelectedDays.toList(),
             intensity = assistedIntensity,
@@ -763,7 +763,7 @@ fun FirstTimeSetupScreen(
                                     // Warn about anything the chosen parts + equipment could not
                                     // actually cover, using the same build that will be saved.
                                     val buildMissing = getMissingMuscleGroups(
-                                        WorkoutTemplates.generateAssistedProgram(
+                                        WorkoutTemplates.generateEngineProgram(
                                             bodyParts = assistedBodyParts.toList(),
                                             selectedDays = assistedSelectedDays.toList(),
                                             intensity = assistedIntensity,

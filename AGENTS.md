@@ -754,11 +754,52 @@ session *structure*. The order effect that is real is on **strength**, and it
 inverts the folklore: isolation lifts gain ~1.81x more from the first slot than
 compounds do, so an isolation-only day is better led by its isolation work than
 by the "compounds first" rule the app still uses everywhere else. That change was
-NOT made — the owner chose core-last only.
+NOT made — the owner chose core-last only.There is deliberately **no "train more legs" control**. "More legs" does not
+say whether it means more frequency, more volume or more exercises, it would fight the
+evidence, and Option B plus the goal input already cover both ends of it.
 
-There is deliberately **no "train more legs" control**. "More legs" does not say
-whether it means more frequency, more volume or more exercises, it would fight
-the evidence, and Option B plus the goal input already cover both ends of it.
+## The welcome screen runs the OWNER'S TEMPLATE ENGINE (2026-10-06)
+
+The owner pasted a "workout template engine" prompt (days → split → exercise
+selection → goal slot templates → duration adjust → JSON) and then said: *"apply
+the exercise making changes for the welcome screen with the things and information
+i gave you, and then update the app on my phone."* That instruction RESOLVES the
+three conflicts recorded when the prompt arrived — the owner's newer information
+wins over the older rulings **on this path**:
+
+- **The split table is the prompt's, verbatim** (`WorkoutTemplates.engineSplitFor`):
+  1-2 days full body, 3 full body ×3, 4 upper/lower ×2, 5 push/pull/legs/upper/lower,
+  6 PPL ×2, 7 PPL/upper/lower/arms/core. It is NOT `styleTemplates` — that table and
+  its literal-table tests are untouched and still feed everything else; only the
+  welcome screen and goal regeneration were redirected.
+- **The goal owns SETS as well as reps and rest** on this path (hypertrophy 4×8-12/90s
+  …, strength 5×4-6/120s …, endurance 3×15-20/30s …), which overturns the shipped
+  principle "the goal owns reps and rest; it never touches set count" **for the engine
+  week only**.
+- **No same primary muscle on consecutive days** is applied best-effort: it holds on
+  every split whose day types differ (the tests assert it for 4-7 days), but it CANNOT
+  hold on the prompt's own full_body weeks — the prompt is internally inconsistent
+  there, and the full-body repetition is accepted rather than hidden.
+
+`generateEngineProgram` is the function; `generateAssistedProgram` stays and its tests
+still pin it. Three call sites moved: FirstTimeSetupScreen's `saveSelectedBuild`, its
+`buildMissing` preview (**must** stay the same generator as the save, or the warning
+lies about the build), and `WorkoutViewModel.regenerateProgramWithNewGoal`. Duration
+adjusts the slot count at ~1 exercise per 10 minutes (the duration windows' midpoints
+→ 4/5/6), the prompt's caps are enforced (≤6 exercises, ≤20 working sets — strength
+plus two top-ups would reach 21 sets, so the bottom slot is dropped), and exclusions
+are case-insensitive partial matches resolved through `ExerciseLocalization.canonicalFor`.
+`bodyParts` and `splitStyle` are INERT on this path (persisted for prefs, no longer
+deciding the week); `includedExercises` pin to the head of their muscle's pool rather
+than force-slots. Equipment gate, canonical-English storage and the level system are
+all unchanged — the engine selects names, everything downstream is the app's.
+
+`EngineProgramTest` (7 cases) pins the table verbatim, the caps for every (day count ×
+goal), the slot schemes literally, exclusions non-vacuously (the unfiltered week MUST
+contain a squat), the dumbbell gate structurally, consecutive-day disjointness for 4-7
+days, and compound-first slots conditional on the pool having a compound (the biceps
+pool has none). 621 tests / 0 failures; the APK was installed on the SM-S906B via
+`adb install -r` and relaunched clean — but NOT watched on screen (pattern lock).
 
 ## Muscle filters are broad, exercise data stays precise
 
