@@ -3,6 +3,7 @@ package com.grafizum.repio
 import com.grafizum.repio.data.ExerciseProgression
 import com.grafizum.repio.data.ProgressionEngine
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNotEquals
 import org.junit.Assert.assertNotNull
 import org.junit.Assert.assertNull
@@ -153,8 +154,20 @@ class LevelLadderTest {
 
     @Test
     fun entriesOutsideTheLevelSystemListNothing() {
-        val notReady = ExerciseProgression.ENTRIES.first { !ProgressionEngine.isProgressionReady(it) }
-        assertTrue(ProgressionEngine.ladderRungs(notReady).isEmpty())
+        // The pool used to carry seven rows outside the system and this test
+        // sampled one of them. All seven were fixed on 2026-10-06 ("give me a
+        // number as to how many and then fix them all"), so:
+        //  1. NOTHING may be outside any more - the fix, pinned;
+        //  2. the engine's defensive half is still proved on a synthetic row,
+        //     because the property "outside lists nothing" must hold even
+        //     though no real row exercises it.
+        val outside = ExerciseProgression.ENTRIES.filter { !ProgressionEngine.isProgressionReady(it) }
+        assertEquals("rows outside the level system (the seven were fixed 2026-10-06)", 0, outside.size)
+
+        val synthetic = ExerciseProgression.ENTRIES.first()
+            .copy(validationStatus = "manual_review_required")
+        assertFalse(ProgressionEngine.isProgressionReady(synthetic))
+        assertTrue(ProgressionEngine.ladderRungs(synthetic).isEmpty())
     }
 
     /**

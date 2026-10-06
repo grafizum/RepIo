@@ -468,11 +468,16 @@ class ProgressionEngineTest {
      * about. The pipeline now installs a curated ladder on the 109 rows the v5
      * CSV left at `manual_review`, so that assertion is the bug.
      *
-     * Both halves matter. The first is the fix: 102 of the 109 rows now have a
-     * ladder, and a hold carries SECONDS rather than reps, which is the wrist
-     * stretch's whole answer. The second is the honest remainder — the 7 rows
-     * with no universal measure are listed by name, so the list cannot grow
-     * silently and the test fails if the pipeline ever stops producing it.
+     * The documented remainder — Box Jump, Jump Squat, Plyo Lunge, Plyo
+     * Push-Up, Nordic Hamstring Curl, Rope Climb, Wrist Roller — was closed
+     * on the owner's instruction on 2026-10-06 ("give me a number as to how
+     * many and then fix them all"; the number was seven, and the Chin Tuck
+     * Hold that prompted it already had a 15s→120s duration ladder). Each now
+     * counts its own reps — contacts, slow eccentrics, climbs, revolutions —
+     * with the implement's height, tempo or load left to the user.
+     *
+     * So the pool sweep below is the WHOLE assertion: every row is inside the
+     * system, and a gap reopening on any row at all fails here, named.
      */
     @Test
     fun exercisesOutsideTheLevelSystemHaveNoStartingLevel() {
@@ -489,23 +494,23 @@ class ProgressionEngineTest {
         assertEquals("a stretch has no load, so its measure is hold seconds", wrist.unit, "seconds")
         assertTrue(ProgressionEngine.isDurationBased(wrist))
 
-        // The remainder, with the reason each one is trainer-defined. If the
-        // pool ever grows or shrinks this list, this test says so.
-        val stillNoLevel = listOf(
+        // The seven that used to be listed here as unfixable now prescribe a
+        // starting level like everything else — named first, so a regression
+        // says WHICH one reopened the hole the owner had closed.
+        val formerGap = listOf(
             "Box Jump", "Jump Squat", "Plyo Lunge", "Plyo Push-Up",
             "Nordic Hamstring Curl", "Rope Climb", "Wrist Roller",
         )
-        for (name in stillNoLevel) {
-            assertNull(
-                "$name is on the documented no-level-system list and should have no starting level",
-                ProgressionEngine.startingLevel(name, ProgressionEngine.Difficulty.MEDIUM),
+        for (name in formerGap) {
+            assertTrue(
+                "$name is one of the seven the owner had fixed and must have a starting level",
+                ProgressionEngine.startingLevel(name, ProgressionEngine.Difficulty.MEDIUM) != null,
             )
         }
-        // ...and nothing ELSE is quietly outside the system. Without this half
-        // the test would still pass if the gap reopened on some other row.
+        // ...and nothing at all is quietly outside the system.
         for (catalogEntry in ExerciseCatalog.ENTRIES) {
             val name = catalogEntry.name
-            if (name in stillNoLevel || name.isBlank()) continue
+            if (name.isBlank()) continue
             val entry = ProgressionEngine.entryFor(name)
             assertTrue("$name lost its level system", ProgressionEngine.isProgressionReady(entry))
         }

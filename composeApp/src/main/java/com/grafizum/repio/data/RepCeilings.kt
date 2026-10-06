@@ -1,12 +1,13 @@
 package com.grafizum.repio.data
 
 /**
- * The highest honest rep count for each of the 116 bodyweight rep ladders in
- * the pool, authored per exercise.
+ * The highest honest rep count for each of the 123 bodyweight rep ladders in
+ * the pool, authored per exercise (116 as of 2026-10-04, plus the last seven
+ * manual-review rows the owner asked to be fixed on 2026-10-06).
  *
  * ## Why this is a table and not a rule
  *
- * The 116 rows with `unit == "variation_step"` all declare `repMin = 8` and a
+ * The 123 rows with `unit == "variation_step"` all declare `repMin = 8` and a
  * `repMax` of only 12 or 15, so the CSV carries no max-effort figure for any of
  * them. A flat cap was standing in for that number - 25 for everything, 50 for
  * core, read off the row's muscle - and it was wrong at BOTH ends. It sent a
@@ -196,6 +197,23 @@ internal object RepCeilings {
     // --- Biceps (1) ---
     // One light isolation row under TRX. The ceiling is the grip, not the elbow.
     "trx_bicep_curl" to 30,   // TRX Bicep Curl
+
+    // --- The last seven manual-review rows (owner, 2026-10-06) ---
+    // Plyometrics, the Nordic, the rope climb and the wrist roller were the
+    // only rows the CSV refused to ladder; each now counts its own reps -
+    // ground contacts, slow eccentrics, climbs, revolutions - with the
+    // implement's height, tempo or load left to the user. All seven open at
+    // 2-3 and top out at 12: the band's floor is the first REP_CHECKPOINTS
+    // rung, so a ladder that stopped below it could never offer the harder
+    // movement it feeds - and 12 in one set is each movement's mastery figure,
+    // not its start.
+    "box_jump" to 12,   // Box Jump
+    "jump_squat" to 12,   // Jump Squat
+    "plyo_lunge" to 12,   // Plyo Lunge
+    "plyo_push_up" to 12,   // Plyo Push-Up
+    "nordic_hamstring_curl" to 12,   // Nordic Hamstring Curl
+    "rope_climb" to 12,   // Rope Climb
+    "wrist_roller" to 12,   // Wrist Roller
     )
 
     /** Every slug in this table - the coverage test reads this. */

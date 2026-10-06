@@ -498,11 +498,31 @@ owner reported on the wrist stretch. The one exception is the Olympic lifts, whi
 pattern because they are trained at 1–5 reps (`OLYMPIC_ROMAN`); a snatch prescribed at 8–12
 would be a different exercise.
 
-Seven rows still have no ladder, and the build prints each with its reason rather than
-hiding it: the four plyometrics (Box Jump, Jump Squat, Plyo Lunge, Plyo Push-Up — they
-progress by volume, then height, then intensity, and one ladder cannot express all three),
-Nordic Hamstring Curl (eccentric-only, load is trainer-designed from tempo), Rope Climb
-(bodyheight is a distance) and Wrist Roller (revolutions, a unit no other row uses).
+**The refusal list is now EMPTY, closed on the owner's instruction (2026-10-06):**
+*"some exercises like chin tuck hold dont have a level system. i want this fixed, lots of
+exercises have this error, give me a number as to how many and then fix them all".* The
+number was **seven** — the four plyometrics (Box Jump, Jump Squat, Plyo Lunge, Plyo
+Push-Up), Nordic Hamstring Curl, Rope Climb and Wrist Roller — and Chin Tuck Hold itself
+was a false alarm: it is a duration ladder (15s→120s) and holds were never counted in the
+reps grid. Each of the seven now carries an authored **rep** ladder in
+`ladder_backfill.py`'s `SKILL_REP_ROWS`, because the movement's progression *is* reps of it
+(ground contacts, slow eccentrics, climbs, revolutions); the implement's height, tempo or
+load stays the user's own choice, and the CSV's objections ("landing mechanics", "a
+distance", "revolutions — a unit no other row uses") were all about the LOAD axis this
+ladder never claims. The two `NOT_BACKFILLED_*` tables stay — they are the mechanism a
+future gap plugs into — and `reason_for` still reports any row that falls through them.
+
+The seven's floor is **8, not 2–3**, and that is a pool-wide invariant, not taste:
+`RepsAtLevel` falls back to `DEFAULT_REP_FLOOR = 8` for a row that declares none, and
+`RepProgressionOfferTest` asserts `repsAtLevel(entry, 1) >= 8` across the pool because the
+owner's own words were *"1 rep is basically nothing"*. A first pass opening these ladders
+at 2–3 reps failed two tests; the fix was to join the skill tier (Muscle-Up, Handstand
+Push-Up and Pseudo Planche already ship floor 8 / ceiling 12): span 4 → engine-computed
+step 1 → five rungs 8/9/10/11/12, flat stages (the band is `step − 1 = 0`, exactly how
+those skill rows behave). Ceiling 12 is the first `REP_CHECKPOINTS` rung, so the offer to
+the harder movement fires. `LevelLadderTest.entriesOutsideTheLevelSystemListNothing` pins
+the new world: **zero** pool rows outside the system, and the engine's defensive half is
+still proved on a synthetic `validationStatus = "manual_review_required"` copy.
 
 ## A LOAD rung must be a weight the gym can set — the ladder walks the row's own increment
 
@@ -930,10 +950,16 @@ Three rules keep this from becoming 454 invented chains that read plausibly:
   `ProgressionBranchCoverageTest`.
 - **A branch whose TARGET has no level system is unrenderable and is dropped.**
   `evolutionOffer` returns null for a target that is not progression-ready, so
-  the option silently disappears. Seven rows are `manual_review_required` (Box
-  Jump, Jump Squat, Plyo Lunge, Plyo Push-Up, Nordic Hamstring Curl, Rope Climb,
-  Wrist Roller); `merge_branches()` mirrors `isProgressionReady` in Python to
-  keep the two definitions in step.
+  the option silently disappears. Until 2026-10-06 seven rows were
+  `manual_review_required` (Box Jump, Jump Squat, Plyo Lunge, Plyo Push-Up,
+  Nordic Hamstring Curl, Rope Climb, Wrist Roller) and branches into them were
+  dropped; they now carry ladders, and those branches **resurrected by
+  themselves** in the regenerated data (High Knees → Box Jump, Stability Ball
+  Leg Curl → Nordic Hamstring Curl, Plate Pinch → Wrist Roller) — which is the
+  rule working, not a side effect to clean up: a reachable target gets its
+  branch back the moment it becomes ready. `merge_branches()` still mirrors
+  `isProgressionReady` in Python to keep the two definitions in step, and the
+  refusal tables it reads are now empty.
 
 **Why it is not all 601**, and must not be forced to be: 341 rows are machines
 and 66 are stretches/poses. A seated leg curl does not progress *into* another
@@ -1247,16 +1273,18 @@ into the enclosing composable first.
 
 ## A rep ladder stops where the MOVEMENT stops
 
-The 116 bodyweight rows with `unit == "variation_step"` all declare `repMin = 8` and a
+The CSV's 116 bodyweight rows with `unit == "variation_step"` all declare `repMin = 8` and a
 `repMax` of only 12 or 15, so **the CSV carries no max-effort figure for any of them**.
+(The seven rows backfilled on 2026-10-06 join them at the same floor 8, so the pool now
+has **123** rep ladders — the table and `RepCeilingCoverageTest` cover all 123.)
 That is the whole reason a flat cap stood in for the number — 25 for everything, 50 for
 core, read off the row's muscle — and it was wrong at **both** ends:
 
 - a **Glute Bridge** stopped at 25 reps, when ordinary programming is 30–50;
 - a **Handstand Push-Up** was asked for the same 25, when the movement itself ends near 12.
 
-`RepCeilings` now carries an **authored** number for all 116 (owner authorised reading names
-for this on 2026-10-04). Three things make that safe, and each was a way this could break
+`RepCeilings` now carries an **authored** number for all 123 (owner authorised reading names
+for this on 2026-10-04; the seven backfilled rows were added 2026-10-06). Three things make that safe, and each was a way this could break
 quietly:
 
 - **It is a table, not a rule.** The numbers do not parse a name at runtime, so a rename

@@ -16,6 +16,7 @@ internal object ProgressionTables {
 
     val ROMAN_PAT_271e72: List<List<Int>> = listOf(listOf(8, 8, 8), listOf(9, 8, 8), listOf(9, 9, 8), listOf(9, 9, 9), listOf(10, 9, 9), listOf(10, 10, 9), listOf(10, 10, 10), listOf(11, 10, 10), listOf(11, 11, 10), listOf(11, 11, 11), listOf(12, 11, 11), listOf(12, 12, 11), listOf(12, 12, 12))
     val ROMAN_PAT_491303: List<List<Int>> = listOf(listOf(2, 1, 1), listOf(2, 2, 1), listOf(3, 2, 1), listOf(3, 2, 2), listOf(3, 3, 1), listOf(3, 3, 2), listOf(4, 3, 2), listOf(4, 3, 3), listOf(4, 4, 2), listOf(4, 4, 3), listOf(5, 4, 3), listOf(5, 4, 4), listOf(5, 5, 3))
+    val ROMAN_PAT_619e93: List<List<Int>> = listOf(listOf(8, 8, 8), listOf(9, 8, 8), listOf(9, 9, 8), listOf(9, 9, 9), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList(), emptyList())
     val ROMAN_PAT_72c371: List<List<Int>> = listOf(listOf(8, 8, 8), listOf(9, 8, 8), listOf(9, 9, 8), listOf(9, 9, 9), listOf(10, 9, 9), listOf(10, 10, 9), listOf(10, 10, 10), listOf(11, 10, 10), listOf(11, 11, 10), listOf(11, 11, 11), listOf(12, 11, 11), listOf(12, 12, 11), listOf(12, 12, 12))
 
     /** An explicit level -> load ladder: index 0 = level 1. */
@@ -44,6 +45,7 @@ internal object ProgressionTables {
     val LADDER_b95779: List<Double> = listOf(1.0, 2.0, 3.0, 4.0, 5.0, 6.0)
     val LADDER_bcba4b: List<Double> = listOf(2.0, 3.0, 4.0, 5.0, 6.0, 7.0, 8.0, 9.0, 10.0, 11.0)
     val LADDER_d5b041: List<Double> = listOf(2.5, 5.0, 7.5, 10.0, 12.5, 15.0, 20.0, 25.0, 30.0, 35.0)
+    val LADDER_dc3376: List<Double> = listOf(8.0, 9.0, 10.0, 11.0, 12.0)
     val LADDER_e19e9e: List<Double> = listOf(15.0, 30.0, 45.0, 60.0, 90.0, 120.0, 180.0, 240.0, 300.0, 420.0, 600.0)
     val LADDER_e1d8c9: List<Double> = listOf(10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 30.0, 35.0, 40.0)
     val LADDER_e9e758: List<Double> = listOf(10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0)

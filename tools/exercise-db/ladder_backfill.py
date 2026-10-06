@@ -12,6 +12,11 @@ the measure the row's own `review_notes` names, and for the groups where no
 universal measure exists it returns a REASON, so the pipeline can report the
 short list the owner asked for instead of pretending the gap is closed.
 
+The list is now EMPTY: the refusal tables held seven rows (four plyometrics,
+the Nordic, the rope climb, the wrist roller) until the owner asked on
+2026-10-06 for "a number as to how many and then fix them all", and each of
+the seven now carries an authored rep ladder in SKILL_REP_ROWS below.
+
 Three rules, because each one has a way of going wrong quietly:
 
 1. **The measure comes from the row, not from the name.** A stretch is a hold
@@ -155,6 +160,74 @@ LOADED_ROWS: dict[str, tuple] = {
     "sled_row": ("discrete_load_reps", "kg", SLED_KG, STANDARD_ROMAN, 8, 12, 4, 120),
 }
 
+# The last seven rows the CSV refused, closed on the owner's instruction
+# (2026-10-06: "some exercises like chin tuck hold dont have a level system.
+# i want this fixed, lots of exercises have this error, give me a number as
+# to how many and then fix them all". The number was these seven; Chin Tuck
+# Hold itself was already level-managed as a duration ladder, 15s -> 120s).
+#
+# Each carries a REP ladder in its own honest unit, because the movement's
+# progression IS reps of it: ground contacts per set for a plyometric, slow
+# eccentrics for a Nordic, climbs per set on a rope, revolutions per set on
+# a roller. The level carries that count; the implement's height, tempo or
+# load stays the user's own choice - the same division every bodyweight row
+# already has. The CSV's objection ("safe progression depends on landing
+# mechanics ... rather than a load increment") was about the LOAD axis, and
+# this ladder never claims one.
+#
+# FLOOR and CEILING, both pinned by tests the owner asked for:
+#
+# - The floor is 8, like EVERY other rep row in the pool. repsAtLevel falls
+#   back to DEFAULT_REP_FLOOR = 8 for a row that declares none, and
+#   RepProgressionOfferTest asserts `repsAtLevel(entry, 1) >= 8` for the whole
+#   pool, because the owner's own words were "1 rep is basically nothing".
+#   The first version of this block opened these ladders at 2-3 reps and the
+#   suite failed on it - the floor is a pool-wide invariant, not a per-row
+#   choice, and the skill rows (Muscle-Up, Handstand Push-Up, Pseudo Planche:
+#   floor 8, ceiling 12) already ship exactly this span.
+# - The ceiling is 12: the first REP_CHECKPOINTS rung, so the offer to the
+#   harder movement fires (RepProgressionOfferTest
+#   .everyRepRowInThePoolReachesItsFirstCheckpoint), and 12 contacts/climbs/
+#   revolutions in one set is the mastery figure at the top of each published
+#   range, not a starting prescription.
+#
+# Span 4 (8 -> 12) is the narrow skill tier: the engine computes step 1 and
+# five rungs (8,9,10,11,12) from repMin/RepCeilings, so the emitted ladder
+# below agrees rung-for-rung with what repsAtLevel will answer.
+#
+# Three-set cascade anchored on the floor: the extra rep walks forward one
+# set at a time, the same shape the standard pattern has, and the engine
+# scales it into each level's own band (for a step-1 ladder the band is 0,
+# so the stages read flat - exactly how the existing skill rows behave).
+LOW_REP_ROMAN = [
+    [8, 8, 8], [9, 8, 8], [9, 9, 8], [9, 9, 9],
+]
+
+# (method, unit, ladder, roman, repMin, repMax, sets, rest) - same shape as
+# LOADED_ROWS. The ladder values agree rung-for-rung with the engine's own
+# formula (floor 8, span 4 -> step 1, clamp on the ceiling 12), so the emitted
+# levelValueSequence and repsAtLevel can never disagree.
+SKILL_REP_ROWS: dict[str, tuple] = {
+    # Plyometrics: ground contacts per set at the height the user picks.
+    # Published contact volumes top out around 10-12 per set; past that one
+    # set is conditioning rather than power, and 12 is where the offer to a
+    # harder drill fires.
+    "box_jump": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 90),
+    "jump_squat": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 90),
+    "plyo_lunge": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 90),
+    "plyo_push_up": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 60),
+    # The Nordic is eccentric-only: the published dose is SLOW reps, and the
+    # tempo is the user's lever - the ladder counts the reps. 8 slow eccentrics
+    # in one set is the trained end (the pool already puts Muscle-Up at the
+    # same floor), and the user's difficulty start picks the level.
+    "nordic_hamstring_curl": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 90),
+    # Rope climbs per set - height stays the coach's variable - and
+    # wrist-roller revolutions per set (up and down is one), with the load on
+    # the roller left to the user. Same floor/ceiling as everything else.
+    "rope_climb": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 120),
+    "wrist_roller": ("bodyweight_reps", "variation_step", [8, 9, 10, 11, 12], LOW_REP_ROMAN, 8, 12, 3, 60),
+}
+
 # The kettlebell and dumbbell olympic rows move off the barbell ladder, which
 # would put a 20kg floor on a double-kettlebell lift.
 OLYMPIC_EQUIPMENT: dict[str, tuple[str, list]] = {
@@ -167,20 +240,14 @@ OLYMPIC_EQUIPMENT: dict[str, tuple[str, list]] = {
 # sets, and mixing them lets a category silently satisfy the slug check (or the
 # other way round) - which is how the build's own key-integrity check caught
 # this table being wrong the first time it ran.
-NOT_BACKFILLED_CATEGORY: dict[str, str] = {
-    "plyometric_explosive": (
-        "Plyometrics progress by volume, then height, then intensity - the CSV "
-        "flags that safe progression depends on landing mechanics and joint "
-        "readiness rather than a load increment, and a single ladder cannot "
-        "express all three."
-    ),
-}
+# The refusal lists are EMPTY as of 2026-10-06: the owner asked for the count
+# (seven rows) and then "fix them all", so every row they named now carries an
+# authored ladder in SKILL_REP_ROWS above. The tables stay - they are the
+# mechanism a future gap plugs into, and reason_for still reports any row
+# that falls through them.
+NOT_BACKFILLED_CATEGORY: dict[str, str] = {}
 
-NOT_BACKFILLED_SLUG: dict[str, str] = {
-    "rope_climb": "Progress is bodyheight per go, which is a distance, not a load the app can ladder.",
-    "wrist_roller": "Progress is revolutions or metres of a rotating handle, which no other row uses as a unit.",
-    "nordic_hamstring_curl": "An eccentric-only movement whose load is trainer-designed from bodyweight tempo, not a kg ladder.",
-}
+NOT_BACKFILLED_SLUG: dict[str, str] = {}
 
 # The starting level for each difficulty is derived inside apply(): Easy is the
 # floor, Hard is two rungs below the top, and Medium is the round number the
@@ -192,6 +259,8 @@ def ladder_for(row: dict, slug: str):
     """Return (method, unit, ladder, roman, repMin, repMax, sets, rest) or None."""
     if slug in LOADED_ROWS:
         return LOADED_ROWS[slug]
+    if slug in SKILL_REP_ROWS:
+        return SKILL_REP_ROWS[slug]
     category = (row.get("training_category") or "").strip()
     if category == "olympic_lift":
         equipment = (row.get("equipment_category") or "").strip()
@@ -212,6 +281,7 @@ def unmatched_keys(seen_slugs: set[str], seen_categories: set[str]) -> list[str]
         f"ladder_backfill: {name}[{key}] matches no exercise in the pool"
         for name, table in (
             ("LOADED_ROWS", LOADED_ROWS),
+            ("SKILL_REP_ROWS", SKILL_REP_ROWS),
             ("NOT_BACKFILLED_SLUG", NOT_BACKFILLED_SLUG),
         )
         for key in sorted(table)
