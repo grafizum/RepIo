@@ -1916,7 +1916,13 @@ fun levelCardShowsPerSetBanner(cardBody: LevelCardBody, repTargetCount: Int): Bo
 
 @OptIn(ExperimentalMaterial3Api::class) // Surface(onClick) for the level pill
 @Composable
-private fun LevelPrescriptionCard(
+// `internal` rather than `private` ONLY so a test can lay the card out and measure
+// it: the lock chip's placement is a property of this row's geometry, and the
+// owner read the card's header as "the level lock button is a bit too centered"
+// (2026-10-09). [LevelCardLockPlacementTest] renders exactly this composable and
+// asserts where the chip sits, which no pure function can express. The card is
+// still only ever called from this file.
+internal fun LevelPrescriptionCard(
     exerciseName: String,
     level: Int?,
     stage: Int?,
@@ -2161,93 +2167,138 @@ private fun LevelPrescriptionCard(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // THE EXERCISE'S OWN LOCK, ON THE CARD.
+                // THE RIGHT-HAND PAIR: the lock chip, then the pencil, together at the
+                // card's edge.
                 //
-                // Owner, 2026-10-08: *"i also want the locked not to be in the popup of the
-                // level but separate on the card somewhere maybe make it with a label
-                // eventually or show it somehow else so that the user can understand that he
-                // can lock that exercise from leveling up"*. The popup's switch toggled a
-                // GLOBAL pref ("stay on this level" for every exercise, level_lock_enabled)
-                // while its label read like the exercise's own pin - so the control on the
-                // card now writes the per-exercise pin the data layer already had
-                // ([WorkoutViewModel.setExerciseLocked], `routine_exercises.locked`), which is
-                // also exactly what the box above reads to decide whether it may open. Label
-                // plus icon, because a bare padlock is the one thing the owner reported as
-                // invisible: "show it somehow else so that the user can understand".
-                Surface(
-                    onClick = onToggleLock,
-                    shape = RoundedCornerShape(10.dp),
-                    color = if (locked) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
-                            else Color.Transparent,
-                    border = BorderStroke(
-                        1.dp,
-                        if (locked) MaterialTheme.colorScheme.primary
-                        else MaterialTheme.colorScheme.outlineVariant
-                    ),
-                    modifier = Modifier.semantics { testTag = "level_lock_toggle" }
+                // Owner, 2026-10-09: *"the level lock button is a bit too centered in my
+                // opinion, it needs to be better positioned and maybe also changed the style
+                // slightly so it fits with the rest of the content in that card"*, and then,
+                // on where it should go: *"make it far right together with the pencil but
+                // also make sure that the user can distinguish them and make it look
+                // good"*.
+                //
+                // WHY IT READ AS CENTRED. The chip used to be a plain sibling of the pencil,
+                // so the header's own 8dp spacing AND a fixed 4dp spacer both landed between
+                // the two - while the weight spacer above had already eaten the free width.
+                // The chip's left edge therefore fell on the card's midline and the control
+                // looked like it was floating in the middle of the row, belonging to neither
+                // the level box on its left nor the pencil on its right. Making the two their
+                // OWN row is what ties them together: the pair travels to the edge as one
+                // cluster, and the weight spacer stays the only elastic thing in the header.
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    // 2dp, not the header's 8dp. The pencil's 48dp target is mostly
+                    // invisible padding (a 20dp glyph centred in it), so the gap the eye
+                    // actually reads is already ~16dp - which is what the two controls stay
+                    // APART by shape and wording instead of by distance: a labelled, ringed
+                    // pill beside a bare circular glyph. Keeping the pair close also keeps
+                    // their tap targets from drifting under each other's finger.
+                    horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                    // THE EXERCISE'S OWN LOCK, ON THE CARD.
+                    //
+                    // Owner, 2026-10-08: *"i also want the locked not to be in the popup of the
+                    // level but separate on the card somewhere maybe make it with a label
+                    // eventually or show it somehow else so that the user can understand that he
+                    // can lock that exercise from leveling up"*. The popup's switch toggled a
+                    // GLOBAL pref ("stay on this level" for every exercise, level_lock_enabled)
+                    // while its label read like the exercise's own pin - so the control on the
+                    // card now writes the per-exercise pin the data layer already had
+                    // ([WorkoutViewModel.setExerciseLocked], `routine_exercises.locked`), which is
+                    // also exactly what the box above reads to decide whether it may open. Label
+                    // plus icon, because a bare padlock is the one thing the owner reported as
+                    // invisible: "show it somehow else so that the user can understand".
+                    //
+                    // IT SPEAKS THE CARD'S OWN LANGUAGE, which is the second half of the
+                    // instruction - "changed the style slightly so it fits with the rest of
+                    // the content in that card". The level box beside it is a 1dp primary
+                    // ring with no fill, so the chip is the same ring in the same family: a
+                    // hairline of primary, filled with the 14% primary tint the action
+                    // banner below uses once the lock is ON. It used to wear the neutral
+                    // `outlineVariant` grey, which is the one colour nothing else in this
+                    // card is drawn in - the reason it read as a foreign control.
+                    Surface(
+                        onClick = onToggleLock,
+                        shape = RoundedCornerShape(12.dp),
+                        color = if (locked) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                                else Color.Transparent,
+                        border = BorderStroke(
+                            1.dp,
+                            if (locked) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)
+                        ),
+                        modifier = Modifier.semantics { testTag = "level_lock_toggle" }
                     ) {
-                        Icon(
-                            imageVector = if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
-                            contentDescription = null,
-                            tint = if (locked) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.size(14.dp)
-                        )
-                        Spacer(modifier = Modifier.width(5.dp))
-                        Text(
-                            text = getString(if (locked) "level_locked_short" else "level_lock_short"),
-                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                            color = if (locked) MaterialTheme.colorScheme.primary
-                                    else MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1
-                        )
-                    }
-                }
-                Spacer(modifier = Modifier.width(4.dp))
-
-                // THE ONE PENCIL, and the only way into the exercise editor from
-                // a live session - the pencil that used to sit on the exercise card
-                // above was removed in the same instruction that put this one here.
-                //
-                // It OWNS the level system's editing now: the editor it opens is
-                // where the level list lives (and, in custom mode, the sets, reps
-                // and weight fields). There is no tick any more, because there is no
-                // edit pass to commit - the level the user picks is written through
-                // the same stored progression state it always was.
-                if (controls.showPencil) {
-                    CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
-                        Box(
-                            modifier = Modifier
-                                .size(48.dp)
-                                // The owner asked for the pencil to sit further right.
-                                // The row's own spacing put it a fixed 8dp from the
-                                // card edge; this moves the GLYPH toward the edge
-                                // without changing the touch target, so the tap area
-                                // still clears the 48dp minimum.
-                                .offset(x = 6.dp)
-                                .clip(CircleShape)
-                                .clickable { onOpenEditor() }
-                                .semantics { testTag = "level_edit" },
-                            contentAlignment = Alignment.Center
+                        Row(
+                            verticalAlignment = Alignment.CenterVertically,
+                            // 7dp of vertical padding is the level box's own resting
+                            // padding, so the two chips in this header stand at the same
+                            // height instead of one being visibly stubbier.
+                            modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.Default.Edit,
-                                contentDescription = getString("exercise_edit_desc"),
-                                // ALWAYS the theme colour. It was dimmed to 45%
-                                // while idle, which the owner read as "the pencil is
-                                // grayed out at the beginning" - and it is the one
-                                // control that opens the level system, so looking
-                                // disabled is the opposite of the truth.
-                                tint = MaterialTheme.colorScheme.primary,
-                                // 18 -> 20dp: "make the edit pencil slightly
-                                // bigger". The 48dp target around it is what the
-                                // user actually presses.
-                                modifier = Modifier.size(20.dp)
+                                imageVector = if (locked) Icons.Default.Lock else Icons.Default.LockOpen,
+                                contentDescription = null,
+                                tint = if (locked) MaterialTheme.colorScheme.primary
+                                       else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f),
+                                modifier = Modifier.size(14.dp)
                             )
+                            Spacer(modifier = Modifier.width(5.dp))
+                            Text(
+                                text = getString(if (locked) "level_locked_short" else "level_lock_short"),
+                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                // The WORD stays the quiet one while the lock is off, so
+                                // "can I press this?" is answered by the fill and the ring
+                                // rather than by the label, and the chip cannot be mistaken
+                                // for the pencil - which is always full-strength primary.
+                                color = if (locked) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                                maxLines = 1
+                            )
+                        }
+                    }
+
+                    // THE ONE PENCIL, and the only way into the exercise editor from
+                    // a live session - the pencil that used to sit on the exercise card
+                    // above was removed in the same instruction that put this one here.
+                    //
+                    // It OWNS the level system's editing now: the editor it opens is
+                    // where the level list lives (and, in custom mode, the sets, reps
+                    // and weight fields). There is no tick any more, because there is no
+                    // edit pass to commit - the level the user picks is written through
+                    // the same stored progression state it always was.
+                    if (controls.showPencil) {
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    // The owner asked for the pencil to sit further right.
+                                    // The row's own spacing put it a fixed 8dp from the
+                                    // card edge; this moves the GLYPH toward the edge
+                                    // without changing the touch target, so the tap area
+                                    // still clears the 48dp minimum - and it is what
+                                    // keeps the pair's right corner the pencil's.
+                                    .offset(x = 6.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onOpenEditor() }
+                                    .semantics { testTag = "level_edit" },
+                                contentAlignment = Alignment.Center
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = getString("exercise_edit_desc"),
+                                    // ALWAYS the theme colour. It was dimmed to 45%
+                                    // while idle, which the owner read as "the pencil is
+                                    // grayed out at the beginning" - and it is the one
+                                    // control that opens the level system, so looking
+                                    // disabled is the opposite of the truth.
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    // 18 -> 20dp: "make the edit pencil slightly
+                                    // bigger". The 48dp target around it is what the
+                                    // user actually presses.
+                                    modifier = Modifier.size(20.dp)
+                                )
+                            }
                         }
                     }
                 }

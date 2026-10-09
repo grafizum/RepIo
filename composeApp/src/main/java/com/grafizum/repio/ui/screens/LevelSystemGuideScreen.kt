@@ -23,6 +23,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
+import androidx.compose.material.icons.filled.Edit
 import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
@@ -344,6 +345,13 @@ private fun LargeJumpExample() {
  * reader who has seen this page can find the same two things on the workout screen. It is
  * copied from the live `LevelPrescriptionCard`, which is the surface that owns them - if the
  * card's chip ever changes shape, this example has to follow it.
+ *
+ * THE PENCIL IS PART OF THE DRAWING (owner, 2026-10-09). The card now shows the lock chip and
+ * the pencil as one pair at its right edge - *"make it far right together with the pencil but
+ * also make sure that the user can distinguish them"* - and this example is the one place that
+ * tells a reader where to FIND the chip. A diagram that drew the lock alone in the corner
+ * would send them looking for something that sits next to an edit glyph on the real card. The
+ * pair is drawn at 2dp apart, exactly as the card's own Row sets it.
  */
 @Composable
 private fun LevelLockExample() {
@@ -362,7 +370,7 @@ private fun LevelLockExample() {
             // the owner rejected that pipe on the card ("thinner so it doesnt look like a
             // number or letter", 2026-10-09) the guide went on teaching the old one.
             Surface(
-                shape = RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(12.dp),
                 color = Color.Transparent,
                 border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
                 contentColor = MaterialTheme.colorScheme.primary
@@ -378,30 +386,48 @@ private fun LevelLockExample() {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // The lock chip, in its locked state.
-            Surface(
-                shape = RoundedCornerShape(10.dp),
-                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            // The pair the card anchors at its right edge: the lock chip, then the pencil.
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                // The lock chip, in its locked state: a primary hairline around the same 14%
+                // primary fill the action banner uses. Both numbers are the card's own.
+                Surface(
+                    shape = RoundedCornerShape(12.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
                 ) {
-                    Icon(
-                        imageVector = Icons.Default.Lock,
-                        contentDescription = null,
-                        tint = MaterialTheme.colorScheme.primary,
-                        modifier = Modifier.size(14.dp)
-                    )
-                    Spacer(modifier = Modifier.width(5.dp))
-                    Text(
-                        text = getString("level_locked_short"),
-                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                        color = MaterialTheme.colorScheme.primary,
-                        maxLines = 1
-                    )
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.padding(horizontal = 9.dp, vertical = 7.dp)
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.Lock,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(14.dp)
+                        )
+                        Spacer(modifier = Modifier.width(5.dp))
+                        Text(
+                            text = getString("level_locked_short"),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary,
+                            maxLines = 1
+                        )
+                    }
                 }
+
+                // The pencil that shares that corner on the card, drawn the same size the card
+                // draws its glyph so the shape is recognisable on the workout screen.
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp)
+                        .size(20.dp)
+                )
             }
         }
         GuideCaption(getString("lock_example_caption"))
