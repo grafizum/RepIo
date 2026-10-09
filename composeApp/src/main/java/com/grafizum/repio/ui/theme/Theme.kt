@@ -16,11 +16,21 @@ import androidx.core.view.WindowCompat
 
 import androidx.compose.runtime.CompositionLocalProvider
 import androidx.compose.runtime.staticCompositionLocalOf
+import androidx.compose.ui.platform.LocalDensity
+import androidx.compose.ui.unit.Density
 import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontFamily
 import androidx.compose.ui.text.font.Font
+import androidx.compose.ui.text.font.FontVariation
+import androidx.compose.ui.text.ExperimentalTextApi
 import androidx.compose.ui.unit.TextUnit
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.systemBars
+import androidx.compose.ui.platform.LocalLayoutDirection
+import com.grafizum.repio.ui.components.LocalSafeArea
 import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.SafeArea
+import com.grafizum.repio.ui.components.frameScaleFor
 import com.grafizum.repio.ui.components.rememberWindowSize
 import androidx.compose.foundation.Indication
 import androidx.compose.foundation.IndicationNodeFactory
@@ -35,6 +45,22 @@ import com.grafizum.repio.util.IconSwitchHelper
 
 
 val LocalDeveloperSkin = staticCompositionLocalOf { false }
+
+/**
+ * The text scale the app ALWAYS renders at: the system's 1.0.
+ *
+ * Owner ruling, 2026-10-08: *"keep the scaling at 1.0 for the app, because 1.8 is absolutely
+ * not usable as you can see"*, following the same session's *"i want it to look like its on my
+ * phone"*. Previously the platform's `fontScale` drove the whole frame (see
+ * [WorkoutTrackerTheme]), which kept a large-text device usable but made it a DIFFERENT app -
+ * and at 1.8 it showed about a third of a phone's page and scrolled for everything.
+ *
+ * One constant, read in exactly two places ([WorkoutTrackerTheme]'s density override and the
+ * WindowSize it measures with), so "the view is the same on each phone" is a property of the
+ * app rather than of the device. Changing this number re-enables partial scaling everywhere at
+ * once - which is the reason it is a named constant and not a literal `1f`.
+ */
+internal const val APP_TEXT_SCALE = 1f
 
 /**
  * True when the active color scheme paints a light background. UI code that
@@ -187,45 +213,141 @@ private val RainbowColorScheme = darkColorScheme(
     outline = Color(0xFFFF00FF)
 )
 
+/*
+ * THE DEVELOPER THEME: TRUE DARK GREY, MEASURED OFF THE OWNER'S PHONE.
+ *
+ * Owner, 2026-10-08: "i want the color of the app remade (only the developer theme no
+ * other themes) ... go look at my usb debugged phone and see the color palette", and then,
+ * after seeing the first attempt: "i want rounded corners and a more modern rich darker
+ * design not brownisch i want a true dark grey palette lik my app on the phone had".
+ *
+ * THE PHONE IS THE SPEC, so it was SAMPLED rather than interpreted: `screencap` with RepIo
+ * in the foreground came back as #0A0A0A on 87.6% of the screen, #111111 for the layer
+ * above it, #181818 for nested blocks, #C3A366 as the single accent, #EDEBE8 text and
+ * #A0A0A0 muted text. Every colour below is one of those six or a neutral step between
+ * two of them.
+ *
+ * THE FIRST ATTEMPT GOT THE IDEA BACKWARDS, and it is worth recording why, because it
+ * looked reasonable at the time: it pushed BEIGE'S OWN brown (#8C6239, accent #D9A566) into
+ * a dark key, on the theory that the phone ran Beige and the theme should therefore be its
+ * "dark twin". The phone's stored theme was indeed BEIGE - but what it was RENDERING was a
+ * dark grey screen, and the result of that theory was dark chocolate (#12100E canvas,
+ * #1A1715 cards, #3A2E1E container). Surfaces only have to be dark and grey; the warmth
+ * belongs to the accent, not to the greys. There is no hue in any grey below, and the one
+ * accent is the gold the phone actually showed.
+ *
+ * Contrast, against the surfaces they sit on: accent #C3A366 on #0A0A0A is 8.25:1 (7.87:1
+ * on a card, 7.40:1 on a nested block), body #EDEBE8 on #0A0A0A is 16.64:1, muted #A0A0A0
+ * on #181818 is 6.79:1, the container's own text #E9D9B8 on #2E2E2E is 9.75:1, and the
+ * button label #1C1810 on the gold fill is 7.37:1 - all clear of the 4.5:1 body and 3:1
+ * large-text thresholds that DarkThemeContrastTest enforces.
+ */
 private val DeveloperColorScheme = darkColorScheme(
-    primary = Color.White,
-    onPrimary = Color.Black,
-    primaryContainer = Color.White,
-    onPrimaryContainer = Color.Black,
-    secondary = Color.White,
-    onSecondary = Color.Black,
-    secondaryContainer = Color.White,
-    onSecondaryContainer = Color.Black,
-    background = DarkBackground,
-    onBackground = Color.White,
-    surface = DarkSurface,
-    onSurface = Color.White,
-    surfaceVariant = DarkSurfaceVariant,
-    onSurfaceVariant = Color.White,
-    outline = Color.White,
-    error = Color.White,
-    onError = Color.Black
+    // The one accent, taken straight off the phone's screen: a muted gold, and the only
+    // non-grey in the whole scheme.
+    primary = Color(0xFFC3A366),
+    onPrimary = Color(0xFF1C1810),
+    // A neutral grey block carrying the accent's own tint for its text.
+    primaryContainer = Color(0xFF2E2E2E),
+    onPrimaryContainer = Color(0xFFE9D9B8),
+    secondary = Color(0xFFB8B8B8),
+    onSecondary = Color(0xFF1A1A1A),
+    secondaryContainer = Color(0xFF2A2A2A),
+    onSecondaryContainer = Color(0xFFE6E6E6),
+    // TRUE dark grey: the phone's own three steps. No hue in any of them.
+    background = Color(0xFF0A0A0A),
+    onBackground = Color(0xFFEDEBE8),
+    surface = Color(0xFF111111),
+    onSurface = Color(0xFFEDEBE8),
+    surfaceVariant = Color(0xFF181818),
+    onSurfaceVariant = Color(0xFFA0A0A0),
+    // Light enough to draw the hairline rims a dark UI leans on: 1.79:1 on a card, against
+    // the 1.5:1 floor. The cold #2E2E33 this replaces was 1.32:1 - drawn, but not visible.
+    outline = Color(0xFF3F3F3F),
+    error = Color(0xFFFFB4AB),
+    onError = Color(0xFF690005)
 )
 
+/**
+ * The developer theme's type: MANROPE, and the pixel font is gone.
+ *
+ * Owner, 2026-10-08: "drop the pixel font find a clean even more rich and modern font
+ * to apply." Manrope is a modern geometric grotesque - open apertures, a single-storey
+ * 'a' that stays legible at label sizes, and a real weight range from 300 to 800, so a
+ * heading can be heavy without its counters closing up. That range is the "rich" part:
+ * the old Pixelify Sans had one weight and a pixel grid, which is why every screen read
+ * as a debug build.
+ *
+ * It ships as ONE variable font (`res/font/manrope.ttf`), so each weight is selected on
+ * the `wght` axis instead of a second file per weight. `FontVariation` needs API 26+;
+ * on anything older the platform renders the font's default instance and synthesises
+ * bold. That is acceptable here only because the sizes and line heights below are
+ * authored to be readable with or without the weight axis - do not take the weights as
+ * guaranteed below API 26.
+ */
+// `FontVariation.weight` is still marked experimental upstream; the opt-in is deliberate
+// rather than a suppression - the weight axis is the whole reason this font is bundled
+// as one variable file instead of six statics.
+@OptIn(ExperimentalTextApi::class)
 @Composable
 fun getDeveloperTypography(): androidx.compose.material3.Typography {
-    val pixelFontFamily = FontFamily(Font(R.font.pixelify_sans))
+    fun manrope(weight: Int, style: FontWeight) = Font(
+        resId = R.font.manrope,
+        weight = style,
+        variationSettings = FontVariation.Settings(FontVariation.weight(weight))
+    )
+
+    val manropeFamily = FontFamily(
+        manrope(300, FontWeight.Light),
+        manrope(400, FontWeight.Normal),
+        manrope(500, FontWeight.Medium),
+        manrope(600, FontWeight.SemiBold),
+        manrope(700, FontWeight.Bold),
+        manrope(800, FontWeight.ExtraBold)
+    )
+
+    // Display and headline styles earn their name: heavier weight, and slightly negative
+    // tracking (a modern grotesque opens up when it is tracked out at large sizes).
     return androidx.compose.material3.Typography(
-        displayLarge = Typography.displayLarge.copy(fontFamily = pixelFontFamily),
-        displayMedium = Typography.displayMedium.copy(fontFamily = pixelFontFamily),
-        displaySmall = Typography.displaySmall.copy(fontFamily = pixelFontFamily),
-        headlineLarge = Typography.headlineLarge.copy(fontFamily = pixelFontFamily),
-        headlineMedium = Typography.headlineMedium.copy(fontFamily = pixelFontFamily),
-        headlineSmall = Typography.headlineSmall.copy(fontFamily = pixelFontFamily),
-        titleLarge = Typography.titleLarge.copy(fontFamily = pixelFontFamily),
-        titleMedium = Typography.titleMedium.copy(fontFamily = pixelFontFamily),
-        titleSmall = Typography.titleSmall.copy(fontFamily = pixelFontFamily),
-        bodyLarge = Typography.bodyLarge.copy(fontFamily = pixelFontFamily, fontSize = 16.sp),
-        bodyMedium = Typography.bodyMedium.copy(fontFamily = pixelFontFamily, fontSize = 14.sp),
-        bodySmall = Typography.bodySmall.copy(fontFamily = pixelFontFamily, fontSize = 12.sp),
-        labelLarge = Typography.labelLarge.copy(fontFamily = pixelFontFamily),
-        labelMedium = Typography.labelMedium.copy(fontFamily = pixelFontFamily),
-        labelSmall = Typography.labelSmall.copy(fontFamily = pixelFontFamily)
+        displayLarge = Typography.displayLarge.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.5).sp
+        ),
+        displayMedium = Typography.displayMedium.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.ExtraBold, letterSpacing = (-0.4).sp
+        ),
+        displaySmall = Typography.displaySmall.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp
+        ),
+        headlineLarge = Typography.headlineLarge.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.Bold, letterSpacing = (-0.3).sp
+        ),
+        headlineMedium = Typography.headlineMedium.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.Bold, letterSpacing = (-0.2).sp
+        ),
+        headlineSmall = Typography.headlineSmall.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.SemiBold, letterSpacing = (-0.1).sp
+        ),
+        titleLarge = Typography.titleLarge.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.SemiBold
+        ),
+        titleMedium = Typography.titleMedium.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.SemiBold
+        ),
+        titleSmall = Typography.titleSmall.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.Medium
+        ),
+        bodyLarge = Typography.bodyLarge.copy(fontFamily = manropeFamily, fontSize = 16.sp),
+        bodyMedium = Typography.bodyMedium.copy(fontFamily = manropeFamily, fontSize = 14.sp),
+        bodySmall = Typography.bodySmall.copy(fontFamily = manropeFamily, fontSize = 12.sp),
+        labelLarge = Typography.labelLarge.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.1.sp
+        ),
+        labelMedium = Typography.labelMedium.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.SemiBold, letterSpacing = 0.2.sp
+        ),
+        labelSmall = Typography.labelSmall.copy(
+            fontFamily = manropeFamily, fontWeight = FontWeight.Medium, letterSpacing = 0.3.sp
+        )
     )
 }
 
@@ -276,17 +398,26 @@ internal fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark:
         surfaceContainerLowest = background,
         surfaceContainerLow = surface,
         surfaceContainer = surfaceVariant,
-        surfaceContainerHigh = surfaceContainerHighFallback,
-        surfaceContainerHighest = surfaceContainerHighestFallback
+        // DERIVED FROM THE SCHEME ITSELF, not from the shared cold-grey constants these
+        // two steps used to read. Those constants made every dark theme's upper ramp a
+        // FIXED grey, so any palette whose surfaces were not that grey got a band of the
+        // wrong colour under its chips, inputs and sheets. Mixing a little of the scheme's
+        // own text colour into its variant gives every dark palette a ramp in ITS OWN
+        // tone, and only ever moves the step towards the text, so contrast cannot drop.
+        // Measured on the developer scheme, which is now the one that leans on it hardest:
+        // #181818 -> #232322 -> #2B2B2B, steps of 1.129:1 and 1.111:1, both inside the
+        // 1.02-1.2:1 band the ramp test holds every dark theme to.
+        surfaceContainerHigh = surfaceVariant.blendTowards(onSurface, 0.05f),
+        surfaceContainerHighest = surfaceVariant.blendTowards(onSurface, 0.09f)
     )
 
-/**
- * The two extra dark ramp steps come from the dark palette directly. They are
- * derived, not stored on each ColorScheme (M3 has no slots for them above
- * surfaceVariant), so the dark palettes can't drift out of step with each other.
- */
-private val surfaceContainerHighFallback = DarkSurfaceHigh
-private val surfaceContainerHighestFallback = DarkSurfaceHighest
+/** Mixes [fraction] of [other] into this colour, for deriving a surface step. */
+private fun Color.blendTowards(other: Color, fraction: Float) = Color(
+    red = red + (other.red - red) * fraction,
+    green = green + (other.green - green) * fraction,
+    blue = blue + (other.blue - blue) * fraction,
+    alpha = alpha
+)
 
 private fun androidx.compose.material3.Typography.scaledFor(scale: Float): androidx.compose.material3.Typography {
     if (scale == 1f) return this
@@ -492,14 +623,90 @@ fun WorkoutTrackerTheme(
 
     // Resolved before MaterialTheme so the type scale can be applied to the typography,
     // and provided to every screen so they share one set of spacing tokens.
-    val windowSize = rememberWindowSize()
-    val typography = (if (isDeveloper) getDeveloperTypography() else Typography)
+    //
+    // Measured at [APP_TEXT_SCALE], NOT at the platform's font scale: the tokens have to
+    // describe the text the app will actually draw, and since the ruling below the app
+    // draws everything at 1.0. Passing the platform's number here was the last thing that
+    // kept a 1.8 device on the large-text layout after the density had been pinned.
+    val windowSize = rememberWindowSize(APP_TEXT_SCALE)
+    val typography = (Typography)
         .scaledFor(windowSize.typeScale)
+
+    // THE APP ALWAYS DRAWS AT 1.0 - THE FONT SCALE IS PINNED HERE, ONCE.
+    //
+    // Owner, 2026-10-08, after seeing the emulator at the device's own font scale 1.8:
+    // "keep the scaling at 1.0 for the app, because 1.8 is absolutely not usable as you can
+    // see", and asked again for the app to look the same on every device. So the platform's
+    // font scale no longer reaches the UI: `LocalDensity` is re-provided with
+    // `fontScale = APP_TEXT_SCALE`, which is where every sp in the tree gets its size.
+    //
+    // WHAT THIS REPLACES, and it is worth knowing because the code below looks like it does
+    // more than it now does: the previous pass made the FRAME ride the font 1:1 (density x k,
+    // fontScale / k) so a large system font grew the padding, the gaps and the blocks around
+    // the text with it. That was the right fix for "pressed together" and it is still what
+    // the numbers below compute - but the owner has ruled that large-text rendering is not a
+    // state the app should have, so [APP_TEXT_SCALE] is 1.0 and `frameScale` is therefore
+    // always exactly 1. The arithmetic is kept rather than deleted because it is the single
+    // place the scale enters the app: changing the constant is the whole change, and it is
+    // what makes re-enabling a partial scale (say 1.15) a one-line decision instead of an
+    // archaeology exercise. `WindowSizeTest` still pins the 1:1 contract on `frameScaleFor`
+    // and `windowSizeFor` themselves.
+    //
+    // HONEST CONSEQUENCE, stated where the decision lives: a user who set a large system font
+    // because they need it now gets RepIo at 1.0 like everyone else. That is a deliberate
+    // trade for "the view is the same for each phone", not an oversight - global text size is
+    // the usual place users get it back, and the constant above is the dial.
+    val platformDensity = LocalDensity.current
+    val frameScale = frameScaleFor(APP_TEXT_SCALE)
+    // Keyed on the density rather than on the Density instance: the platform can hand back a
+    // new wrapper for the same number, and re-creating this would re-lay out the whole tree
+    // for nothing.
+    val frameDensity = remember(platformDensity.density) {
+        Density(
+            density = platformDensity.density * frameScale,
+            fontScale = APP_TEXT_SCALE / frameScale
+        )
+    }
+
+    // THE SYSTEM'S OWN CHROME, MEASURED ONCE, FOR THE SCREENS THAT ARE NOT IN THE SCAFFOLD.
+    //
+    // `Scaffold` applies `WindowInsets.systemBars` to its content for free, so the pager and
+    // everything inside it need nothing from here. The level-guide gate and the welcome setup
+    // are siblings of the Scaffold, and they used to reserve the system bars by guessing: the
+    // guide padded its page by `screenPadding` (16dp), the setup screen left a hard-coded 48dp
+    // under its footer. Both numbers are the APP's own margin, and only the second one happened
+    // to equal a real inset - see [SafeArea] for the S22+/Pixel 7a measurements that show what
+    // that costs on the phone whose system bars are bigger than the guess.
+    //
+    // Read through [frameDensity], the density the tree below actually lays out with, so the
+    // padding it produces is the system bar's own pixel height on any future frame scale.
+    //
+    // READ IN THE COMPOSITION, NOT INSIDE A `remember`. The system hands a window its insets
+    // after the first frame, so on the very first composition these are 0 - and a `remember`
+    // whose keys (the singleton `WindowInsets`, the density) do not change would keep that 0
+    // forever: the state read would recompose this scope, the calculation would not re-run, and
+    // the screens would keep a zero reserve while the app looked "fixed but still wrong".
+    // Measured exactly that way once: the padding version of this (`windowInsetsPadding`, which
+    // observes the insets itself) moved the level guide's top row to y 162, and the `remember`
+    // version of the same numbers left it at y 44 on the same build.
+    val systemBars = WindowInsets.systemBars
+    val layoutDirection = LocalLayoutDirection.current
+    val safeTop = with(frameDensity) { systemBars.getTop(this) }
+    val safeBottom = with(frameDensity) { systemBars.getBottom(this) }
+    val safeStart = with(frameDensity) { systemBars.getLeft(this, layoutDirection) }
+    val safeEnd = with(frameDensity) { systemBars.getRight(this, layoutDirection) }
+    val safeArea = remember(safeTop, safeBottom, safeStart, safeEnd) {
+        with(frameDensity) {
+            SafeArea(safeTop.toDp(), safeBottom.toDp(), safeStart.toDp(), safeEnd.toDp())
+        }
+    }
 
     CompositionLocalProvider(
         LocalDeveloperSkin provides isDeveloper,
         LocalLightTheme provides isLightTheme,
-        LocalWindowSize provides windowSize
+        LocalWindowSize provides windowSize,
+        LocalSafeArea provides safeArea,
+        LocalDensity provides frameDensity
     ) {
         MaterialTheme(
             colorScheme = colorScheme,

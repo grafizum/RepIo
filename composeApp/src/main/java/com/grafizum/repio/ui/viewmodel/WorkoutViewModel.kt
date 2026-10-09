@@ -185,6 +185,25 @@ data class WorkoutSubTabRequest(
     val timestamp: Long = System.currentTimeMillis()
 )
 
+/**
+ * Whether a welcome screen that is on display belongs to the "replace the plan
+ * I already have" flow.
+ *
+ * Extracted as a pure function so the rule that fixed the "every launch" trap is
+ * testable without an Android ViewModel - see ReplacingPlanFlagTest. Both inputs
+ * are PERSISTED, which is the point: the version that consulted only an
+ * in-memory flag lost it on a kill and left `is_first_time = true` with no way
+ * out of the welcome screen.
+ *
+ * [savedSetupType] is written by every path that saves a routine, so a plan that
+ * exists counts as re-entry on its own - that half repairs an install that is
+ * ALREADY stuck, whose transient flag is long gone.
+ */
+internal fun isReplacingAnExistingPlan(
+    manualReentryPersisted: Boolean,
+    savedSetupType: String?
+): Boolean = manualReentryPersisted || !savedSetupType.isNullOrBlank()
+
 class WorkoutViewModel(
     private val repository: WorkoutRepository
 ) : ViewModel() {
@@ -253,7 +272,38 @@ class WorkoutViewModel(
     private val _isFirstTimeUser = MutableStateFlow(prefs.getBoolean("is_first_time", true))
     val isFirstTimeUser: StateFlow<Boolean> = _isFirstTimeUser.asStateFlow()
 
-    private val _isManualReentry = MutableStateFlow(false)
+    /**
+     * Whether the welcome screen is the "replace the plan I already have" flow
+     * rather than a true first run.
+     *
+     * PERSISTED, and derived from evidence rather than from a transient flag.
+     * The owner reported (2026-10-08) "closing and reopening the app asks for a
+     * new workout (welcome page shows and level system explanation) which should
+     * only show the first time the user opens the app not every time".
+     * `resetFirstTimeSetup()` writes `is_first_time = true`, but the re-entry
+     * intent used to live ONLY in memory. Closing the app mid-flow therefore
+     * left `is_first_time = true` with `isManualReentry = false`, and the
+     * welcome screen came back on EVERY launch - with its cancel button and its
+     * Back handler also gone, because both are gated on this flag. That is a
+     * trap: the only way out was to build a new plan, which is exactly what the
+     * "every time" report describes. Two halves, both needed:
+     *
+     *  - `setup_manual_reentry` persists the intent across the kill, so the
+     *    cancel/Back affordance survives with it;
+     *  - a routine that was ALREADY saved (`setup_type`, written by the save
+     *    path and present on the owner's phone) counts as re-entry on its own,
+     *    so an install already stuck in the trap is repaired on next launch
+     *    without clearing its data.
+     *
+     * A genuine first run has neither, so the flag stays false and the welcome
+     * screen correctly has no way to leave it.
+     */
+    private val _isManualReentry = MutableStateFlow(
+        isReplacingAnExistingPlan(
+            manualReentryPersisted = prefs.getBoolean("setup_manual_reentry", false),
+            savedSetupType = prefs.getString("setup_type", null)
+        )
+    )
     val isManualReentry: StateFlow<Boolean> = _isManualReentry.asStateFlow()
 
     private val _appLanguage = MutableStateFlow(prefs.getString("app_language", "system") ?: "system")
@@ -297,20 +347,11 @@ class WorkoutViewModel(
     private val _shouldShowLevelGuide = MutableStateFlow(!prefs.getBoolean("has_seen_level_guide_v6", false))
     val shouldShowLevelGuide: StateFlow<Boolean> = _shouldShowLevelGuide.asStateFlow()
 
-    /**
-     * Level lock: when on, the workout stays on the CURRENT level and stage
-     * no matter what is logged — for when the user could not progress
-     * (travel, deload, different equipment) and wants the same prescription
-     * next time. The engine's advancement is gated; manual stage stepping and
-     * level picks still work.
-     */
-    private val _levelLockEnabled = MutableStateFlow(prefs.getBoolean("level_lock_enabled", false))
-    val levelLockEnabled: StateFlow<Boolean> = _levelLockEnabled.asStateFlow()
-
-    fun setLevelLockEnabled(enabled: Boolean) {
-        prefs.putBoolean("level_lock_enabled", enabled)
-        _levelLockEnabled.value = enabled
-    }
+    // The app-wide "stay on this level" pin (pref `level_lock_enabled`) used to live here with
+    // its own switch in Settings. REMOVED by owner ruling 2026-10-09: "remove 'stay on this
+    // level' switch in the settings completely", so the switch, the pref, this state and the
+    // gate the level engine read are all gone. The lock a user can still set is the
+    // PER-EXERCISE one on the workout card (routine_exercises.locked), which is untouched.
 
     /**
      * Per-exercise lock, persisted in the routine_exercises table: a locked
@@ -548,7 +589,18 @@ class WorkoutViewModel(
                         val cachedWeight = getCachedWeightForExercise(it.name)
                         val cachedReps = getCachedRepsForExercise(it.name)
                         val cachedSeconds = getCachedSecondsForExercise(it.name)
-                        val isTimeBased = it.targetReps.contains("sec", ignoreCase = true)
+                        // THE ROUTINE STRING DOES NOT DECIDE THIS, and reading it here is
+                        // what put a 30-second timer under a card saying "90 s" (owner,
+                        // 2026-10-09: "it shows reps in the card yet the exercise is based
+                        // on time and has a timer????"). A timed exercise whose stored
+                        // routine row does not literally say "sec" - every row built
+                        // before the level system, e.g. Jumping Jacks' "8–12 reps" - was
+                        // read as a REP exercise here, so `nextSeconds` kept the restored
+                        // default and `nextReps`/`minReps`/`maxReps` were taken from the rep
+                        // range. The unit lives in the exercise's own progression row; the
+                        // UI card was already switched to it (see the note in
+                        // WorkoutNowScreen), and this is the same fix one layer down.
+                        val isTimeBased = WorkoutTemplates.isExerciseTimeBased(it.name)
                         val isBodyweight = WorkoutTemplates.isBodyweightExercise(it.name)
                         val (minVal, maxVal) = parseRepsRange(it.targetReps)
 
@@ -611,8 +663,32 @@ class WorkoutViewModel(
                             } else {
                                 state.currentReps
                             }
+                            // A TIMED EXERCISE'S SECONDS COME FROM ITS LEVEL, the same way a
+                            // rep exercise's reps do. The level card headlines the
+                            // prescription ("90 s"), so the button under it has to start a
+                            // timer for those 90 seconds - the routine's stored "30 sec"
+                            // used to win here, which put a 30s timer on a card promising 90.
+                            // Owner's report (2026-10-09): "it shows reps in the card yet the
+                            // exercise is based on time and has a timer????" - the card and the
+                            // button are one prescription and must not be able to disagree.
+                            // A level the engine cannot resolve (custom mode) keeps the old
+                            // fallback order: the user's last duration, else the plan's bound.
+                            val prescribedSeconds = prescribed
+                                ?.takeIf { it.kind == ProgressionEngine.ValueKind.DURATION }
+                                ?.value?.toInt()
+                                ?.takeIf { it in 15..3600 }
+                            // The last fallback is the row's OWN seconds, read with
+                            // [WorkoutTemplates.secondsInStoredTarget] instead of the
+                            // rep-range bound. `maxVal` is the UPPER REP of the stored
+                            // string, so a timed row still carrying "8-12" handed the
+                            // timer 12 seconds - a rep range becoming a duration is the
+                            // same mistake the unit sniff made, one layer down. A row
+                            // with no plain duration falls back to 30.
                             val nextSeconds = if (isTimeBased) {
-                                cachedSeconds?.takeIf { it in 15..3600 } ?: maxVal
+                                prescribedSeconds
+                                    ?: cachedSeconds?.takeIf { it in 15..3600 }
+                                    ?: WorkoutTemplates.secondsInStoredTarget(it.targetReps)
+                                    ?: 30
                             } else {
                                 state.currentExerciseSeconds
                             }
@@ -877,6 +953,9 @@ class WorkoutViewModel(
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
             prefs.putBoolean("is_first_time", false)
+            // The replacement flow is over, so the persisted intent must not
+            // survive it (a later "New" sets it again).
+            prefs.putBoolean("setup_manual_reentry", false)
             
             // Persist setup parameters for later goal changes
             prefs.putString("setup_type", setupType)
@@ -1043,10 +1122,15 @@ class WorkoutViewModel(
             repository.applyProgram(template.dayTemplates.map {
                 RoutineDayEntity(it.dayOfWeek, it.dayOfWeek, "", it.isRestDay)
             }, gated)
-            val wasManual = _isManualReentry.value
+            // The EXPLICIT intent, not the derived flag: this path is reached
+            // from a template picker, never from resetFirstTimeSetup's welcome
+            // flow, so it must keep landing on Home exactly as it always did.
+            // The derived flag is true for every install that has a saved plan.
+            val wasManual = prefs.getBoolean("setup_manual_reentry", false)
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
             prefs.putBoolean("is_first_time", false)
+            prefs.putBoolean("setup_manual_reentry", false)
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
     }
@@ -1055,12 +1139,16 @@ class WorkoutViewModel(
         _isFirstTimeUser.value = true
         _isManualReentry.value = true
         prefs.putBoolean("is_first_time", true)
+        // Both halves of the state are written together, or a kill in between
+        // leaves a welcome screen the user cannot leave - see the property above.
+        prefs.putBoolean("setup_manual_reentry", true)
     }
 
     fun cancelFirstTimeSetup() {
         _isFirstTimeUser.value = false
         _isManualReentry.value = false
         prefs.putBoolean("is_first_time", false)
+        prefs.putBoolean("setup_manual_reentry", false)
     }
 
     fun selectDayForWorkoutNow(dayOfWeek: String) {
@@ -1258,6 +1346,41 @@ class WorkoutViewModel(
     }
 
     /**
+     * Set the level AND the Roman stage FROM THE EXERCISE EDITOR.
+     *
+     * Owner, 2026-10-08: the editor's level list shows each level with its Roman
+     * stages beneath it, "and when he selects it directly apply it". Choosing a
+     * Roman numeral IS a choice of level + stage — level 5 stage III is one
+     * instruction, not two — so it lands as ONE write. Routing it through
+     * [setExerciseLevelFromEditor] would apply the level and silently reset the
+     * stage to I ([applyExerciseLevel] does exactly that), which for the user who
+     * just tapped "III" would look like the tap failed.
+     *
+     * Same edit-pass contract as the level-only writer: it clears the locked pin,
+     * because a committed exercise is the case the editor exists to fix. The level
+     * is clamped to the exercise's own humane ceiling and the stage to that level's
+     * pattern length, so neither can be written out of range.
+     */
+    fun setExerciseStateFromEditor(exerciseName: String, level: Int, stage: Int) {
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val levelRung = level.coerceIn(1, progressionMaxLevel(exerciseName))
+        val stageRung = stage.coerceIn(1, ProgressionEngine.patternLength(entry).coerceAtLeast(1))
+        prefs.putString(
+            progressionKey(exerciseName),
+            ProgressionEngine.serialize(
+                ProgressionEngine.ProgressionState(levelRung, stageRung)
+            )
+        )
+        refreshProgressionDisplayNow(exerciseName)
+        // A manual jump changes an input of the overall level without touching the
+        // logged history, so the cached value has to be refreshed by hand - the same
+        // reason [applyExerciseLevel] does it.
+        refreshOverallLevel()
+        setExerciseLocked(exerciseName, false)
+    }
+
+    /**
      * Recomputes the cached overall level from the newest history. Called
      * automatically when the history changes; call it directly after an edit
      * that changes a per-exercise level without logging anything.
@@ -1406,6 +1529,11 @@ class WorkoutViewModel(
             LevelDetailRow(
                 level = level,
                 prescribed = ProgressionEngine.prescribedValueAtLevel(entry, level, _weightUnit.value),
+                // The RAW pattern, not [ProgressionEngine.stageRowReps]: this row also
+                // tells the auto-advance graphic how many sets the level asks for
+                // (`stageReps.size`), and a timed exercise's pattern is where that count
+                // comes from. What the picker PRINTS is decided by the dialog, which
+                // shows the level's seconds for a DURATION row.
                 stageReps = ProgressionEngine.prescribedReps(entry, level, 1).orEmpty(),
                 isCurrent = level == current,
                 isBeyondPlan = false,
@@ -1436,6 +1564,18 @@ class WorkoutViewModel(
         )
         val prescribed = ProgressionEngine.prescribedValueAtLevel(entry, progState.level, _weightUnit.value)
         val setTarget = targetRepsForCurrentSet(exerciseName, state.currentSetNumber)
+        // A TIMED EXERCISE'S TIMER FOLLOWS ITS LEVEL HERE TOO. The headline above the
+        // button is `prescribed`, so changing the level changed the headline and left
+        // the button starting the OLD level's timer - the card promised 90 s while the
+        // button offered 30. Measured on the device, 2026-10-09: picking Level 5 for
+        // Jumping Jacks moved the banner to "90 s" and left "START 30s TIMER & SAVE"
+        // underneath it. The loader sets the seconds on a load, but a level write is
+        // a refresh, and this is the refresh path - so the same prescription that
+        // updates the headline has to update the seconds with it.
+        val prescribedSeconds = prescribed
+            ?.takeIf { it.kind == ProgressionEngine.ValueKind.DURATION }
+            ?.value?.toInt()
+            ?.takeIf { it in 15..3600 }
         _workoutNowState.update {
             it.copy(
                 progressionLevel = progState.level,
@@ -1444,7 +1584,9 @@ class WorkoutViewModel(
                 progressionPrescribed = prescribed,
                 progressionIsFirstSession = false,
                 currentSetTargetReps = setTarget,
-                currentReps = setTarget ?: it.currentReps
+                currentReps = setTarget ?: it.currentReps,
+                // A rep exercise is untouched: its duration field is not its target.
+                currentExerciseSeconds = prescribedSeconds ?: it.currentExerciseSeconds
             )
         }
     }
@@ -1663,9 +1805,6 @@ class WorkoutViewModel(
         // The per-exercise lock (routine_exercises.locked) holds THIS exercise
         // exactly where it is — the stepper grays out and the engine skips it.
         if (exercise.locked) return
-        // The global lock (level details dialog) holds every exercise's
-        // prescription where it is. Manual stepping still works for both.
-        if (_levelLockEnabled.value) return
         val name = exercise.name
         val state = currentProgressionState(name) ?: return
         val entry = ProgressionEngine.entryFor(name) ?: return
@@ -2156,7 +2295,13 @@ class WorkoutViewModel(
             if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
                 prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
             }
-            if (!currentExercise.targetReps.contains("sec", ignoreCase = true)) {
+            // Both branches below ask the SAME question the card asks - "is this
+            // exercise measured in seconds?" - and they used to answer it by
+            // sniffing the routine's rep string, which mislabelled every timed row
+            // built before the level system (Jumping Jacks' "8–12"). See
+            // [WorkoutTemplates.isExerciseTimeBased] for why the exercise answers it.
+            val isTimeBased = WorkoutTemplates.isExerciseTimeBased(currentExercise.name)
+            if (!isTimeBased) {
                 prefs.putInt("cache_reps_${currentExercise.name}", currentState.currentReps)
             }
             
@@ -2175,7 +2320,7 @@ class WorkoutViewModel(
             // Save current parameters back to template for next week (keep a full rep range, not a single value)
             repository.saveExercise(currentExercise.copy(
                 targetWeightKg = currentState.currentWeightKg,
-                targetReps = if (currentExercise.targetReps.contains("sec", ignoreCase = true)) currentExercise.targetReps
+                targetReps = if (isTimeBased) currentExercise.targetReps
                              else WorkoutTemplates.repRangeAround(currentState.currentReps)
             ))
 

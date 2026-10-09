@@ -50,17 +50,10 @@ def truncate(text: str, limit: int) -> str:
 
 
 
-def load_env() -> dict[str, str]:
-    env = dict(os.environ)
-    env_file = ROOT / ".env"
-    if env_file.exists():
-        for line in env_file.read_text(encoding="utf-8").splitlines():
-            line = line.strip()
-            if not line or line.startswith("#") or "=" not in line:
-                continue
-            key, _, value = line.partition("=")
-            env.setdefault(key.strip(), value.strip().strip('"').strip("'"))
-    return env
+# Grafizum credentials are per project and live OUTSIDE the checkout, under
+# ~/.config/grafizum/projects/. See tools/grafizum_env.py.
+sys.path.insert(0, str(ROOT / "tools"))
+from grafizum_env import load_env  # noqa: E402  (after ROOT is known)
 
 
 def main() -> int:

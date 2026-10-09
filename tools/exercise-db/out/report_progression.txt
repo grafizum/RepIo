@@ -17,7 +17,7 @@ level-system gap (CSV rows left at manual_review):
   still without a ladder   : 0
 
 per equipment category (must mirror the app's 8 chips):
-                          Bodyweight 112  Barbell 89  Dumbbell 80  Kettlebell 60  Cable 27  Machine 61  Bands 28  Other 144
+                          Bodyweight 106  Barbell 89  Dumbbell 79  Kettlebell 60  Cable 27  Machine 68  Bands 28  Other 144
 
 per precise muscle:
   Abs                54

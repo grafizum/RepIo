@@ -1,146 +1,99 @@
 package com.grafizum.repio
 
 import com.grafizum.repio.ui.screens.LevelPillBlocked
-import com.grafizum.repio.ui.screens.LevelPillFill
 import com.grafizum.repio.ui.screens.levelEditControls
 import com.grafizum.repio.ui.screens.levelPillBlockedReason
 import com.grafizum.repio.ui.screens.levelPillStyle
+import com.grafizum.repio.ui.components.stageDividerSpec
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * The pencil's contract, in the owner's own words.
+ * The level card's two controls, and what each of them may do.
  *
- * Board task_3o3c023w5k073f573g0h2g29 (2026-10-01): "I want a pencil option
- * instead of the lock option while in the my workout tab, I want the pencil
- * button to edit current workout level and when pressed it shall switch to a
- * tick that will be ticked to kind of (lock in) the changed workout and save the
- * changes made. While in edit mode the + and - are shown next to the roman level
- * number but hidden once locked in. And the level card (the small level) will be
- * changed to kind of show that during edit mode it can be pressed and when lock
- * in then not anymore."
+ * REWRITTEN 2026-10-08. The owner changed the card and this test follows the change
+ * rather than being deleted with the code it used to cover:
  *
- * That is four rules, and as composable code they were four independent boolean
- * expressions in four places - which is how the pill, the stepper and the pencil
- * end up disagreeing about whether the exercise is being edited. The rules now
- * live in [levelEditControls], and this is the test of them.
+ *   "instead of having that '+' and '-' to change roman number, we will open the
+ *    full exercise edit screen like normal ... instead of the pencil icon in the top
+ *    card where the exercise is shown, we should only show the pencil in the bottom
+ *    card where sets and reps are".
  *
- * The flow itself is: pencil -> `onBeginEdit` (clears routine_exercises.locked,
- * enters edit mode) -> + / - walk the Roman stages -> tick -> `onCommitEdit`
- * (sets the pin again, saving the level). The PERSISTED state is still that one
- * pin, so this is a change to the flow around it, not a new storage.
+ * So the Roman-stage stepper and the two-step edit pass (pencil -> edit mode -> tick)
+ * are gone. What survives is two rules, and they are asserted here because they are
+ * the two ways this card can lie to the user:
+ *
+ *   - the PENCIL is always on the card. It is now the ONLY route into the exercise
+ *     editor from a live session, so hiding it — for any exercise, level-managed or
+ *     not — would leave that exercise uneditable from the workout screen.
+ *   - the level PILL answers to the persisted `routine_exercises.locked` pin, which
+ *     is the user's own "stay on this level". Unlocked and inside the level system it
+ *     opens the ladder directly; anything else refuses and explains itself through
+ *     [levelPillBlockedReason].
+ *
+ * The superseded 2026-10-01 contract ("while in edit mode the + and - are shown next
+ * to the roman level number but hidden once locked in") is deliberately NOT kept as a
+ * dead parameter: `levelEditControls` no longer takes an `editing` flag, so no future
+ * caller can reintroduce a third state by passing one.
  */
 class LevelEditControlsTest {
 
-    /** An exercise inside the level system, not yet locked - the ordinary state. */
-    private fun idle() = levelEditControls(adjustable = true, locked = false, editing = false)
+    /** An exercise inside the level system, unlocked - the ordinary state. */
+    private fun idle() = levelEditControls(adjustable = true, locked = false)
 
     @Test
-    fun anUnlockedIdleExerciseShowsThePencilAndNothingElse() {
+    fun anUnlockedExerciseOffersBothThePencilAndAPressablePill() {
         val c = idle()
-        assertTrue("there would be no way into edit mode", c.showPencil)
-        assertFalse("the + and - must be hidden until the pencil is pressed", c.stepperEnabled)
-        assertFalse("the level pill must be inert until the pencil is pressed", c.levelPillEnabled)
+        assertTrue("the pencil is the only way into the editor now", c.showPencil)
+        assertTrue("an unlocked level must be reachable from the card", c.levelPillEnabled)
     }
 
     @Test
-    fun thePencilOpensTheEditPassAndTheTickClosesIt() {
-        val editing = levelEditControls(adjustable = true, locked = false, editing = true)
-        assertTrue("edit mode must show the tick that locks the level in", editing.showPencil)
-        assertTrue("edit mode must show the roman-stage stepper", editing.stepperEnabled)
-        assertTrue("edit mode must make the level card pressable", editing.levelPillEnabled)
-
-        // And back again: committed, everything but the pencil goes inert.
-        val committed = levelEditControls(adjustable = true, locked = true, editing = false)
+    fun aCommittedLevelRefusesThePillButKeepsThePencil() {
+        val committed = levelEditControls(adjustable = true, locked = true)
         assertTrue("the pencil must stay reachable once committed", committed.showPencil)
-        assertFalse("+ and - are hidden once locked in", committed.stepperEnabled)
         assertFalse("the level card is not pressable once locked in", committed.levelPillEnabled)
     }
 
-    /**
-     * The one that is easy to get wrong and impossible to notice by reading: a
-     * committed level must not be adjustable THROUGH the back door of a stale
-     * edit flag. `editing` is local UI state; `locked` is the saved truth, and
-     * the saved truth wins.
-     */
     @Test
-    fun aLockedExerciseStaysInertEvenIfAnEditFlagSurvives() {
-        val stale = levelEditControls(adjustable = true, locked = true, editing = true)
-        assertFalse("the stepper must not walk a locked level", stale.stepperEnabled)
-        assertFalse("the level card must not open for a locked level", stale.levelPillEnabled)
-        assertTrue("but the pencil is still there to unlock it", stale.showPencil)
+    fun thePencilIsReachableFromEveryStateTheAppCanBeIn() {
+        for (adjustable in listOf(true, false)) {
+            for (locked in listOf(true, false)) {
+                val c = levelEditControls(adjustable, locked)
+                assertTrue(
+                    "pencil unreachable: adjustable=$adjustable locked=$locked",
+                    c.showPencil
+                )
+            }
+        }
     }
 
     /**
-     * An exercise the level system cannot rate grows no stepper and no pressable
-     * pill - but it KEEPS the pencil while it is locked, and that exception is the
-     * whole point.
+     * An exercise the level system cannot rate has no pill to press - there is no
+     * ladder behind it - but it KEEPS the pencil, and that exception is the whole
+     * point of asserting it.
      *
      * `locked` is a column on the routine row, not a property of the level system:
      * the evolution-deny path writes it, and so does the user's own hand. So an
      * exercise can be locked while carrying no level at all, and hiding the pencil
-     * then would make that lock PERMANENT - the one control that clears it is the
-     * one that disappeared. The first version of this test asserted the tidy rule
-     * ("adjustable=false never grows chrome") and it was wrong in exactly that
-     * direction.
+     * then would make that lock PERMANENT - the one control that clears it is the one
+     * that disappeared. (The same reasoning now applies to custom-mode exercises,
+     * which is why the pencil is unconditional.)
      */
     @Test
-    fun anExerciseOutsideTheLevelSystemHasNoStepperButALockedOneKeepsItsPencil() {
-        val unlocked = levelEditControls(adjustable = false, locked = false, editing = false)
-        assertFalse("nothing to edit, so nothing to offer", unlocked.showPencil)
-        assertFalse(unlocked.stepperEnabled)
-        assertFalse(unlocked.levelPillEnabled)
+    fun anExerciseOutsideTheLevelSystemKeepsItsPencil() {
+        val unlocked = levelEditControls(adjustable = false, locked = false)
+        assertTrue("custom mode still edits name, demo link and its own reps", unlocked.showPencil)
+        assertFalse("there is no level to jump to", unlocked.levelPillEnabled)
 
-        val lockedOutside = levelEditControls(adjustable = false, locked = true, editing = false)
+        val lockedOutside = levelEditControls(adjustable = false, locked = true)
         assertTrue(
             "a locked exercise with no level would be permanently locked",
             lockedOutside.showPencil
         )
-        assertFalse("there is no level to step", lockedOutside.stepperEnabled)
         assertFalse("there is no level pill to press", lockedOutside.levelPillEnabled)
-    }
-
-    /**
-     * Not decoration: the stepper and the pill are two different controls and the
-     * owner described them in the same breath, so they must never drift apart.
-     */
-    @Test
-    fun theStepperAndTheLevelPillAlwaysAgree() {
-        for (adjustable in listOf(true, false)) {
-            for (locked in listOf(true, false)) {
-                for (editing in listOf(true, false)) {
-                    val c = levelEditControls(adjustable, locked, editing)
-                    assertTrue(
-                        "stepper=${c.stepperEnabled} pill=${c.levelPillEnabled} for " +
-                            "adjustable=$adjustable locked=$locked editing=$editing",
-                        c.stepperEnabled == c.levelPillEnabled
-                    )
-                }
-            }
-        }
-    }
-
-    /** The pencil is the only way back in, so it can never be hidden by state. */
-    @Test
-    fun thePencilIsReachableFromEveryStateTheAppCanBeIn() {        for (adjustable in listOf(true, false)) {
-            for (locked in listOf(true, false)) {
-                for (editing in listOf(true, false)) {
-                    // The only combination that hides it is an exercise outside the
-                    // level system that is neither locked nor being edited - and that
-                    // combination is not reachable from the UI, because the pencil is
-                    // the only control that sets `editing`.
-                    val c = levelEditControls(adjustable, locked, editing)
-                    if (adjustable || locked || editing) {
-                        assertTrue(
-                            "pencil unreachable: adjustable=$adjustable locked=$locked editing=$editing",
-                            c.showPencil
-                        )
-                    }
-                }
-            }
-        }
     }
 
     /**
@@ -186,60 +139,112 @@ class LevelEditControlsTest {
      * was flattest at the exact moment the pencil was open and the user was about
      * to press it.
      *
-     * The word doing the work is "when", and it is why this asserts a DIRECTION
-     * rather than a difference. "Editing and idle are not the same" is satisfied by
-     * an edit pill that sits BELOW idle, which would be a new flatness rather than
-     * a fix; the requirement is that the affordance GROWS when the pencil opens.
+     * SUPERSEDED TWICE, AND THE SECOND TIME IN THE OPPOSITE DIRECTION.
      *
-     * SUPERSEDED BY THE 2026-10-04 INVERSION, which reversed this direction: "no
-     * i want the current edit design to be 'none edit' and the 'none edit' design
-     * to be the edit design, invert them". The edit pill is now the SOLID one and
-     * the committed pill is the ring. The assertion below pins the mapping in
-     * both directions, and is kept rather than deleted because the trap is
-     * precisely that both versions of this test are satisfied by "the states
-     * differ" - only the direction tells them apart.
+     * The 2026-10-04 inversion made an open edit pass the SOLID pill and a
+     * committed level the ring, and this case pinned that mapping in both
+     * directions ("the states differ" cannot tell the two versions apart, only the
+     * direction can). The 2026-10-09 ruling retires the whole idea of a
+     * state-dependent level label:
      *
-     * AND BY THE 2026-10-05 RULING, which took the elevation out of both states
-     * entirely - see [neitherPillStateCastsAShadow].
+     *   *"dont change the level label when locking or unlocking an exercise. Keep
+     *   the label as a thin border around the level instead."*
+     *
+     * So the old case is DELETED rather than weakened, and its replacement asserts
+     * the opposite property: no state may change the label at all. Leaving a
+     * "they must differ" assertion in place would have been asserting the exact
+     * behaviour the owner just forbade. The lock is still visible - it is the lock
+     * CHIP beside the label that fills when it is on - and this test is what stops
+     * the next editor from making the label carry it again.
      */
     @Test
-    fun theEditPillIsTheSolidOneAndTheCommittedPillTheOutlinedOne() {
+    fun theLevelLabelLooksTheSameLockedAndUnlocked() {
         for (progressionAvailable in listOf(true, false)) {
-            val idle = levelPillStyle(editing = false, progressionAvailable = progressionAvailable)
-            val editing = levelPillStyle(editing = true, progressionAvailable = progressionAvailable)
+            val unlocked = levelPillStyle(editing = true, progressionAvailable = progressionAvailable)
+            val locked = levelPillStyle(editing = false, progressionAvailable = progressionAvailable)
 
-            // FILL: the owner's inversion, stated as a mapping in both directions.
             assertEquals(
-                "an OPEN edit pass is the solid fill (progressionAvailable=$progressionAvailable)",
-                LevelPillFill.SOLID,
-                editing.fill
+                "the ring must not move with the lock (progressionAvailable=$progressionAvailable)",
+                unlocked.borderWidthDp,
+                locked.borderWidthDp
             )
             assertEquals(
-                "a COMMITTED level is the outlined ring (progressionAvailable=$progressionAvailable)",
-                LevelPillFill.OUTLINED,
-                idle.fill
-            )
-
-            // ELEVATION is not part of the distinction any more: it is 0 in both
-            // states, because a Material3 Surface casts a shadow from the shape's
-            // OUTLINE and the ring has no fill to lift. See
-            // [neitherPillStateCastsAShadow] for the owner's report and the
-            // two earlier rounds of this same parameter.
-            assertEquals(
-                "the committed ring casts no shadow (progressionAvailable=$progressionAvailable)",
-                0,
-                idle.shadowElevationDp
+                "nor the horizontal padding",
+                unlocked.horizontalPaddingDp,
+                locked.horizontalPaddingDp
             )
             assertEquals(
-                "the solid fill casts no shadow either (progressionAvailable=$progressionAvailable)",
-                0,
-                editing.shadowElevationDp
+                "nor the vertical padding",
+                unlocked.verticalPaddingDp,
+                locked.verticalPaddingDp
+            )
+            assertEquals(
+                "nor a shadow",
+                unlocked.shadowElevationDp,
+                locked.shadowElevationDp
             )
         }
     }
 
     /**
-     * The pill must not cast a shadow in EITHER state.
+     * It is a THIN border - one hairline, in every combination of states.
+     *
+     * The ring used to be 2dp whenever it was the committed level, which is the
+     * "heavy" reading of a label the owner has now asked to be thin. Both flags
+     * are swept because the failure this guards is a future editor reintroducing a
+     * branch: any branch that changes the width would have to change it for at
+     * least one of these four calls.
+     */
+    @Test
+    fun theLevelLabelIsAThinBorderInEveryState() {
+        for (editing in listOf(true, false)) {
+            for (progressionAvailable in listOf(true, false)) {
+                assertEquals(
+                    "owner: \"keep the label as a thin border around the level\" " +
+                        "(editing=$editing, progressionAvailable=$progressionAvailable)",
+                    1,
+                    levelPillStyle(editing = editing, progressionAvailable = progressionAvailable).borderWidthDp
+                )
+            }
+        }
+    }
+
+/**
+ * The bar between the level and its Roman stage is a HAIRLINE, and it is never typed.
+ *
+ * Owner, 2026-10-09: *"make the line that separates level with roman number, thinner so it
+ * doesnt look like a number or letter"*. The reading used to be assembled as a String - 
+ * `"Level 10" + LEVEL_STAGE_SEPARATOR + "IV"` - which put a full `|` glyph between two
+ * bold numerals at the same height as them, so it resolved as one more digit rather than
+ * as a divider. The fix is that the bar is DRAWN ([LevelStageDivider], fed by this spec)
+ * and that the label is one composable shared by the card and the guide's example of it.
+ *
+ * This pins the property the owner asked for, on the value rather than on the pixels: one
+ * dp, under the cap height of the text around it, and translucent enough to group the two
+ * readings instead of competing with them. A branch that made the bar 2dp "to match the
+ * ring" would have to fail here first.
+ */
+@Test
+fun theStageDividerIsAHairlineAndNotACharacter() {
+    val spec = stageDividerSpec()
+    assertEquals("a 1dp rule is the whole fix: it has no glyph to read", 1, spec.widthDp)
+    assertTrue(
+        "the bar must not stand taller than the text it divides (was ${spec.heightDp}dp)",
+        spec.heightDp <= 14
+    )
+    assertTrue(
+        "a full-strength bar reads as text again (was ${spec.alpha})",
+        spec.alpha < 1f
+    )
+    assertTrue(
+        "the bar needs breathing room or it fuses with the numerals (was " +
+            "${spec.horizontalPaddingDp}dp)",
+        spec.horizontalPaddingDp >= 4
+    )
+}
+
+/**
+ * The pill must not cast a shadow in EITHER state.
      *
      * Owner, on the phone: "the level button / label has a weird white line under
      * it and a shadow i want that fixed". That is not a styling preference, it is
@@ -271,39 +276,15 @@ class LevelEditControlsTest {
         }
     }
 
-    /**
-     * The two states must not be able to drift into looking alike again, which is
-     * what the 2026-10-02 complaint was in the first place. Asserted on the
-     * rendered surface properties rather than on the fill enum alone, because the
-     * border is what actually differs on screen once both states are drawn.
+    /*
+     * DELETED, 2026-10-09: `theTwoPillStatesStayVisiblyDifferent`.
      *
-     * ELEVATION CAN NO LONGER CARRY ANY WEIGHT HERE - it is 0 in both states by
-     * the 2026-10-05 ruling - so the two properties that still differ are fill
-     * and ring. That is a real constraint on this test rather than a formality:
-     * it used to assert `idle.shadow > editing.shadow`, which is now satisfied by
-     * `0 > 0` being false, so leaving it would have quietly stopped testing
-     * anything at all.
+     * Its premise was that the two states MUST be told apart by the label (ring
+     * against fill, ring weight against hairline), which is the opposite of the
+     * owner's ruling that locking must not change the label at all. Its intent -
+     * "the user must be able to see the lock" - is carried by the card's lock chip,
+     * not by this pure style function, so the coverage moves rather than weakens.
      */
-    @Test
-    fun theTwoPillStatesStayVisiblyDifferent() {
-        val idle = levelPillStyle(editing = false, progressionAvailable = false)
-        val editing = levelPillStyle(editing = true, progressionAvailable = false)
-
-        assertEquals(
-            "the committed level is the ring, the open edit pass is the fill",
-            LevelPillFill.OUTLINED,
-            idle.fill
-        )
-        assertEquals(
-            "the committed level is the ring, the open edit pass is the fill",
-            LevelPillFill.SOLID,
-            editing.fill
-        )
-        assertTrue(
-            "the committed ring must stay stronger than the editing hairline",
-            idle.borderWidthDp > editing.borderWidthDp
-        )
-    }
 
     /**
      * The pending progression compacts the pill so it can stop taking the row's
@@ -325,6 +306,11 @@ class LevelEditControlsTest {
             assertTrue(
                 "the compact pill gives up padding (editing=$editing)",
                 compact.verticalPaddingDp < roomy.verticalPaddingDp
+            )
+            assertEquals(
+                "and the thin ring is not a compaction knob (editing=$editing)",
+                roomy.borderWidthDp,
+                compact.borderWidthDp
             )
         }
     }

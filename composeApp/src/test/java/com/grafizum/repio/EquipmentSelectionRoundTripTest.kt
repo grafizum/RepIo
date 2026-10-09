@@ -112,14 +112,64 @@ class EquipmentSelectionRoundTripTest {
         )
     }
 
+    @Test
+    fun tickingTheMachinesTileGrantsTheStationsItStandsFor() {
+        // The tile is called "Machines", and its grant used to be `machine_other`
+        // alone. That made the tile a lie in the OTHER direction from the
+        // invisibility above: a user who ticked it got the battle ropes and the
+        // ab wheel and could reach NONE of the ~45 rows the eight stations gate,
+        // with no way to say "I have a leg press" short of the Full-gym preset.
+        val afterTick = ExerciseEquipmentTags.tagsGrantedByTicking(
+            ExerciseEquipmentTags.MACHINE_OTHER
+        )
+        val granted = ExerciseEquipmentTags.allowedTagsFor(
+            listOf(ExerciseEquipmentTags.PRESET_CUSTOM) + afterTick.toList()
+        )
+        assertTrue(ExerciseEquipmentTags.isAvailable("Leg Press", granted))
+        assertTrue(ExerciseEquipmentTags.isAvailable("Leg Extension", granted))
+        assertTrue(ExerciseEquipmentTags.isAvailable("Machine Chest Press", granted))
+        // ("Lat Pulldown" itself is a CABLE row; this is the machine one.)
+        assertTrue(ExerciseEquipmentTags.isAvailable("V-Bar Lat Pulldown", granted))
+        // Ticking is still PURELY ADDITIVE - no station is dropped - and the kit
+        // still cannot reach a barbell it did not declare.
+        assertTrue(ExerciseEquipmentTags.MACHINE_OTHER in granted)
+        assertFalse(ExerciseEquipmentTags.isAvailable("Barbell Back Squat", granted))
+    }
+
+    @Test
+    fun tickThenUntickTheMachinesTileIsANoOp() {
+        // Granting the whole family is only safe because tick and untick stand
+        // for the SAME set: an asymmetric pair would let one tap add and the next
+        // silently remove machinery the user does own.
+        val machines = ExerciseEquipmentTags.MACHINE_OTHER
+        val startedAs = listOf(
+            ExerciseEquipmentTags.PRESET_CUSTOM,
+            ExerciseEquipmentTags.DUMBBELLS_ONLY,
+        )
+        val before = ExerciseEquipmentTags.allowedTagsFor(startedAs)
+        val ticked = ExerciseEquipmentTags.allowedTagsFor(
+            startedAs + ExerciseEquipmentTags.tagsGrantedByTicking(machines)
+        )
+        val unticked = ExerciseEquipmentTags.allowedTagsFor(
+            startedAs + (ticked - ExerciseEquipmentTags.tagsCoveredByTile(machines))
+        )
+        assertEquals("tick then untick must return the original kit", before, unticked)
+        assertTrue("the tick must add the stations", ExerciseEquipmentTags.isAvailable("Leg Press", ticked))
+        assertFalse("the untick must take them away", ExerciseEquipmentTags.isAvailable("Leg Press", unticked))
+        assertTrue(
+            "the untick must not touch the kit the user did declare",
+            ExerciseEquipmentTags.isAvailable("Dumbbell Bicep Curl", unticked),
+        )
+    }
+
     /**
      * A row LEAKS when it survives the gate but EVERY one of its alternatives
      * names apparatus the user does not own.
      *
-     * "Mentions a machine somewhere" is NOT a leak: "Decline Bench Press" lists
-     * `[{barbell_and_rack}, {bench + dumbbells}]`, so a dumbbells-and-bench kit
-     * may legitimately have it through the second alternative. Testing for the
-     * mention flagged that correct row as broken.
+     * "Mentions a machine somewhere" is NOT a leak: a row may list several
+     * alternatives and a kit needs only ONE of them, so "Decline Push-Up" lists
+     * `[{chair}, {bench}]` and a user with a chair legitimately has it. Testing
+     * for the mention flagged such correct rows as broken.
      */
     private fun leakedRows(names: List<String>): List<String> = names.filter { name ->
         val alts = ExerciseEquipmentTags.requirementsFor(name)
@@ -201,6 +251,76 @@ class EquipmentSelectionRoundTripTest {
             "an empty selection means unrestricted, not bodyweight-only",
             ExerciseEquipmentTags.ALL_TAGS.toSet(),
             ExerciseEquipmentTags.allowedTagsFor(emptyList())
+        )
+    }
+
+    /**
+     * The rack and the barbell are two tiles, and the user must be able to tick
+     * either one alone.
+     *
+     * OWNER REPORT, 2026-10-08: "the squat rack and barbell equipment icons are
+     * turning on and off together so the user cant select one but not the other".
+     * The tiles were nested at the time (Rack covered all three barbell tags),
+     * and `isChecked` reads a tile as ticked when ANY of its tags is granted - so
+     * ticking Barbell lit Rack up even though Rack's own tag was absent. The pair
+     * is now two independent switches, and this walks the screen's own logic
+     * (`tagsGrantedByTicking` on a tick, `tagsCoveredByTile` on an untick, both
+     * read back through the tile's coverage) rather than asserting the sets
+     * directly, because the SET is not the bug - the read-back is.
+     */
+    @Test
+    fun theRackAndBarbellTilesAreTwoIndependentSwitches() {
+        val rack = ExerciseEquipmentTags.BARBELL_AND_RACK
+        val barbell = ExerciseEquipmentTags.BARBELL_AND_FLOOR
+        assertTrue("the rack tile must be a real tile", rack in ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS)
+        assertTrue("the barbell tile must be a real tile", barbell in ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS)
+
+        // Exactly what EquipmentTileSection does with the granted tags.
+        fun isChecked(granted: Set<String>, tile: String) =
+            granted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tile) }
+        fun tick(granted: Set<String>, tile: String) =
+            granted + ExerciseEquipmentTags.tagsGrantedByTicking(tile)
+        fun untick(granted: Set<String>, tile: String) =
+            granted - ExerciseEquipmentTags.tagsCoveredByTile(tile)
+
+        val onlyRack = tick(emptySet(), rack)
+        val onlyBarbell = tick(emptySet(), barbell)
+        assertTrue("ticking the rack must tick the rack", isChecked(onlyRack, rack))
+        assertFalse(
+            "ticking the rack must NOT tick the barbell tile beside it",
+            isChecked(onlyRack, barbell)
+        )
+        assertTrue("ticking the barbell must tick the barbell", isChecked(onlyBarbell, barbell))
+        assertFalse(
+            "ticking the barbell must NOT tick the rack tile beside it",
+            isChecked(onlyBarbell, rack)
+        )
+
+        // A user who owns both ticks both, and unticking one leaves the other
+        // alone - the half of the complaint that a tick-only guard would miss.
+        val both = tick(tick(emptySet(), rack), barbell)
+        assertTrue(isChecked(both, rack) && isChecked(both, barbell))
+        assertFalse("unticking the rack removed nothing", isChecked(untick(both, rack), rack))
+        assertTrue(
+            "unticking the rack must not take the barbell with it",
+            isChecked(untick(both, rack), barbell)
+        )
+        assertTrue(
+            "unticking the barbell must not take the rack with it",
+            isChecked(untick(both, barbell), rack)
+        )
+
+        // And nothing became unreachable by splitting them: the barbell tile
+        // still grants `barbell_only` (the tag the barbell rows that need
+        // neither rack nor floor gate on), and the rack tile does not need to.
+        assertTrue(
+            "a barbell with no rack must still grant barbell_only, or rows like the " +
+                "barbell curl and the strict press are unreachable without a rack",
+            ExerciseEquipmentTags.BARBELL_ONLY in onlyBarbell
+        )
+        assertTrue(
+            "the rack tag is granted by ticking the rack",
+            rack in onlyRack
         )
     }
 }

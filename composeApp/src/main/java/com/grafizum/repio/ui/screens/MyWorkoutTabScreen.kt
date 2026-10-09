@@ -89,10 +89,9 @@ fun WorkoutTabScreen(
             properties = DialogProperties(usePlatformDefaultWidth = false)
         ) {
             Surface(
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceVariant,
-                border = if (isDeveloper) BorderStroke(1.dp, Color.White)
-                         else BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                shape = RoundedCornerShape(24.dp),
+                color = MaterialTheme.colorScheme.surfaceVariant,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
                 modifier = Modifier
                     .fillMaxWidth(0.96f)
                     .widthIn(max = 640.dp)
@@ -107,7 +106,7 @@ fun WorkoutTabScreen(
                     Text(
                         text = getString("level_system_guide_title"),
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        color = MaterialTheme.colorScheme.primary
                     )
 
                     // weight(1f) so the guide takes the leftover height and scrolls
@@ -122,7 +121,7 @@ fun WorkoutTabScreen(
 
                     Button(
                         onClick = { showLevelsGuide = false },
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
+                        shape = RoundedCornerShape(14.dp),
                         colors = ButtonDefaults.buttonColors(
                             containerColor = MaterialTheme.colorScheme.primary,
                             contentColor = MaterialTheme.colorScheme.onPrimary

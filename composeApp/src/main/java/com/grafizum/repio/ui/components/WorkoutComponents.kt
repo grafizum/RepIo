@@ -43,7 +43,6 @@ import androidx.compose.ui.geometry.Size
 import androidx.compose.ui.graphics.Brush
 import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.graphics.Path
-import androidx.compose.ui.graphics.RectangleShape
 import androidx.compose.ui.graphics.StrokeCap
 import androidx.compose.ui.graphics.drawscope.Stroke
 import androidx.compose.ui.graphics.graphicsLayer
@@ -63,6 +62,7 @@ import androidx.compose.ui.platform.LocalFocusManager
 import androidx.compose.ui.semantics.contentDescription
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
+import androidx.compose.ui.text.TextStyle
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
@@ -105,6 +105,130 @@ import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.theme.LocalLightTheme
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
+
+/**
+ * The bar between a level and its stage in the level box: `"Level 10 | IV"`.
+ *
+ * Owner, 2026-10-08: *"i want the card to show 'level 10 | IV' for example as a whole small
+ * box instead of having the romand number on the right"*. The level and the stage it sits on
+ * are one answer read twice, so the live card draws them inside one surface around this
+ * separator - and the guide's example rows read it from here too, so the app cannot end up
+ * teaching one notation while showing another.
+ */
+const val LEVEL_STAGE_SEPARATOR = " | "
+
+/**
+ * How thick the rule between a level and its Roman stage is drawn.
+ *
+ * Owner, 2026-10-09: *"make the line that separates level with roman number, thinner so it
+ * doesnt look like a number or letter"*. What it replaces was the [LEVEL_STAGE_SEPARATOR]
+ * CHARACTER printed between "Level 10" and "IV": a full `|` glyph, in the same weight, the
+ * same colour and the same height as the digits on either side of it - which is exactly why
+ * it read as one more numeral, or as a stray `l` from a lost word, rather than as a divider.
+ * A 1dp rule cannot be misread that way: it has no glyph to read.
+ *
+ * The four numbers live in a spec rather than in literals inside the composable so that a
+ * test can pin the property the owner actually asked for — it is THIN, never a second ring
+ * — and so that the guide's copy of this box cannot quietly keep the old thickness. It is
+ * the same arrangement as [com.grafizum.repio.ui.screens.LevelPillStyle] on the card: the
+ * look is a value with a name, not a number buried where only pixels can report it.
+ */
+data class StageDividerSpec(
+    val widthDp: Int,
+    val heightDp: Int,
+    val horizontalPaddingDp: Int,
+    val alpha: Float,
+)
+
+/**
+ * One hairline, no taller than the cap height it sits between.
+ *
+ * 14dp against the label's own type, and 0.55 alpha so it groups the two readings without
+ * competing with either of them — the pipe it replaces was full-strength text, which is half
+ * of why it read as text.
+ */
+fun stageDividerSpec(): StageDividerSpec = StageDividerSpec(
+    widthDp = 1,
+    heightDp = 14,
+    horizontalPaddingDp = 6,
+    alpha = 0.55f,
+)
+
+/** The divider's test handle — see [LevelStageDivider]. */
+const val LEVEL_STAGE_DIVIDER_TAG = "level_chip_divider"
+
+/**
+ * The rule itself, DRAWN rather than typed.
+ *
+ * Owner, 2026-10-09. Drawing it is the fix, not the styling: a character can be given a
+ * lighter weight and a smaller size and still be read as a character whenever the reader is
+ * scanning for one, but a 1dp bar has no glyph to resolve. Everything about it comes from
+ * [stageDividerSpec] so the guide's example of this box and the live card draw the same line.
+ */
+@Composable
+fun LevelStageDivider(color: Color) {
+    val spec = stageDividerSpec()
+    Box(
+        modifier = Modifier
+            .padding(horizontal = spec.horizontalPaddingDp.dp)
+            .width(spec.widthDp.dp)
+            .height(spec.heightDp.dp)
+            .background(color.copy(alpha = spec.alpha))
+            // Tagged like the box's other two parts ("level_chip", "level_chip_value"), so a
+            // test can measure the bar that was actually laid out instead of trusting the
+            // spec - the owner's complaint was about what the phone draws, not about a
+            // constant. `LevelStageLabelRenderTest` reads this node's bounds.
+            .semantics { testTag = LEVEL_STAGE_DIVIDER_TAG }
+    )
+}
+
+/**
+ * The level box's reading — "Level 10 ⏐ IV" — drawn ONCE, for both surfaces that print it.
+ *
+ * It exists because there ARE two of them, and they drifted the moment the card's bar stopped
+ * being a glyph: the guide's `LevelLockExample` shows this box to teach the card, and it is
+ * copied from the card by hand. Two hand-copied labels is one label plus one future lie — and
+ * this one is copied from a surface the owner reads on the phone, so the lie would be the
+ * first thing a reader compares against the real card.
+ *
+ * [trailing] carries the stage dots, which only the card draws: they are the level's own
+ * lattice, and the guide explains them in the caption beside this box rather than inside it.
+ * [style] is a parameter because the card compacts the label when a progression is pending
+ * while the guide's example is always the roomy one; the SIZE may differ, the reading cannot.
+ */
+@Composable
+fun LevelStageLabel(
+    level: Int,
+    stage: Int,
+    style: TextStyle,
+    color: Color,
+    modifier: Modifier = Modifier,
+    trailing: (@Composable RowScope.() -> Unit)? = null,
+) {
+    Row(
+        verticalAlignment = Alignment.CenterVertically,
+        modifier = modifier
+    ) {
+        Text(
+            text = getString("level_word_n", level),
+            style = style,
+            color = color,
+            maxLines = 1
+        )
+        LevelStageDivider(color)
+        // The Roman numeral as a READOUT, not a control. The -/+ that walked the stages was
+        // removed on the owner's instruction (2026-10-08): "instead of having that '+' and '-'
+        // to change roman number, we will open the full exercise edit screen like normal".
+        Text(
+            text = ProgressionEngine.stageName(stage),
+            style = style,
+            color = color,
+            modifier = Modifier.semantics { testTag = "level_chip_value" },
+            maxLines = 1
+        )
+        trailing?.invoke(this)
+    }
+}
 
 // Color mappings per muscle group
 /**
@@ -229,11 +353,10 @@ fun MuscleGroupBadge(
         modifier = modifier
     ) {
         Surface(
-            color = if (isDeveloper) Color.Black else color.copy(alpha = 0.2f),
-            contentColor = if (isDeveloper) Color.White else textColor,
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
-        ) {
+            color = color.copy(alpha = 0.2f),
+            contentColor = textColor,
+            shape = RoundedCornerShape(8.dp),
+            border = null) {
             Text(
                 text = topicLabel,
                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
@@ -367,6 +490,42 @@ private fun translateGenericExerciseName(name: String): String {
 }
 
 /**
+ * THE ONE SUMMARY LINE for a planned exercise row: "3 sets × 90 s" or "3 sets ×
+ * 8–12 reps".
+ *
+ * Owner, 2026-10-09: *"Jumping jacks is one of many exercises that doesnt show the
+ * level style and it shows reps in the card yet the exercise is based on time and
+ * has a timer????"* - and the same lie sat on the HOME schedule, the routine row
+ * and the setup preview, each written as its own `sets_x_reps_pl` call. A timed
+ * exercise therefore read as a rep exercise in three places that had nothing to do
+ * with the card that was being fixed.
+ *
+ * The unit comes from the exercise ([WorkoutTemplates.isExerciseTimeBased]) and the
+ * NUMBER comes from the level system when the caller can supply it: a jumping jack
+ * stores "8–12" from before the level system, so printing the stored string under a
+ * seconds label would only move the confusion. [prescribed] is the row's
+ * prescription at the level it is on - the same value the workout card headlines -
+ * so the schedule and the card cannot disagree.
+ */
+@Composable
+fun exerciseSetsSummaryLabel(
+    exerciseName: String,
+    targetSets: Int,
+    storedTarget: String,
+    prescribed: ProgressionEngine.PrescribedValue? = null,
+): String {
+    if (!WorkoutTemplates.isExerciseTimeBased(exerciseName)) {
+        return getQuantityString("sets_x_reps_pl", targetSets, targetSets, storedTarget)
+    }
+    val seconds = prescribed
+        ?.takeIf { it.kind == ProgressionEngine.ValueKind.DURATION }
+        ?.value?.toInt()
+        ?: WorkoutTemplates.secondsInStoredTarget(storedTarget)
+    val value = seconds?.let { getString("progression_duration_value", it) } ?: storedTarget
+    return getQuantityString("sets_x_time_pl", targetSets, targetSets, value)
+}
+
+/**
  * Short, localized label for a stored tempo cue ("explosive", "slow" or "" = none).
  * Kept tiny so it fits on the exercise info line next to sets/reps.
  */
@@ -469,12 +628,12 @@ fun StatCard(
     val window = LocalWindowSize.current
 
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
+        shape = RoundedCornerShape(24.dp),
         colors = CardDefaults.cardColors(
             containerColor = MaterialTheme.colorScheme.surfaceVariant
         ),
-        elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 4.dp),
-        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+        elevation = CardDefaults.cardElevation(defaultElevation = 4.dp),
+        border = null,
         modifier = modifier
     ) {
         Column(
@@ -499,8 +658,8 @@ fun StatCard(
                             Box(
                                 modifier = Modifier
                                     .size(40.dp)
-                                    .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp))
-                                    .background(if (isDeveloper) Color.White else iconColor.copy(alpha = 0.12f)),
+                                    .clip(RoundedCornerShape(12.dp))
+                                    .background(iconColor.copy(alpha = 0.12f)),
                                 contentAlignment = Alignment.Center
                             ) {
                                 if (leading != null) {
@@ -509,7 +668,7 @@ fun StatCard(
                                     Icon(
                                         imageVector = icon!!,
                                         contentDescription = null,
-                                        tint = if (isDeveloper) Color.Black else iconColor,
+                                        tint = iconColor,
                                         modifier = Modifier.size(20.dp)
                                     )
                                 }
@@ -533,7 +692,7 @@ fun StatCard(
                                 style = MaterialTheme.typography.headlineMedium.copy(fontWeight = FontWeight.ExtraBold),
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis,
-                                color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                                color = MaterialTheme.colorScheme.onSurface
                             )
                         }
 
@@ -605,7 +764,7 @@ fun StatCard(
                             Icon(
                                 imageVector = icon,
                                 contentDescription = null,
-                                tint = if (isDeveloper) Color.White else iconColor,
+                                tint = iconColor,
                                 modifier = Modifier.size(44.dp).align(Alignment.CenterVertically)
                             )
                         }
@@ -623,7 +782,7 @@ fun StatCard(
                             ),
                             maxLines = 1,
                             overflow = TextOverflow.Ellipsis,
-                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                            color = MaterialTheme.colorScheme.onSurface
                         )
                     }
                 }
@@ -651,15 +810,15 @@ fun StatCard(
                     Box(
                         modifier = Modifier
                             .size(36.dp)
-                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape)
-                            .background(if (isDeveloper) Color.White else iconColor.copy(alpha = 0.15f)),
+                            .clip(CircleShape)
+                            .background(iconColor.copy(alpha = 0.15f)),
                         contentAlignment = Alignment.Center
                     ) {
                         if (icon != null) {
                             Icon(
                                 imageVector = icon,
                                 contentDescription = title,
-                                tint = if (isDeveloper) Color.Black else iconColor,
+                                tint = iconColor,
                                 modifier = Modifier.size(20.dp)
                             )
                         }
@@ -696,11 +855,11 @@ fun ExerciseVideoLinkButton(
                 showInputDialog = true
             },
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(10.dp),
             modifier = modifier
         ) {
             val icon = if (videoUrl.isNotBlank()) Icons.Default.Edit else Icons.Default.Add
@@ -726,11 +885,11 @@ fun ExerciseVideoLinkButton(
                 openUrl(videoUrl)
             },
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(10.dp),
             modifier = modifier.semantics { testTag = "watch_demo_button" }
         ) {
             Icon(
@@ -755,11 +914,11 @@ fun ExerciseVideoLinkButton(
                 showInputDialog = true
             },
             colors = ButtonDefaults.buttonColors(
-                containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                containerColor = MaterialTheme.colorScheme.primary,
+                contentColor = MaterialTheme.colorScheme.onPrimary
             ),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+            shape = RoundedCornerShape(10.dp),
             modifier = modifier.semantics { testTag = "input_demo_button" }
         ) {
             Icon(
@@ -992,10 +1151,14 @@ fun ExpandableExerciseCard(
 
     val (description, _) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
     val isDeveloper = LocalDeveloperSkin.current
+    // The gap between the sets, the intensity and the tempo is a text gap, so it
+    // comes from the window rather than a fixed dp - see [WindowSize.inlineGap].
+    val window = LocalWindowSize.current
+    val inlineGap = window.inlineGap
     val focusManager = LocalFocusManager.current
 
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(
             containerColor = if (isSelected) MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)
                             else MaterialTheme.colorScheme.surfaceVariant
@@ -1003,9 +1166,7 @@ fun ExpandableExerciseCard(
         // Hairline rim in the idle state: the routine rows hold a visible edge
         // against the background instead of dissolving into it. Selection keeps
         // its stronger primary border.
-        border = if (isDeveloper) BorderStroke(2.dp, Color.White)
-                 else if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
-                 else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
+        border = if (isSelected) BorderStroke(2.dp, MaterialTheme.colorScheme.primary) else BorderStroke(1.dp, MaterialTheme.colorScheme.outline),
         modifier = modifier
             .fillMaxWidth()
             .clickable(
@@ -1032,7 +1193,7 @@ fun ExpandableExerciseCard(
                     Icon(
                         imageVector = Icons.Default.Menu,
                         contentDescription = "Reorder",
-                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
+                        tint = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f),
                         modifier = Modifier
                             .padding(end = 8.dp)
                             .then(dragHandleModifier)
@@ -1045,43 +1206,81 @@ fun ExpandableExerciseCard(
                         )
                     }
                     Column {
-                        Row(verticalAlignment = Alignment.CenterVertically) {
+                        // THE NAME GETS ITS OWN LINE WHEN THE TEXT IS BIG.
+                        //
+                        // Measured on the 1.8x emulator: side by side, the muscle
+                        // badge (two chips, 430px of the row) left "Dumbbell Bench
+                        // Press" 212px, so the name of the exercise rendered as
+                        // "Dumbb..." - the exercise was abbreviated to make room
+                        // for its own muscle group. Stacked, the name reads in full
+                        // and the badge keeps a line it does not have to share.
+                        //
+                        // Only at a large font scale: the badge's share of the row
+                        // is a FRACTION, so at 1.0x there is room for both and the
+                        // compact one-line header is the better header.
+                        if (window.isLargeText) {
                             Text(
                                 text = translateExerciseName(exercise.name),
                                 style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                 maxLines = if (expanded) 2 else 1,
-                                overflow = if (isDeveloper) TextOverflow.Clip else TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f)
+                                overflow = TextOverflow.Ellipsis,
+                                modifier = Modifier.fillMaxWidth()
                             )
-                            Spacer(modifier = Modifier.width(8.dp))
+                            Spacer(modifier = Modifier.height(if (expanded) 6.dp else 2.dp))
                             MuscleGroupBadge(muscleGroup = exercise.muscleGroup, exerciseName = exercise.name)
+                        } else {
+                            Row(verticalAlignment = Alignment.CenterVertically) {
+                                Text(
+                                    text = translateExerciseName(exercise.name),
+                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                    maxLines = if (expanded) 2 else 1,
+                                    overflow = TextOverflow.Ellipsis,
+                                    modifier = Modifier.weight(1f)
+                                )
+                                Spacer(modifier = Modifier.width(inlineGap))
+                                MuscleGroupBadge(muscleGroup = exercise.muscleGroup, exerciseName = exercise.name)
+                            }
                         }
                         if (showActions) {
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = if (exercise.targetReps.contains("sec", ignoreCase = true))
-                                        getQuantityString("sets_x_time_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps)
-                                    else getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
+                                    // The unit comes from the EXERCISE, not from the routine
+                                    // string stored on the row - see
+                                    // [exerciseSetsSummaryLabel]. Jumping Jacks' row carries
+                                    // "8–12" from before the level system, so this line used
+                                    // to call a timed exercise a rep exercise.
+                                    text = exerciseSetsSummaryLabel(
+                                        exerciseName = exercise.name,
+                                        targetSets = exercise.targetSets,
+                                        storedTarget = exercise.targetReps,
+                                    ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (exercise.targetIntensity.isNotBlank()) {
                                     val rpeExpl = getRpeRirExplanation(exercise.targetIntensity)
                                     val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                    // A real gap, not the single space this used to
+                                    // carry in front of the bullet. At font scale 1.8
+                                    // on the 411dp phone that space rendered as ~7px
+                                    // between two 26px-tall words: the owner's
+                                    // "pressed together labeling and text".
+                                    Spacer(modifier = Modifier.width(inlineGap))
                                     Text(
-                                        text = " • $displayIntensity",
+                                        text = "• $displayIntensity",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isDeveloper) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
                                 if (exercise.tempo.isNotBlank()) {
+                                    Spacer(modifier = Modifier.width(inlineGap))
                                     Text(
-                                        text = " • ${getTempoLabel(exercise.tempo)}",
+                                        text = "• ${getTempoLabel(exercise.tempo)}",
                                         style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = if (isDeveloper) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.weight(1f, fill = false),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
@@ -1097,8 +1296,7 @@ fun ExpandableExerciseCard(
                         imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                         contentDescription = null,
                         modifier = Modifier.size(28.dp),
-                        tint = if (isDeveloper) MaterialTheme.colorScheme.onSurface else MaterialTheme.colorScheme.primary.copy(alpha = 0.7f)
-                    )
+                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.7f))
                 }
             }
 
@@ -1148,8 +1346,8 @@ fun ExpandableExerciseCard(
                                         },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
-                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                     ) {
                                         Icon(imageVector = Icons.Default.Refresh, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -1165,8 +1363,8 @@ fun ExpandableExerciseCard(
                                         },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
-                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
+                                        shape = RoundedCornerShape(10.dp),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f))
                                     ) {
                                         Icon(imageVector = Icons.Default.Edit, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -1204,9 +1402,9 @@ fun ExpandableExerciseCard(
                                         },
                                         modifier = Modifier.weight(1f).height(40.dp),
                                         contentPadding = PaddingValues(horizontal = 8.dp),
-                                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
-                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.error),
-                                        border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
+                                        shape = RoundedCornerShape(10.dp),
+                                        colors = ButtonDefaults.outlinedButtonColors(contentColor = MaterialTheme.colorScheme.error),
+                                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.error.copy(alpha = 0.3f))
                                     ) {
                                         Icon(imageVector = Icons.Default.Delete, contentDescription = null, modifier = Modifier.size(16.dp))
                                         Spacer(modifier = Modifier.width(4.dp))
@@ -1255,19 +1453,18 @@ fun MuscleGroupSelector(
             val hasSelectedInCat = parts.any { it.equals(selectedMuscle, ignoreCase = true) }
 
             Card(
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(10.dp),
                 colors = CardDefaults.cardColors(
                     containerColor = if (isCatExpanded || hasSelectedInCat) {
-                        if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
                     } else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f)
                 ),
                 border = BorderStroke(
                     width = 1.dp,
                     color = if (hasSelectedInCat) {
-                        if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary
+                        MaterialTheme.colorScheme.primary
                     } else if (isCatExpanded) {
-                        if (isDeveloper) Color.White.copy(alpha = 0.5f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)
-                    } else Color.Transparent
+                        MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)} else Color.Transparent
                 ),
                 modifier = Modifier.fillMaxWidth()
             ) {
@@ -1287,14 +1484,14 @@ fun MuscleGroupSelector(
                             Text(
                                 text = catName,
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = if (hasSelectedInCat) FontWeight.Bold else FontWeight.Medium),
-                                color = if (hasSelectedInCat) (if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary) else MaterialTheme.colorScheme.onSurface
+                                color = if (hasSelectedInCat) (MaterialTheme.colorScheme.primary) else MaterialTheme.colorScheme.onSurface
                             )
                             if (hasSelectedInCat && !isCatExpanded) {
                                 Spacer(modifier = Modifier.width(8.dp))
                                 Icon(
                                     imageVector = Icons.Default.CheckCircle,
                                     contentDescription = null,
-                                    tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(16.dp)
                                 )
                             }
@@ -1302,7 +1499,7 @@ fun MuscleGroupSelector(
                         Icon(
                             imageVector = if (isCatExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
                             contentDescription = null,
-                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(20.dp)
                         )
                     }
@@ -1319,14 +1516,14 @@ fun MuscleGroupSelector(
                                 
                                 Surface(
                                     color = if (isSelected) {
-                                        if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.primary
                                     } else MaterialTheme.colorScheme.surface,
                                     contentColor = if (isSelected) {
-                                        if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                        MaterialTheme.colorScheme.onPrimary
                                     } else MaterialTheme.colorScheme.onSurface,
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     border = BorderStroke(1.dp, if (isSelected) {
-                                        if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                                        MaterialTheme.colorScheme.primary
                                     } else MaterialTheme.colorScheme.outlineVariant),
                                     modifier = Modifier.clickable { 
                                         focusManager.clearFocus()
@@ -1366,7 +1563,7 @@ fun TimersMergedCard(
     val transitionOptions = listOf(60, 90, 120, 150, 180, 210)
 
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         modifier = modifier.fillMaxWidth()
     ) {
@@ -1379,7 +1576,7 @@ fun TimersMergedCard(
                 Icon(
                     imageVector = Icons.Default.Timer,
                     contentDescription = null,
-                    tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                    tint = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.size(22.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -1611,13 +1808,7 @@ fun MuscleGroupDonutChart(
     // [muscleGroupColor] keeps them identical to the muscle chips on Home and My
     // Workout instead of a lighter, washed-out variant on a light theme.
     val groupColors: Map<String, Color> = overviewItems.map { it.first }.distinct().associateWith { key ->
-        if (isDeveloper) {
-            val index = overviewItems.indexOfFirst { it.first == key }
-            val grey = (0.2f + (index.coerceAtLeast(0).toFloat() / overviewItems.size.coerceAtLeast(1)) * 0.7f).coerceIn(0f, 1f)
-            Color(grey, grey, grey)
-        } else {
-            muscleGroupColor(WorkoutTemplates.getTopicForMuscle(key))
-        }
+        muscleGroupColor(WorkoutTemplates.getTopicForMuscle(key))
     }
 
     fun entryColor(key: String): Color = groupColors[key] ?: getMuscleGroupColor("Other")
@@ -1671,9 +1862,9 @@ fun MuscleGroupDonutChart(
     }
 
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+        border = null,
         modifier = modifier.fillMaxWidth()
     ) {
         // Fills the card's (possibly stretched) height so the content can
@@ -1712,7 +1903,7 @@ fun MuscleGroupDonutChart(
                     Surface(
                         onClick = { showDetailDialog = true },
                         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = if (isDeveloper) RectangleShape else RoundedCornerShape(10.dp)
+                        shape = RoundedCornerShape(10.dp)
                     ) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -1877,7 +2068,7 @@ private fun MuscleGroupDetailDialog(
     AlertDialog(
         onDismissRequest = onDismiss,
         containerColor = MaterialTheme.colorScheme.surfaceVariant,
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(20.dp),
         title = {
             Row(
                 verticalAlignment = Alignment.CenterVertically,
@@ -1910,7 +2101,7 @@ private fun MuscleGroupDetailDialog(
                             .fillMaxWidth()
                             .background(
                                 sectionColor.copy(alpha = 0.12f),
-                                if (isDeveloper) RectangleShape else RoundedCornerShape(8.dp)
+                                RoundedCornerShape(8.dp)
                             )
                             .padding(horizontal = 10.dp, vertical = 4.dp)
                     ) {
@@ -1981,7 +2172,7 @@ private fun MuscleVolumeRow(
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val muscleColor = muscleGroupColor(muscleKey)
-    val barRadius = if (isDeveloper) 0.dp else 3.dp
+    val barRadius = 3.dp
     val trackColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.12f)
 
     // Bars cascade from the top so the shape of the breakdown arrives before the eye has to
@@ -2092,7 +2283,7 @@ fun RepsTimeToggle(
         modifier = modifier
             .fillMaxWidth()
             .height(44.dp)
-            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+            .clip(RoundedCornerShape(10.dp))
             .background(MaterialTheme.colorScheme.surfaceVariant)
             .padding(4.dp)
             .pointerInput(Unit) {
@@ -2137,9 +2328,8 @@ fun RepsTimeToggle(
                     translationX = with(density) { indicatorPosition.toPx() }
                 },
             color = MaterialTheme.colorScheme.primary,
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
-            shadowElevation = if (isDeveloper) 0.dp else 1.dp
-        ) {}
+            shape = RoundedCornerShape(7.dp),
+            shadowElevation = 1.dp) {}
 
         Row(modifier = Modifier.fillMaxSize()) {
             // Reps Tab
@@ -2515,11 +2705,10 @@ fun MissingBodyPartsWarningCard(
     val isDeveloper = LocalDeveloperSkin.current
     if (issues.isEmpty()) {
         Card(
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isDeveloper) Color.White else Color(0xFF10B981)
-            ),
-            border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null,
+                containerColor = Color(0xFF10B981)),
+            border = null,
             modifier = modifier.fillMaxWidth()
         ) {
             Row(
@@ -2529,7 +2718,7 @@ fun MissingBodyPartsWarningCard(
                 Icon(
                     imageVector = Icons.Default.CheckCircle,
                     contentDescription = null,
-                    tint = if (isDeveloper) Color.Black else Color.White,
+                    tint = MaterialTheme.colorScheme.onSurface,
                     modifier = Modifier.size(24.dp)
                 )
                 Spacer(modifier = Modifier.width(10.dp))
@@ -2537,24 +2726,20 @@ fun MissingBodyPartsWarningCard(
                     Text(
                         text = getString("balanced_workout_routine"),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (isDeveloper) Color.Black else Color.White
-                    )
+                        color = MaterialTheme.colorScheme.onSurface)
                     Text(
                         text = getString("balanced_workout_desc"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isDeveloper) Color.Black else Color.White
-                    )
+                        color = MaterialTheme.colorScheme.onSurface)
                 }
             }
         }
     } else {
         Card(
-            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+            shape = RoundedCornerShape(16.dp),
             colors = CardDefaults.cardColors(
-                containerColor = if (isDeveloper) Color.White
-                                else MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)
-            ),
-            border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null,
+                containerColor = MaterialTheme.colorScheme.errorContainer.copy(alpha = 0.7f)),
+            border = null,
             modifier = modifier.fillMaxWidth()
         ) {
             Row(
@@ -2564,7 +2749,7 @@ fun MissingBodyPartsWarningCard(
                 Icon(
                     imageVector = Icons.Default.Warning,
                     contentDescription = "Warning",
-                    tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.error,
+                    tint = MaterialTheme.colorScheme.error,
                     modifier = Modifier
                         .padding(top = 2.dp)
                         .size(24.dp)
@@ -2574,13 +2759,13 @@ fun MissingBodyPartsWarningCard(
                     Text(
                         text = getString("incomplete_workout_routine"),
                         style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
 
                     Text(
                         text = getString("incomplete_workout_desc"),
                         style = MaterialTheme.typography.bodySmall,
-                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer
+                        color = MaterialTheme.colorScheme.onErrorContainer
                     )
 
                     // One line per out-of-range group: the number of exercises,
@@ -2612,7 +2797,7 @@ fun MissingBodyPartsWarningCard(
                         Text(
                             text = text,
                             style = MaterialTheme.typography.bodySmall,
-                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onErrorContainer,
+                            color = MaterialTheme.colorScheme.onErrorContainer,
                             modifier = Modifier.padding(top = 2.dp)
                         )
                     }
@@ -3198,17 +3383,28 @@ data class LevelEditorControls(
 
 fun levelEditorControls(
     levelsManaged: Boolean,
-    isExistingExercise: Boolean,
     currentLevel: Int?,
     maxLevel: Int,
     canWriteLevel: Boolean
 ): LevelEditorControls {
-    // A NEW exercise has no level yet (there is nothing prescribed to move), and
-    // a custom-mode editor has no level system at all. A host that gives no
-    // writer shows nothing rather than a row whose taps go nowhere - the same
-    // lesson as the pill that looked pressable and refused.
+    // ADDING AN EXERCISE IS NOT OUTSIDE THE LEVEL SYSTEM, and this function used to
+    // say it was. `isExistingExercise` gated the row on `exercise != null`, whose
+    // stated reason was "a NEW exercise has no level yet (there is nothing
+    // prescribed to move)" - but there IS: [ProgressionEngine.startingPrescription]
+    // answers a starting level for every progression-ready exercise at the user's
+    // own difficulty, which is the level the row will train at the moment it is
+    // added. Owner, 2026-10-09: *"When adding an exercise it shows the custom input
+    // boxes not the levels, redesign to fix it"*.
+    //
+    // So the gate is the LEVEL's own existence, not the row's: an exercise the host
+    // can resolve a level for gets the level UI, whether it is already in the
+    // routine or about to be. A custom-mode editor (level system off) and an
+    // exercise outside the pool still resolve no level and still show the plain
+    // input boxes - which is the owner's other half of the same rule. A host that
+    // gives no writer shows nothing rather than a row whose taps go nowhere - the
+    // same lesson as the pill that looked pressable and refused.
     val level = currentLevel
-    val show = levelsManaged && isExistingExercise && level != null && canWriteLevel
+    val show = levelsManaged && level != null && canWriteLevel
     return LevelEditorControls(
         showLevelRow = show,
         // Level 1 is the bottom of every ladder, so "down" has no rung below it.
@@ -3222,33 +3418,179 @@ fun levelEditorControls(
 }
 
 /**
- * The editor's level row: "LEVEL" on the left, a − / + stepper around the
- * current rung on the right, and a line that opens the whole ladder.
+ * Everything the exercise editor's level UI needs about ONE exercise, resolved by
+ * the host for whichever exercise the form is currently editing.
  *
- * The stepper walks LEVELS, deliberately, not the card's Roman stages. The card
- * has two controls for two different things — the pill jumps to any rung and the
- * arrows walk stages — and this row is the "I want a different weight" control,
- * which is a level. The ladder line is there for the jump, so nothing the card
- * can do is unreachable from the editor.
+ * IT IS A NAMED BUNDLE RATHER THAN SIX PARAMETERS, and that is the fix for the
+ * editor's second bug: while the six values were passed in separately, both hosts
+ * derived them from `editingExercise`, so the ADD form - which has no exercise yet,
+ * because the name is typed inside the dialog - could only pass nulls and empty
+ * lists, and the level list had nothing to draw. A resolver keyed on the NAME means
+ * the same six answers exist for a row the user has not added yet, which is the
+ * whole difference between "levels while editing" and "levels while adding".
+ *
+ * [level] and [stage] are the exercise's own stored level, or - for an exercise that
+ * has none yet - the level the system WOULD start it at, which
+ * [WorkoutViewModel.currentProgressionState] already answers for any pool exercise.
  */
+data class EditorLevelData(
+    /** True when the level system prescribes this exercise at all. */
+    val levelsManaged: Boolean = false,
+    val level: Int? = null,
+    val stage: Int? = null,
+    /** "Stage III · 20 kg": what [level] asks for, or null when there is no level. */
+    val caption: String? = null,
+    /** The exercise's ceiling rung; 0 when the host does not know it. */
+    val maxLevel: Int = 0,
+    /**
+     * ONE PAGE of the ladder - 15 rungs, not the whole ladder. The dialog body is a
+     * scrolling column and a 500-rung list in it is not a list, so the page is the
+     * unit both the host and the list think in.
+     */
+    val options: List<EditorLevelOption> = emptyList(),
+    /**
+     * The level the PREVIOUS page of rungs starts at, or null on page one.
+     *
+     * The host answers this rather than the dialog deriving it, because the page
+     * arithmetic belongs with the page size: a list that worked out "15 before my
+     * first row" itself would be a second copy of the rule that decides what a page
+     * is, and the two would drift the first time the size changed.
+     */
+    val previousPageStart: Int? = null,
+    /** The level the NEXT page of rungs starts at, or null on the last page. */
+    val nextPageStart: Int? = null,
+) {
+    /** The rungs [options] covers, e.g. 1..15. */
+    val pageRange: IntRange?
+        get() = options.firstOrNull()?.level?.let { first ->
+            first..(options.lastOrNull()?.level ?: first)
+        }
+
+    /** What a host passes for a name it cannot resolve at all (typed, not picked). */
+    companion object {
+        val NONE = EditorLevelData()
+    }
+}
+
+/**
+ * One level offered by the exercise editor's level list.
+ *
+ * [loadText] is already LOCALIZED ("20 kg", "Pin 6", "Medium band", "30 s",
+ * "Incline Push-Up") because it is built by the host through the same
+ * `prescriptionDisplayText` the live card and the ladder dialog use - a level
+ * list that quoted a different number from the card for the same rung would make
+ * the whole editor feel broken.
+ */
+data class EditorLevelOption(
+    val level: Int,
+    val isCurrent: Boolean,
+    val loadText: String,
+    /**
+     * The level's stages in Roman numerals, lowest first, each with the reps it
+     * asks for. This is the level's "expansion": see [LevelPickerCard].
+     */
+    val stages: List<EditorLevelStage> = emptyList()
+)
+
+/**
+ * One stage of one level: its Roman numeral, its ordinal (1-based, in the
+ * exercise's own pattern), the reps it asks for, and whether it is the stage the
+ * exercise is actually on right now.
+ *
+ * [isCurrent] travels with the row rather than being recomputed in the card
+ * because "which stage am I on" is a fact about the stored progression state, not
+ * about what the list happens to be showing.
+ */
+data class EditorLevelStage(
+    val stage: Int,
+    val roman: String,
+    val reps: List<Int> = emptyList(),
+    val isCurrent: Boolean = false
+)
+
+/**
+ * The exercise editor's LEVEL LIST — what stands where the locked sets / reps /
+ * weight fields used to.
+ *
+ * THE OWNER'S RULING (2026-10-08): "the edit card with each single input box will
+ * be replaced by the level list (only shown if level system is one, if custom
+ * would be one then show the normal input boxes and no levels) ... the user
+ * basically select the level and the level expands and the roman number is
+ * displayed".
+ *
+ * So this is not a second copy of the ladder picker:
+ *
+ *  - the ROW is the choice. Tapping one level selects it, immediately - one tap,
+ *    not select-then-confirm - and the host writes it through the same
+ *    `setExerciseLevelFromEditor` path the ladder uses (which also clears a
+ *    committed lock, so a locked exercise is editable here rather than through a
+ *    screen that refuses every tap).
+ *  - the SELECTED row EXPANDS to its Roman stages. That is the owner's "the
+ *    level expands and the roman number is displayed": the numerals answer "what
+ *    am I actually doing at this level", which is the whole reason a level is
+ *    being chosen.
+ *  - [onOpenLadder] keeps every rung reachable. The list only carries a window of
+ *    levels around the current one - a 500-rung ladder inside a scrolling form is
+ *    not a list, and the dialog body CANNOT hold a lazy list (it is measured
+ *    inside a scrolling column). "See every level" opens the full picker for the
+ *    jump this window cannot offer.
+ *
+ * The labels of the LEVEL and the STAGES are deliberately the same strings the
+ * rest of the level system uses, so nothing here can drift into a second
+ * vocabulary for the same two objects.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun ExerciseLevelEditorRow(
-    level: Int,
-    stageCaption: String?,
-    controls: LevelEditorControls,
-    onStep: (Int) -> Unit,
-    onOpenLadder: () -> Unit,
+private fun LevelPickerCard(
+    options: List<EditorLevelOption>,
+    selectedLevel: Int?,
+    onSelect: (Int) -> Unit,
+    onOpenLadder: (() -> Unit)?,
+    /** The Roman stage the exercise is on, so the list can mark it. */
+    selectedStage: Int? = null,
+    /**
+     * A Roman numeral was picked: (level, stage). Owner, 2026-10-08 — "the list
+     * shall have multiple levels under the level based on how many roman
+     * exercises that level offers ... and when he selects it directly apply it".
+     */
+    onSelectStage: ((Int, Int) -> Unit)? = null,
+    /**
+     * WHICH FIFTEEN ARE ON SCREEN, and how to reach the next fifteen.
+     *
+     * Owner, 2026-10-09: *"Editing a level exercise should show 15 levels at one
+     * with min 1 level so dont hide level 1 only when going from 15+ to 30 as a
+     * second screen"*. The list used to hold a three-each-way window around the
+     * current rung, so a long ladder simply never showed level 1 again. The block
+     * is now a page aligned from level 1, and these two controls are how the rest
+     * of the ladder is reached — [onOpenLadder] ("See every level") stays as the
+     * way to any rung directly.
+     *
+     * They are null at the ends of the ladder rather than drawn-but-dead: an arrow
+     * that cannot move the list is the "pressable control that refuses" this
+     * project has already paid for twice.
+     */
+    pageRange: IntRange? = null,
+    totalLevels: Int = 0,
+    onPreviousPage: (() -> Unit)? = null,
+    onNextPage: (() -> Unit)? = null,
     modifier: Modifier = Modifier
 ) {
-    val stepDownDesc = getString("level_step_down_desc")
-    val stepUpDesc = getString("level_step_up_desc")
+    // Every gap inside this card separates text from text or from an icon, so
+    // none of them is a fixed dp - see [WindowSize.inlineGap]. Measured on the
+    // 1.8x emulator, "Level 1" and its "4 lb each" load met with 0px between
+    // them, because an 8dp spacer written before the font grew is 8dp after it.
+    val window = LocalWindowSize.current
+    val inlineGap = window.inlineGap
     Surface(
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
         shape = RoundedCornerShape(12.dp),
-        modifier = modifier.fillMaxWidth()
+        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+        modifier = modifier
+            .fillMaxWidth()
+            .semantics { testTag = "exercise_level_list" }
     ) {
         Column(
-            modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp),
+            modifier = Modifier.padding(12.dp),
             verticalArrangement = Arrangement.spacedBy(8.dp)
         ) {
             Row(
@@ -3265,90 +3607,316 @@ private fun ExerciseLevelEditorRow(
                     color = MaterialTheme.colorScheme.primary
                 )
                 Spacer(modifier = Modifier.weight(1f))
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.spacedBy(6.dp),
-                    modifier = Modifier.semantics { testTag = "exercise_level_stepper" }
-                ) {
-                    Box(
+                if (onOpenLadder != null) {
+                    Row(
+                        verticalAlignment = Alignment.CenterVertically,
                         modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .clickable(enabled = controls.canStepDown) { onStep(level - 1) }
-                            .semantics { testTag = "level_step_down" },
-                        contentAlignment = Alignment.Center
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(onClick = onOpenLadder)
                     ) {
                         Icon(
-                            imageVector = Icons.Default.Remove,
-                            contentDescription = stepDownDesc,
-                            tint = if (controls.canStepDown) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
+                            imageVector = Icons.Default.ExpandMore,
+                            contentDescription = null,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(16.dp)
                         )
-                    }
-                    // The rung itself opens the ladder, exactly as the pill on the
-                    // live card does — one gesture means one thing in both places.
-                    Surface(
-                        onClick = onOpenLadder,
-                        enabled = controls.canOpenLadder,
-                        shape = RoundedCornerShape(10.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.10f),
-                        contentColor = MaterialTheme.colorScheme.primary,
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.45f)),
-                        modifier = Modifier.semantics { testTag = "level_open_ladder" }
-                    ) {
+                        Spacer(modifier = Modifier.width(inlineGap))
                         Text(
-                            text = getString("level_word_n", level),
-                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp),
-                            maxLines = 1
-                        )
-                    }
-                    Box(
-                        modifier = Modifier
-                            .size(32.dp)
-                            .clip(CircleShape)
-                            .clickable(enabled = controls.canStepUp) { onStep(level + 1) }
-                            .semantics { testTag = "level_step_up" },
-                        contentAlignment = Alignment.Center
-                    ) {
-                        Icon(
-                            imageVector = Icons.Default.Add,
-                            contentDescription = stepUpDesc,
-                            tint = if (controls.canStepUp) MaterialTheme.colorScheme.primary
-                                   else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.3f),
-                            modifier = Modifier.size(16.dp)
+                            text = getString("level_editor_open_ladder"),
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
             }
-            if (stageCaption != null) {
-                Text(
-                    text = stageCaption,
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 2,
-                    overflow = TextOverflow.Ellipsis
-                )
+
+            // WHICH FIFTEEN ARE THESE, AND HOW TO THE NEXT FIFTEEN.
+            //
+            // The range is printed because "fifteen rungs" says nothing about WHERE
+            // in the ladder they sit: page one and page two of a 30-rung exercise
+            // are otherwise the same picture. Each arrow is drawn only where a page
+            // exists, so neither is ever a control that cannot move the list.
+            if (pageRange != null && totalLevels > 0) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { testTag = "level_page_controls" }
+                ) {
+                    if (onPreviousPage != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable(onClick = onPreviousPage)
+                                .semantics { testTag = "level_page_previous" }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronLeft,
+                                contentDescription = getString("previous"),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                    Spacer(modifier = Modifier.weight(1f))
+                    Text(
+                        text = getString(
+                            "levels_page_range",
+                            pageRange.first,
+                            pageRange.last,
+                            totalLevels
+                        ),
+                        style = MaterialTheme.typography.labelSmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                    Spacer(modifier = Modifier.weight(1f))
+                    if (onNextPage != null) {
+                        Box(
+                            modifier = Modifier
+                                .clip(CircleShape)
+                                .clickable(onClick = onNextPage)
+                                .semantics { testTag = "level_page_next" }
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.ChevronRight,
+                                contentDescription = getString("next"),
+                                tint = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.size(20.dp)
+                            )
+                        }
+                    }
+                }
             }
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                modifier = Modifier
-                    .clip(RoundedCornerShape(8.dp))
-                    .clickable(enabled = controls.canOpenLadder, onClick = onOpenLadder)
-            ) {
-                Icon(
-                    imageVector = Icons.Default.ExpandMore,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.size(16.dp)
-                )
-                Spacer(modifier = Modifier.width(4.dp))
-                Text(
-                    text = getString("level_editor_open_ladder"),
-                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.primary
-                )
+
+            options.forEach { option ->
+                val selected = option.level == selectedLevel
+                Surface(
+                    // Tapping a level APPLIES it (level, stage I) and opens its Roman
+                    // list beneath it. Tapping the level that is already applied does
+                    // NOTHING, deliberately: re-applying it writes stage I over the
+                    // stage the user just chose under it, which reads as the list
+                    // resetting itself. The way back to stage I is its own row.
+                    onClick = { if (!selected) onSelect(option.level) },
+                    shape = RoundedCornerShape(10.dp),
+                    color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+                    border = BorderStroke(
+                        1.dp,
+                        if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.4f)
+                    ),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { testTag = "editor_level_row_${option.level}" }
+                ) {
+                    Column(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp)) {
+                        // THE LOAD DROPS TO ITS OWN LINE WHEN THE TEXT IS BIG.
+                        //
+                        // `isLargeText` is a STRUCTURAL flag (see WindowSize), and
+                        // this is a structural question: "Level 4", "current" and
+                        // "8 lb each" cannot share one line once the text has grown.
+                        // Measured on the 1.8x emulator, that row gave the level
+                        // name SIXTEEN pixels - the label the row exists to print,
+                        // crushed to a sliver so its load could keep its place.
+                        // Stacked, the name owns its line and the load keeps the
+                        // word "current" beside it. Under the threshold nothing
+                        // changes: one line, load pushed right, exactly as before.
+                        val stackLoad = window.isLargeText && option.loadText.isNotBlank()
+                        Row(verticalAlignment = Alignment.CenterVertically) {
+                            Text(
+                                text = getString("adjust_levels_n", option.level),
+                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                                color = if (selected) MaterialTheme.colorScheme.primary
+                                        else MaterialTheme.colorScheme.onSurface,
+                                // fill = false: the name hugs its own text instead
+                                // of claiming the whole row, and shrinks - only
+                                // then ellipsizing - when the row is genuinely
+                                // full, whichever line it is on.
+                                modifier = Modifier.weight(1f, fill = false),
+                                maxLines = 1,
+                                overflow = TextOverflow.Ellipsis
+                            )
+                            if (selected && !stackLoad) {
+                                Spacer(modifier = Modifier.width(inlineGap))
+                                Text(
+                                    text = getString("level_details_current"),
+                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1
+                                )
+                            }
+                            if (option.loadText.isNotBlank() && !stackLoad) {
+                                Spacer(modifier = Modifier.width(inlineGap))
+                                Text(
+                                    text = option.loadText,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                            }
+                            // The chevron is what says "this row opens". Without it
+                            // the Roman list under the selected level reads as
+                            // belonging to the card rather than to that rung.
+                            Spacer(modifier = Modifier.width(inlineGap))
+                            Icon(
+                                imageVector = if (selected) Icons.Default.ExpandLess
+                                              else Icons.Default.ExpandMore,
+                                contentDescription = null,
+                                tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                modifier = Modifier.size(18.dp)
+                            )
+                        }
+
+                        if (stackLoad) {
+                            Row(
+                                verticalAlignment = Alignment.CenterVertically,
+                                modifier = Modifier.padding(top = 2.dp)
+                            ) {
+                                Text(
+                                    text = option.loadText,
+                                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                    color = MaterialTheme.colorScheme.primary,
+                                    maxLines = 1,
+                                    overflow = TextOverflow.Ellipsis
+                                )
+                                if (selected) {
+                                    Spacer(modifier = Modifier.width(inlineGap))
+                                    Text(
+                                        text = getString("level_details_current"),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1
+                                    )
+                                }
+                            }
+                        }
+
+                        // THE ROMAN LIST UNDER THE LEVEL.
+                        //
+                        // Owner, 2026-10-08: "i want the roman numbers inside the
+                        // edit exercise to show as a list under the level, the list
+                        // shall have multiple [entries] under the level based on how
+                        // many roman [stages] that level offers so that the user
+                        // doesnt just see all the roman numbers but can also select
+                        // which level / roman number and when he selects it directly
+                        // apply it".
+                        //
+                        // So every stage is its OWN row and its own tap target, and
+                        // picking one writes the level AND the stage in one go (see
+                        // WorkoutViewModel.setExerciseStateFromEditor). A read-only
+                        // chip grid said what the stages were; this says which one
+                        // you are on and lets you move to another.
+                        //
+                        // One row per stage, opened for the SELECTED level only. A
+                        // rep ladder can run past a dozen stages, so opening every
+                        // level at once would put ~90 rows in a form whose body
+                        // scrolls - the levels are the list, and each level opens
+                        // into its own stages.
+                        //
+                        // The numeral hugs its own glyphs and the reps take the
+                        // rest of the row, with a real gap between them. Every
+                        // fixed-width attempt at this column has failed on the
+                        // 1.8x emulator: 28dp clips "XIII", and a weighted column
+                        // steals the room the reps need (see the note on the rows
+                        // themselves).
+                        if (selected && option.stages.isNotEmpty()) {
+                            Spacer(modifier = Modifier.height(6.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                                option.stages.forEach { stage ->
+                                    // The LOCAL choice wins over the reported one while
+                                    // both are in flight: the host's `isCurrent` still
+                                    // points at the stage the user just left until its
+                                    // recomposition lands, and two rows lit at once
+                                    // would say the write had not taken.
+                                    val stageSelected = if (selectedStage != null &&
+                                        selectedLevel == option.level
+                                    ) {
+                                        stage.stage == selectedStage
+                                    } else {
+                                        stage.isCurrent
+                                    }
+                                    Surface(
+                                        onClick = { onSelectStage?.invoke(option.level, stage.stage) },
+                                        enabled = onSelectStage != null,
+                                        shape = RoundedCornerShape(8.dp),
+                                        color = if (stageSelected)
+                                            MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                        else MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                        border = BorderStroke(
+                                            1.dp,
+                                            if (stageSelected) MaterialTheme.colorScheme.primary
+                                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                        ),
+                                        modifier = Modifier
+                                            .fillMaxWidth()
+                                            .semantics {
+                                                testTag = "editor_level_stage_${stage.roman}"
+                                            }
+                                    ) {
+                                        Row(
+                                            verticalAlignment = Alignment.CenterVertically,
+                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                        ) {
+                                            // The numeral takes what its own
+                                            // glyphs need and no more - a weighted
+                                            // column claimed 26% of the row for a
+                                            // word that is one to four characters
+                                            // wide, and the reps paid for it.
+                                            // Measured on the 1.8x emulator: with
+                                            // the column weighted, the row that
+                                            // carries the current-stage tick had
+                                            // only ~350px left, so "8 / 8 / 8 Reps"
+                                            // WRAPPED onto two lines and that row
+                                            // stood 143px tall in a 67px list.
+                                            Text(
+                                                text = stage.roman,
+                                                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                                                color = MaterialTheme.colorScheme.primary,
+                                                maxLines = 1
+                                            )
+                                            Spacer(modifier = Modifier.width(inlineGap))
+                                            Text(
+                                                text = if (stage.reps.isEmpty()) ""
+                                                       else stage.reps.joinToString(" / ") + " " + getString("reps"),
+                                                style = MaterialTheme.typography.bodySmall,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                // One line, always: the reps take
+                                                // every pixel the numeral and the
+                                                // tick do not, and a ladder whose
+                                                // numbers are longer than the row
+                                                // ellipsizes instead of growing a
+                                                // second line that no other row has.
+                                                modifier = Modifier.weight(1f),
+                                                maxLines = 1,
+                                                overflow = TextOverflow.Ellipsis
+                                            )
+                                            // A TICK, not the word "current". Measured
+                                            // on the 1.8x emulator: the word took
+                                            // ~183px of the row, which pushed the reps
+                                            // column down to ~350px and made
+                                            // "9 / 9 / 8 Reps" WRAP onto two lines.
+                                            // The tick says the same thing in 47px and
+                                            // needs no translation, so the reps now sit
+                                            // on one line with room to spare.
+                                            if (stageSelected) {
+                                                Spacer(modifier = Modifier.width(inlineGap))
+                                                Icon(
+                                                    imageVector = Icons.Default.Check,
+                                                    contentDescription = getString("level_details_current"),
+                                                    tint = MaterialTheme.colorScheme.primary,
+                                                    modifier = Modifier.size(18.dp)
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            }
+                        }
+                    }
+                }
             }
         }
     }
@@ -3364,12 +3932,24 @@ fun ExerciseEditDialog(
     onDismiss: () -> Unit,
     onSave: (RoutineExerciseEntity) -> Unit,
     /**
-     * True when the exercise is prescribed by the level system: editing an
-     * existing row then greys out sets/reps/time/weight/intensity — those
-     * values belong to the level. Adding a NEW exercise is never gated: there
-     * is nothing prescribed yet.
-     */
-    levelsManaged: Boolean = false,
+     * Resolves the level facts for the exercise the form is editing RIGHT NOW,
+     * keyed on its name.
+     *
+     * Keyed on the name rather than handed in for `exercise`, because the ADD form
+     * picks its exercise inside the dialog: before this was a resolver, both hosts
+     * derived the level data from `editingExercise`, so an add passed nulls and the
+     * level list could not exist. See [EditorLevelData].
+     * * The host supplies it (the dialog holds no view model), and a name it cannot
+ * resolve returns [EditorLevelData.NONE] — a half-typed name simply has no level
+ * list, which is the honest reading of "this is not an exercise yet".
+ *
+ * The Int is the level the requested PAGE starts at, or 0 for "the page the
+ * exercise's own level is on": the owner's ruling is that the list shows fifteen
+ * rungs starting at level 1, with the following fifteen as a second screen
+ * (2026-10-09: *"show 15 levels at one with min 1 level so dont hide level 1 only
+ * when going from 15+ to 30 as a second screen"*).
+ */
+    levelDataFor: (@Composable (String, Int) -> EditorLevelData)? = null,
     /**
      * Called when the user touches a level-owned field while the level system
      * prescribes the exercise. The host shows a confirm dialog offering the
@@ -3377,18 +3957,22 @@ fun ExerciseEditDialog(
      */
     onRequestCustomMode: (() -> Unit)? = null,
     /**
-     * The exercise's current level, when the level system prescribes it, and the
-     * ceiling to stop the stepper at (0 = unknown, the writer clamps anyway).
-     * Null hides the level row entirely — see [levelEditorControls].
+     * A Roman numeral was picked under a level: (name, level, stage), applied as ONE
+     * write. Owner, 2026-10-08 — "and when he selects it directly apply it".
+     *
+     * Separate from [onLevelChange] on purpose: that one means "this level, from
+     * its first stage", which is what tapping a level row does, and collapsing
+     * the two would make picking "V, stage III" impossible to express.
+     *
+     * THE NAME IS THE FIRST ARGUMENT because the dialog is the only component that
+     * knows which exercise is being edited — for an add that is the name in the
+     * search field, which the host cannot see.
      */
-    currentLevel: Int? = null,
-    /** "Stage III · 20 kg": what the current rung asks for. */
-    levelCaption: String? = null,
-    maxLevel: Int = 0,
-    /** Called with the ABSOLUTE level the user stepped to. */
-    onLevelChange: ((Int) -> Unit)? = null,
-    /** Opens the full level ladder for this exercise. */
-    onOpenLevelLadder: (() -> Unit)? = null,
+    onStageChange: ((String, Int, Int) -> Unit)? = null,
+    /** Called with the exercise's name and the ABSOLUTE level the user picked. */
+    onLevelChange: ((String, Int) -> Unit)? = null,
+    /** Opens the full level ladder for the named exercise. */
+    onOpenLevelLadder: ((String) -> Unit)? = null,
     /**
      * The equipment the user said they have, as coarse categories. The
      * recommendation filters START on it — an unrestricted-feeling "all
@@ -3421,18 +4005,56 @@ fun ExerciseEditDialog(
     // Only an edit of an existing, level-managed row is locked; a fresh add
     // always keeps its inputs open. Touching a locked field (while enabled,
     // i.e. NOT visually greyed) asks the host to offer the custom switch.
-    val inputsLocked = levelsManaged && exercise != null
+    // Settled below, once the form knows which exercise it is editing.
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "") }
     var targetSetsStr by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
-    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+
+    // WHICH EXERCISE THIS FORM IS ABOUT, and therefore whose levels it shows.
+    //
+    // An edit is about the row it was opened on; an ADD is about the name in the
+    // search field, which only this dialog can see. Both resolve through the same
+    // host resolver, so "add" and "edit" are one code path with one definition of
+    // the level facts - the alternative was six nulls on the add path, which is
+    // exactly why adding an exercise showed the custom input boxes instead of the
+    // levels (owner, 2026-10-09).
+    // A typed name resolves through [ExerciseLocalization.canonicalFor] first, so a
+    // name typed in another language or with different spacing still finds its pool
+    // row - and therefore its levels - instead of silently falling back to the
+    // custom boxes. The raw text is the last resort, which is what makes a name the
+    // pool does not carry resolve to [EditorLevelData.NONE].
+    val levelName = exercise?.name
+        ?: ExerciseLocalization.canonicalFor(name.trim())
+        ?: name.trim()
+    // WHICH BLOCK OF FIFTEEN. 0 means "the page the exercise's level is on", which
+    // is what opening the form asks for; the list's own next/previous controls set
+    // a real start level. Keyed on the name so picking another exercise starts
+    // again from that exercise's own level instead of carrying a page across.
+    var levelPageStart by remember(levelName) { mutableStateOf(0) }
+    val levelData = levelDataFor?.invoke(levelName, levelPageStart) ?: EditorLevelData.NONE
+
+    // Only an edit of an existing, level-managed row is locked; a fresh add
+    // always keeps its inputs open. Touching a locked field (while enabled,
+    // i.e. NOT visually greyed) asks the host to offer the custom switch.
+    val inputsLocked = levelData.levelsManaged && exercise != null
+    // THE TIME TOGGLE OPENS IN THE MEASURE THE EXERCISE ACTUALLY USES. It used to
+    // open a timed exercise with the toggle OFF and a rep range in the reps field
+    // whenever its stored row did not literally spell "sec" - which is every row
+    // built before the level system, Jumping Jacks' "8–12" included. The editor is
+    // where the user confirms the plan, so showing "reps" there for an exercise the
+    // workout runs on a timer is the same bug the card had, one screen over.
+    var isTimeBased by remember { mutableStateOf(WorkoutTemplates.isExerciseTimeBased(exercise?.name.orEmpty())) }
     var isExpanded by remember { mutableStateOf(exercise != null) }
     
     var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
     var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
-    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
+    // Seeded through secondsInStoredTarget rather than by stripping " sec" off the
+    // row: a pre-level-system timed row stores a rep range ("8-12"), which would
+    // open the SECONDS field at "8" and - because the save path strips non-digits -
+    // write back "812 sec". A row with no plain duration opens at 30.
+    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) WorkoutTemplates.secondsInStoredTarget(exercise?.targetReps)?.toString() ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
     // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
     // count, so it must not open the sheet as "20.0" (see the function's note).
@@ -3462,6 +4084,20 @@ fun ExerciseEditDialog(
     }
 
     var activeToastMessage by remember { mutableStateOf<String?>(null) }
+
+    // The rung the level list draws as chosen. Seeded from the host, then owned
+    // locally: a tap has to move the highlight and open the row in the SAME frame,
+    // while the host's own level arrives through a different path (a prefs write
+    // and a recomposition) that is not guaranteed to land first.
+    // Keyed on [levelName], not on the exercise id: in the add form the name
+    // CHANGES as the user picks a different exercise, and the highlight has to
+    // re-seed to that exercise's own level rather than keep the last one's.
+    var selectedLevel by remember(levelName) { mutableStateOf(levelData.level) }
+
+    // The Roman numeral the list draws as chosen, seeded from the host and then
+    // owned locally for the same reason as [selectedLevel]: the highlight has to
+    // move on the tap, not one recomposition later.
+    var selectedStage by remember(levelName) { mutableStateOf(levelData.stage) }
 
     // One notice for every locked field: the level system prescribes the value,
     // so the box is read-only and says why in one short line instead of silently
@@ -3512,6 +4148,31 @@ fun ExerciseEditDialog(
 
     val focusManager = LocalFocusManager.current
 
+    // WHICH EDITOR THIS FORM IS, resolved before the shell so the confirm button
+    // and the body agree on it. Level mode means the level system prescribes this
+    // exercise — whether the row exists yet or not: its sets, reps, weight, hold
+    // time and intensity ARE the level's values, so the form shows the LEVEL LIST in
+    // their place. Custom mode keeps the classic boxes and shows no level list at
+    // all — the owner's two halves of one rule, 2026-10-08: "the edit card with each
+    // single input box will be replaced by the level list (only shown if level
+    // system is one, if custom would be one then show the normal input boxes and no
+    // levels)".
+    //
+    // ADDING USED TO FALL OUT HERE, which is the report this changed for: the add
+    // form passed no level, so the whole screen was custom mode and the level list
+    // was unreachable. See [levelEditorControls] for why the gate is the LEVEL's
+    // existence and not the row's.
+    val levelControls = levelEditorControls(
+        levelsManaged = levelData.levelsManaged,
+        currentLevel = levelData.level,
+        maxLevel = levelData.maxLevel,
+        canWriteLevel = onLevelChange != null
+    )
+    val levelMode = levelControls.showLevelRow &&
+        levelData.level != null &&
+        selectedLevel != null &&
+        onLevelChange != null
+
     AppDialog(
         onDismissRequest = onDismiss,
         title = if (exercise == null) getString("add_exercise") else getString("edit_exercise"),
@@ -3520,15 +4181,38 @@ fun ExerciseEditDialog(
         // body, so every field stays reachable.
         onTitleTap = { focusManager.clearFocus() },
         confirmLabel = getString("save"),
+        // In level mode the reps box is not on screen at all, so it cannot be the
+        // thing that gates Save: a level-managed row whose stored reps happen to be
+        // blank would otherwise show a permanently disabled button with nothing on
+        // the form to fix. The stored values are preserved on save instead - see
+        // `finalReps` below.
         confirmEnabled = name.isNotBlank() &&
-            (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank(),
+            (levelMode || (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()),
         onConfirm = {
             focusManager.clearFocus()
-            if (name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()) {
+            if (name.isNotBlank() && (levelMode || (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank())) {
                 val finalReps = if (isTimeBased) {
                     val digits = targetTimeValue.filter { it.isDigit() }
                     if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+                } else {
+                    val typed = WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+                    when {
+                        typed.isNotBlank() -> typed
+                        // In level mode an empty box means "the level owns this", not
+                        // "the user cleared it". An EDIT keeps the stored range; an
+                        // ADD has none yet and takes the range the exercise
+                        // recommends, because the level list is what the user chose
+                        // from and there is no reps box on screen to fill. A row saved
+                        // with a blank range would also clamp the level's own
+                        // prescription away at the next load (`setTarget in
+                        // minVal..maxVal`), which is how a level ends up ignored.
+                        levelMode -> exercise?.targetReps?.takeIf { it.isNotBlank() }
+                            ?: WorkoutTemplates.enforceRepRange(
+                                WorkoutTemplates.getRecommendedRepsForExercise(levelName)
+                            )
+                        else -> ""
+                    }
+                }
                 // Whatever the user typed or picked, the row is stored under the canonical
                 // pool name when it is a pool exercise: that keeps the equipment table, the
                 // muscle table and previously logged sets all pointing at the same exercise.
@@ -3632,55 +4316,16 @@ fun ExerciseEditDialog(
                 // exercise cannot be edited here at all, which is now false: the
                 // one value that decides what those numbers WILL BE is a control
                 // on this same screen.
-                val levelControls = levelEditorControls(
-                    levelsManaged = levelsManaged,
-                    isExistingExercise = exercise != null,
-                    currentLevel = currentLevel,
-                    maxLevel = maxLevel,
-                    canWriteLevel = onLevelChange != null
-                )
-                if (levelControls.showLevelRow && currentLevel != null) {
-                    ExerciseLevelEditorRow(
-                        level = currentLevel,
-                        stageCaption = levelCaption,
-                        controls = levelControls,
-                        onStep = { target -> onLevelChange?.invoke(target) },
-                        onOpenLadder = { onOpenLevelLadder?.invoke() },
-                        modifier = Modifier.semantics { testTag = "exercise_level_row" }
-                    )
-                }
-
-                // When the level system prescribes this exercise, the values it
-                // owns are shown read-only: the prescription is authoritative, so
-                // the fields are greyed out rather than hidden, and one line
-                // explains where the switch that unlocks them lives.
-                if (inputsLocked) {
-                    Surface(
-                        onClick = { onRequestCustomMode?.invoke() },
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
-                        shape = RoundedCornerShape(12.dp),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Lock, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = getString("level_fields_locked_hint"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                        }
-                    }
-                }
-
-                RepsTimeToggle(
-                    isTimeBased = isTimeBased,
-                    onToggle = { newValue ->
-                        if (!inputsLocked) isTimeBased = newValue
-                    },
-                    modifier = Modifier.fillMaxWidth()
-                )
-
+                // THE EXERCISE ITSELF COMES FIRST, ABOVE THE LEVELS.
+                //
+                // Owner, 2026-10-08: "and in the edit screen have the exercise name
+                // above the levels". It is also the honest order: the level list is
+                // the level OF something, so the something has to be readable before
+                // the rungs are.
+                //
+                // It stays in BOTH modes - none of it is prescribed by the level
+                // system, and hiding the name field in level mode would leave no way
+                // to correct a mis-picked movement.
                 SearchableExerciseField(
                     allExercises = filteredExercises,
                     value = name,
@@ -3692,7 +4337,7 @@ fun ExerciseEditDialog(
                             targetRepsValue = ""
                             muscleGroup = ""
                         }
-                        
+                    
                         // Resolve a name typed in another language first, so "Kniebeugen" still
                         // auto-detects Legs instead of falling through to "Other".
                         val detected = WorkoutTemplates.getMuscleGroupForExercise(
@@ -3739,7 +4384,7 @@ fun ExerciseEditDialog(
                             Spacer(modifier = Modifier.width(8.dp))
                             MuscleGroupBadge(muscleGroup = muscleGroup, exerciseName = name)
                         }
-                        
+                    
                         val (exerciseDesc, _) = getExerciseDetails(name, muscleGroup, targetIntensityStr)
                         if (exerciseDesc.isNotBlank()) {
                             Surface(
@@ -3757,174 +4402,260 @@ fun ExerciseEditDialog(
                     }
                 }
 
-                // SOFT rep guidance, never a gate: the field only flags a
-                // structurally invalid range (min > max), and even that keeps the
-                // save button enabled — the user is always free to save what they
-                // typed. If the range sits entirely outside the exercise's
-                // recommended band, an info chip says so without blocking.
-                val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
-                val outsideRecommended = remember(targetRepsValue, name) {
-                    name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
-                        WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
-                }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {                        CompactNumericField(
-                        value = targetSetsStr,
-                        onValueChange = { newValue ->
-                            if (!newValue.all { char -> char.isDigit() }) return@CompactNumericField
-                            if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
-                            targetSetsStr = newValue
+                if (levelMode) {
+                    LevelPickerCard(
+                        options = levelData.options,
+                        // THE NEXT FIFTEEN ARE A SECOND SCREEN, not a scroll: the
+                        // buttons move the whole block, and they only exist where
+                        // there is a block to move to.
+                        pageRange = levelData.pageRange,
+                        totalLevels = levelData.maxLevel,
+                        onPreviousPage = levelData.previousPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        onNextPage = levelData.nextPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        selectedLevel = selectedLevel,
+                        onSelect = { level ->
+                            // A LEVEL row means "this level from its first stage":
+                            // applyExerciseLevel writes stage I, so the local highlight
+                            // has to follow it rather than keep pointing at whatever
+                            // stage the previous level was on.
+                            selectedLevel = level
+                            selectedStage = 1
+                            onLevelChange?.invoke(levelName, level)
                         },
-                        label = getString("sets"),
-                        enabled = !inputsLocked,
-                        onLockedTap = lockedFieldNotice,
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                    )
-
-                    if (isTimeBased) {
-                        var expandedTime by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expandedTime,
-                            // The anchor kept opening its menu while locked: the
-                            // dropdown then closed again on the very next
-                            // composition, so a tap on a greyed field looked
-                            // like nothing happened at all.
-                            onExpandedChange = {
-                                if (inputsLocked) lockedFieldNotice()
-                                else expandedTime = !expandedTime
-                            },
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        ) {
-                            val digitsOnly = targetTimeValue.filter { it.isDigit() }
-                            val interactionSource = remember { MutableInteractionSource() }
-                            BasicTextField(
-                                value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
-                                interactionSource = interactionSource,
-                                enabled = true,
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
-                                decorationBox = { innerTextField ->
-                                    OutlinedTextFieldDefaults.DecorationBox(
-                                        value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
-                                        innerTextField = innerTextField,
-                                        enabled = true,
-                                        singleLine = true,
-                                        visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-                                        interactionSource = interactionSource,
-                                        isError = false,
-                                        label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
-                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                        contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
-                                        container = {
-                                            OutlinedTextFieldDefaults.Container(
-                                                enabled = true,
-                                                isError = false,
-                                                interactionSource = interactionSource,
-                                                colors = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                                ),
-                                                shape = RoundedCornerShape(12.dp),
-                                                focusedBorderThickness = 2.dp,
-                                                unfocusedBorderThickness = 1.dp
-                                            )
-                                        }
-                                    )
-                                }
-                            )
-                            // Greyed out with the rest of the prescribed values; the
-                            // menu anchor still renders, but nothing opens it.
-                            if (inputsLocked) expandedTime = false
-                            ExposedDropdownMenu(expanded = expandedTime && !inputsLocked, onDismissRequest = { expandedTime = false }) {
-                                listOf("30", "45", "60", "90", "120").forEach { t ->
-                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
-                                }
-                            }
+                        // The name travels with every level write: in the add form it
+                        // is the exercise the user is ABOUT to add, and the host has
+                        // no other way to know which row this list belongs to.
+                        onOpenLadder = { onOpenLevelLadder?.invoke(levelName) },
+                        selectedStage = selectedStage,
+                        onSelectStage = { level, stage ->
+                            selectedLevel = level
+                            selectedStage = stage
+                            onStageChange?.invoke(levelName, level, stage)
                         }
-                    } else {
-                        RepsRangeField(
-                            value = targetRepsValue,
-                            onValueChange = { newValue ->
-                                if (inputsLocked) { onRequestCustomMode?.invoke(); return@RepsRangeField }
-                                targetRepsValue = newValue
-                                repsManuallyEdited = true
-                            },
-                            label = getString("reps"),
-                            isError = repsError,
-                            enabled = !inputsLocked,
-                            onLockedTap = lockedFieldNotice,
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        )
-                    }
+                    )
                 }
 
-                // Attention, not enforcement: the save button stays enabled, this
-                // only explains that there is a recommended band.
-                if (outsideRecommended) {
+                // One line of context under the list, for the same reason the old
+                // level row had one: "LEVEL 5" alone does not say what level 5 does.
+                if (levelMode && levelData.caption != null) {
+                    Text(
+                        text = levelData.caption,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis
+                    )
+                }
+
+                // When the level system prescribes this exercise, the values it
+                // owns are shown read-only: the prescription is authoritative, so
+                // the fields are greyed out rather than hidden, and one line
+                // explains where the switch that unlocks them lives.
+                if (inputsLocked && !levelMode) {
                     Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                        onClick = { onRequestCustomMode?.invoke() },
+                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f),
                         shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                            Icon(Icons.Default.Lock, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.primary)
                             Spacer(modifier = Modifier.width(8.dp))
                             Text(
-                                text = getString("reps_outside_recommended"),
+                                text = getString("level_fields_locked_hint"),
                                 style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                                color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
                         }
                     }
                 }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {
-                    CompactNumericField(
-                        value = targetWeightValue,
-                        onValueChange = { newValue ->
-                            if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
-                            targetWeightValue = newValue
+                // THE LEVEL-OWNED VALUES, IN CUSTOM MODE ONLY. These fields
+                // are what the level system prescribes when it is on, so in
+                // level mode they are not shown at all - the level list above
+                // IS their editor, and two editors for one prescription is the
+                // duplication this whole change exists to remove.
+                if (!levelMode) {
+                    RepsTimeToggle(
+                        isTimeBased = isTimeBased,
+                        onToggle = { newValue ->
+                            if (!inputsLocked) isTimeBased = newValue
                         },
-                        // Not every exercise is loaded with weight: a selectorized
-                        // stack counts pins and a band counts tension, and a "kg"
-                        // label on those rows asks a question with no honest answer.
-                        label = loadFieldLabel(name),
-                        enabled = !inputsLocked,
-                        onLockedTap = lockedFieldNotice,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
-                        placeholder = loadFieldPlaceholder(name),
-                        suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) }
+                        modifier = Modifier.fillMaxWidth()
                     )
-                    CompactNumericField(
-                        value = targetIntensityStr,
-                        onValueChange = { newValue ->
-                            if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
-                            targetIntensityStr = newValue
-                            // Re-adapt the auto-selected reps while the user hasn't typed their own
-                            if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
-                                val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
-                                if (recommended.isNotBlank()) {
-                                    targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, newValue)
+
+                    // SOFT rep guidance, never a gate: the field only flags a
+                    // structurally invalid range (min > max), and even that keeps the
+                    // save button enabled — the user is always free to save what they
+                    // typed. If the range sits entirely outside the exercise's
+                    // recommended band, an info chip says so without blocking.
+                    val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
+                    val outsideRecommended = remember(targetRepsValue, name) {
+                        name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
+                            WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                    ) {                        CompactNumericField(
+                            value = targetSetsStr,
+                            onValueChange = { newValue ->
+                                if (!newValue.all { char -> char.isDigit() }) return@CompactNumericField
+                                if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
+                                targetSetsStr = newValue
+                            },
+                            label = getString("sets"),
+                            enabled = !inputsLocked,
+                            onLockedTap = lockedFieldNotice,
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+
+                        if (isTimeBased) {
+                            var expandedTime by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expandedTime,
+                                // The anchor kept opening its menu while locked: the
+                                // dropdown then closed again on the very next
+                                // composition, so a tap on a greyed field looked
+                                // like nothing happened at all.
+                                onExpandedChange = {
+                                    if (inputsLocked) lockedFieldNotice()
+                                    else expandedTime = !expandedTime
+                                },
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            ) {
+                                val digitsOnly = targetTimeValue.filter { it.isDigit() }
+                                val interactionSource = remember { MutableInteractionSource() }
+                                BasicTextField(
+                                    value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
+                                    interactionSource = interactionSource,
+                                    enabled = true,
+                                    singleLine = true,
+                                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+                                    decorationBox = { innerTextField ->
+                                        OutlinedTextFieldDefaults.DecorationBox(
+                                            value = if (digitsOnly.isNotBlank()) "${digitsOnly}s" else "30s",
+                                            innerTextField = innerTextField,
+                                            enabled = true,
+                                            singleLine = true,
+                                            visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                                            interactionSource = interactionSource,
+                                            isError = false,
+                                            label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                            contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
+                                            container = {
+                                                OutlinedTextFieldDefaults.Container(
+                                                    enabled = true,
+                                                    isError = false,
+                                                    interactionSource = interactionSource,
+                                                    colors = OutlinedTextFieldDefaults.colors(
+                                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                    ),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    focusedBorderThickness = 2.dp,
+                                                    unfocusedBorderThickness = 1.dp
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                                // Greyed out with the rest of the prescribed values; the
+                                // menu anchor still renders, but nothing opens it.
+                                if (inputsLocked) expandedTime = false
+                                ExposedDropdownMenu(expanded = expandedTime && !inputsLocked, onDismissRequest = { expandedTime = false }) {
+                                    listOf("30", "45", "60", "90", "120").forEach { t ->
+                                        DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
+                                    }
                                 }
                             }
-                        },
-                        label = getString("intensity_label"),
-                        enabled = !inputsLocked,
-                        onLockedTap = lockedFieldNotice,
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                    )
+                        } else {
+                            RepsRangeField(
+                                value = targetRepsValue,
+                                onValueChange = { newValue ->
+                                    if (inputsLocked) { onRequestCustomMode?.invoke(); return@RepsRangeField }
+                                    targetRepsValue = newValue
+                                    repsManuallyEdited = true
+                                },
+                                label = getString("reps"),
+                                isError = repsError,
+                                enabled = !inputsLocked,
+                                onLockedTap = lockedFieldNotice,
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            )
+                        }
+                    }
+
+                    // Attention, not enforcement: the save button stays enabled, this
+                    // only explains that there is a recommended band.
+                    if (outsideRecommended) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = getString("reps_outside_recommended"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
+                            }
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                    ) {
+                        CompactNumericField(
+                            value = targetWeightValue,
+                            onValueChange = { newValue ->
+                                if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
+                                targetWeightValue = newValue
+                            },
+                            // Not every exercise is loaded with weight: a selectorized
+                            // stack counts pins and a band counts tension, and a "kg"
+                            // label on those rows asks a question with no honest answer.
+                            label = loadFieldLabel(name),
+                            enabled = !inputsLocked,
+                            onLockedTap = lockedFieldNotice,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal),
+                            placeholder = loadFieldPlaceholder(name),
+                            suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) }
+                        )
+                        CompactNumericField(
+                            value = targetIntensityStr,
+                            onValueChange = { newValue ->
+                                if (inputsLocked) { onRequestCustomMode?.invoke(); return@CompactNumericField }
+                                targetIntensityStr = newValue
+                                // Re-adapt the auto-selected reps while the user hasn't typed their own
+                                if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
+                                    val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
+                                    if (recommended.isNotBlank()) {
+                                        targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, newValue)
+                                    }
+                                }
+                            },
+                            label = getString("intensity_label"),
+                            enabled = !inputsLocked,
+                            onLockedTap = lockedFieldNotice,
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        )
+                    }
                 }
 
 
@@ -3941,6 +4672,34 @@ fun ExerciseEditDialog(
                         unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.5f)
                     )
                 )
+
+                // THE WAY OUT OF LEVEL MODE, at the END of the form, for the user who
+                // came here to change something the level system owns.
+                //
+                // The owner asked for it in as many words (2026-10-08): "if level is
+                // on then show a small label at the end saying 'switch to custom for
+                // full exercise edit'". It has to be here rather than nowhere because
+                // the fields it refers to are no longer ON this screen - without it,
+                // a user looking for the weight box would reasonably conclude the app
+                // had stopped letting them edit the exercise at all.
+                //
+                // It fires the same switch the old locked-field notice fired, and the
+                // host still confirms it: turning the level system off is a
+                // whole-app decision, not a per-exercise one.
+                if (levelMode) {
+                    Text(
+                        text = getString("level_switch_to_custom_edit"),
+                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .clip(RoundedCornerShape(8.dp))
+                            .clickable(enabled = onRequestCustomMode != null) {
+                                onRequestCustomMode?.invoke()
+                            }
+                            .padding(vertical = 4.dp)
+                            .semantics { testTag = "level_switch_to_custom" }
+                    )
+                }
             }
     }
 
@@ -3951,6 +4710,22 @@ fun ExerciseEditDialog(
  * of dp, so the wheel keeps the same visual rhythm on a 320dp phone and on a tablet.
  */
 private const val DayWheelGapRatio = 0.08f
+
+/**
+ * How many day chips share a row once the text is too large for seven.
+ *
+ * Seven equal columns are what make the wheel a wheel, and they are also its ceiling:
+ * measured at font scale 1.8 on the owner's 411dp emulator, dividing the wheel into
+ * seven slots with its own gap ratio left each chip 68px for a label that needs 85px,
+ * so AutoScaleText quietly shrank the day letters to about 73% of the platform size -
+ * 62px of text against the owner's phone at 47px, i.e. 1.32x, where every other string
+ * on that screen measured 1.80x. That one row was the last thing still "pressed
+ * together" (the owner's word) after the frame was fixed. Splitting seven into four and
+ * three doubles the width each label gets while KEEPING equal chips - the short row
+ * fills its remainder with invisible weights, so the row stays centred - and no day is
+ * hidden off-screen the way a horizontally scrolling strip would hide it.
+ */
+private const val DayWheelLargeTextRowSize = 4
 
 /**
  * Distance from the chip's top edge to the TODAY tag. The tag overlays the
@@ -4021,12 +4796,26 @@ fun WorkoutDayWheel(
         // fills a 336dp content column completely, erasing the gaps and turning the wheel into one
         // solid bar. The chips below opt out of the width minimum - they keep a >= 48dp *height*,
         // so their tap targets stay comfortable - and each one really gets its weight(1f) share.
+        // One row on a normal phone, two once the labels need the room (see
+        // DayWheelLargeTextRowSize). The gap between chips rides the user's font scale at
+        // that size - the same `inlineGap` token the rest of the app uses between two
+        // pieces of text - instead of staying a fraction of the wheel's width while the
+        // letters inside it grow.
+        val wheelRows = if (window.isLargeText) allDays.chunked(DayWheelLargeTextRowSize)
+                        else listOf(allDays)
+        val wheelGap = if (window.isLargeText) window.inlineGap else chipSpacing
+
         CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides Dp.Unspecified) {
+        Column(
+            verticalArrangement = Arrangement.spacedBy(wheelGap),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            wheelRows.forEach { row ->
             Row(
-                horizontalArrangement = Arrangement.spacedBy(chipSpacing),
+                horizontalArrangement = Arrangement.spacedBy(wheelGap),
                 modifier = Modifier.fillMaxWidth()
             ) {
-                allDays.forEach { dayEnum ->
+                row.forEach { dayEnum ->
                     val isToday = dayEnum.name == today
                     val isSelected = dayEnum.name == selectedDay
 
@@ -4034,18 +4823,18 @@ fun WorkoutDayWheel(
                     // surfaceVariant — so the filled primary chip reads as clearly
                     // raised against its siblings instead of one of seven equal tiles.
                     val backgroundColor = when {
-                        isSelected -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
-                        else -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceContainerLow
+                        isSelected -> MaterialTheme.colorScheme.primary
+                        else -> MaterialTheme.colorScheme.surfaceContainerLow
                     }
 
                     val contentColor = when {
-                        isSelected -> if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
-                        else -> if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurfaceVariant
+                        isSelected -> MaterialTheme.colorScheme.onPrimary
+                        else -> MaterialTheme.colorScheme.onSurfaceVariant
                     }
 
                     val borderStroke = when {
-                        isToday -> BorderStroke(2.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary)
-                        isDeveloper && isSelected -> BorderStroke(2.dp, Color.White)
+                        isToday -> BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                        isDeveloper && isSelected -> BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
                         else -> null
                     }
 
@@ -4053,7 +4842,7 @@ fun WorkoutDayWheel(
                         onClick = { onDaySelected(dayEnum.name) },
                         color = backgroundColor,
                         contentColor = contentColor,
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         border = borderStroke,
                         // A *definite* height, not a minimum. Two reasons: a minimum lets each
                         // chip wrap its own content, so the selected day (which carries the extra
@@ -4138,6 +4927,13 @@ fun WorkoutDayWheel(
                         }
                     }
                 }
+                    // A short row keeps the FULL row's chips the same width, centred,
+                    // by padding itself out with invisible weights.
+                    repeat(DayWheelLargeTextRowSize - row.size) {
+                        Spacer(modifier = Modifier.weight(1f))
+                    }
+                }
+            }
             }
         }
     }
@@ -4227,9 +5023,9 @@ fun WorkoutCalendar(
     }
 
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+        shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(containerColor = colorScheme.surfaceVariant),
-        border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+        border = null,
         modifier = modifier.fillMaxWidth()
     ) {
         Column(modifier = Modifier.padding(16.dp)) {
@@ -4570,6 +5366,24 @@ private fun WeeklyOutputChart(
 // Sentinel used for the "Any" muscle group option in the replace dialog.
 private const val ANY_MUSCLE_GROUP_KEY = "__any_muscle_group__"
 
+/**
+ * How much of the window an EXPANDED filter row may take, before it starts scrolling inside itself.
+ *
+ * The filter rows sit above the exercise list in a dialog whose body is a fixed height, so an
+ * unbounded expansion does not "push" anything - it overflows. Measured on the Pixel-class
+ * emulator with the six body parts (104dp) plus the nineteen precise muscles (328dp): the
+ * "Exercises (N)" count line ended up 828dp BELOW the dialog's own Cancel button, which is the
+ * whole reason this cap exists rather than a hope that the vocabulary is small.
+ *
+ * A share of the window rather than a dp constant, like everything else measured in this file. The
+ * number is not a guess: the block it caps is a 40dp row, a 104dp body-part grid and a 29dp caption
+ * — 173dp of things the user must see — so the share has to leave roughly two rows of the precise
+ * muscles (80dp) below them, or the vocabulary the filter exists for stays off the fold. At 891dp
+ * that is 249dp of chips, and the list keeps 190dp: two exercise cards while the filter is open,
+ * against 401dp when it is closed. Inert until a filter is opened, since the collapsed row is 40dp.
+ */
+private const val EXPANDED_FILTER_MAX_WINDOW_SHARE = 0.28f
+
 /** How long the picked card's "+" takes to turn into a tick before the swap is applied. */
 private const val REPLACE_TICK_MILLIS = 220L
 
@@ -4658,55 +5472,343 @@ fun EquipmentFilterRow(
 }
 
 /**
- * The muscle-group filter dropdown from the replace dialog: "Any" plus the six
- * broad body parts. Selecting "Legs" offers every exercise whose own body part
- * is Legs — the same partition the replace dialog filters by.
+ * How many equipment glyphs the COLLAPSED summary draws before it stops and
+ * counts the rest. Four is what fits beside the toggle at the widest font scale
+ * the app supports without the row wrapping.
  */
-@OptIn(ExperimentalMaterial3Api::class)
+private const val MAX_COLLAPSED_EQUIPMENT_ICONS = 4
+
+/**
+ * The equipment filter as a COLLAPSED summary, with the full chip grid one tap
+ * away.
+ *
+ * WHY THIS EXISTS. The replace dialog used to lay out all eight equipment chips
+ * unconditionally. On a phone whose font scale is large that is not a filter row
+ * at all: measured on the Pixel-class emulator at 1.8x, one labelled chip is
+ * 466px of a 738px content row, so the FlowRow chipped ONE PER LINE, eight lines
+ * deep — 1300px of a 2256px dialog — and the exercise list every user opens this
+ * dialog for was pushed off the bottom of the screen entirely. The owner's report
+ * was exactly that: "the user cant even see exercises to replace".
+ *
+ * So the equipment already filtering the list is drawn as GLYPHS (the same
+ * drawings the setup's tile grid uses, so "Barbell" is the same object
+ * everywhere), which cost a fixed 22dp regardless of the font scale, and the
+ * grid of labels appears only when the user asks for it. Collapsed is the
+ * default because the filter is already applied: the common case is reading the
+ * list, not re-choosing the equipment.
+ *
+ * [initiallyExpanded] exists for the one case where the choice IS the task: a
+ * caller with no equipment selected yet (nothing to summarise) can open the grid
+ * up front.
+ */
+@OptIn(ExperimentalLayoutApi::class)
 @Composable
-fun MuscleGroupFilterField(
+fun EquipmentFilterCollapsible(
+    selectedEquipment: List<String>,
+    onToggle: (String) -> Unit,
+    modifier: Modifier = Modifier,
+    initiallyExpanded: Boolean = false
+) {
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    val window = LocalWindowSize.current
+    Column(
+        // The same cap as the muscle row's (see [EXPANDED_FILTER_MAX_WINDOW_SHARE]): one rule for
+        // both filters, so whichever is open cannot eat the list the dialog exists to show.
+        modifier = modifier
+            .fillMaxWidth()
+            .heightIn(max = (window.windowHeightDp * EXPANDED_FILTER_MAX_WINDOW_SHARE).dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
+    ) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // The word "Equipment" is the first thing to go at a large font scale:
+            // it costs ~200px of a 738px row on the emulator's 1.8x, which is more
+            // than the glyphs it labels. The row still reads as "the equipment
+            // filter" from the glyphs and the chevron, and the accessible name is
+            // on the toggle either way.
+            if (!window.isLargeText) {
+                Text(
+                    text = getString("equipment"),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1
+                )
+            }
+
+            if (selectedEquipment.isEmpty()) {
+                // Nothing selected means every category is included, which is a
+                // fact worth stating rather than an empty row to puzzle over.
+                Text(
+                    text = getString("equipment_all"),
+                    style = MaterialTheme.typography.bodySmall,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f)
+                )
+            } else {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    horizontalArrangement = Arrangement.spacedBy(6.dp),
+                    modifier = Modifier.weight(1f, fill = false)
+                ) {
+                    selectedEquipment.take(MAX_COLLAPSED_EQUIPMENT_ICONS).forEach { key ->
+                        // The label moves to the content description, where it costs no
+                        // width: this row has to survive the 1.8x font scale that made
+                        // the labelled version unreadable.
+                        EquipmentIconImage(
+                            icon = equipmentCategoryIcon(key),
+                            contentDescription = getString(WorkoutTemplates.equipmentLabelKey(key)),
+                            modifier = Modifier.size(22.dp)
+                        )
+                    }
+                    if (selectedEquipment.size > MAX_COLLAPSED_EQUIPMENT_ICONS) {
+                        Text(
+                            text = "+${selectedEquipment.size - MAX_COLLAPSED_EQUIPMENT_ICONS}",
+                            style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 1
+                        )
+                    }
+                }
+            }
+
+            if (window.isLargeText) {
+                // Icon-only: the chevron is what tells the user the row opens, and
+                // at this font scale the words would push the glyphs off the row.
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics { testTag = "equipment_filter_toggle" }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = getString(if (expanded) "show_less" else "show_more"),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                TextButton(
+                    onClick = { expanded = !expanded },
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.semantics { testTag = "equipment_filter_toggle" }
+                ) {
+                    Text(
+                        text = getString(if (expanded) "show_less" else "show_more"),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        if (expanded) {
+            EquipmentFilterRow(selectedEquipment = selectedEquipment, onToggle = onToggle)
+        }
+    }
+}
+
+/**
+ * The muscle filter, as the SAME compact row as the equipment filter.
+ *
+ * Owner, 2026-10-09: *"allow the user to filter which muscle too for when replacing an
+ * exercise, make sure the filter still stays nicely spacious yet compact and small"*.
+ *
+ * It used to be a full-width `OutlinedTextField` dropdown — a form field, with a floating
+ * label, 56dp of height and a chevron - sitting directly under the one-row equipment summary.
+ * Two filters, two visual languages, and the heavier one belonged to the simpler choice:
+ * there are six body parts and nineteen muscles against eight equipment categories. The
+ * owner's instruction was not to add a filter (this dialog had one) but to make the muscle
+ * one read like the equipment one: a single line showing what is filtering the list, with the
+ * choices one tap away, and every dp it does not spend going to the exercise list, which is
+ * what the dialog is for.
+ *
+ * SO THE SHAPE IS DELIBERATELY THE EQUIPMENT ROW'S: label, current selection, "Show more" /
+ * "Show less". The words do the work the equipment row gives to glyphs, because a muscle has
+ * no icon in this app and inventing nineteen would be a vocabulary of its own. The label
+ * yields at a large font scale exactly as the equipment row's does — the row then reads as
+ * "selected value + chevron", which still says "this is a filter and it is openable".
+ *
+ * EXPANDED, IT IS TWO ROWS RATHER THAN ONE, and that is the "nicely spacious" half: body
+ * parts first (the predictable partition, and what the filter STARTS on), then the precise
+ * muscles under their own caption, because the two answer different questions — "another back
+ * movement" against "something else for my lats". A single mixed grid of 25 chips would make
+ * the user hunt for the six they actually use.
+ *
+ * SINGLE-SELECT, unlike equipment: the pool lookup answers one muscle at a time
+ * ([WorkoutTemplates.getExercisesForEquipment]), and "Legs OR Chest" is what the Any chip is
+ * for. Tapping the selected chip again keeps it selected rather than clearing it — clearing is
+ * what the Any chip and the dialog's Reset are for, and a chip that silently unsets itself is
+ * how a filter looks broken.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+fun MuscleGroupFilterCollapsible(
     selectedMuscleGroup: String?,
     onSelect: (String?) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    initiallyExpanded: Boolean = false
 ) {
-    var expanded by remember { mutableStateOf(false) }
+    var expanded by remember { mutableStateOf(initiallyExpanded) }
+    val window = LocalWindowSize.current
     val anyLabel = getString("any_muscle_group")
-    val broadGroups = WorkoutTemplates.getBroadMuscleGroups()
-    ExposedDropdownMenuBox(
-        expanded = expanded,
-        onExpandedChange = { expanded = it },
+
+    Column(
+        // CAPPED AND SCROLLABLE, because nothing about a chip list bounds it: see
+        // [EXPANDED_FILTER_MAX_WINDOW_SHARE]. The six body parts fit; the nineteen precise muscles
+        // do not, so they scroll inside the block instead of pushing the exercise list out of the
+        // dialog — which is what the measurement recorded when this was unbounded.
         modifier = modifier
+            .fillMaxWidth()
+            .heightIn(max = (window.windowHeightDp * EXPANDED_FILTER_MAX_WINDOW_SHARE).dp)
+            .verticalScroll(rememberScrollState()),
+        verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
-        OutlinedTextField(
-            value = if (selectedMuscleGroup == null) anyLabel else translateMuscleGroup(selectedMuscleGroup),
-            onValueChange = {},
-            readOnly = true,
-            label = { Text(getString("muscle_group")) },
-            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
-            modifier = Modifier
-                .fillMaxWidth()
-                .menuAnchor(MenuAnchorType.PrimaryNotEditable)
-        )
-        ExposedDropdownMenu(
-            expanded = expanded,
-            onDismissRequest = { expanded = false }
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(6.dp),
+            modifier = Modifier.fillMaxWidth()
         ) {
-            DropdownMenuItem(
-                text = { Text(anyLabel, fontWeight = FontWeight.Bold) },
-                onClick = {
-                    onSelect(null)
-                    expanded = false
-                }
-            )
-            HorizontalDivider()
-            broadGroups.forEach { group ->
-                DropdownMenuItem(
-                    text = { Text(translateMuscleGroup(group)) },
-                    onClick = {
-                        onSelect(group)
-                        expanded = false
-                    }
+            // Same surrender as the equipment row at a large font scale: the word costs
+            // more of the row than the value it labels.
+            if (!window.isLargeText) {
+                Text(
+                    text = getString("muscle_group"),
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1
                 )
+            }
+
+            // The current selection, drawn as a chip rather than as text: the equipment row
+            // shows glyphs, and a filter's value reading as a value (not as another label) is
+            // what keeps the two rows legible side by side.
+            Surface(
+                shape = RoundedCornerShape(8.dp),
+                color = if (selectedMuscleGroup == null) Color.Transparent
+                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                border = BorderStroke(
+                    1.dp,
+                    if (selectedMuscleGroup == null) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
+                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
+                ),
+            ) {
+                // The tag sits on the TEXT rather than on the Surface around it, so a test can
+                // read the value the row is showing ("Back") instead of only proving a box is
+                // on screen — the difference between "the row exists" and "the row is honest".
+                Text(
+                    text = if (selectedMuscleGroup == null) anyLabel
+                           else translateMuscleGroup(selectedMuscleGroup),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = if (selectedMuscleGroup == null) MaterialTheme.colorScheme.onSurfaceVariant
+                            else MaterialTheme.colorScheme.primary,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .semantics { testTag = "muscle_filter_value" }
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // The toggle is the same control in both states — a text button on a roomy
+            // window, an icon button at a large font scale, where the words would push the
+            // value off the row.
+            if (window.isLargeText) {
+                IconButton(
+                    onClick = { expanded = !expanded },
+                    modifier = Modifier
+                        .size(40.dp)
+                        .semantics { testTag = "muscle_filter_toggle" }
+                ) {
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = getString(if (expanded) "show_less" else "show_more"),
+                        tint = MaterialTheme.colorScheme.primary
+                    )
+                }
+            } else {
+                TextButton(
+                    onClick = { expanded = !expanded },
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.semantics { testTag = "muscle_filter_toggle" }
+                ) {
+                    Text(
+                        text = getString(if (expanded) "show_less" else "show_more"),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Icon(
+                        imageVector = if (expanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        }
+
+        if (expanded) {
+            // BODY PARTS — the same six the filter has always offered, with Any first so
+            // "no muscle preference" is a visible choice rather than the absence of one.
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { testTag = "muscle_filter_broad_row" }
+            ) {
+                FilterChip(
+                    selected = selectedMuscleGroup == null,
+                    onClick = { onSelect(null) },
+                    label = { Text(anyLabel, maxLines = 1) },
+                    shape = RoundedCornerShape(10.dp),
+                    modifier = Modifier.semantics { testTag = "muscle_chip_any" }
+                )
+                WorkoutTemplates.getBroadMuscleGroups().forEach { group ->
+                    FilterChip(
+                        selected = selectedMuscleGroup == group,
+                        onClick = { onSelect(group) },
+                        label = { Text(translateMuscleGroup(group), maxLines = 1) },
+                        shape = RoundedCornerShape(10.dp),
+                        // A handle per chip, so "does picking this muscle narrow the list" can
+                        // be asked of the chip itself rather than of a label that a card's
+                        // description might also contain.
+                        modifier = Modifier.semantics { testTag = "muscle_chip_$group" }
+                    )
+                }
+            }
+
+            // PRECISE MUSCLES — under their own caption, so the nineteen do not read as a
+            // longer version of the six. These are the groups the catalog actually stores on
+            // each exercise, so each one answers with the movements that train it.
+            Text(
+                text = getString("muscle_filter_precise"),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant
+            )
+            FlowRow(
+                horizontalArrangement = Arrangement.spacedBy(8.dp),
+                verticalArrangement = Arrangement.spacedBy(8.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { testTag = "muscle_filter_precise_row" }
+            ) {
+                WorkoutTemplates.getPreciseMuscleGroups().forEach { muscle ->
+                    FilterChip(
+                        selected = selectedMuscleGroup == muscle,
+                        onClick = { onSelect(muscle) },
+                        label = { Text(translateMuscleGroup(muscle), maxLines = 1) },
+                        shape = RoundedCornerShape(10.dp),
+                        modifier = Modifier.semantics { testTag = "muscle_chip_precise_$muscle" }
+                    )
+                }
             }
         }
     }
@@ -4843,7 +5945,13 @@ fun ReplaceExerciseDialog(
                 // the list a decent share, the header drops to what the user actually needs —
                 // which exercise is being replaced, and the filters — and every dp it saves
                 // goes to the alternatives. On a tall window nothing is hidden.
-                val compactHeader = window.isShort
+                //
+                // [WindowSize.isLargeText] joins it because a large font scale does to this
+                // dialog exactly what a short window does: it makes the chrome taller than the
+                // list. Measured on the Pixel-class emulator at 1.8x, the notice alone was
+                // 219px of a 2256px dialog. The rule is the same in both cases — the list is
+                // what the dialog is FOR, so the notice yields.
+                val compactHeader = window.isShort || window.isLargeText
 
                 Text(
                     text = getString("replace_exercise_desc", translateExerciseName(exercise.name)),
@@ -4882,14 +5990,15 @@ fun ReplaceExerciseDialog(
                     modifier = Modifier.fillMaxWidth()
                 )
 
-                // EQUIPMENT FILTER (all options visible, no horizontal scrolling)
-                if (!compactHeader) {
-                    Text(
-                        text = getString("equipment"),
-                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
-                    )
-                }
-                EquipmentFilterRow(
+                // EQUIPMENT FILTER — collapsed to the glyphs of what is already
+                // filtering the list, with the labelled grid one tap away.
+                //
+                // This is the fix for "the user can't even see exercises to
+                // replace": the eight labelled chips used to be laid out
+                // unconditionally, which at a large font scale is one chip per
+                // line and 1300px of the dialog spent before the list begins.
+                // Collapsed occupies ONE row whatever the font scale is.
+                EquipmentFilterCollapsible(
                     selectedEquipment = selectedEquipment,
                     onToggle = { key ->
                         selectedEquipment = if (selectedEquipment.contains(key)) {
@@ -4900,8 +6009,10 @@ fun ReplaceExerciseDialog(
                     }
                 )
 
-                // MUSCLE GROUP FILTER
-                MuscleGroupFilterField(
+                // MUSCLE FILTER — the equipment row's shape, because it is the same kind of
+                // control: one line of summary while the list below is the thing being read,
+                // and the body parts + precise muscles only when the user is choosing one.
+                MuscleGroupFilterCollapsible(
                     selectedMuscleGroup = selectedMuscleGroup.takeIf { it != ANY_MUSCLE_GROUP_KEY },
                     onSelect = { selectedMuscleGroup = it ?: ANY_MUSCLE_GROUP_KEY }
                 )

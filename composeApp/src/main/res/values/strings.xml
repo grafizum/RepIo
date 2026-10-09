@@ -233,6 +233,7 @@
     <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
     <string name="any_muscle_group">Any</string>
+    <string name="muscle_filter_precise">Precise muscles</string>
     <string name="copy_day_title">Copy %1$s</string>
     <string name="copy_day_desc">Copy all exercises from %1$s to another day:</string>
     <string name="copy_day_replace">Replace</string>
@@ -705,6 +706,10 @@
     <string name="choose_body_parts">Target Body Parts</string>
     <string name="choose_days">Training Days Per Week</string>
     <string name="frequency_warning_1_day">1 day/week gives minimal benefits — 2–3 days is the recommended minimum.</string>
+    <string name="days_not_recommended">(not recommended)</string>
+    <string name="choose_specific_days">Choose specific days</string>
+    <string name="premade_week_hint">Off: the recommended week — training days with rest days between them.</string>
+    <string name="premade_week_hint_on">On: your own days — tap a day to add or remove it.</string>
     <string name="frequency_warning_7_day">7 days/week carries a high overtraining risk — 5–6 days is the recommended maximum.</string>
     <string name="mastery_ceiling_default">Realistic human ceiling reached.</string>
     <string name="mastery_human_limit">Human Limit Reached</string>
@@ -895,13 +900,15 @@
     <string name="level_example_title">What is a level?</string>
     <string name="level_example_caption">Each exercise has its own levels. Higher levels mean more resistance or a harder variation.</string>
     <string name="stage_example_title">What is a stage?</string>
-    <string name="stage_example_caption">Within a level, you progress through stages by adding reps.</string>
+    <string name="stage_example_caption">Within a level, you progress through stages by adding reps \u2014 one rep on every set at once, so 8 / 8 / 8 becomes 9 / 9 / 9.</string>
     <string name="level_up_example_title">Level-up and rep reset</string>
     <string name="level_up_example_arrow">load up</string>
     <string name="level_up_example_caption">When you finish the last stage, you move up a level and start again at lower reps with more load.</string>
     <string name="large_jump_example_title">Big jumps, smaller reps</string>
     <string name="large_jump_example_arrow">big jump</string>
     <string name="large_jump_example_caption">If the next load is a big jump, the app resets your reps to make it manageable.</string>
+    <string name="lock_example_title">Locking an exercise</string>
+    <string name="lock_example_caption">Tap the lock on the level card to hold THIS exercise on its current level \u2014 it stays where it is even after a finished workout, and the level box stops offering a change. Tap it again to unlock.</string>
     <string name="difficulty_change_example_title">Changing your starting difficulty</string>
     <string name="difficulty_change_example_caption">You can change your starting difficulty for each exercise before your first set.</string>
 
@@ -911,14 +918,20 @@
     <string name="adjust_levels_n">Level %1$d</string>
     <string name="level_details_title">Levels — %1$s</string>
     <string name="level_details_intro">Tap a level to switch to it. Each row shows the load or variation and the reps of its first stage.</string>
+    <string name="level_details_intro_info">Every level of this exercise\'s own program — what each rung trains at, and the reps it starts with. This sheet is for reading.</string>
+    <string name="level_details_hint_info">To change the level, open the exercise editor with the pencil on the card.</string>
     <string name="level_details_current">current</string>
-    <string name="level_lock_title">Stay on this level</string>
+    <string name="level_details_auto_title">Levels go up on their own</string>
+    <string name="level_details_auto_arrow">level up</string>
+    <string name="level_details_auto_caption">Finish this exercise\'s sets at their targets and it moves up by itself \u2014 nothing to tap. The level lock holds it where it is.</string>
+    <string name="level_details_auto_top_caption">This exercise is at the top of its ladder \u2014 finishing it keeps it here.</string>
+    <string name="level_lock_short">Level lock</string>
+    <string name="level_locked_short">Locked</string>
     <string name="exercise_edit_desc">Edit this exercise level</string>
     <string name="exercise_commit_desc">Save and lock in this level</string>
     <string name="exercise_lock_desc">Lock this exercise at its current level and stage</string>
     <string name="exercise_unlock_desc">Unlock this exercise to move it again</string>
     <string name="level_details_locked_hint">This exercise is locked — unlock it on the card to jump levels.</string>
-    <string name="level_lock_desc">Keep the same level and reps next time, even after finishing all sets.</string>
     <string name="stage_current_format">Stage %1$s</string>
     <string name="stage_down_desc">Previous Roman stage</string>
     <string name="stage_up_desc">Next Roman stage</string>
@@ -935,13 +948,16 @@
     <string name="level_system_toggle_desc_on">Exercises follow their levels: reps and weight are prescribed for you.</string>
     <string name="level_system_toggle_desc_off">Custom mode: you choose sets, reps and weight yourself.</string>
     <string name="custom_mode_title">Switch to Custom?</string>
-    <string name="custom_mode_body">Sets, reps, weight and intensity are prescribed by the level system. Switch this exercise to Custom mode to edit them yourself?</string>
+    <string name="custom_mode_body">Sets, reps, weight and intensity come from the level system. Switching to Custom turns it off for EVERY exercise, not only this one — from then on you set those values yourself. Are you sure?</string>
     <string name="custom_mode_confirm">Switch to Custom</string>
     <string name="level_fields_locked_hint">Managed by the level system. Switch to custom to make changes here.</string>
     <string name="level_fields_locked_toast">Switch to custom to change this.</string>
-    <string name="level_pencil_hint">Tap the pencil first to edit this level.</string>
+    <string name="level_pencil_hint">Tap the pencil to open this exercise and change its level.</string>
     <string name="level_editor_title">Level</string>
     <string name="level_editor_open_ladder">See every level</string>
+    <!-- Which fifteen rungs of the ladder the editor's level list is showing. -->
+    <string name="levels_page_range">Levels %1$d–%2$d of %3$d</string>
+    <string name="level_switch_to_custom_edit">Switch to Custom for the full exercise edit</string>
     <string name="level_step_down_desc">Previous level</string>
     <string name="level_step_up_desc">Next level</string>
     <string name="progression_available">Progression available</string>

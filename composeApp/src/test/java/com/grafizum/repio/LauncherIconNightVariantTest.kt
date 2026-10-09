@@ -355,10 +355,12 @@ class LauncherIconNightVariantTest {
         )
         // Every LAUNCHER theme must have its appearance generated under its own
         // name, which is what makes the icon follow the theme rather than the
-        // system. Orange is excluded on purpose: it is not a launcher activity
-        // but the `<application android:icon>` fallback a launcher shows before
-        // any enabled activity exists, and that one SHOULD follow the system -
-        // there is no user theme choice to honour at that point.
+        // system. Orange is excluded from the LAUNCHER set: it is not a launcher
+        // activity but the `<application android:icon>` fallback that system UI
+        // shows where no launcher activity's own icon is used at all (the App info
+        // page). It is a theme like any other on disk - it has a generated
+        // `_light`/`_dark` pair with the rest - so it is only excluded here,
+        // where the question is which themes name a launcher ACTIVITY.
         val launcherThemes = allThemes - "orange"
         launcherThemes.forEach { theme ->
             val isLight = theme in setOf("beige", "emerald", "crimson", "royal_blue")
@@ -369,15 +371,60 @@ class LauncherIconNightVariantTest {
             )
         }
         assertTrue(
-            "the application-level fallback must stay on the system-following " +
-                "ic_launcher_orange, since no theme is chosen before an activity exists",
+            "the application-level icon must be the app's OWN default appearance " +
+                "(ic_launcher_beige_light), not a system-following fallback - see " +
+                "theApplicationIconIsTheLightBeigeDefaultAndNotTheDarkOrangeFallback",
             File("src/main/AndroidManifest.xml").readText()
-                .contains("""android:icon="@mipmap/ic_launcher_orange""""),
+                .contains("""android:icon="@mipmap/ic_launcher_beige_light""""),
         )
         assertEquals(
             "the generated appearances must not lose a theme relative to the base sets",
             launcherThemes.toSet(),
             baseThemes("mipmap-anydpi-v26"),
+        )
+    }
+
+    /**
+     * The App info icon is the application icon, and it must be the LIGHT BEIGE one.
+     *
+     * OWNER REPORT, 2026-10-09: *"when looking at the apps info it shows the dark icon with
+     * orange in it but that shouldnt be the default icon, it should be light with beige since
+     * thats the overall default theme"*.
+     *
+     * The App info page is not a launcher: it draws `ApplicationInfo.loadIcon`, i.e. the one
+     * `<application android:icon>` names, and it resolves that name with the SYSTEM's own
+     * configuration. That fallback used to be `ic_launcher_orange`, which ships a
+     * `mipmap-night-anydpi-v26` twin - so on a dark phone Android picked the DARK PLATE and
+     * App info showed exactly what the owner described: a black plate with orange artwork.
+     * Both entries in the manifest are internally consistent (the enabled launcher activity was
+     * Beige all along), which is precisely why nothing in the build ever complained.
+     *
+     * The base theme ruling of 2026-10-04 ("the base theme of the app [is] the light beige one
+     * no matter if the system is dark or light") is what decides this: the app's default look
+     * is the light beige plate, so the icon that stands for the app must be that one. The `_light`
+     * name is also the only choice that cannot be overridden by the system at all, since no
+     * `mipmap-night-*` resource for it exists - asserted just above.
+     */
+    @Test
+    fun theApplicationIconIsTheLightBeigeDefaultAndNotTheDarkOrangeFallback() {
+        val manifest = File("src/main/AndroidManifest.xml").readText()
+        assertTrue(
+            "the application icon must name the beige LIGHT icon - App info resolves it with " +
+                "the system configuration, so anything with a night twin turns dark on a dark phone",
+            manifest.contains("""android:icon="@mipmap/ic_launcher_beige_light"""),
+        )
+        assertFalse(
+            "ic_launcher_orange still has a mipmap-night counterpart, so naming it as the " +
+                "application icon is the dark App-info icon the owner reported",
+            manifest.contains("""android:icon="@mipmap/ic_launcher_orange"""),
+        )
+        // And the resource it names really is the light plate, with no night override in sight.
+        val icon = File(res, "mipmap-anydpi-v26/ic_launcher_beige_light.xml")
+        assertTrue("the beige light icon must exist", icon.isFile)
+        assertTrue("and it must be the white plate", icon.readText().contains("icon_bg_white"))
+        assertFalse(
+            "a night-qualified beige_light would put the system back in charge of the App-info icon",
+            File(res, "mipmap-night-anydpi-v26/ic_launcher_beige_light.xml").exists(),
         )
     }
 

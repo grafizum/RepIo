@@ -42,10 +42,22 @@ class LevelPickerStringsTest {
         // The picker.
         "level_details_intro",
         "level_details_current",
+        // The picker's picture of a level being earned by itself. Owner, 2026-10-09:
+        // "the app should also explain that the levels increase automatically after
+        // finishing that exercise (show that graphically the same as the other informations
+        // for the level panel)". Four keys rather than a sentence, so all four are resolved
+        // here in every locale: a panel that explains the ladder in one language and not in
+        // another is worse than one that does not explain it at all.
+        "level_details_auto_title",
+        "level_details_auto_arrow",
+        "level_details_auto_caption",
+        "level_details_auto_top_caption",
         "level_details_beyond_plan",
         "level_details_beyond_plan_desc",
-        "level_lock_title",
-        "level_lock_desc",
+        // Retired with the Settings switch (owner, 2026-10-09: "remove 'stay on this level'
+        // switch in the settings completely"): level_lock_title and level_lock_desc were only
+        // ever that row's copy. The card's own pin still uses level_lock_short /
+        // level_locked_short, which stay in this list via the picker's own keys.
         "done"
     )
 

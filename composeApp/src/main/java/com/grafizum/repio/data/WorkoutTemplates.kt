@@ -61,6 +61,91 @@ object WorkoutTemplates {
         else -> 8..10
     }
 
+    // ---------- THE PREMADE WEEK ----------
+
+    /** The week in order, so every "which days" answer shares one vocabulary. */
+    val WEEK_DAY_ORDER = listOf(
+        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"
+    )
+
+    /**
+     * The week the app lays out for a user who picks a NUMBER of training days and does not
+     * want to choose the days themselves.
+     *
+     * The owner asked for this on 2026-10-08: *"i want the 2 to 6 days to be a premade
+     * selection of the week for the best days to make pause for example 5 days is 3 days
+     * workout 1 pause 2 workout 1 pause.., make these premade days based on the usual
+     * professional sources"*. Those sources agree on three rules, and the patterns below
+     * are what those rules produce:
+     *
+     *  1. **Never more than three consecutive training days.** Past three, session quality
+     *     and recovery both fall (ACSM/NSCA guidance on consecutive-day loading), which is
+     *     why 4, 5 and 6 days all carry a mid-week pause rather than running the week's days
+     *     end to end from Monday.
+     *  2. **A rest day is what makes the split work, not leftover space.** A muscle group
+     *     trained on consecutive days is trained under fatigue; the pause is what gives every
+     *     group the ~48h the same literature asks for. That is why 5 days is 3-on / 1-off /
+     *     2-on / 1-off - exactly the example the owner gave - and never Mon-Fri.
+     *  3. **The week ends at rest.** 6 days pauses on THURSDAY (mid-week, where fatigue has
+     *     accumulated) and keeps the weekend days that people actually have free; 2 days
+     *     spreads to Monday and Thursday so the two sessions cannot crowd into one week.
+     *
+     * 3 days is deliberately UNCHANGED at MON/WED/FRI: it is the pattern this screen already
+     * shipped and the one the app's own tests and copy are written against, and it is also
+     * the textbook full-body week (every muscle trained every other day).
+     *
+     * These are a WINDOW, not a program: the user can still pick the days themselves through
+     * the specific-days control, which is what makes 1 and 7 days honest choices rather than
+     * refused ones.
+     */
+    fun premadeWeekFor(daysPerWeek: Int): List<String> {
+        val pattern = when (daysPerWeek) {
+            1 -> listOf("MONDAY")
+            2 -> listOf("MONDAY", "THURSDAY")
+            4 -> listOf("MONDAY", "TUESDAY", "THURSDAY", "FRIDAY")
+            5 -> listOf("MONDAY", "TUESDAY", "WEDNESDAY", "FRIDAY", "SATURDAY")
+            6 -> listOf("MONDAY", "TUESDAY", "WEDNESDAY", "FRIDAY", "SATURDAY", "SUNDAY")
+            7 -> WEEK_DAY_ORDER
+            // 3 and anything out of range: the shipped full-body week.
+            else -> listOf("MONDAY", "WEDNESDAY", "FRIDAY")
+        }
+        return pattern.sortedBy { WEEK_DAY_ORDER.indexOf(it) }
+    }
+
+    /**
+     * The number of training days in [premadeWeekFor] - i.e. what "days per week" means to
+     * this screen. Kept beside the pattern so the two can never disagree.
+     */
+    fun premadeWeekDayCount(daysPerWeek: Int): Int = premadeWeekFor(daysPerWeek).size
+
+    /**
+     * True when [count] is a frequency the app supports but does not recommend. The screen
+     * marks these with a small "not recommended" label instead of refusing them: the owner
+     * asked for both frequencies to stay selectable (2026-10-08).
+     */
+    fun isNotRecommendedFrequency(count: Int): Boolean = count <= 1 || count >= 7
+
+    /**
+     * The TIME window that goes with [durationRangeFor]: 30-45 / 45-60 / 60-75 minutes.
+     *
+     * The two windows are the SAME decision read two ways, which is why they live beside
+     * each other. [durationRangeFor] is what the generator must obey and what the
+     * `duration_*_desc` copy explains; this is what the user is told before choosing.
+     *
+     * The welcome screen's "Sitzungslänge" chips used to render the EXERCISE counts with
+     * the minute unit, so every option claimed a length it plainly is not - measured on
+     * the Pixel 7a 2026-10-08, they read "6–8 Min." / "8–10 Min." / "10–12 Min." while
+     * the numbers were the exercise windows 6-8 / 8-10 / 10-12. A 12-exercise session is
+     * the longest option the app builds; 12 minutes is shorter than its own warm-up.
+     *
+     * Unknown values fall back to the standard window, exactly like [durationRangeFor].
+     */
+    fun durationMinutesFor(duration: String?): IntRange = when (duration) {
+        DURATION_QUICK -> 30..45
+        DURATION_FULL -> 60..75
+        else -> 45..60
+    }
+
     /** All equipment categories (excluding [EQUIPMENT_ALL]). */
     val allEquipmentCategories: List<String> = ExerciseCatalog.CATEGORIES
 
@@ -1266,9 +1351,12 @@ object WorkoutTemplates {
                     // green at every difficulty, and changing ONLY the equipment later
                     // re-ranks within the allowed pool the same way, so a green build
                     // stays green (and a red one only changes for a real reason).
+                    // Gear effectiveness breaks ties between equally on-part rows, so
+                    // the most effective implement the user owns comes first.
                     available = available.sortedBy { name ->
                         val primary = getMuscleGroupForExercise(name)
-                        if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1
+                        ((if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1) * 10) +
+                            equipmentEffectivenessRank(name)
                     }
 
                     if (available.isEmpty() && includedExercises.none { exerciseMatchesPart(it, part) }) {
@@ -1280,9 +1368,12 @@ object WorkoutTemplates {
                         // compound-before-isolation (catalog `level`) after the
                         // on-part ranking, so the 2-3 movements picked from the
                         // head of the pool are the day's primary lifts and the
-                        // trimming tail is always isolation/accessory work.
+                        // trimming tail is always isolation/accessory work, with
+                        // the most effective gear winning the ties inside each
+                        // role.
                         available = available.sortedBy { name ->
-                            if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1
+                            ((if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1) * 10) +
+                                equipmentEffectivenessRank(name)
                         }
                         
                         // The intensity still owns how many exercises go to
@@ -1431,8 +1522,9 @@ object WorkoutTemplates {
                             // candidates the stable sort is a no-op.
                             val unrotated = candidates.sortedBy { name ->
                                 val primary = getMuscleGroupForExercise(name)
-                                ((if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1) * 2) +
-                                    (if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1)
+                                ((((if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1) * 2) +
+                                    (if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1)) * 10) +
+                                    equipmentEffectivenessRank(name)
                             }
                             // Week-level variety: rotate the candidate pool by the
                             // part's occurrence count so repeated days work fresh
@@ -1510,8 +1602,9 @@ object WorkoutTemplates {
                         // the regular picks.
                         padPool = padPool.sortedBy { name ->
                             val primary = getMuscleGroupForExercise(name)
-                            ((if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1) * 2) +
-                                (if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1)
+                            ((((if (getTopicForMuscle(primary) == getTopicForMuscle(part)) 0 else 1) * 2) +
+                                (if (ExerciseCatalog.entryFor(name)?.level == "compound") 0 else 1)) * 10) +
+                                equipmentEffectivenessRank(name)
                         }
                         padPool.take(durationRange.first - dayExs.size - paddedCount).forEach { exName ->
                             usedThisWeek.add(exName)
@@ -1700,13 +1793,34 @@ object WorkoutTemplates {
     private val ENGINE_PULL_PARTS = listOf("Lats", "Upper Traps", "Rear Deltoids", "Biceps")
     private val ENGINE_LEG_PARTS = listOf("Quadriceps", "Hamstrings", "Glutes", "Calves")
 
+    /**
+     * A LOWER day is the lower-body half of an upper/lower week, and it is NOT
+     * the same session as the dedicated LEGS day.
+     *
+     * Owner report 2026-10-08: "A day training (Lower) body, is a day full of legs
+     * which im fairly sure is wrong." It was exactly right: `"lower"` returned
+     * ENGINE_LEG_PARTS verbatim, so the 4-day split (upper/lower/upper/lower) and
+     * the 5- and 7-day splits that include both trained the posture twice with no
+     * way to tell the two days apart - the user got the same four leg muscles on
+     * both lower days of the week.
+     *
+     * What actually separates them in a real program is the POSTERIOR CHAIN and the
+     * CORE: the lower day carries the hip hinge and the trunk (spinal erectors,
+     * abs) that an upper day never touches, while the legs day stays the
+     * quad-dominant session. The order matters as well as the membership - the
+     * generator round-robins this list across a day's slots, so the hinge and the
+     * trunk lead and the quads follow, instead of a second squat day.
+     */
+    private val ENGINE_LOWER_PARTS =
+        listOf("Hamstrings", "Glutes", "Spinal Erectors", "Abs", "Quadriceps", "Calves")
+
     /** The prompt's body-part mapping per day type (Step 3). */
     private fun enginePartsFor(type: String): List<String> = when (type) {
         "push" -> ENGINE_PUSH_PARTS
         "pull" -> ENGINE_PULL_PARTS
         "legs" -> ENGINE_LEG_PARTS
         "upper" -> ENGINE_PUSH_PARTS + ENGINE_PULL_PARTS
-        "lower" -> ENGINE_LEG_PARTS
+        "lower" -> ENGINE_LOWER_PARTS
         "full_body" -> listOf(
             "Chest", "Lats", "Quadriceps", "Hamstrings", "Glutes",
             "Front Deltoids", "Biceps", "Triceps"
@@ -1885,15 +1999,28 @@ object WorkoutTemplates {
                 // Rank: pinned (included) exercises first, then the slot's role
                 // — compound leads slots 1-2, isolation closes the last two —
                 // with popularity order as the stable tiebreaker underneath.
-                val ranked = pool.sortedBy { name ->
-                    if (name.lowercase() in includedKeys) return@sortedBy -1
-                    val compound = ExerciseCatalog.entryFor(name)?.level == "compound"
-                    when {
-                        slotIndex < 2 -> if (compound) 0 else 1
-                        slots.size > 2 && slotIndex >= slots.size - 2 -> if (compound) 1 else 0
-                        else -> 0
-                    }
-                }
+                val ranked = pool.sortedWith(
+                    compareBy(
+                        // 1. The user's own picks lead.
+                        { name: String -> if (name.lowercase() in includedKeys) 0 else 1 },
+                        // 2. The slot's role: compound leads slots 1-2, isolation
+                        // closes the last two.
+                        { name: String ->
+                            val compound = ExerciseCatalog.entryFor(name)?.level == "compound"
+                            when {
+                                slotIndex < 2 -> if (compound) 0 else 1
+                                slots.size > 2 && slotIndex >= slots.size - 2 -> if (compound) 1 else 0
+                                else -> 0
+                            }
+                        },
+                        // 3. WHICH GEAR THE CANDIDATE USES, so a kit that has both a
+                        // bell and a floor gets the bell for this job (see
+                        // [equipmentEffectivenessRank]).
+                        { name: String -> equipmentEffectivenessRank(name) }
+                        // 4. Popularity order is the input order, which the stable
+                        // sort keeps as the last word.
+                    )
+                )
                 val pick = ranked.firstOrNull { it !in usedThisWeek } ?: ranked.firstOrNull()
                 if (pick == null) {
                     unsatisfied.add("$part ($dayName): no exercise left in the gated pool")
@@ -2197,11 +2324,35 @@ object WorkoutTemplates {
     fun getBeginnerBuildEligibleExercises(): List<String> =
         ExerciseCatalog.NAMES.filter { isBeginnerBuildEligible(it) }
 
-    fun getAllMuscleGroups(): List<String> {
-        val categories = getBroadMuscleGroups()
-        val detailed = listOf("Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back", "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs", "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors", "Pectorals")
-        return (categories + detailed).distinct().sorted()
-    }
+    fun getAllMuscleGroups(): List<String> = (getBroadMuscleGroups() + getPreciseMuscleGroups())
+        .distinct()
+        .sorted()
+
+    /**
+     * The precise muscles an exercise's own data names: "Lats", "Rear Deltoids", "Glutes"…
+     *
+     * These are the groups the catalog stores on every pool exercise, and the ones the
+     * replace dialog's filter is now allowed to narrow by (owner, 2026-10-09: *"allow the
+     * user to filter which muscle too"*). [getBroadMuscleGroups] is the OTHER vocabulary -
+     * six body parts — and the two are different tools rather than rivals:
+     *
+     *  - a body part is a clean PARTITION of the pool (an exercise belongs to exactly one),
+     *    which is what makes "another back movement" a predictable answer;
+     *  - a precise muscle is a POOL (the triceps list carries the dumbbell floor press), which
+     *    is what makes "something else for my triceps" a useful answer.
+     *
+     * Both were already answerable — [exercisesForMuscleGroup] has branched on which kind it
+     * was given for as long as this filter has existed — so this function only stops the list
+     * from being written out a second time where the UI needs it. Keeping one declaration is
+     * the point: two hand-kept lists of muscle names is how a filter ends up offering a muscle
+     * the lookup cannot answer.
+     */
+    fun getPreciseMuscleGroups(): List<String> = listOf(
+        "Front Deltoids", "Lateral Deltoids", "Rear Deltoids", "Lats", "Upper Back",
+        "Upper Traps", "Spinal Erectors", "Biceps", "Triceps", "Forearms", "Abs",
+        "Obliques", "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors",
+        "Hip Abductors", "Pectorals"
+    )
 
     /**
      * The broad body parts a user picks a substitute exercise by.
@@ -2292,6 +2443,48 @@ object WorkoutTemplates {
         val clean = name.trim().lowercase()
         if (clean.isEmpty()) return ""
         return exerciseEquipment[clean] ?: ""
+    }
+
+    /**
+     * How much EFFECT a piece of gear buys, lower being better: the tie-breaker
+     * that decides between two exercises that do the same job equally well.
+     *
+     * OWNER RULING, 2026-10-09: *"lots of exercises are more bodyweight than
+     * dumbbell when selecting both. If i select that i have dumbbells i would
+     * naturally want more dumbbell exercises than bodyweight if thats possible so
+     * that it has more effect ... This should be applied for each equipment so that
+     * i use all of them but maybe the most effective once come first always."*
+     *
+     * THE ORDER IS THE LOADING CEILING, which is what "effect" means for a
+     * hypertrophy week: a barbell takes more plates than a dumbbell pair, a
+     * machine or cable takes more than a band, and plain bodyweight is the one
+     * implement nobody can add a plate to - so a kit holding both a bell and a
+     * floor gets the bell first and the push-up only when nothing loaded covers
+     * that job. That keeps EVERY selected category in play (nothing is filtered
+     * out - a bodyweight-only kit scores every row the same and its week is
+     * unchanged) while the most effective rows lead.
+     *
+     * It is deliberately a TIE-BREAKER, not the first key. Compound-before-
+     * isolation still leads a session and stays the reason a slot exists; this
+     * only decides between two equally good candidates, which is precisely the
+     * dumbbell-vs-bodyweight choice the owner was looking at.
+     */
+    fun equipmentEffectivenessRank(name: String): Int = when (getEquipmentForExercise(name)) {
+        EQUIPMENT_BARBELL -> 0
+        EQUIPMENT_DUMBBELL -> 1
+        EQUIPMENT_KETTLEBELL -> 2
+        EQUIPMENT_MACHINE -> 3
+        EQUIPMENT_CABLE -> 4
+        EQUIPMENT_BANDS -> 5
+        EQUIPMENT_BODYWEIGHT -> 6
+        // "Other" is the pool's GRAB-BAG: it holds the stretches, the poses and
+        // the ab-wheel/sled odds and ends, so it is not a loading tier at all and
+        // it must never win a slot ahead of a real movement. Measured before this
+        // line was last: a bodyweight-only kit came out 35 Other / 7 Bodyweight,
+        // i.e. a week of stretching in place of push-ups.
+        EQUIPMENT_OTHER -> 7
+        // Outside the pool (custom rows): a known movement always outranks it.
+        else -> 8
     }
 
     fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String, equipment: String = EQUIPMENT_ALL): List<String> {
@@ -2772,9 +2965,48 @@ object WorkoutTemplates {
 
     val allTemplates = listOf(template5DaySplit, templatePPL, templateUpperLower, templateFullBody)
 
+    /**
+     * Whether an exercise is measured in SECONDS rather than reps.
+     *
+     * THE ENGINE ANSWERS FIRST, because a name is not a unit. The old body sniffed
+     * the name for "plank", "hold" or "rest", which misses every timed row whose
+     * name says none of those - Jumping Jacks, all the cardio machines, every
+     * stretch, the carries - and calls a row like "Rest-Pause Squat" timed. The
+     * pool's own progression row carries the unit (`seconds`), so that is the
+     * answer wherever the row exists; the name heuristic stays only as the
+     * fallback for a custom exercise outside the pool.
+     *
+     * Owner's report (2026-10-09): "Jumping jacks is one of many exercises that
+     * doesnt show the level style and it shows reps in the card yet the exercise is
+     * based on time and has a timer????" - so this one question now has ONE
+     * definition: the workout card, the view model's auto-selected seconds and the
+     * exercise editor's time toggle all come through here.
+     */
     fun isExerciseTimeBased(name: String): Boolean {
+        ProgressionEngine.entryFor(name)?.let { return ProgressionEngine.isDurationBased(it) }
         val cleanName = name.trim().lowercase()
         return cleanName.contains("plank") || cleanName.contains("hold") || cleanName.contains("rest")
+    }
+
+    /**
+     * The seconds a routine row's stored target carries ("30 sec" -> 30, "45" ->
+     * 45, "90 s" -> 90), or null when the row does not carry a plain duration.
+     *
+     * A REP RANGE IS NOT A DURATION, and reading one as seconds is how a timed
+     * exercise went wrong a fifth time. Rows written before the level system store
+     * a rep range for timed exercises (Jumping Jacks' "8-12"), so taking the first
+     * number out of them opened the editor's SECONDS field at "8" - and the save
+     * path strips non-digits, so "8-12" would have been written back as "812 sec"
+     * and started a 812-second timer for a 90-second exercise. Anything carrying a
+     * range separator is refused instead, and the caller falls back to the level
+     * system's own prescription ([ProgressionEngine.valueKindOf]).
+     */
+    fun secondsInStoredTarget(stored: String?): Int? {
+        val raw = stored?.trim().orEmpty()
+        if (raw.isEmpty()) return null
+        if (raw.any { it == '-' || it == '\u2013' || it == '\u2014' }) return null
+        val match = Regex("^(\\d+)\\s*(?:sec|secs|s)?$", RegexOption.IGNORE_CASE).find(raw) ?: return null
+        return match.groupValues[1].toIntOrNull()?.takeIf { it in 1..7200 }
     }
 
     fun getRecommendedRepsForExercise(name: String): String {

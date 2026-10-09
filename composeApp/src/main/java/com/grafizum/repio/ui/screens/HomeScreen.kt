@@ -157,9 +157,9 @@ fun HomeScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 6.dp),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    border = null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics { testTag = "hero_workout_now_card" }
@@ -168,16 +168,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                if (isDeveloper) {
-                                    androidx.compose.ui.graphics.SolidColor(Color.Black)
-                                } else {
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                                        )
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                                     )
-                                }
+                                )
                             )
                             .padding(window.cardPadding)
                     ) {
@@ -188,17 +184,16 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Surface(
-                                    color = if (isDeveloper) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
-                                ) {
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = null) {
                                     Text(
                                         text = getString("todays_workout"),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp
                                         ),
-                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
@@ -279,11 +274,11 @@ fun HomeScreen(
                                     onNavigateToWorkoutNow()
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                    contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
-                                border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                shape = RoundedCornerShape(16.dp),
+                                border = null,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 52.dp)
@@ -602,7 +597,21 @@ fun HomeScreen(
 
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    text = getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
+                                    // "3 sets x 90 s" for a timed exercise, not "... x 8–12 reps":
+                                    // see [exerciseSetsSummaryLabel]. Jumping Jacks was listed
+                                    // on TODAY'S SCHEDULE as a rep exercise while the workout
+                                    // card under it ran a timer (owner, 2026-10-09: "it shows
+                                    // reps in the card yet the exercise is based on time and
+                                    // has a timer????"), because this row decided the unit on
+                                    // its own and always said "reps". The number is the level's
+                                    // own prescription, so the schedule and the card agree.
+                                    text = exerciseSetsSummaryLabel(
+                                        exerciseName = exercise.name,
+                                        targetSets = exercise.targetSets,
+                                        storedTarget = exercise.targetReps,
+                                        prescribed = viewModel.progressionDisplayLevel(exercise.name)
+                                            ?.let { viewModel.progressionPrescribedAt(exercise.name, it) },
+                                    ),
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )

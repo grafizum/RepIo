@@ -36,6 +36,8 @@ import androidx.compose.material.icons.filled.Email
 import androidx.compose.material.icons.filled.FitnessCenter
 import androidx.compose.material.icons.filled.FormatListNumbered
 import androidx.compose.material.icons.filled.KeyboardArrowDown
+import androidx.compose.material.icons.filled.Lock
+import androidx.compose.material.icons.filled.LockOpen
 import androidx.compose.material.icons.filled.KeyboardArrowUp
 import androidx.compose.material.icons.filled.Language
 import androidx.compose.material.icons.filled.MenuBook
@@ -53,6 +55,7 @@ import androidx.compose.material3.ExperimentalMaterial3Api
 import androidx.compose.material3.ExposedDropdownMenuBox
 import androidx.compose.material3.ExposedDropdownMenuDefaults
 import androidx.compose.material3.MenuAnchorType
+import androidx.compose.material3.HorizontalDivider
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
@@ -411,7 +414,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.FitnessCenter,
                             contentDescription = null,
-                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -480,7 +483,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.Language,
                             contentDescription = null,
-                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -588,7 +591,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.PhoneAndroid,
                                 contentDescription = null,
-                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -642,7 +645,7 @@ fun SettingsScreen(
                             Icon(
                                 imageVector = Icons.Default.FormatListNumbered,
                                 contentDescription = null,
-                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(22.dp)
                             )
                             Spacer(modifier = Modifier.width(10.dp))
@@ -677,6 +680,15 @@ fun SettingsScreen(
                             modifier = Modifier.semantics { testTag = "level_system_switch" }
                         )
                     }
+
+                    // The app-wide "stay on this level" switch used to sit here. REMOVED by
+                    // owner ruling 2026-10-09: *"remove 'stay on this level' switch in the
+                    // settings completely"*. It was the only writer of
+                    // `level_lock_enabled`, so with it gone the whole global pin is gone -
+                    // the pref, its StateFlow, its setter and the gate the level engine
+                    // read are all deleted with it. What stays is the PER-EXERCISE lock,
+                    // which lives on the workout card's level box (the padlock that reads
+                    // "Level lock"/"Locked") and writes `routine_exercises.locked`.
                 }
             }
 
@@ -703,7 +715,7 @@ fun SettingsScreen(
                                 Icon(
                                     imageVector = Icons.Default.Bolt,
                                     contentDescription = null,
-                                    tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    tint = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(22.dp)
                                 )
                                 Spacer(modifier = Modifier.width(10.dp))
@@ -751,7 +763,7 @@ fun SettingsScreen(
                         Icon(
                             imageVector = Icons.Default.ColorLens,
                             contentDescription = null,
-                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            tint = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.size(22.dp)
                         )
                         Spacer(modifier = Modifier.width(10.dp))
@@ -767,11 +779,18 @@ fun SettingsScreen(
                         Text(
                             text = getString("developer_theme"),
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                            color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                         )
+                        // The swatch shows the theme's own two colours - its black plate and
+                        // its gold - instead of the white/black pair the pixel-era skin used,
+                        // which made this row the one place in the app that still advertised
+                        // the look the theme no longer has.
                         ThemeOptionRow(
-                            theme = ThemeColorItem("DEVELOPER", "developer_theme", Color.White, Color.Black),
+                            theme = ThemeColorItem(
+                                "DEVELOPER", "developer_theme",
+                                Color(0xFF0A0A0A), Color(0xFFC3A366)
+                            ),
                             isSelected = selectedTheme.equals("DEVELOPER", ignoreCase = true),
                             onSelect = { viewModel.setThemeOption("DEVELOPER") },
                             isDeveloper = true
@@ -784,7 +803,7 @@ fun SettingsScreen(
                     Text(
                         text = getString("light_mode_theme"),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -803,7 +822,7 @@ fun SettingsScreen(
                     Text(
                         text = getString("dark_mode_theme"),
                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.ExtraBold),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        color = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                     )
                     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
@@ -829,14 +848,14 @@ fun SettingsScreen(
                     Icon(
                         imageVector = Icons.Default.MenuBook,
                         contentDescription = null,
-                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                        tint = MaterialTheme.colorScheme.primary,
                         modifier = Modifier.size(20.dp)
                     )
                     Spacer(modifier = Modifier.width(10.dp))
                     Text(
                         text = getString("instructions_title"),
                         style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold),
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface
+                        color = MaterialTheme.colorScheme.onSurface
                     )
                 }
 
@@ -907,14 +926,12 @@ fun SettingsScreen(
 
             // FAQ SECTION
             Card(
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 border = BorderStroke(
-                    width = if (isDeveloper) 2.dp else 1.dp,
+                    width = 1.dp,
                     color = if (showFAQ) MaterialTheme.colorScheme.primary 
-                            else if (isDeveloper) Color.White 
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-                ),
+                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable { 
@@ -969,11 +986,11 @@ fun SettingsScreen(
 
             // CUSTOMER SUPPORT SECTION
             Card(
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+                shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
                 border = BorderStroke(
-                    width = if (isDeveloper) 2.dp else 1.dp,
-                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
@@ -1197,51 +1214,17 @@ private fun ThemeOptionRow(
                 )
             )
 
-            if (isDeveloper) {
-                androidx.compose.foundation.Canvas(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .background(Color.Black, CircleShape)
-                ) {
-                    val pixelSize = 1.5.dp.toPx()
-                    val centerX = size.width / 2
-                    val centerY = size.height / 2
-                    val radius = (size.width / 2)
-
-                    for (x in 0 until (size.width / pixelSize).toInt()) {
-                        for (y in 0 until (size.height / pixelSize).toInt()) {
-                            val px = x * pixelSize + pixelSize / 2
-                            val py = y * pixelSize + pixelSize / 2
-                            val dx = px - centerX
-                            val dy = py - centerY
-                            if (dx * dx + dy * dy <= radius * radius) {
-                                val color = when {
-                                    (x + y) % 5 == 0 -> Color.White
-                                    (x + y) % 3 == 0 -> Color(0xFFC0C0C0) // Silver
-                                    else -> Color.Gray
-                                }
-                                drawRect(
-                                    color = color,
-                                    topLeft = androidx.compose.ui.geometry.Offset(x * pixelSize, y * pixelSize),
-                                    size = androidx.compose.ui.geometry.Size(pixelSize, pixelSize)
-                                )
-                            }
-                        }
-                    }
-                }
-            } else {
-                Box(
-                    modifier = Modifier
-                        .size(24.dp)
-                        .clip(CircleShape)
-                        .background(theme.previewBackground)
-                        .border(
-                            width = 2.dp,
-                            brush = if (isRainbow) rainbowBrush else androidx.compose.ui.graphics.SolidColor(theme.previewPrimary),
-                            shape = CircleShape
-                        )
-                )
-            }
+            Box(
+                modifier = Modifier
+                    .size(24.dp)
+                    .clip(CircleShape)
+                    .background(theme.previewBackground)
+                    .border(
+                        width = 2.dp,
+                        brush = if (isRainbow) rainbowBrush else androidx.compose.ui.graphics.SolidColor(theme.previewPrimary),
+                        shape = CircleShape
+                    )
+            )
             Spacer(modifier = Modifier.width(12.dp))
             Text(
                 text = getString(theme.nameKey),
@@ -1249,8 +1232,7 @@ private fun ThemeOptionRow(
                     fontWeight = if (isSelected) FontWeight.Bold else FontWeight.Normal
                 ),
                 color = MaterialTheme.colorScheme.onSurface
-            )
-        }
+            )}
 
         if (isSelected) {
             Icon(
@@ -1323,14 +1305,12 @@ private fun GuideSectionCard(
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     Card(
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
+        shape = RoundedCornerShape(16.dp),
         colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
         border = BorderStroke(
-            width = if (isDeveloper) 2.dp else 1.dp,
+            width = 1.dp,
             color = if (expanded) MaterialTheme.colorScheme.primary
-                    else if (isDeveloper) Color.White
-                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
-        ),
+                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
         modifier = Modifier
             .fillMaxWidth()
             .clickable(onClick = onToggle)

@@ -6,12 +6,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.net.Uri
 import android.media.RingtoneManager
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.graphics.Color
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
@@ -128,6 +130,40 @@ object NotificationHelper {
             notificationManager.cancel(UPDATE_NOTIFICATION_ID)
         } catch (e: Exception) {
             // Ignore
+        }
+    }
+
+    /**
+     * Opens this app's own notification settings page.
+     *
+     * The last resort when the runtime permission dialog will not appear: on
+     * Android 13+ a second denial is FINAL, and `launch(POST_NOTIFICATIONS)`
+     * then returns immediately without showing anything - a tap that looks
+     * like it did nothing. Settings is the only place the grant can still be
+     * switched on, so a refused tap has to land there rather than go silent.
+     *
+     * Three intents, tried in order, because the first two are absent on some
+     * OEM builds: the per-app notification page, the app's detail page, and the
+     * top-level settings screen as a final fallback.
+     */
+    fun openNotificationSettings(context: Context) {
+        val candidates = listOf(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            },
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+            },
+            Intent(Settings.ACTION_SETTINGS)
+        )
+        for (intent in candidates) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return
+            } catch (_: Exception) {
+                // Try the next, less specific page.
+            }
         }
     }
 

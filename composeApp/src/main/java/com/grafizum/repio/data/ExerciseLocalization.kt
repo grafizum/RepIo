@@ -174,7 +174,8 @@ object ExerciseLocalization {
             for (table in TABLES.values) {
                 val localized = table[slug]?.name ?: continue
                 val localizedSlug = slugify(localized)
-                // putIfAbsent needs API 24; minSdk is 23.
+                // putIfAbsent needs API 24; this manual form predates the
+                // minSdk 24 floor and is kept because it behaves identically.
                 if (localizedSlug.isNotEmpty() && localizedSlug !in map) map[localizedSlug] = canonical
             }
         }

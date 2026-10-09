@@ -53,7 +53,7 @@ object AppUpdateChecker {
             ?: return false
 
         return try {
-            // minSdk is 23 (M), so the modern NetworkCapabilities API is always available.
+            // minSdk is 24 (N), so the modern NetworkCapabilities API is always available.
             val network = connectivityManager.activeNetwork ?: return false
             val capabilities =
                 connectivityManager.getNetworkCapabilities(network) ?: return false

@@ -56,6 +56,39 @@ class DurationBudgetTest {
         assertEquals(8..10, WorkoutTemplates.durationRangeFor(null))
     }
 
+    /**
+     * The minute window the welcome screen PRINTS for each duration, and that it is the
+     * documented partner of the exercise window above.
+     *
+     * On the Pixel 7a (2026-10-08) the chips read "6–8 Min." / "8–10 Min." / "10–12 Min."
+     * - the exercise counts with a minute unit - so the screen promised sessions shorter
+     * than its own warm-up. Both windows are now pinned here, and pinned as PARTNERS: the
+     * durations have to stay in the order the chips are drawn in and the minute bands have
+     * to stay disjoint, or the chip a user picks stops meaning what its description says.
+     */
+    @Test
+    fun durationMinutesMatchTheCoachSpec() {
+        assertEquals(30..45, WorkoutTemplates.durationMinutesFor(WorkoutTemplates.DURATION_QUICK))
+        assertEquals(45..60, WorkoutTemplates.durationMinutesFor(WorkoutTemplates.DURATION_STANDARD))
+        assertEquals(60..75, WorkoutTemplates.durationMinutesFor(WorkoutTemplates.DURATION_FULL))
+        // Unknown values fall back to the standard window, exactly like the exercise one.
+        assertEquals(45..60, WorkoutTemplates.durationMinutesFor("nonsense"))
+        assertEquals(45..60, WorkoutTemplates.durationMinutesFor(null))
+
+        val ordered = WorkoutTemplates.DURATION_OPTIONS.map {
+            WorkoutTemplates.durationRangeFor(it) to WorkoutTemplates.durationMinutesFor(it)
+        }
+        // The bands are CONTIGUOUS on purpose (6-8 / 8-10 / 10-12 share their boundary),
+        // so the check is that they never overlap and never move backwards with the option
+        // - not that they are disjoint.
+        ordered.zipWithNext { a, b ->
+            assertTrue("exercise windows must not overlap", a.first.last <= b.first.first)
+            assertTrue("minute windows must not overlap", a.second.last <= b.second.first)
+            assertTrue("each option must own its own exercise window", a.first != b.first)
+            assertTrue("each option must own its own minute window", a.second != b.second)
+        }
+    }
+
     @Test
     fun unknownDurationValuesAreRejected() {
         assertTrue(WorkoutTemplates.isValidDuration(WorkoutTemplates.DURATION_QUICK))

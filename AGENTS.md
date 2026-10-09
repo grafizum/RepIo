@@ -133,8 +133,30 @@ window itself. Read it with `LocalWindowSize.current`; never hard-code a dp valu
   row *and* its continuity case.
 - `WindowWidthClass`, `isNarrow` and `isShort` are for **structural** decisions only (scroll vs.
   squeeze, one column vs. two, dense header). Never pick a dimension with them.
-- The user's `fontScale` grows the boxes that hold text, damped by half, so large fonts cannot clip
-  inside a fixed-height row.
+- **THE APP RENDERS AT TEXT SCALE 1.0, ALWAYS — it does NOT follow the device's
+  font-size setting** (owner ruling 2026-10-08: *"keep the scaling at 1.0 for the app,
+  because 1.8 is absolutely not usable as you can see"*, after the same session's *"i
+  want it to look like its on my phone"*). `APP_TEXT_SCALE` in `Theme.kt` is the single
+  dial: `WorkoutTrackerTheme` re-provides `LocalDensity` with `fontScale = APP_TEXT_SCALE`
+  (that is where every sp gets its size) and measures the `WindowSize` with the SAME
+  number, so the tokens describe the text the app will actually draw. Do not read
+  `LocalDensity.current.fontScale` for layout anywhere else — one device at 1.8 must not
+  get a different app. Consequence, accepted deliberately: a user who set a large system
+  font for accessibility gets RepIo at 1.0 like everyone else.
+- The `fontScale` parameter of `windowSizeFor` / `rememberWindowSize` still exists, and
+  `frameScaleFor` still computes `1 + (clamp(fontScale) - 1) * FRAME_GROWTH_SHARE`, but at
+  1.0 `frameScale` is exactly 1 — the machinery is INERT at the call site, kept as the one
+  place a partial scale would be re-enabled from. `WindowSizeTest` pins the contract of
+  those pure functions (`theFrameGrowsWithTheSameFactorAsTheText`, the 2.2 cap), not the
+  app's choice of scale, so changing `APP_TEXT_SCALE` does not need a test rewrite.
+- The 2026-10-07 history behind that machinery is still worth knowing, because it explains
+  the shape of the code: the frame used to be capped at 1.6 and damped, so at a large font
+  text outgrew its own chrome ("everything fits but it's extremely squished"); the fix made
+  the frame ride the font 1:1 (density × k, fontScale / k). Screens that hardcode their
+  frame padding ignore tokens entirely — LevelGuideOnboardingScreen and StatCard were caught
+  exactly that way (measured on an AVD at font 1.8: hardcoded 20dp margins held still while
+  text grew 1.74x). Derive from a token (e.g. `window.screenPadding / 16.dp` as a
+  multiplier) instead of typing literals.
 
 Sizing rules that caused real bugs — do not undo them:
 
@@ -207,6 +229,71 @@ Two traps when a theme name becomes multi-word:
   when the migration introduces a second one. Match the **shape** (`when
   (\w+.uppercase())`) or the test fails on a rename rather than on a real defect.
 
+## The developer theme is NEUTRAL dark grey, and its skin never squares a corner
+
+The `DEVELOPER` palette is **the one theme whose spec is a physical device**: the
+owner's phone, sampled with `screencap` while RepIo was in the foreground. It came
+back `#0A0A0A` on 87.6% of the screen, `#111111` above it, `#181818` for nested
+blocks, `#C3A366` as the *single* accent, `#EDEBE8` text and `#A0A0A0` muted text.
+`DeveloperColorScheme` is those colours plus neutral steps between them, and **no grey
+in it carries a hue.**
+
+- **"The dark twin of Beige" was the wrong idea, and it shipped once.** The phone's
+  *stored* theme is `BEIGE`, so the first pass derived the scheme from Beige's own
+  brown (`#8C6239`, accent `#D9A566`) and produced dark chocolate — `#12100E` canvas,
+  `#1A1715` cards, `#3A2E1E` container. The owner's verdict: *"not brownisch i want a
+  true dark grey palette lik my app on the phone had."* What the phone **stores** and
+  what it **renders** are two different questions — read the stored value for the
+  routing, sample the screen for the colour. Surfaces only have to be dark and grey;
+  the warmth belongs to the accent.
+- **The skin never forces a square corner.** `RoundedCornerShape(0.dp)` and
+  `RectangleShape` inside an `if (isDeveloper)` branch were the old "developer tools"
+  look; **76 of them came out on 2026-10-08** (11 files), so the skin now draws the
+  same radii as the rest of the app. Verified by measuring the render, not the diff:
+  the same card that reported "top row already at full width" (square) now reports a
+  **~113px** corner radius — exactly `24.dp` at 420dpi with the frame riding the 1.8
+  font scale. Do not reintroduce a dev-only square; it is the most visible difference
+  between this theme and the app.
+- Typography is **Manrope**, one variable font (`res/font/manrope.ttf`), each weight
+  taken off the `wght` axis. The pixel font is no longer referenced anywhere — only
+  its gravestone comment in `Theme.kt` remains.
+
+### Putting an emulator on the DEVELOPER theme (API 35)
+
+`pm enable` / `pm disable-user` on the launcher aliases **fails as shell** on API 35:
+`SecurityException: Shell cannot change component state`. Two routes work:
+
+1. write `theme_option=DEVELOPER` into `app_settings.xml` (`exec-out run-as … cat`,
+   edit, `cat >` back) with the app force-stopped, then
+   `am start -n com.grafizum.repio/.MainActivity` — **the BASE activity**, which does
+   NOT re-derive the theme. Set `developer_theme_enabled=true` too, which unlocks the
+   picker entry;
+2. the in-app route, once unlocked: Settings → colour theme → "Developer".
+
+**The trap that eats a hand-written `theme_option`: `MainActivity.onCreate` syncs the
+theme FROM THE LAUNCHED ALIAS** (`MainActivityRetro` → `DEVELOPER`, `MainActivityBeige`
+→ `BEIGE`, …) and writes it back silently. So writing `DEVELOPER` and then launching
+from the launcher icon (the Beige alias) reverts the pref to `BEIGE` — and if the
+ViewModel had already read the old value, **the screen keeps painting the old theme
+while the pref says otherwise.** That is the exact state the owner's phone was found
+in, and it is why "the phone runs BEIGE" was a false lead.
+
+### The emulator itself: AVD discovery and stale locks
+
+Two separate faults make the Pixel_7a AVD look broken; fix both or the second one
+masquerades as the first:
+
+- A killed emulator leaves `hardware-qemu.ini.lock` (holding the dead PID) and
+  `multiinstance.lock` in the `.avd` directory, and the next launch refuses to start.
+  Clear them only after confirming the PID is gone with `kill -0 <pid>`.
+- Emulator 37.2.12 searches `$ANDROID_AVD_HOME`, `$ANDROID_SDK_HOME/avd` and
+  `$HOME/.android/avd` — **not** `$XDG_CONFIG_HOME` — while Studio registers this AVD
+  under `~/.config/.android/avd`. Invisible to the search paths, `emulator -list-avds`
+  prints nothing and Studio fails with "Unknown AVD name".
+  `ln -s ~/.config/.android/avd ~/.android/avd` repairs both tools at once — and check
+  the link landed at the *right* path, because `ln -s` into an existing directory
+  creates `avd/avd` instead, which fails exactly like no link at all.
+
 ## Exercise localization — store canonical English, display local
 
 The database stores every pool exercise under its **canonical English name** (`Dumbbell
@@ -265,10 +352,29 @@ report twice, and it is worth stating as a rule:
   anything in its family, and unticking a tile removes the whole family. Without
   the second half the state is invisible *and* permanent — `toggleTag` rebuilt
   from the same untouched set on every tap.
-- **Ticking must stay purely additive.** The tempting counterpart — collapse the
-  eight stations into `MACHINE_OTHER` when the tile is ticked — is wrong: the
-  stations gate *different* exercises, so it would silently take the leg press
-  and the Smith machine away. They are separate tags for a reason.
+- **A tick grants the family the tile stands for, except a member that needs a
+  SECOND tile.** `tagsGrantedByTicking(tile)` is that mapping and it is separate
+  from `tagsCoveredByTile`, because the two answer different questions — "what
+  does the user have?" versus "what must unticking this take away?". Three
+  families are reachable with no extra kit (a rack's two barbell tags, the
+  dumbbells' floor variant, and the eight selectorized stations behind
+  "Machines"), and the tick must grant all of them or the rows gating on them
+  are invisible to a tile-built kit: a user who ticked "Machines" got the battle
+  ropes and the ab wheel and could reach **none** of the ~45 station rows, with
+  no way to say "I have a leg press" short of the Full-gym preset. The members
+  that need a second tile (`dumbbells_and_bench`, `kettlebell_and_bench`) are
+  granted by no tick, so **no requirement may name them** — requirements name
+  the two tiles directly (`{bench, kettlebell_only}`).
+  `FilterConsistencyAuditTest.everyRequiredTagIsReachableByTickingATile` asserts
+  that closure, and `EquipmentSelectionRoundTripTest` asserts that tick-then-
+  untick is a no-op so the grant stays reversible.
+- **A movement that NAMES a piece of kit needs it, in every branch.** The
+  `Bodyweight` and `Other` branches both fell through to the empty requirement,
+  which is how a bodyweight user was offered a `Decline Crunch` (no surface) and
+  nine `Bench …` stretches. Furniture words (`bench`/`chair`/`box`/`step`/
+  `decline`) and implement words are read in both branches, after the gear check
+  so that `Stair Climber` stays a machine and not a flight of stairs. The one
+  sanctioned exception is a yoga pose — `Chair Pose` needs no chair.
 - **`equipmentTagShortLabelKey` must name EVERY tag in `ALL_TAGS`, not just
   every tile.** The eight stations fell through to the generic `"equipment"`
   string, so anything that rendered a stored tag per label collapsed all eight
@@ -1015,20 +1121,34 @@ plus a tray notification when Play reports an update. Four things about it are e
 
 The nudge is quiet for three days after the user taps "Not now" (`NUDGE_COOLDOWN_MS`).
 
-## Known constraint: minSdk is pinned at 23
+## Known constraint: minSdk is pinned at 24 (Play's upload floor)
 
-`minSdk = 23` is the **lowest value that compiles**. Compose requires 21, and the
-resolved dependency set requires 23 — `androidx.appcompat` 1.8.0, `androidx.room` 2.8.4,
-the Firebase line (`firestore` 26.6.0, `auth` 23.1.0, `ai` 17.17.0, `appcheck` 19.4.1),
-and `play-services-base` 18.9.0 all declare `minSdkVersion 23`.
+`minSdk = 24` since 2026-10-06, and **the reason is Google Play, not the compiler.**
+The resolved dependency set only requires 23 (`androidx.appcompat` 1.8.0,
+`androidx.room` 2.8.4, the Firebase line (`firestore` 26.6.0, `auth` 23.1.0, `ai`
+17.17.0, `appcheck` 19.4.1), and `play-services-base` 18.9.0 all declare
+`minSdkVersion 23`), but since ~Sep 2026 Play rejects any uploaded bundle at 23 with
+*"Play automatic protection requires a minimum SDK version of 24 or higher. The
+uploaded app bundle has a minimum SDK version of 23."* — confirmed by two independent
+rejections in the wild, and by the owner's own upload on 2026-10-06. The owner
+reported the fallout as the app "not supporting over 20k devices anymore"; device
+filtering in the artifact comes from minSdk alone (the manifest declares NO
+`uses-feature`, no hardware permissions, and all four ABIs ship), so satisfying this
+gate is what restores availability.
 
-Do not attempt to lower it without also downgrading those dependencies; the manifest
-merger fails with `minSdkVersion NN cannot be smaller than version 23`. API 15 is
-impossible — Jetpack Compose has no support below 21.
+Two rules that follow:
 
-Code that leans on this floor already: `AppUpdateChecker.kt` (relies on
-`NetworkCapabilities` always being available) and `composeApp/lint.xml` (bitmap density
-folders).
+- **Do not lower it below 24** — Play refuses the upload regardless of what compiles —
+  and do not raise it casually either: every step drops another Android version from
+  the store listing. API 23 users keep their installed build but receive no further
+  updates; that is Play's mandate, not a repo choice. The absolute compile floor
+  remains 23 (dependency-declared), so 24 always compiles; the manifest merger fails
+  with `minSdkVersion NN cannot be smaller than version 23` if anyone tries 22 or
+  lower.
+- `ExerciseLocalization.kt` still carries a manual `putIfAbsent` workaround whose
+  comment says "minSdk is 23" — at 24 the real `Map.putIfAbsent` is directly
+  available; the workaround behaves identically and was left untouched in the urgent
+  fix, but it is now redundant rather than required.
 
 ## A float sweep that accumulates never ends — step an integer
 

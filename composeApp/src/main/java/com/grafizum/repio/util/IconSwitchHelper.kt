@@ -26,11 +26,20 @@ object IconSwitchHelper {
      * enable one of them, and this is the one it does, so this is also the theme
      * a fresh install shows before RepIoApplication has run.
      *
-     * It is deliberately NOT orange, even though `<application android:icon>` is
-     * `@mipmap/ic_launcher_orange`: the application icon is what a launcher shows
-     * before any launcher-enabled activity exists, while the enabled activity's
-     * own icon wins afterwards. Keeping the two different is how the manifest ends
-     * up disagreeing with itself, so the enabled activity is the one that counts.
+     * The application-level icon now names the SAME appearance
+     * (`@mipmap/ic_launcher_beige_light`), so the icon a launcher shows before any
+     * enabled activity exists cannot disagree with the one that wins afterwards.
+     *
+     * It used to be `@mipmap/ic_launcher_orange` on the reasoning that the fallback
+     * should follow the system. That is not what the system does with it: the App
+     * info page draws the application icon and resolves it with the SYSTEM's
+     * configuration, so on a dark phone the fallback's own `mipmap-night-anydpi-v26`
+     * twin was chosen and App info showed the dark plate with orange artwork.
+     * OWNER REPORT, 2026-10-09: "when looking at the apps info it shows the dark icon
+     * with orange in it but that shouldnt be the default icon, it should be light
+     * with beige since thats the overall default theme." Beige is the base theme in
+     * both appearances (see [defaultThemeFor]) and its `_light` icon has no night
+     * twin, so naming it here is what makes the app look the same everywhere.
      */
     const val MANIFEST_DEFAULT_THEME = "BEIGE"
 

@@ -130,22 +130,22 @@ fun EasterEggScreen(
 
             // MESSAGE CARD
             Card(
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
+                shape = RoundedCornerShape(24.dp),
                 colors = CardDefaults.cardColors(
-                    containerColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primaryContainer
+                    containerColor = MaterialTheme.colorScheme.primaryContainer
                 ),
-                border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                border = null,
                 modifier = Modifier.fillMaxWidth()
             ) {
                 Column(
-                    modifier = Modifier.padding(if (isDeveloper) 16.dp else 24.dp),
+                    modifier = Modifier.padding(24.dp),
                     horizontalAlignment = Alignment.CenterHorizontally
                 ) {
                     Text(
                         text = "You found my easter egg, Hi!",
                         style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
                         textAlign = TextAlign.Center,
-                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onPrimaryContainer
+                        color = MaterialTheme.colorScheme.onPrimaryContainer
                     )
 
                     Spacer(modifier = Modifier.height(16.dp))
@@ -154,24 +154,23 @@ fun EasterEggScreen(
                         text = "I'm Matrix. This is my first-ever app made for the public, and you found my easter egg, Thank you so much for using my app! I wonder what app I will create next ^^",
                         style = MaterialTheme.typography.bodyLarge.copy(lineHeight = 24.sp),
                         textAlign = TextAlign.Center,
-                        color = if (isDeveloper) Color.White.copy(alpha = 0.8f) else MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f)
-                    )
+                        color = MaterialTheme.colorScheme.onPrimaryContainer.copy(alpha = 0.8f))
 
                     Spacer(modifier = Modifier.height(16.dp))
 
                     // REWARD BUBBLE
                     Surface(
-                        color = if (isDeveloper) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.secondaryContainer,
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                        color = MaterialTheme.colorScheme.secondaryContainer,
+                        shape = RoundedCornerShape(20.dp),
                         border = BorderStroke(
                             width = 1.dp,
-                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
+                            color = MaterialTheme.colorScheme.secondary.copy(alpha = 0.2f)
                         )
                     ) {
                         Text(
                             text = "As a reward, you get a special theme!",
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSecondaryContainer,
+                            color = MaterialTheme.colorScheme.onSecondaryContainer,
                             modifier = Modifier.padding(horizontal = 16.dp, vertical = 8.dp),
                             textAlign = TextAlign.Center
                         )
@@ -185,12 +184,14 @@ fun EasterEggScreen(
                         horizontalArrangement = Arrangement.SpaceBetween,
                         modifier = Modifier
                             .fillMaxWidth()
-                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp))
-                            .background(if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surface)
+                            .clip(RoundedCornerShape(16.dp))
+                            .background(MaterialTheme.colorScheme.surface)
                             .border(
-                                width = if (isDeveloper) 1.dp else 0.dp,
-                                color = if (isDeveloper) Color.White else Color.Transparent,
-                                shape = RoundedCornerShape(0.dp)
+                                width = 0.dp,
+                                color = Color.Transparent,
+                                // Matches the 16dp clip above it: a square border inside a
+                                // rounded clip only loses its corners.
+                                shape = RoundedCornerShape(16.dp)
                             )
                             .padding(horizontal = 16.dp, vertical = 8.dp)
                     ) {
@@ -202,14 +203,14 @@ fun EasterEggScreen(
                             Icon(
                                 imageVector = Icons.Default.ColorLens,
                                 contentDescription = null,
-                                tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                tint = MaterialTheme.colorScheme.primary,
                                 modifier = Modifier.size(20.dp)
                             )
                             Spacer(modifier = Modifier.width(12.dp))
                             Text(
                                 text = "Unlock Developer Theme",
                                 style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                                color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.onSurface,
+                                color = MaterialTheme.colorScheme.onSurface,
                                 maxLines = 2,
                                 overflow = TextOverflow.Ellipsis
                             )
@@ -218,11 +219,11 @@ fun EasterEggScreen(
                             checked = developerThemeEnabled,
                             onCheckedChange = { viewModel.setDeveloperThemeEnabled(it) },
                             colors = SwitchDefaults.colors(
-                                checkedThumbColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                checkedTrackColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primaryContainer,
-                                uncheckedThumbColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outline,
-                                uncheckedTrackColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surfaceVariant,
-                                uncheckedBorderColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.outline
+                                checkedThumbColor = MaterialTheme.colorScheme.primary,
+                                checkedTrackColor = MaterialTheme.colorScheme.primaryContainer,
+                                uncheckedThumbColor = MaterialTheme.colorScheme.outline,
+                                uncheckedTrackColor = MaterialTheme.colorScheme.surfaceVariant,
+                                uncheckedBorderColor = MaterialTheme.colorScheme.outline
                             )
                         )
                     }

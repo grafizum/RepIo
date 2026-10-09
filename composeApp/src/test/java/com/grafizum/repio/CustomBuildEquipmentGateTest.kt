@@ -67,9 +67,17 @@ class CustomBuildEquipmentGateTest {
             kit(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY)
         )
         val kept = gateCustomPrefill(kit(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY))
-        assertTrue(
-            "a chair must satisfy the seated dumbbell work, got $kept",
+        // REVERSED 2026-10-08: a chair is not a bench, so the bench-angle work is
+        // correctly gone from this kit. The tile is still worth ticking - it opens
+        // the movements that genuinely use a seat - which is the promise this test
+        // exists to keep.
+        assertFalse(
+            "a chair must NOT satisfy a bench-angle movement, got $kept",
             ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", granted)
+        )
+        assertTrue(
+            "the chair tile must still open the work a chair really supports",
+            ExerciseEquipmentTags.isAvailable("Bulgarian Split Squat", granted)
         )
         assertTrue(kept.isNotEmpty())
     }

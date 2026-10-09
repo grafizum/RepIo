@@ -28,6 +28,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
 import com.grafizum.repio.ui.components.EquipmentIconImage
+import com.grafizum.repio.ui.components.exerciseSetsSummaryLabel
 import com.grafizum.repio.ui.components.equipmentTagIcon
 import com.grafizum.repio.ui.components.equipmentTagShortLabelKey
 import androidx.compose.material3.*
@@ -195,7 +196,16 @@ fun FirstTimeSetupScreen(
         "Abs", "Obliques",
         "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"
     ) }
-    val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
+    // The default week is the premade 3-day pattern, so the screen starts on the same
+    // answer the premade menu would produce (MON/WED/FRI) instead of a hand-typed list
+    // that could drift away from it.
+    val assistedSelectedDays = remember {
+        mutableStateListOf<String>().also { it.addAll(WorkoutTemplates.premadeWeekFor(3)) }
+    }
+    // Whether the user is picking the days themselves. OFF is the premade week for the
+    // chosen frequency (the recommended rest distribution); ON hands the day chips to the
+    // user, which is what makes 1 and 7 days honest choices rather than refused ones.
+    var assistedSpecificDays by remember { mutableStateOf(false) }
     // What each of those days IS. Separate from how many there are: a 5-day
     // week can be an upper/lower alternation or a push/pull/legs cycle, and the
     // day picker alone never said which one you were getting.
@@ -396,7 +406,7 @@ fun FirstTimeSetupScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = getString("action_back"),
-                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             } else {
@@ -438,15 +448,14 @@ fun FirstTimeSetupScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(48.dp),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
-                                ) {
+                                    border = null) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.FitnessCenter,
                                             contentDescription = null,
-                                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
@@ -486,7 +495,7 @@ fun FirstTimeSetupScreen(
                     // across, and the thumb slides between them.
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(18.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
@@ -534,13 +543,12 @@ fun FirstTimeSetupScreen(
                                     .graphicsLayer {
                                         translationX = with(density) { indicatorPosition.toPx() }
                                     },
-                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.primary,
                                 // Radius = track radius (18dp) minus the thumbInset, so the two
                                 // curves stay concentric and the thumb never pokes past the track.
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(15.dp),
-                                shadowElevation = if (isDeveloper) 0.dp else 2.dp,
-                                border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null
-                            ) {}
+                                shape = RoundedCornerShape(15.dp),
+                                shadowElevation = 2.dp,
+                                border = null) {}
 
                             Row(
                                 modifier = Modifier
@@ -644,21 +652,108 @@ fun FirstTimeSetupScreen(
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                         OnboardingStepHeader(stepNumber = null, title = getString("choose_days"))
                                         Card(
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                            shape = RoundedCornerShape(20.dp),
                                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                            border = null,
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Column(modifier = Modifier.padding(12.dp)) {
-                                                DaySelectionRow(
-                                                    selectedDays = assistedSelectedDays,
-                                                    onDayToggle = { day ->
-                                                        if (assistedSelectedDays.contains(day)) {
-                                                            // Always keep at least one training day.
-                                                            if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
-                                                        } else assistedSelectedDays.add(day)
+                                                // 1a. HOW MANY DAYS — the menu the owner asked
+                                                // for (2026-10-08). 1..7 so the two flagged
+                                                // frequencies stay reachable; the label under
+                                                // the row is what marks them as not recommended.
+                                                DaysPerWeekMenu(
+                                                    daysPerWeek = assistedSelectedDays.size,
+                                                    onSelect = { count ->
+                                                        assistedSelectedDays.clear()
+                                                        assistedSelectedDays.addAll(
+                                                            WorkoutTemplates.premadeWeekFor(count)
+                                                        )
                                                     }
                                                 )
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                // 1b. WHICH DAYS — the week the count produces,
+                                                // drawn as a strip so the pauses between
+                                                // training days are visible at a glance.
+                                                WeekStrip(selectedDays = assistedSelectedDays)
+                                                // The weekday chips are NOT on screen by
+                                                // default (owner, 2026-10-09: show the days
+                                                // of the week "only if the user distinctively
+                                                // opens it"). The specific-days switch below
+                                                // is that deliberate opening; until then the
+                                                // strip above carries the same information
+                                                // without a grid of taps.
+                                                if (assistedSpecificDays) {
+                                                    Spacer(modifier = Modifier.height(12.dp))
+                                                    DaySelectionRow(
+                                                        selectedDays = assistedSelectedDays,
+                                                        onDayToggle = { day ->
+                                                            if (assistedSelectedDays.contains(day)) {
+                                                                // Always keep at least one training day.
+                                                                if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
+                                                            } else assistedSelectedDays.add(day)
+                                                        }
+                                                    )
+                                                }
+                                                // The owner wanted the "not recommended"
+                                                // marker "under or over the days of the week".
+                                                // It sits directly under the chips, where the
+                                                // count it refers to is visible.
+                                                if (WorkoutTemplates.isNotRecommendedFrequency(assistedSelectedDays.size)) {
+                                                    Text(
+                                                        text = getString("days_not_recommended"),
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier
+                                                            .padding(top = 6.dp)
+                                                            .semantics { testTag = "days_not_recommended" }
+                                                    )
+                                                }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = 10.dp)
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = getString("choose_specific_days"),
+                                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        // The hint names the state it applies to. It used to
+                                                        // read "Off: the recommended week" in BOTH states, so
+                                                        // the moment the user switched the specific days on,
+                                                        // the line under the switch described the state they
+                                                        // had just left - and "off" was simply untrue.
+                                                        Text(
+                                                            text = getString(
+                                                                if (assistedSpecificDays) "premade_week_hint_on"
+                                                                else "premade_week_hint"
+                                                            ),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Switch(
+                                                        checked = assistedSpecificDays,
+                                                        onCheckedChange = { on ->
+                                                            assistedSpecificDays = on
+                                                            // Turning the switch OFF means
+                                                            // "give me the recommended week
+                                                            // for my frequency" — not "keep
+                                                            // the days I picked by hand".
+                                                            if (!on) {
+                                                                val count = assistedSelectedDays.size.coerceIn(1, 7)
+                                                                assistedSelectedDays.clear()
+                                                                assistedSelectedDays.addAll(WorkoutTemplates.premadeWeekFor(count))
+                                                            }
+                                                        },
+                                                        modifier = Modifier.semantics { testTag = "specific_days_switch" }
+                                                    )
+                                                }
                                                 // 1x/week and 7x/week carry research-backed
                                                 // warnings; the choice itself stays available.
                                                 val warningKey = WorkoutTemplates.frequencyWarningKey(assistedSelectedDays.size)
@@ -935,20 +1030,32 @@ fun FirstTimeSetupScreen(
                                                                 maxLines = 2,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
+                                                            // Every gap here separates two pieces of text, so it
+                                                            // comes from the window and not from a fixed dp - see
+                                                            // [WindowSize.inlineGap]. The intensity used to be
+                                                            // prefixed with a leading space instead of a gap, which
+                                                            // is nothing at all once the font has grown.
                                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                                                                 MuscleGroupBadge(muscleGroup = exercise.muscleGroup, exerciseName = exercise.name)
-                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                Spacer(modifier = Modifier.width(window.inlineGap))
                                                                 Text(
-                                                                    text = if (exercise.targetReps.contains("sec")) getQuantityString("sets_x_time_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps)
-                                                                    else getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
+                                                                    // The exercise's own unit, not its stored row's
+                                                                    // wording - see [exerciseSetsSummaryLabel]. Jumping
+                                                                    // Jacks' "8–12" row is a 90-second exercise.
+                                                                    text = exerciseSetsSummaryLabel(
+                                                                        exerciseName = exercise.name,
+                                                                        targetSets = exercise.targetSets,
+                                                                        storedTarget = exercise.targetReps,
+                                                                    ),
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
                                                                 if (exercise.targetIntensity.isNotBlank()) {
                                                                     val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(exercise.targetIntensity)
                                                                     val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                                                    Spacer(modifier = Modifier.width(window.inlineGap))
                                                                     Text(
-                                                                        text = " • $displayIntensity",
+                                                                        text = "• $displayIntensity",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         maxLines = 1,
@@ -956,8 +1063,9 @@ fun FirstTimeSetupScreen(
                                                                     )
                                                                 }
                                                                 if (exercise.tempo.isNotBlank()) {
+                                                                    Spacer(modifier = Modifier.width(window.inlineGap))
                                                                     Text(
-                                                                        text = " • ${com.grafizum.repio.ui.components.getTempoLabel(exercise.tempo)}",
+                                                                        text = "• ${com.grafizum.repio.ui.components.getTempoLabel(exercise.tempo)}",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         modifier = Modifier.weight(1f, fill = false),
@@ -1362,14 +1470,13 @@ private fun WorkoutGoalBlock(
                 maxLines = 2,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = if (isDeveloper) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
-                ),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline),
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface)
+                shape = RoundedCornerShape(12.dp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
             )
 
             ExposedDropdownMenu(
@@ -1473,11 +1580,12 @@ private fun EquipmentFilterBlock(
             // machines he had never meant to grant in the first place.
             base.removeAll(ExerciseEquipmentTags.tagsCoveredByTile(tag))
         } else {
-            // Ticking ADDS what the tile stands for - and for a rack that is the
-            // barbell tags too, because a rack is built around a barbell. This
-            // is the only tick that implies another tag: ticking "Machines" must
-            // not grant a leg press the user never ticked, which is why this
-            // goes through tagsGrantedByTicking rather than the family.
+            // Ticking ADDS what the tile stands for. Every tile now stands for its
+            // own kit and nothing beside it - a rack no longer drags the barbell
+            // tile along, which is the owner's ruling that the two are separate
+            // switches - while still going through tagsGrantedByTicking rather than
+            // the family, so ticking "Machines" cannot grant a leg press the user
+            // never ticked.
             base.addAll(ExerciseEquipmentTags.tagsGrantedByTicking(tag))
         }
         val ordered = base.sortedBy { ExerciseEquipmentTags.ALL_TAGS.indexOf(it) }
@@ -1562,14 +1670,12 @@ private fun EquipmentIconTile(
     val isDeveloper = LocalDeveloperSkin.current
     Surface(
         onClick = onToggle,
-        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(14.dp),
+        shape = RoundedCornerShape(14.dp),
         color = when {
-            isDeveloper -> if (checked) Color.White.copy(alpha = 0.2f) else Color.Black
             checked -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
             else -> MaterialTheme.colorScheme.surfaceContainerLow
         },
-        border = if (isDeveloper) BorderStroke(1.dp, Color.White)
-                 else BorderStroke(
+        border = BorderStroke(
                      1.dp,
                      if (checked) MaterialTheme.colorScheme.primary
                      else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
@@ -1585,7 +1691,6 @@ private fun EquipmentIconTile(
                 icon = equipmentTagIcon(tag),
                 contentDescription = null,
                 tint = when {
-                    isDeveloper -> Color.White
                     checked -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
@@ -1595,7 +1700,6 @@ private fun EquipmentIconTile(
                 text = getString(equipmentTagShortLabelKey(tag)),
                 style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
                 color = when {
-                    isDeveloper -> Color.White
                     checked -> MaterialTheme.colorScheme.primary
                     else -> MaterialTheme.colorScheme.onSurfaceVariant
                 },
@@ -1631,7 +1735,7 @@ private fun PreferenceSection(
             }
             Button(
                 onClick = { if (input.isNotBlank()) { list.add(input.trim()); input = "" } },
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.height(48.dp)
             ) { Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall) }
         }
@@ -1639,8 +1743,8 @@ private fun PreferenceSection(
             list.forEach { ex ->
                 Surface(
                     color = containerColor,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                    shape = RoundedCornerShape(8.dp),
+                    border = null,
                     modifier = Modifier.clickable { list.remove(ex) }
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -1728,11 +1832,11 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                 }
                             }
                         },
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = backgroundColor,
                         contentColor = contentColor,
-                        border = if (isDeveloper && expanded) BorderStroke(2.dp, Color.Black)
-                                 else if (!expanded) BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant) 
+                        border = if (isDeveloper && expanded) BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
+                                 else if (!expanded) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) 
                                  else null,
                         modifier = Modifier
                             .weight(1f)
@@ -1802,12 +1906,12 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                         else selected.add(part) 
                                     },
                                     label = { Text(translateMuscleGroup(part), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)) },
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                     ),
-                                    border = if (isDeveloper && isSel) FilterChipDefaults.filterChipBorder(enabled = true, selected = true, selectedBorderColor = Color.Black, selectedBorderWidth = 2.dp) else FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel)
+                                    border = if (isDeveloper && isSel) FilterChipDefaults.filterChipBorder(enabled = true, selected = true, selectedBorderColor = MaterialTheme.colorScheme.surface, selectedBorderWidth = 2.dp) else FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel)
                                 )
                             }
                         }
@@ -1844,9 +1948,9 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
                 .padding(4.dp)
                 .pointerInput(selected) {
                     var totalDrag = 0f
@@ -1885,9 +1989,8 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                         translationX = with(density) { indicatorPosition.toPx() }
                     },
                 color = MaterialTheme.colorScheme.primary,
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
-                shadowElevation = if (isDeveloper) 0.dp else 1.dp
-            ) {}
+                shape = RoundedCornerShape(7.dp),
+                shadowElevation = 1.dp) {}
 
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -2013,7 +2116,12 @@ private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit)
         ) {
             options.forEach { option ->
                 val isSelected = selected == option
-                val range = WorkoutTemplates.durationRangeFor(option)
+                // The chip answers the block's own header ("Sitzungslänge"), so it shows
+                // MINUTES - the exercise window next to it is what the description below
+                // is written in and what the generator enforces. Printing the exercise
+                // count with the minute unit made every option claim to be shorter than
+                // its own warm-up (measured on device 2026-10-08).
+                val minutes = WorkoutTemplates.durationMinutesFor(option)
                 val contentColor by animateColorAsState(
                     targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
                                   else MaterialTheme.colorScheme.onSurfaceVariant,
@@ -2023,7 +2131,7 @@ private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit)
                 Box(
                     modifier = Modifier
                         .weight(1f)
-                        .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                        .clip(RoundedCornerShape(10.dp))
                         .background(
                             if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
@@ -2032,7 +2140,7 @@ private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit)
                             1.dp,
                             if (isSelected) MaterialTheme.colorScheme.primary
                             else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
-                            if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp)
+                            RoundedCornerShape(10.dp)
                         )
                         .clickable(
                             interactionSource = remember { MutableInteractionSource() },
@@ -2050,7 +2158,7 @@ private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit)
                             color = contentColor
                         )
                         Text(
-                            text = getString("duration_minutes", range.first, range.last),
+                            text = getString("duration_minutes", minutes.first, minutes.last),
                             style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
                             color = contentColor.copy(alpha = 0.85f)
                         )
@@ -2144,7 +2252,7 @@ private fun SaveConfirmationDialog(
                     Surface(
                         color = MaterialTheme.colorScheme.errorContainer,
                         contentColor = MaterialTheme.colorScheme.onErrorContainer,
-                        shape = if (LocalDeveloperSkin.current) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -2187,10 +2295,131 @@ private fun SaveConfirmationDialog(
     )
 }
 
+/**
+ * "How many days a week" as a menu of the frequencies the app supports.
+ *
+ * Owner prompt 2026-10-08: *"i want to add a simple menu having the user select between 2 to
+ * 6 days a week for a workout"* plus *"if the user chooses 1 or 7 days it will show a small
+ * label ... saying (not recommended)"*. Both of those frequencies therefore stay SELECTABLE -
+ * a menu that refuses them would leave a user who trains every day with no way to say so, and
+ * the honest answer is to mark the choice rather than hide it.
+ *
+ * Selecting a count writes [WorkoutTemplates.premadeWeekFor] straight into the week, so the
+ * user sees the actual shape the number produces (which days train, and where the pauses
+ * fall) instead of a bare number.
+ *
+ * REDESIGNED, owner prompt 2026-10-09: *"seeing the days of week like that with the numbers on
+ * top just looks very cheap and basic i want a different design"*. The seven separate numbered
+ * tiles are gone. The frequencies now live in ONE segmented track that uses the same sliding
+ * thumb as the build-mode switch at the top of this screen, so this control reads as part of
+ * the app instead of as a row of boxes; the number is a label on the selected segment rather
+ * than a tile of its own. The week the numbers produce is drawn UNDER the track as seven silent
+ * blocks (see [WeekStrip]), and the weekday chips themselves stay off the screen until the user
+ * opens the specific-days switch - the owner's *"show the days of the week ... only if the user
+ * distinctively opens it"*.
+ */
+@Composable
+private fun DaysPerWeekMenu(
+    daysPerWeek: Int,
+    onSelect: (Int) -> Unit
+) {
+    val segmentCount = 7
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+    ) {
+        val segmentWidth = maxWidth / segmentCount
+        val inset = 3.dp
+        // The thumb is the chosen frequency. It rides the same spring the build-mode switch
+        // uses, because the two controls sit on one screen and should move alike.
+        val thumbOffset by animateDpAsState(
+            targetValue = segmentWidth * (daysPerWeek - 1) + inset,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            ),
+            label = "daysPerWeekThumb"
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = thumbOffset, y = inset)
+                .width(segmentWidth - inset * 2)
+                .height(42.dp - inset * 2)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(13.dp))
+        )
+        Row(modifier = Modifier.fillMaxSize()) {
+            (1..segmentCount).forEach { count ->
+                val isSelected = count == daysPerWeek
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(count) }
+                        .semantics { testTag = "days_per_week_$count" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$count",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The week as a picture: one block per weekday, filled where the week trains.
+ *
+ * It keeps the half of the old numbered menu that was worth having - WHICH days train and
+ * where the pauses fall - without printing the weekday names, which the owner asked to keep
+ * off the screen until the specific-days switch is opened.
+ */
+@Composable
+private fun WeekStrip(selectedDays: List<String>) {
+    val week = listOf(
+        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        week.forEach { day ->
+            val trains = selectedDays.contains(day)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(
+                        if (trains) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                    )
+            )
+        }
+    }
+}
+
 @Composable
 fun DaySelectionRow(
     selectedDays: List<String>,
-    onDayToggle: (String) -> Unit
+    onDayToggle: (String) -> Unit,
+    /**
+     * False draws the row as the week the premade menu chose: still readable (the user must
+     * be able to see where the pauses fall) but not editable, because the switch beside it
+     * is what grants that. Defaults to true so the day pickers in the routine/editor screens
+     * keep their old behaviour unchanged.
+     */
+    enabled: Boolean = true
 ) {
     val allDays = listOf(
         "MONDAY" to getString("monday_shortest"),
@@ -2209,14 +2438,29 @@ fun DaySelectionRow(
     ) {
         allDays.forEach { (day, label) ->
             val isSelected = selectedDays.contains(day)
+            // Deliberately NOT `enabled = false` while the premade week is showing: Material's
+            // disabled surface dims the whole row (and the project has already paid twice for
+            // a control that "reads as disabled but is really just refused" - see
+            // levelPillBlockedReason). The row keeps its real colours and the caller decides
+            // what a tap means, which in the welcome screen is "open the specific-days
+            // switch", so the tap explains itself instead of doing nothing.
             Surface(
                 onClick = { onDayToggle(day) },
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                 contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
+                shape = CircleShape,
                 border = if (isSelected) {
-                             BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
-                         } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
+                             BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                         } else BorderStroke(
+                             1.dp,
+                             MaterialTheme.colorScheme.outlineVariant.copy(
+                                 // The premade week is an ANSWER ("this is your week"), the
+                                 // editable row is a QUESTION. A fainter rim on the
+                                 // unchosen days says which one the user is looking at
+                                 // without dimming the week itself.
+                                 alpha = if (enabled) 1f else 0.6f
+                             )
+                         ),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -2332,11 +2576,15 @@ fun AddExerciseDialog(
     }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
-    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    // The time toggle opens in the unit the EXERCISE measures in, not in whatever
+    // its stored row says - see WorkoutTemplates.isExerciseTimeBased.
+    var isTimeBased by remember { mutableStateOf(WorkoutTemplates.isExerciseTimeBased(exercise?.name.orEmpty())) }
     
     var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
     var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
-    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
+    // See WorkoutTemplates.secondsInStoredTarget: a pre-level-system timed row
+    // stores a rep range, which must not become the seconds field's value.
+    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) WorkoutTemplates.secondsInStoredTarget(exercise?.targetReps)?.toString() ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
 
     val focusManager = LocalFocusManager.current
@@ -2376,15 +2624,28 @@ fun AddExerciseDialog(
     var expandedDay by remember { mutableStateOf(false) }
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
+    // The muscle the NAME SUGGESTIONS are narrowed to, or null for every muscle.
+    //
     // The suggestion filter popup was removed (dashboard task "The exercise
-    // suggestions tab is still broken. Remove it completely"). What remains is
-    // the one gate that is not a convenience: the user's own kit, matching
-    // ExerciseEditDialog. Suggestions must never offer bar-less moves to a
-    // dumbbells+chair setup, so the equipment restriction starts ON and there
-    // is no UI left to change it.
-    val filteredExercises = remember(allAvailableExercises, userEquipmentCategories, userGrantedTags) {
+    // suggestions tab is still broken. Remove it completely") and what it left
+    // behind was the one gate that is not a convenience: the user's own kit
+    // (matching ExerciseEditDialog), because suggestions must never offer bar-less
+    // moves to a dumbbells+chair setup.
+    //
+    // The muscle filter is back on the OWNER's instruction (2026-10-09: "allow the
+    // user to filter which muscle too for when replacing an exercise"), and it is
+    // deliberately the same compact row the replace dialog uses, so the two pickers
+    // filter on the same vocabulary with the same control. It starts on ANY rather
+    // than on the exercise's own muscle: this dialog is where a custom exercise is
+    // NAMED, and someone renaming "Superman" to a row or a squat would be fighting a
+    // filter they never asked for. The kit gate above stays ON either way.
+    var selectedMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
+
+    val filteredExercises = remember(
+        allAvailableExercises, userEquipmentCategories, userGrantedTags, selectedMuscleGroup
+    ) {
         com.grafizum.repio.ui.components.filteredExercisesForPickers(
-            allAvailableExercises, null, userEquipmentCategories,
+            allAvailableExercises, selectedMuscleGroup, userEquipmentCategories,
             // Fine-tag gate matching ExerciseEditDialog: the coarse Bodyweight
             // chip alone offered bar-less moves to a dumbbells+chair setup.
             // Preferred over re-expanding the coarse list, which drops the
@@ -2439,6 +2700,14 @@ fun AddExerciseDialog(
                         interactionSource = remember { MutableInteractionSource() }
                     ) { focusManager.clearFocus() }
             ) {
+                // The same compact muscle filter as the replace dialog: one line, with the
+                // body parts and the precise muscles one tap away. See
+                // [com.grafizum.repio.ui.components.MuscleGroupFilterCollapsible].
+                com.grafizum.repio.ui.components.MuscleGroupFilterCollapsible(
+                    selectedMuscleGroup = selectedMuscleGroup,
+                    onSelect = { selectedMuscleGroup = it }
+                )
+
                 RepsTimeToggle(
                     isTimeBased = isTimeBased,
                     onToggle = { newValue ->
@@ -2710,36 +2979,36 @@ fun OnboardingStepHeader(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             if (stepNumber != null) {
                 Surface(
-                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape,
+                    border = null,
                     modifier = Modifier.size(28.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = stepNumber.toString(),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
             }
             Surface(
-                color = if (isDeveloper) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }
         if (isCollapsible) {
-            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
+            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

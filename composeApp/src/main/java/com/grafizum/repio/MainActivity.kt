@@ -31,6 +31,8 @@ import androidx.compose.foundation.layout.width
 import androidx.compose.foundation.layout.height
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.fillMaxHeight
+import androidx.compose.foundation.layout.WindowInsets
+import androidx.compose.foundation.layout.navigationBars
 import androidx.compose.foundation.layout.Box
 import androidx.compose.ui.graphics.graphicsLayer
 import androidx.compose.ui.platform.LocalDensity
@@ -99,6 +101,7 @@ import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.util.AppUpdateChecker
 import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.ui.components.AdaptiveWidthContainer
+import com.grafizum.repio.ui.components.AppDialog
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.LocalWeightUnit
 import kotlinx.coroutines.flow.MutableStateFlow
@@ -292,7 +295,13 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     val navController = rememberNavController()
     val coroutineScope = rememberCoroutineScope()
     val context = LocalContext.current
-    val window = LocalWindowSize.current
+    // NOTE: the window size is read INSIDE WorkoutTrackerTheme, below. Read here it
+    // was the composition local's DEFAULT value - widthDp 420, isNarrow false,
+    // isLargeText false, navBarHeight 76dp - because the provider that computes it
+    // lives inside the theme. So the whole app SHELL (the bottom navigation bar) was
+    // laid out for a window that does not exist: measured on the 1.8x emulator, its
+    // four labels still tried to share 1080px at the default narrow=false size and
+    // truncated to "My W... | Analyt... | Settin..." no matter what the window said.
     val motivationalNudges by viewModel.motivationalNudges.collectAsState()
 
     // The skip nudge is delivered by a daily background alarm (only while the app
@@ -443,6 +452,9 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     var requestedUpdateInfo by remember { mutableStateOf<AppUpdateInfo?>(null) }
     // True once the user has dealt with the nudge during this session.
     var updateNudgeHandled by remember { mutableStateOf(false) }
+    // The in-app "update available" card. Shown instead of a snackbar so the ask
+    // is a themed popup the user can clearly accept or decline.
+    var showUpdateDialog by remember { mutableStateOf(false) }
     val snackbarHostState = remember { SnackbarHostState() }
 
     // Fresh session: clear any stale "update available" notification from the tray.
@@ -450,24 +462,27 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         NotificationHelper.cancelUpdateNotification(context)
     }
 
+    val updateAvailableTitle = stringResource(R.string.update_available_title)
     val updateAvailableMessage = stringResource(R.string.update_available_message)
     val updateNowLabel = stringResource(R.string.update_now)
+    val updateLaterLabel = stringResource(R.string.update_later)
 
-    // In-app snackbar nudge + persistent tray notification for a pending update.
-    suspend fun nudgeUpdate() {
-        if (updateNudgeHandled) return
-        NotificationHelper.showUpdateAvailableNotification(context)
-        if (snackbarHostState.currentSnackbarData != null) return
-        val result = snackbarHostState.showSnackbar(
-            message = updateAvailableMessage,
-            actionLabel = updateNowLabel,
-            duration = SnackbarDuration.Short
-        )
+    // Ask the user, don't act for them: the nudge is a themed in-app card, and the
+    // Play flexible flow starts ONLY from that card's own button. Nothing is
+    // upgraded automatically. Declining records the same cooldown the old
+    // snackbar used, so "not now" is respected for a few days.
+    fun dismissUpdateNudge() {
+        showUpdateDialog = false
         updateNudgeHandled = true
         AppUpdateChecker.markNudgeDismissed(context)
-        if (result == SnackbarResult.ActionPerformed) {
-            requestedUpdateInfo = pendingUpdateInfo
-        }
+    }
+
+    // Also leaves a tray notification, for the case where the user backs out of
+    // the app before answering the card.
+    fun nudgeUpdate() {
+        if (updateNudgeHandled) return
+        NotificationHelper.showUpdateAvailableNotification(context)
+        showUpdateDialog = true
     }
 
     // Begin the flexible update via the Play dialog when the user taps the snackbar
@@ -650,6 +665,8 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
 
     // Force Onboarding screen if it's the first time
     WorkoutTrackerTheme(themeOption = themeOption, pageIndex = if (isFirstTimeUser) -1 else pagerState.currentPage) {
+        // Inside the theme, where LocalWindowSize is actually provided.
+        val window = LocalWindowSize.current
         var showAppSplash by remember { mutableStateOf(true) }
         // Observed as state rather than read once through a plain accessor: the
         // dismissal has to recompose this branch away, which only happens when
@@ -665,6 +682,10 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             // hands the user straight to the workout chooser. Its description
             // of the Easy/Medium/Hard choice is written in the future tense,
             // since that choice is still ahead of them on a fresh install.
+            // Neither this gate nor the setup below is inside the Scaffold, so neither
+            // inherits Scaffold's system-bar insets; each reserves them itself from the
+            // theme's [LocalSafeArea]. See that token for why a 16dp page margin was not
+            // enough on the Pixel 7a and looked fine on the S22+.
             LevelGuideOnboardingScreen(
                 onDismiss = { viewModel.markLevelGuideSeen() },
                 // Wired to the same preference as Settings ▸ Language. The
@@ -694,11 +715,34 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             }
         } else {
             val focusManager = LocalFocusManager.current
+
+            // Update-available card. Rendered here (not as a snackbar) so it uses
+            // the same themed popup shell as every other dialog in the app, and
+            // "Update" is the ONLY path that starts the Play flow.
+            if (showUpdateDialog && pendingUpdateInfo != null) {
+                AppDialog(
+                    onDismissRequest = { dismissUpdateNudge() },
+                    title = updateAvailableTitle,
+                    confirmLabel = updateNowLabel,
+                    onConfirm = {
+                        dismissUpdateNudge()
+                        requestedUpdateInfo = pendingUpdateInfo
+                    },
+                    dismissLabel = updateLaterLabel,
+                    onDismiss = { dismissUpdateNudge() }
+                ) {
+                    Text(
+                        text = updateAvailableMessage,
+                        style = MaterialTheme.typography.bodyMedium
+                    )
+                }
+            }
+
             Scaffold(
                 bottomBar = {
                     Surface(
-                        tonalElevation = if (isDeveloper) 0.dp else 3.dp,
-                        color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.surface,
+                        tonalElevation = 3.dp,
+                        color = MaterialTheme.colorScheme.surface,
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         BoxWithConstraints(
@@ -707,24 +751,64 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                             val tabWidth = this.maxWidth / navigationItems.size
                             val density = LocalDensity.current
 
-                            // Sliding Indicator Background
+                            // THE TOKEN IS THE BAR'S OWN CONTENT HEIGHT, so the system's
+                            // gesture inset is added ON TOP of it rather than absorbed by
+                            // it.
+                            //
+                            // `NavigationBar` applies `NavigationBarDefaults.windowInsets`
+                            // (= the navigation bars, bottom side) as padding INSIDE
+                            // whatever height it is handed. Forcing it to
+                            // `window.navBarHeight`, which this bar did, therefore did not
+                            // produce a bar of that height: it produced one whose content
+                            // area was the token MINUS the gesture inset - about 24dp on
+                            // both test phones, i.e. a quarter of the token silently
+                            // spent on system chrome.
+                            //
+                            // That is invisible until the bar gets slim enough that
+                            // Material's own 48dp item no longer fits in what is left,
+                            // and then it shows up as the bar's icons riding up over the
+                            // content above them. Measured on the emulator by sweeping the
+                            // window width, the item row finished 4.2dp short of its bar
+                            // at 455dp, 4.2dp at 411dp, 1.7dp at 376dp, and then 1.3dp
+                            // and 3.9dp PAST the top of the bar at 346dp and 320dp - on
+                            // the last of which the final exercise row was drawn behind
+                            // the bar. Adding the inset back makes the token mean what it
+                            // says - the room the icons and labels actually get - on every
+                            // phone regardless of its gesture bar, and on a 3-button
+                            // navigation device (inset 0) the bar is exactly the token.
+                            val navBarContentHeight = window.navBarHeight
+                            val navBarHeight = navBarContentHeight + with(density) {
+                                WindowInsets.navigationBars.getBottom(this).toDp()
+                            }
+
+                            // Sliding Indicator Background. Sized to the CONTENT height and
+                            // drawn from the top, which is exactly the row the items occupy
+                            // inside the bar below it.
                             Surface(
                                 modifier = Modifier
                                     .width(tabWidth)
-                                    .height(80.dp) // Standard NavigationBar height
+                                    // The bar's own height, from the same token the bar
+                                    // itself uses: a hard-coded 80dp held a 2-line 1.8x
+                                    // label badly (the icon was drawn over the text).
+                                    .height(navBarContentHeight)
                                     .padding(horizontal = 4.dp, vertical = 8.dp)
                                     .graphicsLayer {
                                         val pageOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction
                                         translationX = with(density) { (pageOffset * tabWidth.toPx()) }
                                     },
-                                color = if (isDeveloper) Color.White.copy(alpha = 0.2f)
-                                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp)
+                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                shape = RoundedCornerShape(12.dp)
                             ) {}
 
                             NavigationBar(
                                 containerColor = Color.Transparent,
-                                tonalElevation = 0.dp // Elevation is handled by the parent Surface
+                                tonalElevation = 0.dp, // Elevation is handled by the parent Surface
+                                // Sized by the token plus the gesture inset, never by
+                                // Material's default: at a large font scale the bar carries
+                                // a label, so it has to be able to hold it
+                                // (window.navBarHeight rides the font only once isLargeText
+                                // is true).
+                                modifier = Modifier.height(navBarHeight)
                             ) {
                                 navigationItems.forEachIndexed { index, screen ->
                                     val isSelected = pagerState.targetPage == index
@@ -768,7 +852,29 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                                 )
                                             }
                                         },
-                                        label = {
+                                        // AT A LARGE TEXT SCALE THE BAR IS ICONS ONLY.
+                                        //
+                                        // Measured on the 1.8x emulator, twice. First
+                                        // four labels at labelSmall want ~250px each
+                                        // while the bar gives ~218px, so the strip read
+                                        // "Home | My W... | Analyt... | Settin..." - the
+                                        // owner's "the interface is still thin". Then,
+                                        // with only the selected tab labelled, the dump
+                                        // showed the label box at y 2186-2323 against the
+                                        // icon band at 2122-2235: NavigationBarItem
+                                        // places the label in a fixed slot sized for a
+                                         // font-1.0 line, so a 1.8x label is painted
+                                        // straight over its own icon (the owner's "My
+                                        // Workout" badge collision). A slot inside
+                                        // Material's item cannot be re-laid-out from
+                                        // here, so at this size the bar carries the
+                                        // ICONS and their content descriptions only -
+                                        // no truncated label, no overlap, and the screen
+                                        // each tab opens still names itself in its header.
+                                        label = if (window.isLargeText) {
+                                            null
+                                        } else {
+                                        {
                                             val labelKey = when(screen.route) {
                                                 "home" -> "smart_workout_assistant"
                                                 "workout" -> "program_name"
@@ -790,17 +896,17 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                                     MaterialTheme.typography.labelMedium
                                                 }
                                             )
+                                        }
                                         },
                                         colors = NavigationBarItemDefaults.colors(
                                             indicatorColor = Color.Transparent,
-                                            selectedIconColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                                            selectedTextColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                            unselectedIconColor = if (isDeveloper) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant,
-                                            unselectedTextColor = if (isDeveloper) Color.White.copy(alpha = 0.6f) else MaterialTheme.colorScheme.onSurfaceVariant
-                                        ),
+                                            selectedIconColor = MaterialTheme.colorScheme.primary,
+                                            selectedTextColor = MaterialTheme.colorScheme.primary,
+                                            unselectedIconColor = MaterialTheme.colorScheme.onSurfaceVariant,
+                                            unselectedTextColor = MaterialTheme.colorScheme.onSurfaceVariant),
                                         modifier = Modifier
-                                            .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp))
-                                            .padding(vertical = if (isDeveloper) 4.dp else 0.dp)
+                                            .clip(RoundedCornerShape(12.dp))
+                                            .padding(vertical = 0.dp)
                                             .semantics { testTag = "nav_tab_${screen.route}" }
                                     )
                                 }

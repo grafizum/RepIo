@@ -1,9 +1,11 @@
 package com.grafizum.repio
 
 import com.grafizum.repio.ui.components.levelEditorControls
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import java.io.File
 
 /**
  * The exercise editor's LEVEL row.
@@ -22,11 +24,10 @@ import org.junit.Test
  */
 class LevelEditorControlsTest {
 
-    /** The everyday case: level system on, existing exercise, level 4 of 12. */
+    /** The everyday case: level system on, a resolved level, level 4 of 12. */
     private fun managed(level: Int = 4, max: Int = 12, canWrite: Boolean = true) =
         levelEditorControls(
             levelsManaged = true,
-            isExistingExercise = true,
             currentLevel = level,
             maxLevel = max,
             canWriteLevel = canWrite
@@ -88,7 +89,6 @@ class LevelEditorControlsTest {
     fun customModeShowsNoLevelRow() {
         val c = levelEditorControls(
             levelsManaged = false,
-            isExistingExercise = true,
             currentLevel = 4,
             maxLevel = 12,
             canWriteLevel = true
@@ -100,38 +100,47 @@ class LevelEditorControlsTest {
     }
 
     /**
-     * A NEW exercise has nothing prescribed yet, so there is no level to move.
-     * The editor already treats adding as never gated; the level row follows the
-     * same rule rather than appearing over an empty prescription.
+     * ADDING AN EXERCISE SHOWS THE LEVELS, which is the whole of the owner's
+     * report (2026-10-09): "When adding an exercise it shows the custom input boxes
+     * not the levels, redesign to fix it".
+     *
+     * A new exercise is not outside the level system: the engine answers a starting
+     * level for every progression-ready exercise at the user's own difficulty
+     * ([ProgressionEngine.startingPrescription], swept for every row by
+     * DurationStartingPrescriptionTest), and that level is what the row will train
+     * at the moment it is added. So the row appears over a REAL prescription, and
+     * the old `isExistingExercise` gate was refusing it on the grounds that there
+     * was nothing to move - which was never true for a pool exercise.
      */
     @Test
-    fun addingAnExerciseShowsNoLevelRow() {
+    fun addingAnExerciseWhoseLevelResolvesShowsTheRow() {
         val c = levelEditorControls(
             levelsManaged = true,
-            isExistingExercise = false,
+            currentLevel = 4,
+            maxLevel = 12,
+            canWriteLevel = true
+        )
+        assertTrue("the level the new row will start on is editable", c.showLevelRow)
+        assertTrue("and the whole ladder is reachable from it", c.canOpenLadder)
+    }
+
+    /**
+     * The other half, and the reason the gate is the LEVEL rather than the absence of
+     * a row: an exercise the host cannot resolve a level for - a custom movement, or
+     * a name the user is still typing - still gets the plain input boxes, because
+     * there is genuinely nothing to list. Without this case the change above would
+     * be indistinguishable from "the row is always on".
+     */
+    @Test
+    fun anUnratedExerciseShowsNoLevelRow() {
+        val c = levelEditorControls(
+            levelsManaged = true,
             currentLevel = null,
             maxLevel = 12,
             canWriteLevel = true
         )
         assertFalse(c.showLevelRow)
         assertFalse(c.canOpenLadder)
-    }
-
-    /**
-     * An exercise the engine cannot rate has no level either — [currentLevel] is
-     * null even though the system is on, and a row built from a null level would
-     * print "Level null".
-     */
-    @Test
-    fun anUnratedExerciseShowsNoLevelRow() {
-        val c = levelEditorControls(
-            levelsManaged = true,
-            isExistingExercise = true,
-            currentLevel = null,
-            maxLevel = 12,
-            canWriteLevel = true
-        )
-        assertFalse(c.showLevelRow)
     }
 
     /**
@@ -158,8 +167,35 @@ class LevelEditorControlsTest {
     fun everyInputIsLoadBearing() {
         assertTrue(managed().showLevelRow)
         assertFalse("no writer", managed(canWrite = false).showLevelRow)
-        assertFalse("custom mode", levelEditorControls(false, true, 4, 12, true).showLevelRow)
-        assertFalse("a new exercise", levelEditorControls(true, false, 4, 12, true).showLevelRow)
-        assertFalse("no level", levelEditorControls(true, true, null, 12, true).showLevelRow)
+        assertFalse("custom mode", levelEditorControls(false, 4, 12, true).showLevelRow)
+        assertFalse("no level", levelEditorControls(true, null, 12, true).showLevelRow)
+    }
+
+    /**
+     * THE HOST SIDE OF THE SAME REPORT. The rule above is only worth anything if the
+     * editor is actually GIVEN the levels: every value the level UI draws used to be
+     * passed in for `exercise`, and the add form has no exercise - it has a name in
+     * its own search field. That is why the level data moved behind a name-keyed
+     * resolver ([EditorLevelData]), and this case keeps a fourth host from opening
+     * the editor without one, which would put the add form back to custom boxes with
+     * nothing in the test suite noticing.
+     */
+    @Test
+    fun everyHostThatOpensTheEditorResolvesTheLevelsByName() {
+        val offenders = File("src/main").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            // The dialog's own declaration is not a call site.
+            .filterNot { it.path.endsWith("ui/components/WorkoutComponents.kt") }
+            .filter { it.readText().contains("ExerciseEditDialog(") }
+            .filterNot { it.readText().contains("levelDataFor") }
+            .map { it.path }
+            .toList()
+        assertEquals(
+            "these call sites open the exercise editor without the name-keyed level " +
+                "resolver, so their add form cannot show the level list: " +
+                offenders.joinToString(),
+            emptyList<String>(),
+            offenders,
+        )
     }
 }

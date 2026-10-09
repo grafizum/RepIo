@@ -219,6 +219,23 @@ EQUIPMENT_OVERRIDES = {
     "stability-ball-push-up": "Machine",
     "stability-ball-push-up-hands-on-ball": "Machine",
     "stability-ball-wall-squat": "Machine",
+    # Owner report 2026-10-09, after auditing every pool row's own instructions
+    # against the equipment gate: "Back extensions only works with a certain bench
+    # which i didnt select so thats wrongly shown". A 45-degree / hyperextension
+    # bench is gym apparatus, and the ball rows below put the hands or feet on a
+    # ball - the same drawer the three stability-ball rows above already sit in.
+    # The gates were tightened in ExerciseEquipmentTags first; these entries stop
+    # the CATEGORY from disagreeing with them (EquipmentCategoryConsistencyTest).
+    "back-extension": "Machine",
+    "ball-pike": "Machine",
+    "stability-ball-knee-tuck": "Machine",
+    "stability-ball-hip-bridge": "Machine",
+    "ball-leg-curl": "Machine",
+    # "...a specific machine or another person on one's back ... this method uses a
+    # weight belt": the variant still needs the apparatus, not just a floor.
+    "donkey-calf-raise": "Machine",
+    # "...curls a bell ... over a preacher pad": the pad is the exercise.
+    "preacher-hammer-curl": "Machine",
 }
 
 # v5 anatomical muscle tokens -> the app's precise muscles. Compound

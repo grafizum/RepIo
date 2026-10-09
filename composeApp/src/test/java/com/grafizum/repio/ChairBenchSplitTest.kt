@@ -68,15 +68,21 @@ class ChairBenchSplitTest {
     }
 
     @Test
-    fun aChairStandsInForTheBenchOnSeatedWork() {
-        // "Chair" and "Bench" stay separate tiles so nobody claims furniture
-        // they do not own, but a chair really is a seat: with dumbbells in hand
-        // the pressing and rowing patterns must not disappear.
+    fun aChairIsNotABenchButTheChairTileStillOpensChairWork() {
+        // REVERSED 2026-10-08. This used to assert that a chair stands in for a
+        // bench ("a chair really is a seat"), and the owner reported the leak that
+        // assumption caused: "I only have chair and dumbell and yet the system asks
+        // me to do an inclinde dumbell press which doesnt work without a bench". A
+        // chair has no adjustable back angle and no pad to brace against, so the
+        // bench-angle work now requires a BENCH.
         val chairAndDumbbells = ExerciseEquipmentTags.allowedTagsFor(
             listOf(ExerciseEquipmentTags.PRESET_CUSTOM, ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY)
         )
-        assertTrue(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", chairAndDumbbells))
-        assertTrue(ExerciseEquipmentTags.isAvailable("Incline Dumbbell Press", chairAndDumbbells))
+        assertFalse(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", chairAndDumbbells))
+        assertFalse(ExerciseEquipmentTags.isAvailable("Incline Dumbbell Press", chairAndDumbbells))
+        // The tile is still worth ticking: a chair genuinely supports the work that
+        // only needs somewhere to put a foot or a hand.
+        assertTrue(ExerciseEquipmentTags.isAvailable("Bulgarian Split Squat", chairAndDumbbells))
         // ...and the same movements are NOT handed to a user with no weights.
         val chairOnly2 = ExerciseEquipmentTags.allowedTagsFor(chairOnly)
         assertFalse(ExerciseEquipmentTags.isAvailable("Dumbbell Bench Press", chairOnly2))

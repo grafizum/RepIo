@@ -479,6 +479,22 @@ object ProgressionEngine {
         return reps + List(setCount - reps.size) { reps.last() }
     }
 
+    /**
+     * The reps a STAGE row shows in the level UI, which is [prescribedReps] with
+     * one exception: a DURATION row shows none.
+     *
+     * A timed exercise carries a Roman rep pattern like every other row - that is
+     * the shape its ladder was published with - but its work is measured in
+     * SECONDS, so a stage list printing "8 / 8 / 8 reps" beside a jumping jack told
+     * the user the wrong unit for the exercise the level system had just learned to
+     * time (owner, 2026-10-09: "it shows reps in the card yet the exercise is based
+     * on time and has a timer????"). The row's own seconds live on the LEVEL
+     * ([prescribedValueAtLevel]), not on the stage, so an empty list is the honest
+     * answer here and the stage row shows its numeral alone.
+     */
+    fun stageRowReps(entry: ProgressionEntry, level: Int, stage: Int): List<Int> =
+        if (isDurationBased(entry)) emptyList() else prescribedReps(entry, level, stage).orEmpty()
+
     fun prescribedReps(entry: ProgressionEntry, level: Int, stage: Int): List<Int>? {
         val base = romanStageReps(entry, stage) ?: return null
         if (!isProgressionReady(entry) || valueKindOf(entry) == ValueKind.LOAD) return base
@@ -582,7 +598,26 @@ object ProgressionEngine {
         // (a data error), prefer the stage's own pattern row so the UI can
         // never display a mismatched pair.
         val stageReps = prescribedReps(entry, startLevel, stage) ?: reps
-        if (stageReps.isEmpty()) return null
+
+        // A DURATION ROW HAS NO REP PATTERN, and demanding one refused its whole
+        // prescription — which is how every timed exercise ended up looking like
+        // a custom exercise with a rep range on it (owner, 2026-10-09: "Jumping
+        // jacks is one of many exercises that doesnt show the level style and it
+        // shows reps in the card yet the exercise is based on time and has a
+        // timer????"). Measured over the real catalog: 147 of the 601 rows are
+        // duration rows (planks, holds, carries, all the cardio machines, every
+        // stretch) and NONE of them could resolve a state, because their ladder
+        // lives in seconds and `prescribedReps` answers null for them. Without a
+        // state [WorkoutViewModel.currentProgressionState] returns null, so the
+        // card's `inSystem` was false and it fell to the plain custom summary,
+        // printing the routine's stored rep string under a timer.
+        //
+        // An empty rep list is the TRUTHFUL answer for a duration row: the
+        // prescription's number is its seconds, which
+        // [prescribedValueAtLevel] already carries as a DURATION value, and
+        // the card headlines with that. Only a row that has neither reps NOR
+        // the duration ladder is genuinely undescribable.
+        if (stageReps.isEmpty() && !isDurationBased(entry)) return null
 
         val startValue = if (isCoachReviewed(entry))
             valueAtLevelWithCeiling(entry, startLevel)
@@ -594,7 +629,11 @@ object ProgressionEngine {
             unit = entry.unit,
             reps = stageReps,
             stage = stage.coerceAtLeast(1),
-            setCount = stageReps.size,
+            // A duration row's set count is its routine row's, not its rep
+            // pattern's: `stageReps` is empty there and 0 sets would be a
+            // promise the card cannot keep. One set is the floor that says
+            // "this prescription is one set of work" without inventing more.
+            setCount = stageReps.size.coerceAtLeast(1),
             restSeconds = entry.restSeconds ?: 60
         )
     }

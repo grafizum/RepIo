@@ -53,7 +53,11 @@ android {
 
     defaultConfig {
         applicationId = "com.grafizum.repio"
-        minSdk = 23
+        // 24 is Google Play's upload floor since ~Sep 2026: "Play automatic
+        // protection requires a minimum SDK version of 24 or higher" rejects
+        // a bundle at 23 outright (the dependency set only needs 23, so Play
+        // is the binding constraint here, not the compile floor).
+        minSdk = 24
         targetSdk = 36
         versionCode = playStoreVersion
         versionName = appVersion
@@ -140,6 +144,25 @@ android {
         }
         debug {
             signingConfig = signingConfigs.getByName("debug")
+
+            // A DEV BUILD MUST BE ABLE TO COEXIST WITH AN INSTALLED RELEASE.
+            //
+            // Android refuses to replace an installed package whose signer differs
+            // from the incoming APK's, and that is not a key mismatch this project
+            // can fix: a Play-installed copy carries Play's app-signing certificate,
+            // which no local keystore matches. The failure is
+            // INSTALL_FAILED_UPDATE_INCOMPATIBLE, and the only ways out are
+            // uninstalling (which deletes the user's workout data) or installing
+            // under a different application id. This is the second one.
+            //
+            // Everything the app derives from its own package name rides on
+            // `context.packageName` - the launcher icon aliases (IconSwitchHelper),
+            // the app-details deep links (AppUpdateChecker) and resource lookup
+            // (Resources.kt) - so the id change is transparent to all of them.
+            // google-services.json carries a matching `com.grafizum.repio.debug`
+            // client, because the google-services plugin fails the build outright
+            // when the application id has no entry.
+            applicationIdSuffix = ".debug"
         }
     }
     compileOptions {

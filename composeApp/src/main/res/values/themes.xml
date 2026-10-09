@@ -1,7 +1,25 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
 
-    <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar" />
+    <!--
+        The BASE activity's post-splash theme, and the window colour behind Compose.
+
+        It used to set no `windowBackground` at all, so the window fell back to
+        AppCompat's DayNight default - measured #303030 on the Pixel 7a under a LIGHT
+        beige app. Any screen drawn outside the app's Scaffold showed that flat grey
+        (the level-guide page reported on 2026-10-08: "the background color of the light
+        beige screen was a weird ugly grey").
+
+        Beige is the right value here, not a per-theme guess: it is the app's base theme
+        in BOTH system appearances (owner ruling 2026-10-04, `IconSwitchHelper.
+        defaultThemeFor`), so it is what this window is about to show in every case it
+        can be shown in - a fresh install before any alias is enabled, and a debug launch
+        of the base activity. The per-theme ALIAS themes below still override it for the
+        normal case, where the icon's own theme is known.
+    -->
+    <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/bg_beige</item>
+    </style>
 
     <!-- Post-splash themes for seamless transition -->
     <style name="Theme.App.PostSplash.Flame" parent="Theme.MyApplication">
@@ -40,12 +58,21 @@
         <item name="android:windowBackground">@color/bg_retro</item>
     </style>
 
-    <!-- Base splash screen theme -->
+    <!--
+        Base splash screen theme - the base activity's own, i.e. the one Android Studio
+        and a fresh install use before a launcher alias exists.
+
+        Its colours are BEIGE, matching the base theme every other path already defaults
+        to. They were FLAME (dark), which meant the base activity flashed a dark splash
+        and then - with no `windowBackground` on its post-splash theme - a grey window,
+        before painting a light UI. The per-theme ALIAS splashes below are unchanged: an
+        alias knows which theme its icon stands for, this one does not.
+    -->
     <style name="Theme.App.Starting" parent="Theme.SplashScreen">
         <item name="postSplashScreenTheme">@style/Theme.MyApplication</item>
-        <item name="windowSplashScreenBackground">@color/bg_flame</item>
+        <item name="windowSplashScreenBackground">@color/bg_beige</item>
         <item name="windowSplashScreenAnimatedIcon">@android:color/transparent</item>
-        <item name="windowSplashScreenIconBackgroundColor">@color/bg_flame</item>
+        <item name="windowSplashScreenIconBackgroundColor">@color/bg_beige</item>
     </style>
 
     <!-- Flame / Dark Theme Splash -->

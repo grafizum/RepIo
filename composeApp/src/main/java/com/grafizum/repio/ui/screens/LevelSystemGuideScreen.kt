@@ -24,6 +24,7 @@ import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.ArrowUpward
 import androidx.compose.material.icons.filled.Check
 import androidx.compose.material.icons.filled.EmojiEvents
+import androidx.compose.material.icons.filled.Lock
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.Surface
@@ -32,12 +33,15 @@ import androidx.compose.runtime.Composable
 import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
+import androidx.compose.ui.graphics.Color
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.OverallLevelRank
+import com.grafizum.repio.ui.components.LEVEL_STAGE_SEPARATOR
+import com.grafizum.repio.ui.components.LevelStageLabel
 import com.grafizum.repio.ui.components.RankBadge
 import com.grafizum.repio.util.getString
 import com.grafizum.repio.util.rememberCurrentLocale
@@ -64,7 +68,11 @@ fun LevelSystemGuideContent() {
     }
 }
 
-/** The five example cards without the intro line — reused by onboarding. */
+/**
+ * The example cards without the intro line — reused by onboarding, by the Settings guide and
+ * by the bulk-adjust reminder, so one edit here reaches every place the level system is
+ * explained.
+ */
 @Composable
 fun LevelSystemGuideExamples() {
     Column(verticalArrangement = Arrangement.spacedBy(12.dp)) {
@@ -73,6 +81,13 @@ fun LevelSystemGuideExamples() {
         GuideExampleCard(getString("level_up_example_title")) { LevelUpExample() }
         GuideExampleCard(getString("large_jump_example_title")) { LargeJumpExample() }
         GuideExampleCard(getString("difficulty_change_example_title")) { DifficultyButtonsExample() }
+        // THE LOCK, taught where the rest of the system is taught.
+        //
+        // Owner, 2026-10-08: "add the locking mechanism in the explanation on what the level
+        // system is everywhere". This is the one list every explanation draws from — the
+        // onboarding page, the Settings guide and the reminder strip above the bulk editor —
+        // so adding the card here is what makes "everywhere" true rather than nearly true.
+        GuideExampleCard(getString("lock_example_title")) { LevelLockExample() }
     }
 }
 
@@ -150,14 +165,14 @@ private fun LevelBarsExample() {
 }
 
 /**
- * "Level 3 — XIII" for the guide's data rows.
- *
- * The word goes through resources (it is "Livello 3" in Italian); the Roman
- * stage stays a literal because a Roman numeral reads the same in every locale.
+ * "Level 3 | XIII" for the guide's data rows — the SAME notation the live level card uses
+ * (one box, level then stage, see the owner's 2026-10-08 instruction), read from the same
+ * separator constant. The word goes through resources (it is "Livello 3" in Italian); the
+ * Roman stage stays a literal because a Roman numeral reads the same in every locale.
  */
 @Composable
 private fun levelStageLabel(level: Int, romanStage: String): String =
-    getString("level_word_n", level) + " — " + romanStage
+    getString("level_word_n", level) + LEVEL_STAGE_SEPARATOR + romanStage
 
 /**
  * A number in the reader's own locale, so the illustration agrees with the rest
@@ -204,15 +219,32 @@ private fun GuideLevelBar(label: String, fraction: Float, highlight: Boolean = f
 
 // ------------------------------------------------------------------
 // Example 2 — What is a stage?
-// Three stage boxes inside one level: reps shift one set at a time.
+//
+// The stages the app actually SHOWS: I and then IV, the rows whose sets all ask
+// for the same reps. It used to draw I, II and III - the raw pattern - which is
+// the one place in the app that still listed the in-between rows, and the owner
+// caught it there (2026-10-09): *"it shows \"I\" and right after \"II\" although
+// the display should be from \"I\" to \"IV\" since those are the only ones that
+// have the same reps for each set"*.
+//
+// The rule is not invented here: it is the same one the exercise editor's level
+// list already applies in `roundedStages` (owner ruling, same day: "round them up
+// so each number shown is the same reps"), and on a thirteen-stage pattern it is
+// what turns a wall of one-rep-apart mixtures into the five real steps I, IV, VII,
+// X, XIII. The guide teaching the unrounded list was the last surface disagreeing
+// with the screen it explains - and worse than the editor's version, because a
+// reader has no way to know the app skips those rows.
+//
+// The numbers are the standard pattern's own (8 / 8 / 8 -> 9 / 9 / 9), pinned
+// against the engine by [com.grafizum.repio.LevelGuideStageDisplayTest] so the
+// example cannot drift from the data it illustrates.
 // ------------------------------------------------------------------
 
 @Composable
 private fun StageBoxesExample() {
     Column(verticalArrangement = Arrangement.spacedBy(6.dp)) {
         GuideStageBox("I", "8 / 8 / 8", done = true)
-        GuideStageBox("II", "9 / 8 / 8", current = true)
-        GuideStageBox("III", "9 / 9 / 8")
+        GuideStageBox("IV", "9 / 9 / 9", current = true)
     }
     GuideCaption(getString("stage_example_caption"))
 }
@@ -302,6 +334,78 @@ private fun LargeJumpExample() {
         GuideDataRow(getString("weight_kg_intl", "10") + " — " + levelStageLabel(3, "I"), "8 / 8 / 8", highlight = true)
     }
     GuideCaption(getString("large_jump_example_caption"))
+}
+
+/**
+ * The lock, drawn as the card draws it: the level box on the left, the lock chip on the
+ * right, and a caption that says what the lock is FOR.
+ *
+ * It deliberately mirrors the live card's two controls rather than inventing a diagram, so a
+ * reader who has seen this page can find the same two things on the workout screen. It is
+ * copied from the live `LevelPrescriptionCard`, which is the surface that owns them - if the
+ * card's chip ever changes shape, this example has to follow it.
+ */
+@Composable
+private fun LevelLockExample() {
+    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
+        Row(
+            verticalAlignment = Alignment.CenterVertically,
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            modifier = Modifier.fillMaxWidth()
+        ) {
+            // The level box: "Level 10 | IV", exactly as the card prints it.
+            //
+            // It IS the card's own drawing, not a copy of it: [LevelStageLabel] owns the
+            // reading and the thin bar between the two halves, and this example only
+            // supplies the ring around them. The comment above used to promise "exactly as
+            // the card prints it" while this row typed its own "Level 10 | IV" - so when
+            // the owner rejected that pipe on the card ("thinner so it doesnt look like a
+            // number or letter", 2026-10-09) the guide went on teaching the old one.
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = Color.Transparent,
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary),
+                contentColor = MaterialTheme.colorScheme.primary
+            ) {
+                LevelStageLabel(
+                    level = 10,
+                    stage = 4, // "IV" - a Roman numeral reads the same in every locale.
+                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
+                    color = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 5.dp)
+                )
+            }
+
+            Spacer(modifier = Modifier.weight(1f))
+
+            // The lock chip, in its locked state.
+            Surface(
+                shape = RoundedCornerShape(10.dp),
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary)
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(horizontal = 8.dp, vertical = 6.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(14.dp)
+                    )
+                    Spacer(modifier = Modifier.width(5.dp))
+                    Text(
+                        text = getString("level_locked_short"),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        maxLines = 1
+                    )
+                }
+            }
+        }
+        GuideCaption(getString("lock_example_caption"))
+    }
 }
 
 @Composable

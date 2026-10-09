@@ -12,24 +12,16 @@ import datetime
 import io
 import json
 import os
+import sys
 import urllib.error
 import urllib.request
 
 REPO = os.path.dirname(os.path.dirname(os.path.abspath(__file__)))
 
-
-def env_values():
-    values = {}
-    path = os.path.join(REPO, ".env")
-    if not os.path.exists(path):
-        return values
-    for line in io.open(path, encoding="utf-8"):
-        line = line.strip()
-        if not line or line.startswith("#") or "=" not in line:
-            continue
-        key, value = line.split("=", 1)
-        values[key.strip()] = value.strip()
-    return values
+# Grafizum credentials are per project and live OUTSIDE the checkout, under
+# ~/.config/grafizum/projects/. See tools/grafizum_env.py.
+sys.path.insert(0, os.path.join(REPO, "tools"))
+from grafizum_env import load_env as env_values  # noqa: E402
 
 
 def version_props():

@@ -3,6 +3,7 @@ package com.grafizum.repio
 import com.grafizum.repio.ui.components.MaxContentWidth
 import com.grafizum.repio.ui.components.WindowSize
 import com.grafizum.repio.ui.components.WindowWidthClass
+import com.grafizum.repio.ui.components.frameScaleFor
 import com.grafizum.repio.ui.components.windowSizeFor
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertFalse
@@ -55,6 +56,7 @@ class WindowSizeTest {
                 assertSmallStep("dialogMaxWidth", prev, size) { it.dialogMaxWidth.value }
                 assertSmallStep("dialogCorner", prev, size) { it.dialogCorner.value }
                 assertSmallStep("dialogGap", prev, size) { it.dialogGap.value }
+                assertSmallStep("inlineGap", prev, size) { it.inlineGap.value }
                 assertSmallStep("typeScale", prev, size) { it.typeScale }
             }
             previous = size
@@ -268,26 +270,155 @@ class WindowSizeTest {
 
     @Test
     fun largerSystemFontsGrowTheBoxesThatHoldText() {
-        val normal = token(360, 640)
-        val large = token(360, 640, fontScale = 1.5f)
+        // THE MECHANISM MOVED ON 2026-10-08, THE CONTRACT DID NOT.
+        //
+        // The boxes around the text still have to grow with it - but they now grow
+        // in the DENSITY (see WorkoutTrackerTheme), because the thing that was
+        // crowded was not a token: it was every hard-coded `Modifier.padding(16.dp)`
+        // and `Spacer(height = 4.dp)` inside the components, which no token table can
+        // reach. So what has to hold is the ARITHMETIC of that override:
+        //   dp  -> px grows by the factor
+        //   sp  (= density x fontScale) -> px does not move at all
+        // asserted against the owner's emulator (420dpi, font scale 1.8).
+        val platformDensity = 2.625f
+        val fontScale = 1.8f
+        val frame = frameScaleFor(fontScale)
+        assertEquals("the frame takes the WHOLE font surplus", 1.8f, frame, 0.001f)
 
-        assertTrue(large.sectionSpacing.value > normal.sectionSpacing.value)
-        assertTrue(large.cardPadding.value > normal.cardPadding.value)
-        assertTrue(large.headerMinHeight.value > normal.headerMinHeight.value)
-        assertTrue(large.dayChipHeight.value > normal.dayChipHeight.value)
-        assertTrue(large.donutHeight.value > normal.donutHeight.value)
+        val scaledDensity = platformDensity * frame
+        val scaledFontScale = fontScale / frame
+        assertEquals(
+            "a hard-coded 4dp spacer must render larger than it is authored, like the text around it",
+            4f * platformDensity * 1.8f,
+            4f * scaledDensity,
+            0.001f,
+        )
+        assertEquals(
+            "and the text itself must keep the exact size the platform gave it",
+            16f * platformDensity * fontScale,
+            16f * scaledDensity * scaledFontScale,
+            0.001f,
+        )
+
+        // The tokens that hold in-line text keep the 1:1 ride they were given on
+        // 2026-10-07: their own factor times the density's is exactly the font scale.
+        assertEquals(
+            "a padding token must still render 1.8x its font-1.0 size",
+            token(360, 640).screenPadding.value * platformDensity * 1.8f,
+            token(360, 640, fontScale).screenPadding.value * scaledDensity,
+            0.001f,
+        )
+
+        // A font scale below 1 must not shrink the layout - sp already handles the text.
+        assertEquals(1f, frameScaleFor(0.85f), 0.001f)
+        assertEquals(1f, frameScaleFor(1f), 0.001f)
+    }
+
+    /**
+     * THE PIXEL 7a REPORT, pinned to the factor that answers it.
+     *
+     * At a system font scale of 1.8 the text rendered at 1.8x its authored size while
+     * the frame around it held still, so every padding and gap was crowded even though
+     * everything technically fitted - "everything might fit but its extremely squished
+     * together". The owner reported the same thing twice more ("the complete app / GUI
+     * is pressed together on the emulator... i want it to look like its on my phone nice
+     * and spacious"), which is how the fix ended up in the density rather than in the
+     * token table: the tokens were already scaling, and the cramped pixels were the
+     * components' own hard-coded dp.
+     *
+     * Asserted as EXACT proportionality rather than `>`, because "grows a bit" is what
+     * the old damped version did: the frame has to ride the SAME factor as the text.
+     */
+    @Test
+    fun theFrameRidesTheFontScaleWithoutSwallowingTheContent() {
+        // The DENSITY's zoom IS the font scale - the whole of the surplus, no damping
+        // hidden in the curve. Half was tried and is what the owner saw as "still
+        // completely pressed together": at 1.8x the letters were 1.8x the phone's while
+        // every box around them was 1.4x. The starvation that halving was protecting
+        // against is handled structurally instead - at a large text scale the workout
+        // screen is one scroll region, so no frame factor can push content off it.
+        var scale = 1f
+        while (scale <= 2.2f) {
+            val zoom = frameScaleFor(scale)
+            assertEquals(
+                "the frame must ride the font scale exactly at $scale, not a fraction of it",
+                scale,
+                zoom,
+                0.001f,
+            )
+            // ...while the tokens that hold in-line text still render at EXACTLY the font
+            // scale: token x zoom == scale. This is the property the 2026-10-07 pass
+            // pinned, and it must survive the density being folded in underneath it.
+            assertEquals(
+                "a spacing token must render at $scale times its font-1.0 size",
+                token(360, 640).screenPadding.value * scale,
+                token(360, 640, scale).screenPadding.value * zoom,
+                0.001f,
+            )
+            scale += 0.05f
+        }
+
+        // The tokens that hold no in-line text and are sized against VERTICAL space are
+        // divided back out of that zoom, so they keep the px size they have on a
+        // font-scale-1.0 phone: growing a dialog's WIDTH would change the layout, not the
+        // legibility. (The height-driven blocks are exempt only from the full font growth
+        // - they still take their documented half-damped share, which is what the
+        // 2026-10-07 pass gave them.)
+        val normal = token(360, 640)
+        val large = token(360, 640, fontScale = 1.8f)
+        val zoom = frameScaleFor(1.8f)
+        // ...AND SO DOES THE NAVIGATION BAR, which is the opposite of what it used to do.
+        // Its content is all dp (a 24dp icon inside a 32dp indicator) and the frame
+        // multiplies those like everything else, so dividing the bar back out left a
+        // phone-sized 199px slot holding a 113px icon: on the 1.8x emulator the icon
+        // band measured y 2122-2235 and the bar simply ran out from under it. At font 1.0
+        // the ramp's anchor is Material's own 80dp, so the phone is unchanged.
+        assertEquals(
+            "the nav bar rides the frame like its icon does",
+            normal.navBarHeight.value * 1.8f,
+            large.navBarHeight.value * zoom,
+            0.001f,
+        )
+        assertEquals(
+            "a mainstream 411dp phone keeps Material's own 80dp bar at font 1.0",
+            80f,
+            token(411, 914).navBarHeight.value,
+            0.5f,
+        )
+        assertEquals(normal.contentMaxWidth.value, large.contentMaxWidth.value * zoom, 0.001f)
+        assertEquals(normal.dialogMaxWidth.value, large.dialogMaxWidth.value * zoom, 0.001f)
+        assertEquals(normal.dialogCorner.value, large.dialogCorner.value * zoom, 0.001f)
+        assertEquals(
+            "a day chip carries text, so it rides the font scale like the other text tokens",
+            normal.dayChipHeight.value * 1.8f,
+            large.dayChipHeight.value * zoom,
+            0.001f,
+        )
+        assertEquals(
+            "and so does the analytics card",
+            normal.donutHeight.value * 1.4f,
+            large.donutHeight.value * zoom,
+            0.001f,
+        )
     }
 
     @Test
     fun fontScaleIsClampedAndNeverShrinksTheLayout() {
-        val normal = token(360, 640, fontScale = 1f)
-        val atCap = token(360, 640, fontScale = 1.6f)
+        // 2.2 is the cap on the font scale the frame listens to; past it the frame stops
+        // growing, at 2.2. Everything at or past the cap must be identical, in the tokens
+        // and in the density.
+        assertEquals(2.2f, frameScaleFor(2.2f), 0.001f)
+        assertEquals(2.2f, frameScaleFor(4f), 0.001f)
+
+        val atCap = token(360, 640, fontScale = 2.2f)
         val beyondCap = token(360, 640, fontScale = 4f)
         val smaller = token(360, 640, fontScale = 0.85f)
 
         assertEquals(atCap.dayChipHeight.value, beyondCap.dayChipHeight.value, 0.001f)
         assertEquals(atCap.sectionSpacing.value, beyondCap.sectionSpacing.value, 0.001f)
+        assertEquals(atCap.screenPadding.value, beyondCap.screenPadding.value, 0.001f)
         // A font scale below 1 must not shrink the layout - sp already handles the text itself.
+        val normal = token(360, 640)
         assertEquals(normal.dayChipHeight.value, smaller.dayChipHeight.value, 0.001f)
         assertEquals(normal.sectionSpacing.value, smaller.sectionSpacing.value, 0.001f)
     }

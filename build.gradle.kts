@@ -1,3 +1,4 @@
+import java.io.File
 import java.io.FileInputStream
 import java.net.HttpURLConnection
 import java.net.URI
@@ -67,9 +68,48 @@ fun splitVersionName(name: String): Triple<Int, Int, Int> {
     return Triple(parts[0].toInt(), parts[1].toInt(), parts[2].toInt())
 }
 
-/** Reads a setting from the system environment first, then from the git-ignored .env. */
+/**
+ * The per-project credentials file for THIS checkout.
+ *
+ * A dashboard agent key is scoped to a project (GET /v1/projects shows which),
+ * so a token belongs to a PROJECT, not to a machine. Tokens therefore live in
+ * `~/.config/grafizum/projects/<slug>.env`, one file per project, outside every
+ * checkout - so working on another project can never overwrite this one. The
+ * repo `.env` names the project (GRAFIZUM_PROJECT_ID / _SLUG) and keeps its
+ * non-Grafizum secrets (keystore passwords); this picks the matching registry
+ * file by that id, then by slug, then by the checkout directory name.
+ */
+fun grafizumProjectSettings(): Properties? {
+    val dir = File(System.getProperty("user.home"), ".config/grafizum/projects")
+    if (!dir.isDirectory) return null
+    val repoEnv = Properties()
+    rootProject.file(".env").takeIf { it.exists() }
+        ?.let { FileInputStream(it).use { stream -> repoEnv.load(stream) } }
+    val wantedId = repoEnv.getProperty("GRAFIZUM_PROJECT_ID")?.trim()
+    val wantedSlug = repoEnv.getProperty("GRAFIZUM_PROJECT_SLUG")?.trim() ?: rootProject.name
+    val files = dir.listFiles { file -> file.isFile && file.name.endsWith(".env") }
+        ?.sortedBy { it.name } ?: return null
+    for (file in files) {
+        val props = Properties()
+        try {
+            FileInputStream(file).use { props.load(it) }
+        } catch (_: Exception) {
+            continue
+        }
+        val id = props.getProperty("GRAFIZUM_PROJECT_ID")?.trim()
+        val slug = props.getProperty("GRAFIZUM_PROJECT_SLUG")?.trim() ?: file.nameWithoutExtension
+        if ((!wantedId.isNullOrBlank() && wantedId == id) || slug == wantedSlug) return props
+    }
+    return null
+}
+
+/**
+ * Reads a setting: system environment first, then this project's registry file,
+ * then the git-ignored repo `.env` (which still holds the fallback values).
+ */
 fun environmentSetting(key: String): String? {
     System.getenv(key)?.takeIf { it.isNotBlank() }?.let { return it }
+    grafizumProjectSettings()?.getProperty(key)?.takeIf { it.isNotBlank() }?.let { return it }
     val envFile = rootProject.file(".env")
     if (!envFile.exists()) return null
     val props = Properties()

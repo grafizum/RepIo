@@ -213,8 +213,17 @@ object ExerciseEquipmentTags {
         // The seat is TWO alternatives, so a kitchen chair is not a dead end for
         // a user who also owns dumbbells. DUMBBELLS_AND_BENCH was retired as a
         // tile and nothing may ask for it any more.
-        "decline bench press" to req(s(BARBELL_AND_RACK)) + chairOrBenchWith(DUMBBELLS_ONLY),
-        "dumbbell bench press" to chairOrBenchWith(DUMBBELLS_ONLY),
+        // A decline/incline/bench movement needs a real BENCH, not "a chair or a
+        // bench": a kitchen chair has no adjustable angle and no pad to brace
+        // against. See the Dumbbell branch below for the full reasoning.
+        //
+        // This row is the DUMBBELL decline press (its catalog category is
+        // Dumbbell, and "Decline Barbell Bench Press" / "Decline EZ-Bar Bench
+        // Press" are separate rows). It used to list a barbell alternative too,
+        // which meant a barbell-only user was offered a row filed under the
+        // Dumbbell family - the category/gate disagreement this class is about.
+        "decline bench press" to req(s(BENCH, DUMBBELLS_ONLY)),
+        "dumbbell bench press" to req(s(BENCH, DUMBBELLS_ONLY)),
         "dumbbell floor press" to req(s(DUMBBELLS_AND_FLOOR)),
         "goblet squat" to req(s(DUMBBELLS_ONLY)),
         "bench dips" to chairOrBench(),
@@ -253,6 +262,38 @@ object ExerciseEquipmentTags {
         "stability ball push-up" to req(s(MACHINE_OTHER)),
         "stability ball push-up (hands on ball)" to req(s(MACHINE_OTHER)),
         "stability ball wall squat" to req(s(MACHINE_OTHER)),
+        // THE BALL IS EQUIPMENT, and these four rows never said so in a word the
+        // rules key on, so a bodyweight-only kit was offered them even though
+        // their own instructions put the hands or the feet ON A BALL. They join
+        // the stability-ball rows above in [MACHINE_OTHER], which is where this
+        // pool already keeps the ball.
+        "ball pike" to req(s(MACHINE_OTHER)),
+        "knee tuck (ball)" to req(s(MACHINE_OTHER)),
+        "hip bridge (ball)" to req(s(MACHINE_OTHER)),
+        "leg curl (ball)" to req(s(MACHINE_OTHER)),
+        // A 45-DEGREE / HYPEREXTENSION BENCH IS NOT THE FLAT BENCH TILE. It has the
+        // hip pad and the anchored foot roller, and no flat bench or chair stands
+        // in for it - so the row asks for the gym-gear bucket, which is also what
+        // its own sibling "Machine Back Extension" asks for. Owner report,
+        // 2026-10-09: "back extensions only works with a certain bench which i
+        // didnt select so thats wrongly shown".
+        "back extension" to req(s(MACHINE_OTHER)),
+        // "The lifter touches their feet to a pull-up bar."
+        "toes to bar" to req(s(PULL_UP_BAR)),
+        // "...curls a bell with a neutral grip OVER A PREACHER PAD, which fixes the
+        // elbow". The pad is the exercise - the sibling "Machine Preacher Curl"
+        // already asks for the same bucket.
+        "preacher hammer curl" to req(s(MACHINE_OTHER)),
+        // "...performed face down on either an INCLINE BENCH or on the flat side of a
+        // preacher bench." A barbell plus a bench that can be laid face-down on, so
+        // both alternatives carry both tags - a floor-only barbell user is not
+        // being offered a curl they cannot set up.
+        "spider curl (ez-bar)" to req(
+            s(BARBELL_AND_FLOOR, BENCH), s(BARBELL_AND_RACK, BENCH), s(BARBELL_AND_FLOOR, MACHINE_OTHER)
+        ),
+        // "A specific machine or another person on one's back ... this method uses a
+        // weight belt": the bodyweight variant still needs the apparatus.
+        "donkey calf raise" to req(s(MACHINE_OTHER)),
         "box jump" to req(s(CHAIR), s(BENCH), s(STAIRS)),
         "step ups" to req(s(CHAIR), s(BENCH), s(STAIRS)),
         "nordic hamstring curl" to req(emptySet()),
@@ -373,17 +414,35 @@ object ExerciseEquipmentTags {
             }
             "Dumbbell" -> {
                 if (n.contains("bulgarian")) return chairOrBenchWith(DUMBBELLS_ONLY)
+                // AN INCLINE, A DECLINE OR ELBOW SUPPORT IS A BENCH, NOT "SOME FURNITURE".
+                //
+                // These used to return chairOrBenchWith(DUMBBELLS_ONLY), i.e. "a chair
+                // OR a bench is enough", so a kitchen chair satisfied an incline press.
+                // That is the owner's report on 2026-10-08: "I only have chair and dumbell
+                // and yet the system asks me to do an inclinde dumbell press which doesnt
+                // work without a bench". A chair cannot do what the exercise needs here -
+                // it has no adjustable back angle (incline/decline) and no pad to brace
+                // the elbow or the sternum against (chest-supported). A chair is still a
+                // valid substitute where the furniture is just something to put a hand or
+                // a foot on (bench dips, incline/decline PUSH-UPS, step-ups); those go
+                // through the Bodyweight branch and are untouched.
+                //
+                // Locked by BenchMovementGateTest, which sweeps the movement names.
                 if (n in DUMBBELL_BENCH_SET || gateName.contains("bench") ||
                     gateName.contains("incline") || gateName.contains("decline") ||
                     gateName.contains("chest-supported")
-                ) return chairOrBenchWith(DUMBBELLS_ONLY)
+                ) return req(s(BENCH, DUMBBELLS_ONLY))
                 if (n in DUMBBELL_FLOOR_SET || gateName.contains("floor") ||
                     gateName.contains("pullover"))
                     return req(s(DUMBBELLS_AND_FLOOR))
                 return req(s(DUMBBELLS_ONLY))
             }
             "Kettlebell" -> {
-                if (n in KETTLEBELL_BENCH_SET) return req(s(KETTLEBELL_AND_BENCH))
+                // Ask for the TWO tiles, not the retired composite: no tile's
+                // tick grants `kettlebell_and_bench`, so a user who ticked
+                // "Kettlebell" and "Bench" - the honest expression - could
+                // never reach this row. Same shape as the dumbbell bench rows.
+                if (n in KETTLEBELL_BENCH_SET) return req(s(BENCH, KETTLEBELL_ONLY))
                 return req(s(KETTLEBELL_ONLY))
             }
             "Bodyweight" -> {
@@ -395,8 +454,14 @@ object ExerciseEquipmentTags {
                     n.contains("hang") || n.contains("muscle up")
                 ) return req(s(PULL_UP_BAR))
                 if (n.contains("dip")) return req(s(DIP_BARS))
+                // A decline movement puts the torso on an angle, which is a piece
+                // of furniture (a bench, or a chair under the feet for the feet-
+                // elevated variant). "Decline Crunch" fell through to the empty
+                // requirement and so was offered to a user with NO furniture at
+                // all - the same over-display class as the chair-as-bench leak,
+                // in the one branch that needs no equipment to reach.
                 if (n.contains("bench") || n.contains("chair") || n.contains("step") ||
-                    n.contains("box")
+                    n.contains("box") || n.contains("decline")
                 ) return req(s(CHAIR), s(BENCH), s(STAIRS))
                 return req(emptySet())
             }
@@ -415,6 +480,16 @@ object ExerciseEquipmentTags {
                     n.contains("medicine ball") || n.contains("wrist roller") ||
                     n.contains("plate") || n.contains("svend")
                 ) return req(s(MACHINE_OTHER))
+                // A movement that NAMES furniture needs it, even when it is a
+                // stretch or a pose: the "Bench …" stretch family (chest, lat,
+                // calf, adductor, glute, couch, figure-4) is catalogued under
+                // "Other" and fell through to the empty requirement, so a user
+                // who ticked no furniture at all was still offered nine
+                // stretches that name a bench. The gear check above MUST come
+                // first - "Stair Climber" names a machine, not stairs.
+                if (n.contains("bench") || n.contains("chair") || n.contains("box") ||
+                    n.contains("step")
+                ) return req(s(CHAIR), s(BENCH), s(STAIRS))
                 return req(emptySet())
             }
         }
@@ -521,18 +596,33 @@ object ExerciseEquipmentTags {
      * and squat rack are both selecting and deselecting at the same time, it has
      * some weird link".
      *
-     * The barbell pair is NESTED, not equal, because a rack implies a barbell:
-     * Rack covers all three tags and Barbell covers the two that need no rack.
-     * That is the wildcard the owner asked for, and it survives because the sets
-     * differ - ticking Rack shows Barbell ticked, which is true, while unticking
-     * Barbell leaves a Rack the user still owns alone.
+     * THE BARBELL PAIR IS NOW TWO INDEPENDENT SWITCHES, which is the owner's
+     * second ruling on the same complaint (2026-10-08): "the squat rack and barbell
+     * equipment icons are turning on and off together so the user cant select one
+     * but not the other that needs to be fixed".
+     *
+     * Between the two rulings this pair was NESTED - Rack covered all three tags,
+     * Barbell covered the two that need no rack - on the theory that a rack implies
+     * a barbell. The theory is true about the hardware and false about the CONTROL:
+     * `isChecked` reads a tile as ticked when ANY of its tags is present, so ticking
+     * Barbell still lit Rack up, and the user still could not tick one without the
+     * other. A tile is a question ("do you have this?"), not a set of implications,
+     * so each barbell tile now owns exactly its own tag and nothing else:
+     *
+     *  - a rack owner who also does floor presses ticks BOTH tiles, which is honest -
+     *    they are two pieces of kit;
+     *  - and the two tags still gate different rows, so nothing becomes unreachable:
+     *    floor movements come from the Barbell tile, rack movements from the Rack one.
      */
     fun tagsCoveredByTile(tile: String): Set<String> = when (tile) {
         MACHINE_OTHER -> setOf(
             MACHINE_OTHER, LEG_PRESS_MACHINE, LAT_PULLDOWN_MACHINE, SMITH_MACHINE,
             LEG_EXTENSION_MACHINE, LEG_CURL_MACHINE, CHEST_PRESS_MACHINE, SEATED_ROW_MACHINE,
         )
-        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK, BARBELL_AND_FLOOR, BARBELL_ONLY)
+        // The rack tile stands for a rack, and BARBELL_ONLY - which has no tile of its
+        // own - belongs to the Barbell tile beside it, because a barbell with neither
+        // rack nor floor space is still the barbell the user ticked.
+        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK)
         BARBELL_AND_FLOOR -> setOf(BARBELL_AND_FLOOR, BARBELL_ONLY)
         // A chair and a bench are two separate pieces of furniture, and a user
         // may own one without the other. CHAIR_OR_BENCH is the retired union;
@@ -554,13 +644,40 @@ object ExerciseEquipmentTags {
      * be impossible to remove. Ticking must NOT do the same: ticking "Machines"
      * must not grant a leg press the user never ticked.
      *
-     * The one place a tick legitimately implies another tag is a squat rack,
-     * which is a fixture built around a barbell. That is the whole of the
-     * wildcard, and it lives here rather than in equal families because equal
-     * families is what made the two tiles inseparable in the first place.
+     * There is NO wildcard left at all. A tick used to grant the whole rack family
+     * so that "I own a rack" also opened the floor movements - which reads well on
+     * its own, and is what kept the rack and barbell tiles lighting each other up:
+     * the extra tags are read straight back by `isChecked` on the neighbouring tile.
+     * The owner's ruling is that the two must be selectable separately, and the only
+     * way to mean that is to stop hiding one tag behind the other's tick.
      */
     fun tagsGrantedByTicking(tile: String): Set<String> = when (tile) {
-        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK, BARBELL_AND_FLOOR, BARBELL_ONLY)
+        BARBELL_AND_RACK -> setOf(BARBELL_AND_RACK)
+        // The Barbell tile grants the two tags it COVERS, so a barbell with no rack
+        // still reaches the barbell-only movements (curls, strict press, floor
+        // rows). Granting only the tile's own tag would leave `barbell_only`
+        // reachable from the Full-gym preset alone - the same "the tile is a lie"
+        // shape as the Machines tile below.
+        BARBELL_AND_FLOOR -> setOf(BARBELL_AND_FLOOR, BARBELL_ONLY)
+        // A barbell and a rack are not the only tile that stands for a family.
+        //
+        // The gate asks for the SUB-VARIANT a movement needs, and three of those
+        // are reachable with no extra kit, so the tile that names the implement
+        // must grant them or the movement is invisible:
+        //
+        //  - floor presses and pullovers need `dumbbells_and_floor`, and a floor
+        //    is not kit, so "Dumbbells" grants it.
+        //  - the eight selectorized stations (leg press, Smith, pulldown, leg
+        //    extension/curl, chest press, seated row) have NO tile of their own -
+        //    they sit behind "Machines". Granting only `machine_other` made the
+        //    tile a lie: a user who ticked Machines got the battle ropes and the
+        //    ab wheel but could reach NONE of the ~45 rows the stations gate, and
+        //    had no way to say "I have a leg press" short of the Full-gym preset.
+        //    Tick and untick now stand for the same family, so removal still
+        //    works - which was the reason the grant was narrowed in the first
+        //    place; the narrowing fixed removal by breaking display.
+        DUMBBELLS_ONLY -> setOf(DUMBBELLS_ONLY, DUMBBELLS_AND_FLOOR)
+        MACHINE_OTHER -> tagsCoveredByTile(MACHINE_OTHER)
         else -> setOf(tile)
     }
 

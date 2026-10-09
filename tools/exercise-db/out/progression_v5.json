@@ -250,7 +250,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -292,7 +292,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2568,7 +2568,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 160.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -2620,7 +2620,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 160.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2631,11 +2631,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -2707,7 +2707,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2718,11 +2718,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 20.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -2764,7 +2764,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 20.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2779,7 +2779,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 160.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -2832,7 +2832,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 160.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2847,7 +2847,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -2911,11 +2911,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 35.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -2974,7 +2974,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 35.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -2985,11 +2985,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -3031,7 +3031,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3042,11 +3042,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -3100,7 +3100,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3111,11 +3111,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 15.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -3167,7 +3167,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 15.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3182,7 +3182,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -3232,7 +3232,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3320,11 +3320,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 27.5,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -3374,7 +3374,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 27.5,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3556,7 +3556,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 120.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -3606,7 +3606,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 120.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -3678,7 +3678,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -3720,7 +3720,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 55.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -4487,7 +4487,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -4575,7 +4575,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -4629,7 +4629,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -4640,11 +4640,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -4694,7 +4694,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -4776,7 +4776,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -4830,7 +4830,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -4913,7 +4913,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -5835,7 +5835,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -5892,7 +5892,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -7171,11 +7171,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -7225,7 +7225,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -7297,7 +7297,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -7360,7 +7360,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -7375,7 +7375,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -7434,7 +7434,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -7449,7 +7449,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -7491,7 +7491,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -7506,7 +7506,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 30.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -7548,7 +7548,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 30.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8058,11 +8058,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -8115,7 +8115,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8130,7 +8130,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -8182,7 +8182,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8197,7 +8197,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -8250,7 +8250,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8265,7 +8265,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -8317,7 +8317,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8397,7 +8397,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -8447,7 +8447,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -8823,7 +8823,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -8877,7 +8877,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -9191,7 +9191,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -9241,7 +9241,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -9491,7 +9491,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -9580,7 +9580,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -9632,7 +9632,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -9647,7 +9647,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -9710,7 +9710,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -9725,7 +9725,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -9863,7 +9863,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -9920,7 +9920,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -9935,7 +9935,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -9987,7 +9987,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10002,7 +10002,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -10055,7 +10055,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10070,7 +10070,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -10134,7 +10134,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10218,7 +10218,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10260,7 +10260,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10275,7 +10275,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10338,7 +10338,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10353,7 +10353,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10406,7 +10406,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10421,7 +10421,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -10481,7 +10481,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10702,7 +10702,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10781,7 +10781,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10834,7 +10834,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10849,7 +10849,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10899,7 +10899,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -10914,7 +10914,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -10966,7 +10966,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -11044,7 +11044,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -11086,7 +11086,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -11164,7 +11164,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -11214,7 +11214,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -11586,7 +11586,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -11636,7 +11636,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -11719,7 +11719,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -11769,7 +11769,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -12314,7 +12314,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -12364,7 +12364,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -12379,7 +12379,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -12429,7 +12429,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -12945,11 +12945,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -12999,7 +12999,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13075,7 +13075,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13129,7 +13129,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13144,7 +13144,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -13197,7 +13197,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13212,7 +13212,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13266,7 +13266,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13281,7 +13281,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -13333,7 +13333,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13416,7 +13416,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13469,7 +13469,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13484,7 +13484,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -13536,7 +13536,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 12.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13551,7 +13551,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13601,7 +13601,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13616,7 +13616,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13666,7 +13666,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13681,7 +13681,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13733,7 +13733,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13748,7 +13748,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13802,7 +13802,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13817,7 +13817,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -13871,7 +13871,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 12.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13886,7 +13886,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13939,7 +13939,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -13954,7 +13954,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -14051,7 +14051,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -14101,7 +14101,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14173,7 +14173,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -14225,7 +14225,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14309,7 +14309,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -14371,7 +14371,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14386,7 +14386,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -14438,7 +14438,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14453,7 +14453,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -14515,7 +14515,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14758,7 +14758,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -14820,7 +14820,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -14902,7 +14902,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 20.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -14952,7 +14952,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 20.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15034,7 +15034,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 35.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -15076,7 +15076,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 40.0,
+   "load": 35.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15284,7 +15284,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -15336,7 +15336,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15351,7 +15351,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 120.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -15401,7 +15401,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 120.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15483,7 +15483,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 47.5,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -15533,7 +15533,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 47.5,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15548,7 +15548,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 27.5,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -15590,7 +15590,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 40.0,
+   "load": 27.5,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15787,7 +15787,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -15840,7 +15840,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -15855,7 +15855,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -15909,7 +15909,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -16055,7 +16055,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -16564,7 +16564,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -16616,7 +16616,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -16859,7 +16859,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -17602,7 +17602,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -17654,7 +17654,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -17983,7 +17983,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 160.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18025,7 +18025,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 160.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18211,7 +18211,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 40.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18261,7 +18261,7 @@
    }
   ],
   "ceiling": {
-   "load": 40.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18276,7 +18276,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18318,7 +18318,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18333,7 +18333,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -18386,7 +18386,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18401,7 +18401,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18477,7 +18477,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -18527,7 +18527,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18542,7 +18542,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -18584,7 +18584,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -18926,7 +18926,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18976,7 +18976,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19200,7 +19200,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -19242,7 +19242,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19322,7 +19322,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -19372,7 +19372,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19611,7 +19611,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -19663,7 +19663,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19678,7 +19678,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -19730,7 +19730,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19745,7 +19745,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -19798,7 +19798,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -19946,7 +19946,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -20003,7 +20003,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20018,7 +20018,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -20060,7 +20060,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20142,7 +20142,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 20.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -20195,7 +20195,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 20.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20275,7 +20275,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -20327,7 +20327,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20342,7 +20342,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -20394,7 +20394,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20409,7 +20409,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -20466,7 +20466,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20481,7 +20481,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -20523,7 +20523,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 36.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20613,7 +20613,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -20666,7 +20666,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -20748,7 +20748,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 20.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -20801,7 +20801,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 20.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -21016,7 +21016,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -21058,7 +21058,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 32.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -21332,7 +21332,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -21384,7 +21384,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -21902,7 +21902,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -23663,7 +23663,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -23741,7 +23741,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -23791,7 +23791,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -23806,7 +23806,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -23858,7 +23858,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -23873,7 +23873,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -23925,7 +23925,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -24259,7 +24259,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 6.0,
-  "maxValue": 36.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -24309,7 +24309,7 @@
    }
   ],
   "ceiling": {
-   "load": 36.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -24468,7 +24468,7 @@
   "increment": 2.0,
   "maxLevel": 20,
   "minValue": 4.0,
-  "maxValue": 32.0,
+  "maxValue": 20.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -24520,7 +24520,7 @@
    }
   ],
   "ceiling": {
-   "load": 32.0,
+   "load": 20.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -24649,7 +24649,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -24699,7 +24699,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -24979,7 +24979,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25029,7 +25029,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -25173,7 +25173,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25223,7 +25223,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -25238,7 +25238,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25280,7 +25280,7 @@
   "validationStatus": "valid_but_review_recommended",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -25295,7 +25295,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25345,7 +25345,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 55.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -25417,7 +25417,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25459,7 +25459,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -26582,7 +26582,7 @@
   "increment": 2.5,
   "maxLevel": 20,
   "minValue": 2.5,
-  "maxValue": 35.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -26634,7 +26634,7 @@
    }
   ],
   "ceiling": {
-   "load": 35.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -26899,7 +26899,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -26951,7 +26951,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -27472,7 +27472,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -27524,7 +27524,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -27539,7 +27539,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -27592,7 +27592,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 12.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -27677,11 +27677,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 40.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -27731,7 +27731,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 40.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -27746,7 +27746,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -27800,7 +27800,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -27872,7 +27872,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -27935,7 +27935,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 28.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -28782,7 +28782,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -29262,7 +29262,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -29315,7 +29315,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 55.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -29444,7 +29444,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -29497,7 +29497,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -29512,7 +29512,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -29566,7 +29566,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -29581,7 +29581,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -29635,7 +29635,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 12.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -29829,7 +29829,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -29871,7 +29871,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 55.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -30000,7 +30000,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 120.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -30052,7 +30052,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 120.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -30378,7 +30378,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 12.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -30431,7 +30431,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 12.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -30632,7 +30632,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -30682,7 +30682,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -30697,7 +30697,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 32.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -30751,7 +30751,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 32.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -30833,7 +30833,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -30887,7 +30887,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31073,7 +31073,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -31125,7 +31125,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31494,7 +31494,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 30.0,
+  "maxValue": 36.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -31546,7 +31546,7 @@
    }
   ],
   "ceiling": {
-   "load": 30.0,
+   "load": 36.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31633,11 +31633,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 35.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -31689,7 +31689,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 35.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31772,7 +31772,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -31814,7 +31814,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31829,7 +31829,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -31871,7 +31871,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31886,7 +31886,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -31928,7 +31928,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 140.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -31943,7 +31943,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 160.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -31985,7 +31985,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 160.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32000,7 +32000,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32042,7 +32042,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32057,7 +32057,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32099,7 +32099,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 140.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32114,7 +32114,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32156,7 +32156,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32171,7 +32171,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 160.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32213,7 +32213,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 160.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32228,7 +32228,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32270,7 +32270,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32285,7 +32285,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32327,7 +32327,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32342,7 +32342,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32384,7 +32384,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 80.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32399,7 +32399,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32441,7 +32441,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32456,7 +32456,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 55.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32498,7 +32498,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 55.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32513,7 +32513,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 120.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -32555,7 +32555,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 120.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32570,7 +32570,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32612,7 +32612,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 140.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32627,7 +32627,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32669,7 +32669,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 140.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32684,7 +32684,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 70.0,
+  "maxValue": 45.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32726,7 +32726,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 70.0,
+   "load": 45.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -32863,7 +32863,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -32916,7 +32916,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -33100,7 +33100,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -33142,7 +33142,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -33157,7 +33157,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34183,7 +34183,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34237,7 +34237,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -34439,7 +34439,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -34503,7 +34503,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -34583,7 +34583,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34636,7 +34636,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -34651,7 +34651,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 180.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34714,7 +34714,7 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 180.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -36567,11 +36567,11 @@
   "method": "discrete_load_reps",
   "valueSource": "explicit_sequence",
   "unit": "kg_total_barbell",
-  "level1": 20.0,
+  "level1": 10.0,
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 47.5,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -36613,7 +36613,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 47.5,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -37533,7 +37533,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -37575,7 +37575,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 100.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -37883,7 +37883,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -37933,7 +37933,7 @@
    }
   ],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }
@@ -38001,7 +38001,7 @@
   "increment": 1.0,
   "maxLevel": 30,
   "minValue": 2.0,
-  "maxValue": 20.0,
+  "maxValue": 24.0,
   "step": null,
   "repMin": 8,
   "repMax": 15,
@@ -38043,7 +38043,7 @@
   "validationStatus": "valid",
   "branches": [],
   "ceiling": {
-   "load": 20.0,
+   "load": 24.0,
    "femaleLoad": null,
    "basis": "v5 progression database maximum progression value"
   }

@@ -68,13 +68,18 @@ class ExerciseEquipmentTagsTest {
     fun specExamplesResolveToTheirDocumentedTags() {
         // Push-Up -> none_required
         assertEquals(listOf<Set<String>>(emptySet()), ExerciseEquipmentTags.requirementsFor("Push-Up"))
-        // Decline Bench Press -> barbell_and_rack, OR dumbbells on a chair/bench.
-        // The seat is two alternatives, so a kitchen chair is not a dead end
-        // for a user who also owns the dumbbells.
-        val decline = ExerciseEquipmentTags.requirementsFor("Decline Bench Press")
-        assertTrue(setOf(ExerciseEquipmentTags.BARBELL_AND_RACK) in decline)
-        assertTrue(setOf(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY) in decline)
-        assertTrue(setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY) in decline)
+        // Decline Bench Press -> dumbbells on a BENCH, nothing else.
+        // REVERSED 2026-10-08 twice over: it used to accept a chair as a second
+        // seat (the owner's reported leak, "I only have chair and dumbell and yet
+        // the system asks me to do an inclinde dumbell press"), and it also
+        // accepted a rack. The rack alternative was a copy of the BARBELL row's
+        // gate - "Decline Barbell Bench Press" is its own catalog entry - and it
+        // meant a barbell-only user was offered a movement filed under the
+        // Dumbbell family.
+        assertEquals(
+            listOf(setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY)),
+            ExerciseEquipmentTags.requirementsFor("Decline Bench Press")
+        )
         // Dips on furniture: a chair OR a bench, never the merged legacy tag.
         assertEquals(
             listOf(setOf(ExerciseEquipmentTags.CHAIR), setOf(ExerciseEquipmentTags.BENCH)),
@@ -89,12 +94,9 @@ class ExerciseEquipmentTagsTest {
             listOf(setOf(ExerciseEquipmentTags.DUMBBELLS_ONLY)),
             ExerciseEquipmentTags.requirementsFor("Goblet Squat")
         )
-        // Dumbbell Bench Press -> dumbbells on a chair OR a bench
+        // Dumbbell Bench Press -> dumbbells on a BENCH. A chair is not one.
         assertEquals(
-            listOf(
-                setOf(ExerciseEquipmentTags.CHAIR, ExerciseEquipmentTags.DUMBBELLS_ONLY),
-                setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY),
-            ),
+            listOf(setOf(ExerciseEquipmentTags.BENCH, ExerciseEquipmentTags.DUMBBELLS_ONLY)),
             ExerciseEquipmentTags.requirementsFor("Dumbbell Bench Press")
         )
         // Dumbbell Floor Press -> dumbbells_and_floor (NO bench needed)
@@ -110,7 +112,7 @@ class ExerciseEquipmentTagsTest {
     fun declineBenchPressIsBlockedWithoutASeatEvenWithDumbbells() {
         val granted = ExerciseEquipmentTags.allowedTagsFor(dumbbellPreset())
         assertFalse(
-            "Decline Bench Press must require a seat (barbell+rack OR dumbbells on a chair/bench)",
+            "Decline Bench Press must require a bench (dumbbells alone are not enough)",
             ExerciseEquipmentTags.isAvailable("Decline Bench Press", granted)
         )
         assertTrue(
@@ -118,13 +120,22 @@ class ExerciseEquipmentTagsTest {
             ExerciseEquipmentTags.isAvailable("Decline Bench Press",
                 dumbbellsOnly + ExerciseEquipmentTags.BENCH)
         )
-        assertTrue(
-            "a chair is a seat too",
+        assertFalse(
+            "a chair is NOT a bench: it has no adjustable decline angle, and the " +
+                "owner reported this exact leak on 2026-10-08",
             ExerciseEquipmentTags.isAvailable("Decline Bench Press",
                 dumbbellsOnly + ExerciseEquipmentTags.CHAIR)
         )
-        assertTrue(
+        // And a barbell kit must NOT reach it: this row is the DUMBBELL decline
+        // press, and "Decline Barbell Bench Press" is the barbell one.
+        assertFalse(
+            "a barbell kit must use the barbell row, not the dumbbell one",
             ExerciseEquipmentTags.isAvailable("Decline Bench Press",
+                setOf(ExerciseEquipmentTags.BARBELL_AND_RACK))
+        )
+        assertTrue(
+            "the barbell row is reachable by the barbell kit",
+            ExerciseEquipmentTags.isAvailable("Decline Barbell Bench Press",
                 setOf(ExerciseEquipmentTags.BARBELL_AND_RACK))
         )
     }
