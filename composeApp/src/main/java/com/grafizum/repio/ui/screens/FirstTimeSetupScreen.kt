@@ -67,6 +67,9 @@ import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.RepsTimeToggle
+import com.grafizum.repio.ui.components.EditorLevelData
+import com.grafizum.repio.ui.components.LevelPickerCard
+import com.grafizum.repio.ui.components.levelEditorControls
 import com.grafizum.repio.ui.components.SplitStyleSelector
 import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.CompactNumericField
@@ -335,6 +338,11 @@ fun FirstTimeSetupScreen(
         )
     }
 
+    // The level ladder opened FROM the add dialog. Held at screen scope so the
+    // dialog stays open behind it: a level chosen here lands, and the user lands
+    // back on the half-filled form rather than losing it.
+    var ladderExercise by remember { mutableStateOf<String?>(null) }
+
     // Add / Edit custom exercise dialog
     if (showAddCustomExerciseDialog || editingExercise != null) {
         AddExerciseDialog(
@@ -344,6 +352,16 @@ fun FirstTimeSetupScreen(
             themeKey = themeOption,
             userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment),
             userGrantedTags = equipmentFilterBlockGrantedTags(buildEquipment, viewModel),
+            // The level facts are resolved by NAME inside the dialog, so this editor
+            // draws the same rungs for the same exercise as the routine editor.
+            levelDataFor = { levelName, pageStart -> editorLevelData(viewModel, levelName, pageStart) },
+            onLevelChange = { levelName, level ->
+                viewModel.setExerciseLevelFromEditor(levelName, level)
+            },
+            onStageChange = { levelName, level, stage ->
+                viewModel.setExerciseStateFromEditor(levelName, level, stage)
+            },
+            onOpenLevelLadder = { name -> ladderExercise = name },
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -379,6 +397,16 @@ fun FirstTimeSetupScreen(
                 editingExercise = null
             }
         )
+        // The ladder stacked over the add dialog, so "See every level" reaches any
+        // rung the fifteen-row page cannot.
+        ladderExercise?.let { name ->
+            LevelDetailsDialog(
+                viewModel = viewModel,
+                exerciseName = name,
+                fromEditorEditPass = true,
+                onDismiss = { ladderExercise = null }
+            )
+        }
     }
 
     Surface(
@@ -2558,7 +2586,24 @@ fun AddExerciseDialog(
      * has no category for a chair, a bench or a pull-up bar, so re-expanding it
      * would silently drop grants the user actually ticked.
      */
-    userGrantedTags: Set<String>? = null
+    userGrantedTags: Set<String>? = null,
+    /**
+     * Resolves the level facts for the exercise this form is about RIGHT NOW,
+     * keyed on its name.
+     *
+     * This is the same resolver contract the routine editor uses, and it is here
+     * for the same reason: the welcome screen's add dialog is a SECOND editor, and
+     * without it an exercise the user adds during setup still opened on the plain
+     * custom boxes while the level system ran underneath it. Keyed on the name
+     * because the name is typed inside the dialog - the host has no row to hand in.
+     */
+    levelDataFor: (@Composable (String, Int) -> EditorLevelData)? = null,
+    /** Called with the exercise's name and the ABSOLUTE level the user picked. */
+    onLevelChange: ((String, Int) -> Unit)? = null,
+    /** A Roman numeral was picked: (name, level, stage), applied as ONE write. */
+    onStageChange: ((String, Int, Int) -> Unit)? = null,
+    /** Opens the full level ladder for the named exercise. */
+    onOpenLevelLadder: ((String) -> Unit)? = null
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
@@ -2654,19 +2699,63 @@ fun AddExerciseDialog(
         )
     }
 
+    // WHICH EXERCISE THIS FORM IS ABOUT, and therefore whose levels it shows. An
+    // edit is about the row it was opened on; an add is about the name in the
+    // search field, which only this dialog can see. Both resolve through the same
+    // host resolver as the routine editor, so "add here" and "add in the workout"
+    // are one code path with one definition of the level facts.
+    val levelName = exercise?.name
+        ?: ExerciseLocalization.canonicalFor(name.trim())
+        ?: name.trim()
+    var levelPageStart by remember(levelName) { mutableStateOf(0) }
+    val levelData = levelDataFor?.invoke(levelName, levelPageStart) ?: EditorLevelData.NONE
+    val levelControls = levelEditorControls(
+        levelsManaged = levelData.levelsManaged,
+        currentLevel = levelData.level,
+        maxLevel = levelData.maxLevel,
+        canWriteLevel = onLevelChange != null
+    )
+    val levelMode = levelControls.showLevelRow &&
+        levelData.level != null &&
+        onLevelChange != null
+    // The rung and stage the list draws as chosen, seeded from the host and then
+    // owned locally: a tap has to move the highlight and open the row in the SAME
+    // frame. Keyed on the name so picking another exercise re-seeds instead of
+    // carrying the previous one's level.
+    var selectedLevel by remember(levelName) { mutableStateOf(levelData.level) }
+    var selectedStage by remember(levelName) { mutableStateOf(levelData.stage) }
+
     AppDialog(
         onDismissRequest = onDismiss,
         title = getString(if (exercise == null) "add_custom_exercise" else "edit_exercise"),
         onTitleTap = { focusManager.clearFocus() },
         confirmLabel = getString(if (exercise == null) "add" else "save"),
+        // In level mode the reps box is not on screen at all, so it cannot be the
+        // thing that gates Save - the level list is what the user chose from. The
+        // stored range is filled in on save from the exercise's recommendation
+        // instead (see `finalReps`), because a blank range would clamp the level's
+        // own prescription away at the next load.
         confirmEnabled = name.isNotBlank() &&
-            (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank(),
+            (levelMode || (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()),
         onConfirm = {
             focusManager.clearFocus()
             val finalReps = if (isTimeBased) {
                 val digits = targetTimeValue.filter { it.isDigit() }
                 if (digits.isNotBlank()) "$digits sec" else "30 sec"
-            } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+            } else {
+                val typed = WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+                when {
+                    typed.isNotBlank() -> typed
+                    // Level mode: an empty box means "the level owns this", not
+                    // "the user cleared it". Store the range the exercise
+                    // recommends so the level's prescription is not clamped away.
+                    levelMode -> exercise?.targetReps?.takeIf { it.isNotBlank() }
+                        ?: WorkoutTemplates.enforceRepRange(
+                            WorkoutTemplates.getRecommendedRepsForExercise(levelName)
+                        )
+                    else -> ""
+                }
+            }
             onConfirm(RoutineExerciseEntity(
                 id = exercise?.id ?: 0, 
                 dayOfWeek = dayOfWeek, 
@@ -2706,14 +2795,6 @@ fun AddExerciseDialog(
                 com.grafizum.repio.ui.components.MuscleGroupFilterCollapsible(
                     selectedMuscleGroup = selectedMuscleGroup,
                     onSelect = { selectedMuscleGroup = it }
-                )
-
-                RepsTimeToggle(
-                    isTimeBased = isTimeBased,
-                    onToggle = { newValue ->
-                        isTimeBased = newValue
-                    },
-                    modifier = Modifier.fillMaxWidth()
                 )
 
                 ExposedDropdownMenuBox(
@@ -2798,147 +2879,199 @@ fun AddExerciseDialog(
                     }
                 }
 
-                // Soft guidance only — see ExerciseEditDialog. Nothing rep-related
-                // blocks saving; a min>max range just gets a field-level hint.
-                val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
-                val outsideRecommended = remember(targetRepsValue, name) {
-                    name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
-                        WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {
-                    CompactNumericField(
-                        value = targetSets,
-                        onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
-                        label = getString("sets"),
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                    )
-
-                    if (isTimeBased) {
-                        var expandedTime by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expandedTime,
-                            onExpandedChange = { expandedTime = !expandedTime },
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        ) {
-                            val digits = targetTimeValue.filter { it.isDigit() }
-                            val interactionSource = remember { MutableInteractionSource() }
-                            BasicTextField(
-                                value = if (digits.isNotBlank()) "${digits}s" else "30s",
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
-                                interactionSource = interactionSource,
-                                enabled = true,
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
-                                decorationBox = { innerTextField ->
-                                    OutlinedTextFieldDefaults.DecorationBox(
-                                        value = if (digits.isNotBlank()) "${digits}s" else "30s",
-                                        innerTextField = innerTextField,
-                                        enabled = true,
-                                        singleLine = true,
-                                        visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-                                        interactionSource = interactionSource,
-                                        isError = false,
-                                        label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
-                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                        contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
-                                        container = {
-                                            OutlinedTextFieldDefaults.Container(
-                                                enabled = true,
-                                                isError = false,
-                                                interactionSource = interactionSource,
-                                                colors = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                                ),
-                                                shape = RoundedCornerShape(12.dp),
-                                                focusedBorderThickness = 2.dp,
-                                                unfocusedBorderThickness = 1.dp
-                                            )
-                                        }
-                                    )
-                                }
-                            )
-                            ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
-                                listOf("30", "45", "60", "90", "120").forEach { t ->
-                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
-                                }
-                            }
+                // THE LEVEL LIST, in level mode. It stands where the locked sets /
+                // reps / weight boxes used to, exactly as in the routine editor -
+                // otherwise an exercise added during setup shows the custom input
+                // boxes while the level system runs underneath it (owner, 2026-10-09).
+                if (levelMode) {
+                    LevelPickerCard(
+                        options = levelData.options,
+                        pageRange = levelData.pageRange,
+                        totalLevels = levelData.maxLevel,
+                        onPreviousPage = levelData.previousPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        onNextPage = levelData.nextPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        selectedLevel = selectedLevel,
+                        onSelect = { level ->
+                            selectedLevel = level
+                            selectedStage = 1
+                            onLevelChange?.invoke(levelName, level)
+                        },
+                        onOpenLadder = { onOpenLevelLadder?.invoke(levelName) },
+                        selectedStage = selectedStage,
+                        onSelectStage = { level, stage ->
+                            selectedLevel = level
+                            selectedStage = stage
+                            onStageChange?.invoke(levelName, level, stage)
                         }
-                    } else {
-                        RepsRangeField(
-                            value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
-                            label = getString("reps"),
-                            isError = repsError,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            supportingText = if (repsHasRangeError) {
-                                {
-                                    Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
-                                }
-                            } else null
+                    )
+                    if (levelData.caption != null) {
+                        Text(
+                            text = levelData.caption,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                if (outsideRecommended) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp),
+                // THE LEVEL-OWNED VALUES, IN CUSTOM MODE ONLY. When the level
+                // system prescribes the exercise these fields are not shown at
+                // all - the level list above IS their editor, and two editors for
+                // one prescription is the duplication this change removes.
+                if (!levelMode) {
+                    RepsTimeToggle(
+                        isTimeBased = isTimeBased,
+                        onToggle = { newValue ->
+                            isTimeBased = newValue
+                        },
                         modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Soft guidance only — see ExerciseEditDialog. Nothing rep-related
+                    // blocks saving; a min>max range just gets a field-level hint.
+                    val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
+                    val outsideRecommended = remember(targetRepsValue, name) {
+                        name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
+                            WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                     ) {
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = getString("reps_outside_recommended"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                        CompactNumericField(
+                            value = targetSets,
+                            onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
+                            label = getString("sets"),
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+
+                        if (isTimeBased) {
+                            var expandedTime by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expandedTime,
+                                onExpandedChange = { expandedTime = !expandedTime },
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            ) {
+                                val digits = targetTimeValue.filter { it.isDigit() }
+                                val interactionSource = remember { MutableInteractionSource() }
+                                BasicTextField(
+                                    value = if (digits.isNotBlank()) "${digits}s" else "30s",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
+                                    interactionSource = interactionSource,
+                                    enabled = true,
+                                    singleLine = true,
+                                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+                                    decorationBox = { innerTextField ->
+                                        OutlinedTextFieldDefaults.DecorationBox(
+                                            value = if (digits.isNotBlank()) "${digits}s" else "30s",
+                                            innerTextField = innerTextField,
+                                            enabled = true,
+                                            singleLine = true,
+                                            visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                                            interactionSource = interactionSource,
+                                            isError = false,
+                                            label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                            contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
+                                            container = {
+                                                OutlinedTextFieldDefaults.Container(
+                                                    enabled = true,
+                                                    isError = false,
+                                                    interactionSource = interactionSource,
+                                                    colors = OutlinedTextFieldDefaults.colors(
+                                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                    ),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    focusedBorderThickness = 2.dp,
+                                                    unfocusedBorderThickness = 1.dp
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                                ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
+                                    listOf("30", "45", "60", "90", "120").forEach { t ->
+                                        DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
+                                    }
+                                }
+                            }
+                        } else {
+                            RepsRangeField(
+                                value = targetRepsValue,
+                                onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
+                                label = getString("reps"),
+                                isError = repsError,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                supportingText = if (repsHasRangeError) {
+                                    {
+                                        Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
+                                    }
+                                } else null
                             )
                         }
                     }
-                }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {
-                    CompactNumericField(
-                        value = targetWeightValue,
-                        onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
-                        // The same three answers the routine editor gives, and
-                        // for the same reason: a selectorized stack counts pins
-                        // and a band counts tension, so "kg" here would ask the
-                        // user for a number that does not exist on their machine.
-                        label = loadFieldLabel(name),
-                        placeholder = loadFieldPlaceholder(name),
-                        suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                    )
-                    CompactNumericField(
-                        value = targetIntensityStr,
-                        onValueChange = {
-                            targetIntensityStr = it
-                            // Re-adapt the auto-selected reps while the user hasn't typed their own
-                            if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
-                                val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
-                                if (recommended.isNotBlank()) {
-                                    targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
-                                }
+                    if (outsideRecommended) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = getString("reps_outside_recommended"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
                             }
-                        },
-                        label = getString("intensity_label"),
-                        placeholder = "RPE 8",
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                    )
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                    ) {
+                        CompactNumericField(
+                            value = targetWeightValue,
+                            onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
+                            // The same three answers the routine editor gives, and
+                            // for the same reason: a selectorized stack counts pins
+                            // and a band counts tension, so "kg" here would ask the
+                            // user for a number that does not exist on their machine.
+                            label = loadFieldLabel(name),
+                            placeholder = loadFieldPlaceholder(name),
+                            suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+                        CompactNumericField(
+                            value = targetIntensityStr,
+                            onValueChange = {
+                                targetIntensityStr = it
+                                // Re-adapt the auto-selected reps while the user hasn't typed their own
+                                if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
+                                    val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
+                                    if (recommended.isNotBlank()) {
+                                        targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
+                                    }
+                                }
+                            },
+                            label = getString("intensity_label"),
+                            placeholder = "RPE 8",
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        )
+                    }
                 }
 
 

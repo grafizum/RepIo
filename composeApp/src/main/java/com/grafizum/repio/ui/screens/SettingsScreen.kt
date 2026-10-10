@@ -782,14 +782,16 @@ fun SettingsScreen(
                             color = MaterialTheme.colorScheme.primary,
                             modifier = Modifier.padding(start = 4.dp, bottom = 4.dp)
                         )
-                        // The swatch shows the theme's own two colours - its black plate and
-                        // its gold - instead of the white/black pair the pixel-era skin used,
-                        // which made this row the one place in the app that still advertised
-                        // the look the theme no longer has.
+                        // The swatch shows the theme's own two colours - its very dark grey
+                        // plate and its gold - instead of the white/black pair the pixel-era
+                        // skin used, which made this row the one place in the app that still
+                        // advertised the look the theme no longer has. Kept in step with
+                        // DeveloperColorScheme by hand: the swatch cannot read the scheme
+                        // (the picker draws every theme, only one of them is active).
                         ThemeOptionRow(
                             theme = ThemeColorItem(
                                 "DEVELOPER", "developer_theme",
-                                Color(0xFF0A0A0A), Color(0xFFC3A366)
+                                Color(0xFF131313), Color(0xFFD6B266)
                             ),
                             isSelected = selectedTheme.equals("DEVELOPER", ignoreCase = true),
                             onSelect = { viewModel.setThemeOption("DEVELOPER") },

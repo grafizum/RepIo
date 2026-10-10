@@ -198,4 +198,35 @@ class LevelEditorControlsTest {
             offenders,
         )
     }
+
+    /**
+     * THE SECOND EDITOR, and the one the same report was really pointing at: the
+     * welcome screen's add dialog is a SEPARATE form from the routine editor, and
+     * it had no level UI at all - so an exercise added during setup opened on the
+     * plain custom boxes while the level system ran underneath it. Porting the
+     * level list into it means wiring the same name-keyed resolver; this case keeps
+     * the second host from drifting back to custom boxes the first time someone
+     * edits it, which no behavioural test would see (there is no screenshot test
+     * for either dialog).
+     *
+     * The declaration and its call site share one file, so the file cannot be
+     * excluded by path the way [everyHostThatOpensTheEditorResolvesTheLevelsByName]
+     * excludes the routine editor; the file simply has to carry the resolver.
+     */
+    @Test
+    fun theWelcomeScreenEditorAlsoResolvesTheLevelsByName() {
+        val offenders = File("src/main").walkTopDown()
+            .filter { it.isFile && it.extension == "kt" }
+            .filter { it.readText().contains("AddExerciseDialog(") }
+            .filterNot { it.readText().contains("levelDataFor") }
+            .map { it.path }
+            .toList()
+        assertEquals(
+            "the welcome screen's add dialog opens without the name-keyed level " +
+                "resolver, so adding an exercise during setup shows custom boxes: " +
+                offenders.joinToString(),
+            emptyList<String>(),
+            offenders,
+        )
+    }
 }

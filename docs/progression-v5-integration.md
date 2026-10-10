@@ -112,10 +112,10 @@ row in the old catalog; re-run the two pipeline scripts.
 
 ### My Workout tab (`WorkoutNowScreen` / `WorkoutViewModel`)
 
-The reactive parameter loader in `WorkoutViewModel` now fills five new
+The reactive parameter loader in `WorkoutViewModel` now fills four new
 `WorkoutNowState` fields per exercise — `progressionLevel`, `progressionStage`,
-`progressionStageTargetReps`, `progressionPrescribed` (a typed
-`ProgressionEngine.PrescribedValue`), and `progressionIsFirstSession`. The
+`progressionStageTargetReps`, and `progressionPrescribed` (a typed
+`ProgressionEngine.PrescribedValue`). The
 stored level/stage is part of the loader's change key, so a persisted level-up
 refreshes the display without any routine-entity change. The UI never calls the
 engine for values and never sees raw JSON, jump ratios, or flags.

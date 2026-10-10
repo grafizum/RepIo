@@ -67,8 +67,6 @@ data class WorkoutNowState(
     val progressionStageTargetReps: List<Int> = emptyList(),
     /** The prescribed load/variation/duration at the current level. */
     val progressionPrescribed: ProgressionEngine.PrescribedValue? = null,
-    /** True while no progression state is stored yet (the exercise's first session). */
-    val progressionIsFirstSession: Boolean = false,
     val isWorkoutCompleted: Boolean = false,
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
@@ -439,7 +437,6 @@ class WorkoutViewModel(
                     progressionStage = null,
                     progressionStageTargetReps = emptyList(),
                     progressionPrescribed = null,
-                    progressionIsFirstSession = false,
                     currentSetTargetReps = null
                 )
             }
@@ -649,9 +646,6 @@ class WorkoutViewModel(
                             val prescribed = if (progState != null && progEntry != null) {
                                 ProgressionEngine.prescribedValueAtLevel(progEntry, progState.level, _weightUnit.value)
                             } else null
-                            val isFirstSession = progState != null &&
-                                prefs.getString(progressionKey(it.name), null) == null
-
                             // Auto-select reps/seconds: in level mode the progression
                             // prescription leads; in custom mode it is the user's last
                             // choice (clamped to the plan's range), else the middle of
@@ -702,7 +696,6 @@ class WorkoutViewModel(
                                 progressionStage = progState?.stage,
                                 progressionStageTargetReps = stageTargetReps,
                                 progressionPrescribed = prescribed,
-                                progressionIsFirstSession = isFirstSession,
                                 minReps = if (!isTimeBased) minVal else 1,
                                 maxReps = if (!isTimeBased) maxVal else 100,
                                 currentExerciseSeconds = nextSeconds,
@@ -1183,13 +1176,14 @@ class WorkoutViewModel(
         }
     }
 
-    /** The display name of the exercise's current level/stage, for the debug skin. */
-    fun progressionLabel(exerciseName: String): String? {
-        val state = currentProgressionState(exerciseName) ?: return null
-        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
-        val stage = ProgressionEngine.stageName(state.stage)
-        return "L${state.level} · $stage"
-    }
+    // `progressionLabel()` lived here: it built the "L5 · I" debug readout the
+    // workout card printed under its reps banner. Deleted 2026-10-11 with the line
+    // it fed - the header's level box already shows the same two numbers, so the
+    // label was a duplicate, and a label no caller reads is the dead-parameter
+    // class this project has already paid for once (see the skill log's
+    // observation on dead callbacks). Do not reintroduce a second level readout on
+    // the card; if a screen needs the level and the stage as text, read
+    // [currentProgressionState] and format it at that screen.
 
     /**
      * The highest level the picker and arrows may offer: the program's own
@@ -1582,7 +1576,6 @@ class WorkoutViewModel(
                 progressionStage = progState.stage,
                 progressionStageTargetReps = stageTargetReps,
                 progressionPrescribed = prescribed,
-                progressionIsFirstSession = false,
                 currentSetTargetReps = setTarget,
                 currentReps = setTarget ?: it.currentReps,
                 // A rep exercise is untouched: its duration field is not its target.
@@ -1607,7 +1600,6 @@ class WorkoutViewModel(
                     progressionStage = null,
                     progressionStageTargetReps = emptyList(),
                     progressionPrescribed = null,
-                    progressionIsFirstSession = false,
                     currentSetTargetReps = null
                 )
             }

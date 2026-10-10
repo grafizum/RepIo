@@ -967,8 +967,6 @@ fun WorkoutNowScreen(
                                     viewModel.isLevelAdjustable(currentExercise.name) &&
                                     !currentExercise.locked,
                                 locked = currentExercise.locked,
-                                developerLabel = if (isDeveloper && progLevel != null) viewModel.progressionLabel(currentExercise.name) else null,
-                                isFirstSession = workoutState.progressionIsFirstSession,
                                 targetSets = currentExercise.targetSets,
                                 repTargets = workoutState.progressionStageTargetReps,
                                 currentSetNumber = workoutState.currentSetNumber,
@@ -1929,8 +1927,6 @@ internal fun LevelPrescriptionCard(
     lastStage: Int,
     adjustable: Boolean,
     locked: Boolean,
-    developerLabel: String?,
-    isFirstSession: Boolean,
     targetSets: Int,
     repTargets: List<Int>,
     currentSetNumber: Int,
@@ -2475,15 +2471,18 @@ internal fun LevelPrescriptionCard(
                 }
             }
 
-            developerLabel?.let { label ->
-                Text(
-                    text = label + if (isFirstSession) " (fresh)" else "",
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f),
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis
-                )
-            }
+            // THE CARD DOES NOT REPEAT THE LEVEL AND THE STAGE HERE ANY MORE.
+            //
+            // A small "L5 · I (fresh)" line used to sit at the very bottom of the
+            // card, under the reps banner - the debug readout's leftover. The
+            // header's own level box already prints exactly that ("Level 5" with
+            // the stage dots inside it), so the line restated the two numbers the
+            // user is looking at, one screen-width below them. Owner, 2026-10-11:
+            // "remove the 'L5 | I' labels under the current reps thats absolutely
+            // useless since its shown over the reps as well." It is GONE rather
+            // than restyled: a second copy of a value is not a design, and the
+            // "(fresh)" debug hint that shared the line was only ever a developer
+            // convenience.
         }
     }
 }

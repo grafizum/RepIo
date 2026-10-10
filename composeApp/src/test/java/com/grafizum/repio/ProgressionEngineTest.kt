@@ -250,8 +250,8 @@ class ProgressionEngineTest {
 
     @Test
     fun stageNameIsRomanButOnlyForTheEngine() {
-        // The engine speaks Roman internally; the UI surfaces it only in the
-        // developer skin through WorkoutViewModel.progressionLabel.
+        // The engine speaks Roman internally and the UI surfaces it in the level
+        // box, the editor's level list and this name.
         assertEquals("I", ProgressionEngine.stageName(1))
         assertEquals("XIII", ProgressionEngine.stageName(13))
         assertEquals("", ProgressionEngine.stageName(14))

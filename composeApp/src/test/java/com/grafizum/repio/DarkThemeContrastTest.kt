@@ -234,4 +234,39 @@ class DarkThemeContrastTest {
             )
         }
     }
+
+    /**
+     * THE DEVELOPER RAMP, measured separately because its surfaces are hand-authored while
+     * FLAME's are not.
+     *
+     * The 2026-10-10 revision lifted this scheme's greys off pure black (#131313 canvas,
+     * #1B1B1B cards, #252525 nested blocks) at the owner's request. Those are three
+     * DIFFERENT numbers now, which is exactly the state the FLAME case above cannot see:
+     * the ramp is derived from `surfaceVariant` towards `onSurface` (`withThemedContainers`),
+     * so raising the surfaces moves the upper two steps with them, and it would be easy to
+     * lift the canvas and leave the cards behind - cards that vanish into the background are
+     * the one failure this ramp exists to catch.
+     */
+    @Test
+    fun theDeveloperRampStaysSubtleButNotFlat() {
+        val s = schemeFor("DEVELOPER")
+        val ramp = listOf(
+            s.surfaceContainerLowest,
+            s.surfaceContainerLow,
+            s.surfaceContainer,
+            s.surfaceContainerHigh,
+            s.surfaceContainerHighest,
+        )
+        ramp.zipWithNext { a, b ->
+            val r = ratio(b, a)
+            assertTrue(
+                "DEVELOPER ramp step ${"%.2f".format(r)}:1 is too wide to whisper",
+                r < 1.2,
+            )
+            assertTrue(
+                "DEVELOPER ramp step is identical - cards would vanish into the canvas",
+                r > 1.02,
+            )
+        }
+    }
 }

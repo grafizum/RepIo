@@ -236,34 +236,46 @@ private val RainbowColorScheme = darkColorScheme(
  * belongs to the accent, not to the greys. There is no hue in any grey below, and the one
  * accent is the gold the phone actually showed.
  *
- * Contrast, against the surfaces they sit on: accent #C3A366 on #0A0A0A is 8.25:1 (7.87:1
- * on a card, 7.40:1 on a nested block), body #EDEBE8 on #0A0A0A is 16.64:1, muted #A0A0A0
- * on #181818 is 6.79:1, the container's own text #E9D9B8 on #2E2E2E is 9.75:1, and the
- * button label #1C1810 on the gold fill is 7.37:1 - all clear of the 4.5:1 body and 3:1
+ * REVISED 2026-10-10, at the owner's request: "i want that golden color to be a bit
+ * stronger just slightly so it has a nice contrast, and for that dont have the other color
+ * be pure black but instead very dark grey". So the greys were lifted OFF pure black onto a
+ * very dark grey ladder (#131313 canvas, #1B1B1B cards, #252525 nested blocks - still
+ * neutral, still no hue) and the gold was strengthened from #C3A366 to #D6B266. The outline
+ * had to rise with the surfaces (#3F3F3F -> #4A4A4A): a rim is only visible against the
+ * colour it sits on, so lifting the cards without it would have quietly erased the borders.
+ *
+ * Contrast, against the surfaces they sit on: accent #D6B266 on #131313 is 10.00:1 (9.28:1
+ * on a card, 8.24:1 on a nested block), body #EDEBE8 on #131313 is 15.62:1, muted #A0A0A0
+ * on #252525 is 5.86:1, the container's own text #E9D9B8 on #343434 is 8.95:1, and the
+ * button label #1C1810 on the gold fill is 9.50:1 - all clear of the 4.5:1 body and 3:1
  * large-text thresholds that DarkThemeContrastTest enforces.
  */
 private val DeveloperColorScheme = darkColorScheme(
-    // The one accent, taken straight off the phone's screen: a muted gold, and the only
-    // non-grey in the whole scheme.
-    primary = Color(0xFFC3A366),
+    // The one accent: the phone's own gold, strengthened slightly on the owner's request
+    // (2026-10-10, above), and the only non-grey in the whole scheme.
+    primary = Color(0xFFD6B266),
     onPrimary = Color(0xFF1C1810),
     // A neutral grey block carrying the accent's own tint for its text.
-    primaryContainer = Color(0xFF2E2E2E),
+    primaryContainer = Color(0xFF343434),
     onPrimaryContainer = Color(0xFFE9D9B8),
     secondary = Color(0xFFB8B8B8),
     onSecondary = Color(0xFF1A1A1A),
-    secondaryContainer = Color(0xFF2A2A2A),
+    secondaryContainer = Color(0xFF2F2F2F),
     onSecondaryContainer = Color(0xFFE6E6E6),
-    // TRUE dark grey: the phone's own three steps. No hue in any of them.
-    background = Color(0xFF0A0A0A),
+    // TRUE dark grey, lifted off pure black: three steps of the SAME neutral, no hue in any
+    // of them. The source phone rendered #0A0A0A; the owner has since asked for a very dark
+    // grey rather than black, which is the one place this scheme deliberately departs from
+    // the sampled values.
+    background = Color(0xFF131313),
     onBackground = Color(0xFFEDEBE8),
-    surface = Color(0xFF111111),
+    surface = Color(0xFF1B1B1B),
     onSurface = Color(0xFFEDEBE8),
-    surfaceVariant = Color(0xFF181818),
+    surfaceVariant = Color(0xFF252525),
     onSurfaceVariant = Color(0xFFA0A0A0),
-    // Light enough to draw the hairline rims a dark UI leans on: 1.79:1 on a card, against
-    // the 1.5:1 floor. The cold #2E2E33 this replaces was 1.32:1 - drawn, but not visible.
-    outline = Color(0xFF3F3F3F),
+    // Light enough to draw the hairline rims a dark UI leans on: 1.94:1 on a card and 1.73:1
+    // on a nested block, against the 1.5:1 floor. It rides the raised surfaces - a rim
+    // tuned to a black canvas looks drawn but invisible once the cards are lifted.
+    outline = Color(0xFF4A4A4A),
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )
@@ -405,7 +417,7 @@ internal fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark:
         // own text colour into its variant gives every dark palette a ramp in ITS OWN
         // tone, and only ever moves the step towards the text, so contrast cannot drop.
         // Measured on the developer scheme, which is now the one that leans on it hardest:
-        // #181818 -> #232322 -> #2B2B2B, steps of 1.129:1 and 1.111:1, both inside the
+        // #252525 -> #2F2F2F -> #373737, steps of 1.145:1 and 1.125:1, both inside the
         // 1.02-1.2:1 band the ramp test holds every dark theme to.
         surfaceContainerHigh = surfaceVariant.blendTowards(onSurface, 0.05f),
         surfaceContainerHighest = surfaceVariant.blendTowards(onSurface, 0.09f)

@@ -3541,7 +3541,7 @@ data class EditorLevelStage(
  */
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
-private fun LevelPickerCard(
+internal fun LevelPickerCard(
     options: List<EditorLevelOption>,
     selectedLevel: Int?,
     onSelect: (Int) -> Unit,

@@ -238,6 +238,16 @@ blocks, `#C3A366` as the *single* accent, `#EDEBE8` text and `#A0A0A0` muted tex
 `DeveloperColorScheme` is those colours plus neutral steps between them, and **no grey
 in it carries a hue.**
 
+**Revised 2026-10-10** at the owner's request (*"a bit more rich of color … that golden
+color … a bit stronger just slightly so it has a nice contrast"*, and *"dont have the other
+color be pure black but instead very dark grey"*): the greys were lifted off pure black onto
+`#131313` canvas / `#1B1B1B` cards / `#252525` nested blocks, and the gold strengthened
+`#C3A366` -> `#D6B266`. The **outline rose with the surfaces** (`#3F3F3F` -> `#4A4A4A`) —
+a rim tuned against a black canvas looks drawn but invisible once the cards are lifted, so
+the two move together or the borders quietly disappear. The sampled phone values are now the
+*provenance*, not the live spec: the departure is the owner's, and it is recorded in
+`Theme.kt` at the scheme itself.
+
 - **"The dark twin of Beige" was the wrong idea, and it shipped once.** The phone's
   *stored* theme is `BEIGE`, so the first pass derived the scheme from Beige's own
   brown (`#8C6239`, accent `#D9A566`) and produced dark chocolate — `#12100E` canvas,

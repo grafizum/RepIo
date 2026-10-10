@@ -78,8 +78,6 @@ class LevelCardLockPlacementTest {
                             lastStage = 13,
                             adjustable = true,
                             locked = locked,
-                            developerLabel = null,
-                            isFirstSession = false,
                             targetSets = 3,
                             repTargets = listOf(10, 10, 10),
                             currentSetNumber = 2,
