@@ -1,6 +1,7 @@
 package com.grafizum.repio.util
 
 import android.os.Build
+import com.grafizum.repio.BuildConfig
 import com.google.firebase.firestore.FirebaseFirestore
 import kotlinx.coroutines.suspendCancellableCoroutine
 import kotlin.coroutines.resume
@@ -65,7 +66,24 @@ class AndroidSupportManager : SupportManager {
 
     override fun getDeviceModel(): String = Build.MODEL
 
-    override fun getAppVersion(): String = "1.0.0" 
+    /**
+     * The build's OWN version, from `BuildConfig` - never a literal.
+     *
+     * This returned a hardcoded `"1.0.0"`, so every support ticket a user sent
+     * reported a version of the app that has never existed: the app's first
+     * release was 1.4.3, and the field had been stale since the feature was added.
+     * `version.properties` at the repo root is the single source of truth for the
+     * version (AGENTS.md: *"Never hardcode a version anywhere else."*), and
+     * `composeApp/build.gradle.kts` turns it into `BuildConfig.VERSION_NAME` /
+     * `VERSION_CODE`, so reading those cannot drift from what the user is running.
+     *
+     * The CODE travels with the name because two builds can share a version name:
+     * the code is what identifies the exact artifact a support report came from,
+     * and it is the number Play shows. Guarded by AppVersionSourceTest, which fails
+     * the build if any shipped source hardcodes a version again.
+     */
+    override fun getAppVersion(): String =
+        "${BuildConfig.VERSION_NAME} (${BuildConfig.VERSION_CODE})"
 }
 
 fun getSupportManager(): SupportManager = AndroidSupportManager()
