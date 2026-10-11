@@ -2163,8 +2163,8 @@ internal fun LevelPrescriptionCard(
 
                 Spacer(modifier = Modifier.weight(1f))
 
-                // THE RIGHT-HAND PAIR: the lock chip, then the pencil, together at the
-                // card's edge.
+                // THE RIGHT-HAND PAIR: the pencil, then the lock chip, closing ON the
+                // card's right edge.
                 //
                 // Owner, 2026-10-09: *"the level lock button is a bit too centered in my
                 // opinion, it needs to be better positioned and maybe also changed the style
@@ -2181,16 +2181,94 @@ internal fun LevelPrescriptionCard(
                 // the level box on its left nor the pencil on its right. Making the two their
                 // OWN row is what ties them together: the pair travels to the edge as one
                 // cluster, and the weight spacer stays the only elastic thing in the header.
+                //
+                // Owner, 2026-10-11, still on the same chip: *"change the positioning a bit
+                // of the level lock to the right so that it doesnt look like its randomly
+                // floating and not anchored somehow or aligned somewhere"*.
+                //
+                // WHAT THE FIRST FIX MISSED. Reaching the right edge is not the same as being
+                // ANCHORED to it. Measured on the phone (SM-S906B, 1080px @ 420dpi), the
+                // chip's ring ended at x=852 while the card's content column - the line the
+                // body's own values (`27.5 kg`, `8 / 8 / 8 / 8 Reps`) and `NEXT UP` end on -
+                // is x=983. So its right edge stopped 50dp short of the one line the card is
+                // built on, 112dp of nothing sat behind its left edge, and 25dp of the
+                // pencil's invisible padding sat in front of it: a control with no reference
+                // on either side reads as floating even when it is not centred.
+                //
+                // THE ORDER, NOT A DISTANCE, IS THE FIX. The pencil's 48dp target is mostly
+                // invisible padding, so no nudge could bring the ring close to the glyph
+                // without eating that tap target - and parked LEFT of the pencil, the chip's
+                // right edge can only ever land on the pencil's padding rather than on the
+                // card. With the pencil first and the chip last, the chip's right edge IS the
+                // card's content column (the same x `NEXT UP` ends on), so the one control the
+                // owner asks users to understand is what closes the header, and the pencil
+                // tucks in behind it at ~8dp - the pair still reads as one cluster.
                 Row(
                     verticalAlignment = Alignment.CenterVertically,
                     // 2dp, not the header's 8dp. The pencil's 48dp target is mostly
-                    // invisible padding (a 20dp glyph centred in it), so the gap the eye
-                    // actually reads is already ~16dp - which is what the two controls stay
-                    // APART by shape and wording instead of by distance: a labelled, ringed
-                    // pill beside a bare circular glyph. Keeping the pair close also keeps
-                    // their tap targets from drifting under each other's finger.
+                    // invisible padding (a 20dp glyph centred in it), and the pencil's own
+                    // +6dp shift closes the same padding from the other side, so the gap the
+                    // eye actually reads between the glyph and the chip's ring is ~8dp -
+                    // which is what the two controls stay APART by shape and wording instead
+                    // of by distance: a labelled, ringed pill beside a bare circular glyph.
+                    // Keeping the pair close also keeps their tap targets from drifting
+                    // under each other's finger.
                     horizontalArrangement = Arrangement.spacedBy(2.dp)
                 ) {
+                    // THE ONE PENCIL, and the only way into the exercise editor from
+                    // a live session - the pencil that used to sit on the exercise card
+                    // above was removed in the same instruction that put this one here.
+                    //
+                    // It OWNS the level system's editing now: the editor it opens is
+                    // where the level list lives (and, in custom mode, the sets, reps
+                    // and weight fields). There is no tick any more, because there is no
+                    // edit pass to commit - the level the user picks is written through
+                    // the same stored progression state it always was.
+                    if (controls.showPencil) {
+                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
+                            Box(
+                                modifier = Modifier
+                                    .size(48.dp)
+                                    .clip(CircleShape)
+                                    .clickable { onOpenEditor() }
+                                    // The 6dp the glyph used to be pushed toward the card
+                                    // edge by now comes off this target's TRAILING side
+                                    // instead - the corner belongs to the lock chip since
+                                    // 2026-10-11. Keeping it as padding rather than an
+                                    // `.offset` is deliberate: an offset would drag the
+                                    // whole 48dp target into the chip, and the 4dp nearest
+                                    // the chip would then steal the taps meant for this
+                                    // pencil.
+                                    .padding(end = 6.dp)
+                                    .semantics { testTag = "level_edit" },
+                                // Centred in what is left, i.e. at the END of the target: the
+                                // glyph reads as one cluster with the chip beside it while
+                                // the whole 48dp square stays this pencil's.
+                                contentAlignment = Alignment.CenterEnd
+                            ) {
+                                Icon(
+                                    imageVector = Icons.Default.Edit,
+                                    contentDescription = getString("exercise_edit_desc"),
+                                    // ALWAYS the theme colour. It was dimmed to 45%
+                                    // while idle, which the owner read as "the pencil is
+                                    // grayed out at the beginning" - and it is the one
+                                    // control that opens the level system, so looking
+                                    // disabled is the opposite of the truth.
+                                    tint = MaterialTheme.colorScheme.primary,
+                                    // 18 -> 20dp: "make the edit pencil slightly
+                                    // bigger". The 48dp target around it is what the
+                                    // user actually presses. Tagged apart from its target
+                                    // because the layout gap the placement test can see on
+                                    // the target is NOT the air the eye sees here - the 14dp
+                                    // of padding inside it is invisible (owner, 2026-10-11).
+                                    modifier = Modifier
+                                        .size(20.dp)
+                                        .semantics { testTag = "level_edit_glyph" }
+                                )
+                            }
+                        }
+                    }
+
                     // THE EXERCISE'S OWN LOCK, ON THE CARD.
                     //
                     // Owner, 2026-10-08: *"i also want the locked not to be in the popup of the
@@ -2204,6 +2282,13 @@ internal fun LevelPrescriptionCard(
                     // also exactly what the box above reads to decide whether it may open. Label
                     // plus icon, because a bare padlock is the one thing the owner reported as
                     // invisible: "show it somehow else so that the user can understand".
+                    //
+                    // IT CLOSES THE HEADER. Owner, 2026-10-11: *"change the positioning a bit
+                    // of the level lock to the right so that it doesnt look like its randomly
+                    // floating and not anchored somehow or aligned somewhere"*. The chip is
+                    // the LAST control in the row now, so its right edge lands on the card's
+                    // content column instead of on the pencil's padding - the measured 50dp
+                    // the pair's own comment above is about.
                     //
                     // IT SPEAKS THE CARD'S OWN LANGUAGE, which is the second half of the
                     // instruction - "changed the style slightly so it fits with the rest of
@@ -2251,50 +2336,6 @@ internal fun LevelPrescriptionCard(
                                         else MaterialTheme.colorScheme.onSurfaceVariant,
                                 maxLines = 1
                             )
-                        }
-                    }
-
-                    // THE ONE PENCIL, and the only way into the exercise editor from
-                    // a live session - the pencil that used to sit on the exercise card
-                    // above was removed in the same instruction that put this one here.
-                    //
-                    // It OWNS the level system's editing now: the editor it opens is
-                    // where the level list lives (and, in custom mode, the sets, reps
-                    // and weight fields). There is no tick any more, because there is no
-                    // edit pass to commit - the level the user picks is written through
-                    // the same stored progression state it always was.
-                    if (controls.showPencil) {
-                        CompositionLocalProvider(LocalMinimumInteractiveComponentSize provides 48.dp) {
-                            Box(
-                                modifier = Modifier
-                                    .size(48.dp)
-                                    // The owner asked for the pencil to sit further right.
-                                    // The row's own spacing put it a fixed 8dp from the
-                                    // card edge; this moves the GLYPH toward the edge
-                                    // without changing the touch target, so the tap area
-                                    // still clears the 48dp minimum - and it is what
-                                    // keeps the pair's right corner the pencil's.
-                                    .offset(x = 6.dp)
-                                    .clip(CircleShape)
-                                    .clickable { onOpenEditor() }
-                                    .semantics { testTag = "level_edit" },
-                                contentAlignment = Alignment.Center
-                            ) {
-                                Icon(
-                                    imageVector = Icons.Default.Edit,
-                                    contentDescription = getString("exercise_edit_desc"),
-                                    // ALWAYS the theme colour. It was dimmed to 45%
-                                    // while idle, which the owner read as "the pencil is
-                                    // grayed out at the beginning" - and it is the one
-                                    // control that opens the level system, so looking
-                                    // disabled is the opposite of the truth.
-                                    tint = MaterialTheme.colorScheme.primary,
-                                    // 18 -> 20dp: "make the edit pencil slightly
-                                    // bigger". The 48dp target around it is what the
-                                    // user actually presses.
-                                    modifier = Modifier.size(20.dp)
-                                )
-                            }
                         }
                     }
                 }

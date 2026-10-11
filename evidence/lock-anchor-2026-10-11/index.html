@@ -1,0 +1,63 @@
+<!doctype html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>Level lock — anchored to the card's content column</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 24px; background: #131313; color: #EDEBE8;
+         font: 14px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 18px; margin: 0 0 4px; color: #D0B371; }
+  h2 { font-size: 15px; margin: 28px 0 8px; color: #D0B371; font-weight: 600; }
+  p  { margin: 6px 0; max-width: 900px; color: #CFCAC2; }
+  code { color: #D0B371; }
+  .shot { background-repeat: no-repeat; image-rendering: pixelated; margin: 10px 0 4px;
+          border: 1px solid #443323; border-radius: 8px; }
+  /* source PNG is 1438x3118; each window is a CSS crop of it */
+  .header  { width: 837px; height: 149px; background-image: url(01-card-unlocked.png);
+             background-size: 892px auto; background-position: -37px -186px; }
+  .header-l { width: 837px; height: 149px; background-image: url(02-card-locked.png);
+             background-size: 892px auto; background-position: -37px -186px; }
+  .cluster { width: 896px; height: 384px; background-image: url(01-card-unlocked.png);
+             background-size: 2301px auto; background-position: -1360px -480px; }
+  .cluster-l { width: 896px; height: 384px; background-image: url(02-card-locked.png);
+             background-size: 2301px auto; background-position: -1360px -480px; }
+  table { border-collapse: collapse; margin-top: 8px; }
+  td, th { padding: 4px 12px 4px 0; text-align: left; font-weight: 400; color: #CFCAC2; }
+  th { color: #D0B371; font-weight: 600; }
+  .was { color: #A0A0A0; }
+</style>
+</head>
+<body>
+<h1>The level lock now closes the header on the card's own content column</h1>
+<p>Owner, 2026-10-11: <em>"change the positioning a bit of the level lock to the right so that it
+doesnt look like its randomly floating and not anchored somehow or aligned somewhere"</em>.</p>
+
+<h2>Unlocked — whole header row</h2>
+<div class="shot header"></div>
+<p>The chip's right edge is the card's content column, the same line <code>NEXT UP</code> and the
+body's values end on. The pencil sits 2dp behind it, with 8dp of visible air between the glyph and
+the ring.</p>
+
+<h2>Locked — the same corner, chip filled</h2>
+<div class="shot header-l"></div>
+<p>Shorter label, same anchor: the chip's right edge does not move.</p>
+
+<h2>Zoom — the corner pair, unlocked</h2>
+<div class="shot cluster"></div>
+
+<h2>Zoom — the corner pair, locked</h2>
+<div class="shot cluster-l"></div>
+
+<h2>What moved, in numbers (411dp window)</h2>
+<table>
+  <tr><th>measure</th><th>before (phone, 2026-10-10)</th><th>now</th></tr>
+  <tr><td>chip right edge</td><td class="was">50dp short of the content column</td><td>0.14dp off it</td></tr>
+  <tr><td>visible air, glyph → ring</td><td class="was">25dp</td><td>8dp</td></tr>
+  <tr><td>air behind the chip's left edge</td><td class="was">112dp of nothing</td><td class="was">unchanged (the level box lives there)</td></tr>
+  <tr><td>pencil 48dp tap target</td><td>208..305dp, overlapping nothing</td><td>249..297dp, 2dp clear of the chip</td></tr>
+</table>
+<p>Rendered by Robolectric at the phone's own geometry (Pixel7Pro qualifier, 411dp @ 420dpi, native
+graphics). See <code>REPORT.md</code> in this folder for the recipe and the test that guards it.</p>
+</body>
+</html>

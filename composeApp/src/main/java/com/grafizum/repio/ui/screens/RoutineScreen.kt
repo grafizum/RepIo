@@ -811,6 +811,10 @@ fun WorkoutScreen(
 
     // DIALOGS
     val themeOption by viewModel.themeOption.collectAsState()
+    // The level system's own switch: a NEW exercise is picked through the graphical
+    // picker while it is on (owner, 2026-10-11), and typed into the classic field when
+    // the user runs custom mode. An edit always keeps the classic field.
+    val levelSystemEnabled by viewModel.levelSystemEnabled.collectAsState()
 
     if (showAddDialog || editingExercise != null) {
         // The ladder opened from this editor, as an edit pass — same contract as
@@ -836,6 +840,7 @@ fun WorkoutScreen(
             levelDataFor = { levelName, pageStart -> editorLevelData(viewModel, levelName, pageStart) },
             userEquipmentCategories = viewModel.userEquipmentCategories(),
             userGrantedTags = viewModel.userGrantedEquipmentTags(),
+            levelSystemOn = levelSystemEnabled,
             // A declined evolution is locked permanently, so this badge is the
             // only way back into the offer. It lives here because this is the
             // editor the owner named ("allow the user to upgrade it when

@@ -4001,6 +4001,18 @@ fun ExerciseEditDialog(
     evolutionLocked: Boolean = false,
     /** Opens the evolution popup again for this locked exercise. */
     onUpgrade: (() -> Unit)? = null,
+    /**
+     * True when the level system prescribes exercises app-wide.
+     *
+     * It is NOT the same question as [EditorLevelData.levelsManaged], which the
+     * host answers per NAME: an ADD form has no name yet, so it gets NONE and the
+     * old form fell back to the custom boxes until the user picked something. This
+     * flag says "the system is on", which is what decides whether a new exercise is
+     * picked through the level system's picker (owner, 2026-10-11) or typed into the
+     * classic field. An edit never uses the picker: it is about the row it was
+     * opened on.
+     */
+    levelSystemOn: Boolean = false,
 ) {
     // Only an edit of an existing, level-managed row is locked; a fresh add
     // always keeps its inputs open. Touching a locked field (while enabled,
@@ -4326,6 +4338,53 @@ fun ExerciseEditDialog(
                 // It stays in BOTH modes - none of it is prescribed by the level
                 // system, and hiding the name field in level mode would leave no way
                 // to correct a mis-picked movement.
+                //
+                // IN LEVEL MODE A NEW EXERCISE IS PICKED, NOT TYPED. Owner,
+                // 2026-10-11: "adding an exercise card ... needs to stay as it is for
+                // custom but changed for when level system is active, instead of all
+                // the reps sets weight etc input boxes, i want to have exercise name
+                // that the user can input to search an exercise and under it filter
+                // options for the searched exercise, but if the user only uses the
+                // filters and doesnt search by name show al the possible exercises
+                // based on those filters". The picker draws exactly that: one search
+                // field, the two filters, and a list of graphical rows. Custom mode
+                // keeps the classic field and boxes, untouched.
+                val pickerMode = exercise == null && levelSystemOn
+
+                // ONE definition of "this is the exercise now", shared by the typed
+                // field and the picker. The picker has no keystrokes to hook, so
+                // without it the two paths would set different defaults for the same
+                // pick - and the muscle group would only ever be set by typing, which
+                // the picker makes optional.
+                val adoptExercise: (String, String?) -> Unit = { selectedName, preciseMuscle ->
+                    name = selectedName
+                    if (!preciseMuscle.isNullOrBlank()) muscleGroup = preciseMuscle
+                    isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
+                    isExpanded = true
+                    videoUrl = ""
+                    if (targetSetsStr.isBlank()) targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                    if (isTimeBased) {
+                        if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
+                    } else {
+                        if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
+                            targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
+                            repsManuallyEdited = false
+                        }
+                    }
+                }
+
+                if (pickerMode) {
+                    ExercisePickerBody(
+                        equipmentCategories = userEquipmentCategories,
+                        grantedTags = userGrantedTags,
+                        allAvailableExercises = allAvailableExercises,
+                        // The picked exercise stays visible as a tinted row: the level
+                        // list below belongs to it, and a list that cannot say which
+                        // row it is about is how "did my tap register?" starts.
+                        selectedName = name.takeIf { it.isNotBlank() },
+                        onPick = { pick -> adoptExercise(pick.name, pick.muscleGroup) }
+                    )
+                } else {
                 SearchableExerciseField(
                     allExercises = filteredExercises,
                     value = name,
@@ -4345,26 +4404,17 @@ fun ExerciseEditDialog(
                         )
                         if (detected != "Other") muscleGroup = detected
                     },
-                    onItemSelected = { selectedName ->
-                        name = selectedName
-                        isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
-                        isExpanded = true
-                        videoUrl = ""
-                        if (targetSetsStr.isBlank()) targetSetsStr = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        if (isTimeBased) {
-                            if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
-                        } else {
-                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
-                                targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
-                                repsManuallyEdited = false
-                            }
-                        }
-                    },
+                    onItemSelected = { selectedName -> adoptExercise(selectedName, null) },
                     label = getString("exercise_name"),
                     placeholder = getString("exercise_name_placeholder")
                 )
+                }
 
-                if (isExpanded) {
+                // The method text is CUSTOM MODE'S context. In picker mode the level
+                // list is the information the user came for, and a two-line paragraph
+                // between the search and the rungs is the "bloat text" the owner asked
+                // to be rid of.
+                if (isExpanded && !pickerMode) {
                     Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
                         Row(
                             verticalAlignment = Alignment.CenterVertically,
@@ -4478,7 +4528,16 @@ fun ExerciseEditDialog(
                 // level mode they are not shown at all - the level list above
                 // IS their editor, and two editors for one prescription is the
                 // duplication this whole change exists to remove.
-                if (!levelMode) {
+                //
+                // AND THE PICKER HOLDS THEM BACK UNTIL SOMETHING IS PICKED. Owner, 2026-10-11:
+                // *"remove the input boxes under the exercises"*. At the moment the card opens,
+                // nothing is chosen, so the boxes could only ever be EMPTY - and empty boxes under
+                // a list of exercises read as "fill these in", i.e. as a second, wrong way to say
+                // which movement this is. A picker card is a list until a row is tapped; once one
+                // is, the level list takes over for a laddered exercise and these fields return for
+                // a movement the level system has no ladder for (a stretch), which is the fallback
+                // that keeps such a movement writable at all.
+                if (!levelMode && (!pickerMode || name.isNotBlank())) {
                     RepsTimeToggle(
                         isTimeBased = isTimeBased,
                         onToggle = { newValue ->
@@ -5443,7 +5502,10 @@ fun EquipmentFilterRow(
     onToggle: (String) -> Unit,
     modifier: Modifier = Modifier
 ) {
-    val equipmentOptions = WorkoutTemplates.allEquipmentCategories.map { category ->
+    // "Other" is not offered: it is not equipment the user can be said to lack, so a chip for it
+    // is a control they never chose sitting among the ones they did. It stays in the FILTER
+    // (see [WorkoutTemplates.filterableEquipmentCategories]) - only its chip is gone.
+    val equipmentOptions = WorkoutTemplates.filterableEquipmentCategories.map { category ->
         category to getString(WorkoutTemplates.equipmentLabelKey(category))
     }
     FlowRow(
@@ -5550,24 +5612,55 @@ fun EquipmentFilterCollapsible(
                     modifier = Modifier.weight(1f)
                 )
             } else {
-                Row(
+                // Only the categories the UI is allowed to draw a chip for: "Other" filters the
+                // list (a plank is a real exercise) but is not a piece of kit, so it is not shown
+                // and cannot be unticked - see [WorkoutTemplates.filterableEquipmentCategories].
+                val drawn = selectedEquipment.filter { it in WorkoutTemplates.filterableEquipmentCategories }
+                if (drawn.isEmpty()) {
+                    // The kit-free category is the ONLY thing filtering - which is what replacing a
+                    // plank or a stretch starts from for a user who never restricted their kit.
+                    // It has no glyph of its own, so the row states the fact in words rather than
+                    // leaving an empty line where the icons belong.
+                    Text(
+                        text = getString("equipment_tag_none_required"),
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                        maxLines = 1,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.weight(1f)
+                    )
+                } else Row(
                     verticalAlignment = Alignment.CenterVertically,
                     horizontalArrangement = Arrangement.spacedBy(6.dp),
                     modifier = Modifier.weight(1f, fill = false)
                 ) {
-                    selectedEquipment.take(MAX_COLLAPSED_EQUIPMENT_ICONS).forEach { key ->
+                    drawn.take(MAX_COLLAPSED_EQUIPMENT_ICONS).forEach { key ->
                         // The label moves to the content description, where it costs no
                         // width: this row has to survive the 1.8x font scale that made
                         // the labelled version unreadable.
+                        //
+                        // THE ACCENT, not the inherited text colour. Owner, 2026-10-11: *"make
+                        // sure the minimized icons ... is not pitch black but a theme color
+                        // maybe a bit more acented than the usual theme primary color"*. They
+                        // inherited `LocalContentColor` before, which is the near-black body
+                        // colour on the light themes and the muted grey on the dark ones - the
+                        // row of glyphs that says "this is the kit filtering your list" was the
+                        // quietest thing in the dialog. [equipmentGlyphTint] is the single place
+                        // that decision lives.
                         EquipmentIconImage(
                             icon = equipmentCategoryIcon(key),
                             contentDescription = getString(WorkoutTemplates.equipmentLabelKey(key)),
-                            modifier = Modifier.size(22.dp)
+                            tint = equipmentGlyphTint(),
+                            // Tagged per category so a test can assert WHICH kit glyphs this row
+                            // draws - including that it never draws one for "Other".
+                            modifier = Modifier
+                                .size(22.dp)
+                                .semantics { testTag = "equipment_glyph_$key" }
                         )
                     }
-                    if (selectedEquipment.size > MAX_COLLAPSED_EQUIPMENT_ICONS) {
+                    if (drawn.size > MAX_COLLAPSED_EQUIPMENT_ICONS) {
                         Text(
-                            text = "+${selectedEquipment.size - MAX_COLLAPSED_EQUIPMENT_ICONS}",
+                            text = "+${drawn.size - MAX_COLLAPSED_EQUIPMENT_ICONS}",
                             style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                             maxLines = 1
@@ -5662,14 +5755,9 @@ fun MuscleGroupFilterCollapsible(
     val anyLabel = getString("any_muscle_group")
 
     Column(
-        // CAPPED AND SCROLLABLE, because nothing about a chip list bounds it: see
-        // [EXPANDED_FILTER_MAX_WINDOW_SHARE]. The six body parts fit; the nineteen precise muscles
-        // do not, so they scroll inside the block instead of pushing the exercise list out of the
-        // dialog — which is what the measurement recorded when this was unbounded.
-        modifier = modifier
-            .fillMaxWidth()
-            .heightIn(max = (window.windowHeightDp * EXPANDED_FILTER_MAX_WINDOW_SHARE).dp)
-            .verticalScroll(rememberScrollState()),
+        // The CAP and the SCROLL now live on the expanded block, not here: the row that says which
+        // group is filtering has to survive the scroll of the muscles under it (owner, 2026-10-11).
+        modifier = modifier.fillMaxWidth(),
         verticalArrangement = Arrangement.spacedBy(8.dp)
     ) {
         Row(
@@ -5755,59 +5843,90 @@ fun MuscleGroupFilterCollapsible(
         }
 
         if (expanded) {
-            // BODY PARTS — the same six the filter has always offered, with Any first so
-            // "no muscle preference" is a visible choice rather than the absence of one.
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
+            // THE CHIPS SCROLL, THIS ROW DOES NOT. Owner, 2026-10-11: *"make sure the small
+            // 'muscle group: back' is shown also while scrolling through each precise muscle so
+            // that it shows what these muscle are (from the back cathegory / group)"*. The row
+            // above carries that value, so it stays put while the muscles below it are read.
+            //
+            // CAPPED AND SCROLLABLE, because nothing about a chip list bounds it: see
+            // [EXPANDED_FILTER_MAX_WINDOW_SHARE]. The six body parts fit; the nineteen precise
+            // muscles do not, so they scroll inside the block instead of pushing the exercise list
+            // out of the dialog — which is what the measurement recorded when this was unbounded.
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
-                    .semantics { testTag = "muscle_filter_broad_row" }
+                    .heightIn(max = (window.windowHeightDp * EXPANDED_FILTER_MAX_WINDOW_SHARE).dp)
+                    .verticalScroll(rememberScrollState()),
+                verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
-                FilterChip(
-                    selected = selectedMuscleGroup == null,
-                    onClick = { onSelect(null) },
-                    label = { Text(anyLabel, maxLines = 1) },
-                    shape = RoundedCornerShape(10.dp),
-                    modifier = Modifier.semantics { testTag = "muscle_chip_any" }
-                )
-                WorkoutTemplates.getBroadMuscleGroups().forEach { group ->
+                // BODY PARTS — the same six the filter has always offered, with Any first so
+                // "no muscle preference" is a visible choice rather than the absence of one.
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { testTag = "muscle_filter_broad_row" }
+                ) {
                     FilterChip(
-                        selected = selectedMuscleGroup == group,
-                        onClick = { onSelect(group) },
-                        label = { Text(translateMuscleGroup(group), maxLines = 1) },
+                        selected = selectedMuscleGroup == null,
+                        onClick = { onSelect(null) },
+                        label = { Text(anyLabel, maxLines = 1) },
                         shape = RoundedCornerShape(10.dp),
-                        // A handle per chip, so "does picking this muscle narrow the list" can
-                        // be asked of the chip itself rather than of a label that a card's
-                        // description might also contain.
-                        modifier = Modifier.semantics { testTag = "muscle_chip_$group" }
+                        modifier = Modifier.semantics { testTag = "muscle_chip_any" }
                     )
+                    WorkoutTemplates.getBroadMuscleGroups().forEach { group ->
+                        FilterChip(
+                            selected = selectedMuscleGroup == group,
+                            onClick = { onSelect(group) },
+                            label = { Text(translateMuscleGroup(group), maxLines = 1) },
+                            shape = RoundedCornerShape(10.dp),
+                            // A handle per chip, so "does picking this muscle narrow the list" can
+                            // be asked of the chip itself rather than of a label that a card's
+                            // description might also contain.
+                            modifier = Modifier.semantics { testTag = "muscle_chip_$group" }
+                        )
+                    }
                 }
-            }
 
-            // PRECISE MUSCLES — under their own caption, so the nineteen do not read as a
-            // longer version of the six. These are the groups the catalog actually stores on
-            // each exercise, so each one answers with the movements that train it.
-            Text(
-                text = getString("muscle_filter_precise"),
-                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant
-            )
-            FlowRow(
-                horizontalArrangement = Arrangement.spacedBy(8.dp),
-                verticalArrangement = Arrangement.spacedBy(8.dp),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .semantics { testTag = "muscle_filter_precise_row" }
-            ) {
-                WorkoutTemplates.getPreciseMuscleGroups().forEach { muscle ->
-                    FilterChip(
-                        selected = selectedMuscleGroup == muscle,
-                        onClick = { onSelect(muscle) },
-                        label = { Text(translateMuscleGroup(muscle), maxLines = 1) },
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.semantics { testTag = "muscle_chip_precise_$muscle" }
-                    )
+                // PRECISE MUSCLES — under their own caption, so the nineteen do not read as a
+                // longer version of the six. These are the groups the catalog actually stores on
+                // each exercise, so each one answers with the movements that train it.
+                //
+                // AND THEY ARE THE CHOSEN GROUP'S OWN MUSCLES. Owner, 2026-10-11: *"when
+                // selecting muscle group back, then make sure that the precise muscles are shown
+                // only of that 'back' cathegory / group"*. The six broad chips partition the
+                // nineteen exactly, so narrowing loses nothing - and the caption NAMES the group,
+                // because a list that silently shrank cannot say why it shrank, and "Lats" on
+                // its own does not tell the user it came from Back. Both halves answer the same
+                // question the owner asked: WHICH GROUP AM I LOOKING AT.
+                val preciseMuscles = WorkoutTemplates.getPreciseMuscleGroupsFor(selectedMuscleGroup)
+                val preciseGroupLabel = selectedMuscleGroup
+                    ?.let { WorkoutTemplates.getTopicForMuscle(it) }
+                    ?.let { translateMuscleGroup(it) }
+                Text(
+                    text = if (preciseGroupLabel == null) getString("muscle_filter_precise")
+                           else getString("muscle_filter_precise_group", preciseGroupLabel),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    modifier = Modifier.semantics { testTag = "muscle_filter_precise_caption" }
+                )
+                FlowRow(
+                    horizontalArrangement = Arrangement.spacedBy(8.dp),
+                    verticalArrangement = Arrangement.spacedBy(8.dp),
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .semantics { testTag = "muscle_filter_precise_row" }
+                ) {
+                    preciseMuscles.forEach { muscle ->
+                        FilterChip(
+                            selected = selectedMuscleGroup == muscle,
+                            onClick = { onSelect(muscle) },
+                            label = { Text(translateMuscleGroup(muscle), maxLines = 1) },
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.semantics { testTag = "muscle_chip_precise_$muscle" }
+                        )
+                    }
                 }
             }
         }

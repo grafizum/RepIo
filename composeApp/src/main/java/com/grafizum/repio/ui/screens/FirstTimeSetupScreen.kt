@@ -279,6 +279,10 @@ fun FirstTimeSetupScreen(
     var copyTargetDay by remember { mutableStateOf("TUESDAY") }
     var copyReplaceExercises by remember { mutableStateOf(true) }
     val themeOption by viewModel.themeOption.collectAsState()
+    // Whether a NEW exercise is picked graphically (level system on) or typed into the
+    // classic field (custom mode). Read here, not inside the dialog: the dialog holds
+    // no view model, and this is the same flag the settings switch drives.
+    val levelSystemEnabled by viewModel.levelSystemEnabled.collectAsState()
 
     // Both the Save button and the final confirmation dialog go through here, so the
     // generated build and the manual one can't drift apart.
@@ -345,13 +349,18 @@ fun FirstTimeSetupScreen(
 
     // Add / Edit custom exercise dialog
     if (showAddCustomExerciseDialog || editingExercise != null) {
+        // The kit this dialog filters by: the builder's live selection, else the kit the welcome
+        // screen saved. This dialog used to pass the builder's selection alone, so on a build
+        // whose equipment step had not been touched yet it opened on every category - i.e. on
+        // equipment the user had already said they do not own.
+        val pickerEquipment = equipmentFilterBlockSelection(buildEquipment, viewModel)
         AddExerciseDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
             initialDay = selectedDayInCustom,
             themeKey = themeOption,
-            userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment),
-            userGrantedTags = equipmentFilterBlockGrantedTags(buildEquipment, viewModel),
+            userEquipmentCategories = EquipmentFilterBlockCategories(pickerEquipment),
+            userGrantedTags = equipmentFilterBlockGrantedTags(pickerEquipment),
             // The level facts are resolved by NAME inside the dialog, so this editor
             // draws the same rungs for the same exercise as the routine editor.
             levelDataFor = { levelName, pageStart -> editorLevelData(viewModel, levelName, pageStart) },
@@ -362,6 +371,9 @@ fun FirstTimeSetupScreen(
                 viewModel.setExerciseStateFromEditor(levelName, level, stage)
             },
             onOpenLevelLadder = { name -> ladderExercise = name },
+            // The picker replaces the typed field for a NEW exercise while the level
+            // system is on (owner, 2026-10-11); an edit keeps the classic field.
+            levelSystemOn = levelSystemEnabled,
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -1410,14 +1422,21 @@ fun FirstTimeSetupScreen(
         val anchorIndex = remember(exercise) {
             customExercises.indexOfFirst { it.name == exercise.name && it.dayOfWeek == exercise.dayOfWeek }.coerceAtLeast(0)
         }
+        // Same rule as the add dialog above, and it is deliberately ONE rule: the two dialogs
+        // drifted apart once already, and the chips and the gate must describe the same kit.
+        //
+        // The old version fell back on the DERIVED categories, which is a different question:
+        // a full-gym selection reduces to an EMPTY category list (`coarseCategoriesFor` reads
+        // "every category" as no preference), so "nothing derived" was mistaken for "nothing
+        // chosen" and the saved kit narrowed the chips while the gate stayed wide open.
+        val pickerEquipment = equipmentFilterBlockSelection(buildEquipment, viewModel)
         ReplaceExerciseDialog(
             exercise = exercise,
             // In the builder the chips read the selection the user is still
-            // editing; before they touch equipment it defaults to the saved
-            // build's kit so a no-barbell builder never sees barbell swaps.
-            userEquipmentCategories = EquipmentFilterBlockCategories(buildEquipment)
-                .ifEmpty { viewModel.userEquipmentCategories() },
-            userGrantedTags = equipmentFilterBlockGrantedTags(buildEquipment, viewModel),
+            // editing; before they touch equipment they read the saved build's
+            // kit, so a no-barbell builder never sees barbell swaps.
+            userEquipmentCategories = EquipmentFilterBlockCategories(pickerEquipment),
+            userGrantedTags = equipmentFilterBlockGrantedTags(pickerEquipment),
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Drop the original and put the pick in its slot, keeping any demo
@@ -1552,21 +1571,34 @@ fun EquipmentFilterBlockCategories(selectedEquipment: List<String>): List<String
     ExerciseEquipmentTags.coarseCategoriesFor(selectedEquipment)
 
 /**
- * The builder's selection as the pickers' equipment gate should read it.
+ * The equipment a picker opened inside the builder filters by.
+ *
+ * The builder's own selection while it has one, otherwise the kit the welcome screen SAVED.
+ * The decision itself is [WorkoutTemplates.pickerEquipmentSelection], so both dialogs on this
+ * screen - and the routine editor and Workout Now, which pass the saved kit directly - answer
+ * "which kit?" the same way. Read off the RAW stored lists, never a derived one: the coarse
+ * category list is EMPTY both for "the user chose nothing" and for "the user chose everything".
+ */
+@Composable
+private fun equipmentFilterBlockSelection(
+    buildEquipment: List<String>,
+    viewModel: com.grafizum.repio.ui.viewmodel.WorkoutViewModel
+): List<String> = WorkoutTemplates.pickerEquipmentSelection(
+    builderSelection = buildEquipment,
+    savedSelection = viewModel.savedEquipmentSelection()
+)
+
+/**
+ * That selection as the pickers' equipment gate.
  *
  * The builder owns the fine tags, so this is a direct expansion — no coarse
  * round trip, which would drop the chair/bench/bar grants the coarse chip
- * vocabulary cannot express. Null = the user has not picked anything yet, which
- * the gate reads as unrestricted.
+ * vocabulary cannot express. Null = nothing was ever chosen, which the gate reads
+ * as unrestricted; an empty set is the strict bodyweight preset and stays distinct.
  */
-@Composable
-private fun equipmentFilterBlockGrantedTags(
-    selectedEquipment: List<String>,
-    viewModel: com.grafizum.repio.ui.viewmodel.WorkoutViewModel
-): Set<String>? =
-    ExerciseEquipmentTags.allowedTagsFor(selectedEquipment)
-        .takeIf { selectedEquipment.isNotEmpty() }
-        ?: viewModel.userGrantedEquipmentTags()
+private fun equipmentFilterBlockGrantedTags(selectedEquipment: List<String>): Set<String>? =
+    selectedEquipment.takeIf { it.isNotEmpty() }
+        ?.let { ExerciseEquipmentTags.allowedTagsFor(it) }
 
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
@@ -2603,7 +2635,13 @@ fun AddExerciseDialog(
     /** A Roman numeral was picked: (name, level, stage), applied as ONE write. */
     onStageChange: ((String, Int, Int) -> Unit)? = null,
     /** Opens the full level ladder for the named exercise. */
-    onOpenLevelLadder: ((String) -> Unit)? = null
+    onOpenLevelLadder: ((String) -> Unit)? = null,
+    /**
+     * True when the level system is on app-wide — see [ExerciseEditDialog.levelSystemOn].
+     * A NEW exercise is then picked through the graphical picker rather than typed into
+     * the classic field; custom mode (and any edit) is untouched.
+     */
+    levelSystemOn: Boolean = false
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
@@ -2828,6 +2866,36 @@ fun AddExerciseDialog(
                     }
                 }
 
+                // The picker, for a NEW exercise while the level system is on: search +
+                // filters + graphical rows, no sets/reps/weight boxes and no method
+                // paragraph. Custom mode keeps the classic field below, untouched.
+                val pickerMode = exercise == null && levelSystemOn
+                val adoptExercise: (String, String?) -> Unit = { selectedName, preciseMuscle ->
+                    focusManager.clearFocus()
+                    name = selectedName
+                    if (!preciseMuscle.isNullOrBlank()) muscleGroup = preciseMuscle
+                    isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
+                    if (name != selectedName) videoUrl = ""
+                    if (targetSets.isBlank()) targetSets = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                    if (isTimeBased) {
+                        if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
+                    } else {
+                        if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
+                            targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
+                            repsManuallyEdited = false
+                        }
+                    }
+                }
+
+                if (pickerMode) {
+                    com.grafizum.repio.ui.components.ExercisePickerBody(
+                        equipmentCategories = userEquipmentCategories,
+                        grantedTags = userGrantedTags,
+                        allAvailableExercises = allAvailableExercises,
+                        selectedName = name.takeIf { it.isNotBlank() },
+                        onPick = { pick -> adoptExercise(pick.name, pick.muscleGroup) }
+                    )
+                } else {
                 SearchableExerciseField(
                     allExercises = filteredExercises,
                     value = name,
@@ -2840,25 +2908,13 @@ fun AddExerciseDialog(
                         )
                         if (detected != "Other") muscleGroup = detected
                     },
-                    onItemSelected = { selectedName ->
-                        focusManager.clearFocus()
-                        isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
-                        if (name != selectedName) videoUrl = ""
-                        if (targetSets.isBlank()) targetSets = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        if (isTimeBased) {
-                            if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
-                        } else {
-                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
-                                targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
-                                repsManuallyEdited = false
-                            }
-                        }
-                    },
+                    onItemSelected = { selectedName -> adoptExercise(selectedName, null) },
                     label = getString("exercise_name"),
                     placeholder = getString("exercise_name_placeholder")
                 )
+                }
 
-                if (name.isNotBlank()) {
+                if (name.isNotBlank() && !pickerMode) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(getString("trained_muscles") + ":", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         MuscleGroupBadge(muscleGroup = muscleGroup)
@@ -2921,7 +2977,11 @@ fun AddExerciseDialog(
                 // system prescribes the exercise these fields are not shown at
                 // all - the level list above IS their editor, and two editors for
                 // one prescription is the duplication this change removes.
-                if (!levelMode) {
+                //
+                // AND THE PICKER HOLDS THEM BACK UNTIL SOMETHING IS PICKED - see the same gate in
+                // [ExerciseEditDialog]: with no exercise chosen these boxes can only be empty, and
+                // empty boxes under the exercises read as a second way to name the movement.
+                if (!levelMode && (!pickerMode || name.isNotBlank())) {
                     RepsTimeToggle(
                         isTimeBased = isTimeBased,
                         onToggle = { newValue ->

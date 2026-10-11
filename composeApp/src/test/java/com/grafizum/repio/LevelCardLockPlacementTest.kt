@@ -9,7 +9,6 @@ import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
 import androidx.compose.ui.test.onRoot
 import androidx.compose.ui.unit.Density
-import androidx.compose.ui.unit.dp
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.windowSizeFor
 import com.grafizum.repio.ui.screens.LevelPrescriptionCard
@@ -33,16 +32,24 @@ import org.robolectric.annotation.GraphicsMode
  * together with the pencil but also make sure that the user can distinguish them and make it
  * look good"*.
  *
- * The defect was structural, not a value: the chip used to be a plain SIBLING of the pencil, so
- * the header's own 8dp spacing and a fixed 4dp spacer both landed between them, while the
- * weight spacer above had already eaten the free width - 26dp of air between the two controls,
- * and the chip's left edge consequently on the card's midline. Nothing about that is expressible
- * as a pure function, so this test lays the card out with Robolectric and reads the two
- * controls' actual bounds. It is also what stops the fix from being undone by a later edit that
- * re-adds a spacer: the chips come apart and [theChipAndPencilAreOneCluster] fails.
+ * That first pass made the chip and the pencil their own row so the weight spacer could carry
+ * the pair to the edge - and the owner came back on 2026-10-11 with the same complaint in
+ * sharper words: *"change the positioning a bit of the level lock to the right so that it
+ * doesnt look like its randomly floating and not anchored somehow or aligned somewhere"*.
  *
- * The numbers printed by each test are dp, converted from the layout's own pixels, so an
- * assertion means the same thing on any qualifier.
+ * WHAT WAS STILL WRONG, as a number. Measured on the phone (SM-S906B, 1080px @ 420dpi), the
+ * chip's ring ended at x=852 while the card's content column - the line the body's values
+ * (`27.5 kg`, `8 / 8 / 8 / 8 Reps`) and `NEXT UP` end on - is x=983. So the chip's right edge
+ * finished 50dp short of the one line the card is built on, 112dp of empty card sat behind its
+ * left edge, and 25dp of the pencil's INVISIBLE padding sat in front of it. Reaching the right
+ * edge is not the same as being anchored to it: parked left of the pencil, the chip could only
+ * ever land on the pencil's padding, never on the card.
+ *
+ * So the ORDER changed - pencil first, chip last - which is what this test pins down. The
+ * numbers it prints are dp, converted from the layout's own pixels, so an assertion means the
+ * same thing on any qualifier, and it measures the pencil's GLYPH as well as its 48dp target:
+ * the target's own layout gap was already 2dp when the owner reported 25dp of air, so the
+ * target alone cannot prove the cluster reads as one.
  */
 @RunWith(RobolectricTestRunner::class)
 @GraphicsMode(GraphicsMode.Mode.NATIVE)
@@ -52,22 +59,19 @@ class LevelCardLockPlacementTest {
     @get:Rule
     val composeTestRule = createComposeRule()
 
-    /**
-     * How far the pencil's GLYPH sits inside its 48dp target, on its left: a 20dp icon centred
-     * in the box and then shifted 6dp toward the card's edge by the card's own `offset`. The
-     * target's padding is what gives the chip and the pencil their visible breathing room
-     * without the row having to add any, which is why the assertions are stated against the
-     * pencil's TARGET and not against its glyph.
-     */
-    private val pencilLeadInDp = 14f
+    /** The card is rendered at a phone width, exactly as the workout screen does. */
+    private val window = windowSizeFor(widthDp = 411)
 
-    /** The 6dp the card shifts the pencil's target toward the edge (owner's earlier request). */
-    private val pencilInsetShiftDp = 6f
+    /**
+     * The row's own spacing between the pencil and the chip. It is deliberately not the
+     * header's 8dp: the pencil's 48dp target is mostly invisible padding, so this is the only
+     * gap the pair needs on top of the pencil's own +6dp shift toward the chip.
+     */
+    private val pairSpacingDp = 2f
 
     /** Renders the card at a phone width, exactly as the workout screen does. */
     private fun renderCard(locked: Boolean) {
         composeTestRule.setContent {
-            val window = windowSizeFor(widthDp = 411)
             CompositionLocalProvider(LocalWindowSize provides window) {
                 WorkoutTrackerTheme {
                     Box(modifier = Modifier.fillMaxSize().testTag("card_host")) {
@@ -100,9 +104,19 @@ class LevelCardLockPlacementTest {
 
     private fun Density.dp(px: Float) = px / density
 
-    /** [left, right] edges of a tagged control, in dp, in root coordinates. */
-    private fun horizontalBounds(tag: String): Pair<Float, Float> {
-        val bounds = composeTestRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
+    /**
+     * [left, right] edges of a tagged control, in dp, in root coordinates.
+     *
+     * `unmerged` is for the pencil's GLYPH: it is a child of a clickable box, so its semantics
+     * are merged into the target and it only exists as a node of its own in the unmerged tree.
+     */
+    private fun horizontalBounds(tag: String, unmerged: Boolean = false): Pair<Float, Float> {
+        val node = if (unmerged) {
+            composeTestRule.onNodeWithTag(tag, useUnmergedTree = true)
+        } else {
+            composeTestRule.onNodeWithTag(tag)
+        }
+        val bounds = node.fetchSemanticsNode().boundsInRoot
         val density = composeTestRule.density
         return with(density) { dp(bounds.left) to dp(bounds.right) }
     }
@@ -112,75 +126,92 @@ class LevelCardLockPlacementTest {
             dp(composeTestRule.onRoot().fetchSemanticsNode().boundsInRoot.right)
         }
 
-    /**
-     * THE FIX, and the measurement that proves it. The chip's right edge stops 2dp short of the
-     * pencil's 48dp target - the cluster's own spacing - where the old sibling arrangement left
-     * 26dp (8dp + 4dp spacer + 8dp + the pencil's 6dp shift) between them. The chip's left edge
-     * also has to be past the card's midline, which is the complaint stated as a number.
-     *
-     * The 2dp is intentionally smaller than the 6dp [pencilInsetShiftDp] that the pencil's own
-     * target adds to the measured gap: the gap this asserts is the LAYOUT gap, so the pencil's
-     * shift is subtracted back out rather than being allowed to explain a loose chip.
-     */
-    private fun assertTheChipAndPencilAreOneCluster(locked: Boolean) {
-        val (chipLeft, chipRight) = horizontalBounds("level_lock_toggle")
-        val (pencilLeft, pencilRight) = horizontalBounds("level_edit")
+    /** The card's own inner right edge: the column its content is built on. */
+    private val contentRightDp: Float
+        get() = rootRightDp - window.cardPadding.value
 
-        val layoutGap = pencilLeft - chipRight - pencilInsetShiftDp
+    /**
+     * THE FIX, and the measurement that proves it.
+     *
+     *   - the chip's RIGHT edge lands on the card's content column, which is the "anchored
+     *     somehow or aligned somewhere" the owner asked for - previously 50dp short of it;
+     *   - the pencil sits BEHIND it, separated by exactly the row's own spacing, so the pair
+     *     is still one cluster at the edge rather than two controls that drifted apart;
+     *   - the air the eye actually reads between the glyph and the chip's ring stays a cluster
+     *     gap (4..12dp), which is the part the target's bounds cannot show;
+     *   - and the chip is past the card's midline, which is the 2026-10-09 complaint stated as
+     *     a number.
+     */
+    private fun assertTheChipClosesTheHeader(locked: Boolean) {
+        val (chipLeft, chipRight) = horizontalBounds("level_lock_toggle")
+        val (glyphLeft, glyphRight) = horizontalBounds("level_edit_glyph", unmerged = true)
+        val (pencilLeft, pencilRight) = horizontalBounds("level_edit")
+        val contentRight = contentRightDp
+
+        val airDp = chipLeft - glyphRight
         println(
             "locked=$locked: chip [$chipLeft, $chipRight] (${chipRight - chipLeft}dp wide), " +
-                "pencil target [$pencilLeft, $pencilRight], layout gap ${layoutGap}dp, " +
-                "chip left at ${"%.0f".format(100f * chipLeft / rootRightDp)}% of the card, " +
-                "pencil ends ${rootRightDp - pencilRight}dp from its right edge"
+                "pencil glyph [$glyphLeft, $glyphRight] in target [$pencilLeft, $pencilRight], " +
+                "air glyph->ring ${airDp}dp, chip right edge ${contentRight - chipRight}dp from " +
+                "the card's content column ($contentRight), " +
+                "chip left at ${"%.0f".format(100f * chipLeft / rootRightDp)}% of the card"
         )
 
-        assertTrue(
-            "locked=$locked: the lock chip must sit immediately LEFT of the pencil, not " +
-                "somewhere mid-row (chip right edge $chipRight, pencil target starts at " +
-                "$pencilLeft)",
-            chipLeft < chipRight && chipRight <= pencilLeft
+        assertEquals(
+            "locked=$locked: the chip must END the row on the card's own content column, not on " +
+                "the pencil's invisible padding - its right edge is " +
+                "${contentRight - chipRight}dp short of $contentRight, so nothing on the card " +
+                "aligns with it",
+            contentRight,
+            chipRight,
+            1.5f
         )
         assertTrue(
-            "locked=$locked: chip and pencil are one cluster, so only the cluster's own " +
-                "spacing may separate them - measured ${layoutGap}dp (the old sibling layout " +
-                "gave 20dp plus the pencil's shift)",
-            layoutGap <= 3f
+            "locked=$locked: the pencil is behind the chip, so the chip starts after the " +
+                "pencil's target ends (chip left $chipLeft, pencil target right $pencilRight)",
+            chipLeft >= pencilRight
+        )
+        assertEquals(
+            "locked=$locked: only the row's own spacing may separate the pair",
+            pairSpacingDp,
+            chipLeft - pencilRight,
+            1.5f
+        )
+        assertTrue(
+            "locked=$locked: the visible air between the pencil's glyph and the chip's ring is " +
+                "${airDp}dp - a cluster gap, not the 20dp+ the eye read as two stray controls",
+            airDp in 4f..12f
         )
         assertTrue(
             "locked=$locked: the chip must not sit on the card's midline - its left edge is " +
                 "at ${100f * chipLeft / rootRightDp}% of the width",
             chipLeft > rootRightDp / 2f
         )
-        assertTrue(
-            "locked=$locked: the pencil keeps the card's corner, so its target must end " +
-                "within its own padding of the edge - it ends " +
-                "${rootRightDp - pencilRight}dp short",
-            rootRightDp - pencilRight <= pencilLeadInDp + pencilInsetShiftDp
-        )
     }
 
     @Test
-    fun theChipAndPencilAreOneCluster() {
+    fun theChipClosesTheHeaderOnTheCardsContentColumn() {
         renderCard(locked = false)
-        assertTheChipAndPencilAreOneCluster(locked = false)
+        assertTheChipClosesTheHeader(locked = false)
     }
 
     /**
-     * The pair holds in BOTH lock states. The label gets shorter when the exercise is unlocked
-     * ("Level lock" vs "Locked"), so the chip's width changes while its anchor must not: it
-     * still stops against the pencil, and the pencil still owns the corner.
+     * The arrangement holds in BOTH lock states. The label gets shorter when the exercise is
+     * unlocked ("Level lock" vs "Locked"), so the chip's width changes while its anchor must
+     * not: its right edge stays on the content column and the pencil stays behind it.
      */
     @Test
-    fun theClusterHoldsWhenTheExerciseIsLocked() {
+    fun theArrangementHoldsWhenTheExerciseIsLocked() {
         renderCard(locked = true)
-        assertTheChipAndPencilAreOneCluster(locked = true)
+        assertTheChipClosesTheHeader(locked = true)
     }
 
     /**
-     * The other half of the instruction: they stay DISTINGUISHABLE, since they now share a
-     * corner. What separates them is shape and wording rather than distance - a labelled pill
-     * against a bare circular glyph - so the chip must be visibly wider than the pencil's
-     * target, and the pencil must stay a 48dp square.
+     * The other half of the 2026-10-09 instruction: they stay DISTINGUISHABLE, now that they
+     * share the corner and are 2dp apart on paper. What separates them is shape and wording
+     * rather than distance - a labelled pill against a bare circular glyph - so the chip must
+     * be visibly wider than the pencil's target, and the pencil must stay a 48dp square (its
+     * tap target is not the thing that moved).
      */
     @Test
     fun theChipAndThePencilRemainDistinguishable() {
@@ -190,7 +221,7 @@ class LevelCardLockPlacementTest {
         val (pencilLeft, pencilRight) = horizontalBounds("level_edit")
 
         assertEquals(
-            "the pencil keeps the card's corner at its 48dp minimum touch target",
+            "the pencil keeps its 48dp minimum touch target",
             48f,
             pencilRight - pencilLeft,
             1.5f
@@ -199,6 +230,11 @@ class LevelCardLockPlacementTest {
             "the chip must read as the labelled control beside the icon, not a second icon " +
                 "(chip ${chipRight - chipLeft}dp wide vs the pencil's ${pencilRight - pencilLeft}dp)",
             chipRight - chipLeft > pencilRight - pencilLeft + 20f
+        )
+        assertTrue(
+            "the pencil stays inside the card: its target ends at $pencilRight and the card's " +
+                "content column is $contentRightDp",
+            pencilRight <= contentRightDp + 1.5f
         )
     }
 }

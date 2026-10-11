@@ -12,6 +12,7 @@ import androidx.compose.material.icons.outlined.SelfImprovement
 import androidx.compose.material.icons.outlined.Stairs
 import androidx.compose.material.icons.outlined.Tune
 import androidx.compose.material3.Icon
+import androidx.compose.material3.MaterialTheme
 import androidx.compose.runtime.Composable
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.graphics.Color
@@ -63,6 +64,27 @@ fun EquipmentIconImage(
         is EquipmentIcon.Res -> Icon(painterResource(icon.id), contentDescription, modifier = modifier, tint = tint)
     }
 }
+
+/**
+ * The colour the collapsed equipment filter's glyphs wear.
+ *
+ * Owner, 2026-10-11: *"make sure the minimized icons in replacing the exercise and adding
+ * exercise is not pitch black but a theme color maybe a bit more acented than the usual theme
+ * primary color"*.
+ *
+ * They inherited `LocalContentColor` before — the near-black body colour on the light themes,
+ * the muted grey on the dark ones — so the one row that says "this is the kit filtering your
+ * list" was the quietest thing in the dialog.
+ *
+ * [androidx.compose.material3.ColorScheme.primary] IS the accent: it is the scheme's single
+ * non-neutral colour in every theme this app ships (the vivid gold in the developer theme, the
+ * brown in Warm Beige), so a glyph tinted with it is theme-coloured and as accented as the
+ * palette allows. A tint MORE saturated than primary is a palette change rather than a layout
+ * one, which is why it lives here in one function: raising the chroma is a one-line edit for
+ * whoever owns the palette, not a hunt through every call site.
+ */
+@Composable
+fun equipmentGlyphTint(): Color = MaterialTheme.colorScheme.primary
 
 fun equipmentTagIcon(tag: String): EquipmentIcon = when (tag) {
     ExerciseEquipmentTags.CHAIR -> EquipmentIcon.Res(R.drawable.ic_eq_chair)

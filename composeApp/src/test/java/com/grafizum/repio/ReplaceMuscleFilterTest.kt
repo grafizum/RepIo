@@ -129,12 +129,15 @@ class ReplaceMuscleFilterTest {
     }
 
     /**
-     * Open or close the filter. The row is scrolled to first because the capped block can have
-     * scrolled it out of the viewport, and a tap at a scrolled-out node's coordinates lands on
-     * whatever is drawn there instead — which is how a test "clicks the toggle" and changes
-     * nothing.
+     * Open or close the filter.
+     *
+     * NO `performScrollTo` HERE ANY MORE, and the reason is the change this pass makes: the row
+     * carrying the toggle and the chosen muscle is PINNED ABOVE the scrolled chips (owner,
+     * 2026-10-11), so it has no scrollable ancestor to scroll through and cannot be scrolled out
+     * of the viewport at all. The old scroll was a workaround for the row living inside the capped
+     * block, which is exactly what the owner asked to stop.
      */
-    private fun openFilter() = chip("muscle_filter_toggle").performScrollTo().performClick()
+    private fun openFilter() = chip("muscle_filter_toggle").performClick()
 
     private fun chip(tag: String) = composeTestRule.onNodeWithTag(tag)
 
@@ -143,6 +146,15 @@ class ReplaceMuscleFilterTest {
      * muscles below the fold must be scrolled to before they can be tapped.
      */
     private fun pick(tag: String) = chip(tag).performScrollTo().performClick()
+
+    /**
+     * A chip in the BROAD row, which is the first row of the scrolled block and therefore on
+     * screen already - and, when the chosen group narrows the precise list enough that the block
+     * stops overflowing, the only row there is. `performScrollTo` would throw in that case (there
+     * is no scrollable to reach through), which is why the two helpers are separate rather than one
+     * guessed call.
+     */
+    private fun pickRow(tag: String) = chip(tag).performClick()
 
     // ---------------------------------------------------------------- compact
 
@@ -228,9 +240,16 @@ class ReplaceMuscleFilterTest {
             chip("muscle_chip_$group").assertExists()
         }
         chip("muscle_filter_precise_row").assertExists()
-        WorkoutTemplates.getPreciseMuscleGroups().forEach { muscle ->
+        // THE PRECISE ROW IS THE CHOSEN GROUP'S OWN MUSCLES. Owner, 2026-10-11: *"when selecting
+        // muscle group back, then make sure that the precise muscles are shown only of that 'back'
+        // cathegory / group"*. This dialog opens on the replaced exercise's own part, so what it
+        // must offer is that part's muscles - and NOT the other groups', which would be the two
+        // vocabularies standing side by side again.
+        WorkoutTemplates.getPreciseMuscleGroupsFor(REPLACED_TOPIC).forEach { muscle ->
             chip("muscle_chip_precise_$muscle").assertExists()
         }
+        chip("muscle_chip_precise_Quadriceps").assertDoesNotExist()
+        chip("muscle_chip_precise_Biceps").assertDoesNotExist()
         // "Any" is a visible choice rather than the absence of one.
         chip("muscle_chip_any").assertExists()
         // The filter STARTS on the replaced exercise's own body part, and says so.
@@ -269,6 +288,9 @@ class ReplaceMuscleFilterTest {
             expectedPool("Lats") < expectedPool(REPLACED_TOPIC)
         )
 
+        // Quadriceps is a LEG muscle, and the precise row only offers the chosen group's muscles
+        // now - so the group is chosen first. That is the new interaction, and it is one tap.
+        pickRow("muscle_chip_Legs")
         pick("muscle_chip_precise_Quadriceps")
         assertEquals(
             "picking Quadriceps did not narrow the list to the quad pool",
@@ -387,6 +409,8 @@ class ReplaceMuscleFilterTest {
     fun theCollapsedRowShowsTheChosenMuscle() {
         render()
         openFilter()
+        // Triceps belongs to Arms: choose the group, then its muscle (see the note above).
+        pickRow("muscle_chip_Arms")
         pick("muscle_chip_precise_Triceps")
         openFilter() // collapse again
 

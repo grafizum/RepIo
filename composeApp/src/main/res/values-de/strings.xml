@@ -222,6 +222,7 @@
     <string name="equipment_all">Alle</string>
     <string name="any_muscle_group">Alle</string>
     <string name="muscle_filter_precise">Genaue Muskeln</string>
+    <string name="muscle_filter_precise_group">Genaue Muskeln — %1$s</string>
     <string name="copy_day_title">%1$s kopieren</string>
     <string name="copy_day_desc">Alle Übungen von %1$s auf einen anderen Tag kopieren:</string>
     <string name="copy_day_replace">Ersetzen</string>

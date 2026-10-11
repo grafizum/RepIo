@@ -149,6 +149,44 @@ object WorkoutTemplates {
     /** All equipment categories (excluding [EQUIPMENT_ALL]). */
     val allEquipmentCategories: List<String> = ExerciseCatalog.CATEGORIES
 
+    /**
+     * The categories a FILTER UI may draw a chip for: every one but [EQUIPMENT_OTHER].
+     *
+     * WHY "OTHER" HAS NO CHIP. Owner, 2026-10-11: *"make sure all equipments that are from the
+     * welcome screen apply and the (other) is not shown"*. The welcome screen cannot grant it -
+     * it is not kit - so a chip for it is a control the user never chose, drawn in the same row
+     * as the kit they did choose, and it reads as equipment they are missing rather than as the
+     * category that needs nothing (a plank, a walk, every stretch and pose: 144 of the
+     * catalogue's 601 movements).
+     *
+     * IT IS HIDDEN FROM THE UI, NOT REMOVED FROM THE FILTER. Every picker still filters by it -
+     * `defaultEquipmentFilter` starts from the user's kit PLUS this category - because dropping
+     * it is exactly the bug this replaced: those 144 movements became unreachable for every user
+     * who had answered the equipment question. Measured 2026-10-11: with the whole catalogue and
+     * all eight categories, 0 movements are unreachable; without this one category, 144 are.
+     */
+    val filterableEquipmentCategories: List<String> =
+        allEquipmentCategories.filter { it != EQUIPMENT_OTHER }
+
+    /**
+     * The equipment a picker opened INSIDE the setup builder should filter by.
+     *
+     * The builder's own live selection wins while it has one - the user is choosing kit on that
+     * same screen, so the filter must follow the taps. When it has none, the kit the welcome
+     * screen already SAVED applies instead, which is the owner's *"make sure all equipments that
+     * are from the welcome screen apply"*: opening the exercise editor before re-visiting the
+     * equipment step used to fall back to "unrestricted", so a returning user was offered
+     * equipment they had already said they do not own.
+     *
+     * Both inputs are the RAW tag lists as stored ([WorkoutViewModel.savedEquipmentSelection]),
+     * never a derived one: the coarse category list is EMPTY for an unrestricted/full-gym
+     * selection, so deciding on it would mistake "everything" for "nothing chosen".
+     */
+    fun pickerEquipmentSelection(
+        builderSelection: List<String>,
+        savedSelection: List<String>
+    ): List<String> = builderSelection.ifEmpty { savedSelection }
+
     /** The string-resource key for an equipment category's display label. */
     fun equipmentLabelKey(category: String): String = when (category) {
         EQUIPMENT_BODYWEIGHT -> "bodyweight_label"
@@ -2365,6 +2403,35 @@ object WorkoutTemplates {
      */
     fun getBroadMuscleGroups(): List<String> =
         listOf("Arms", "Back", "Chest", "Core", "Legs", "Shoulders")
+
+    /**
+     * The precise muscles that belong to [muscleGroup], in the catalogue's own order.
+     *
+     * Owner, 2026-10-11: *"when selecting muscle group back, then make sure that the precise
+     * muscles are shown only of that 'back' cathegory / group"*. The filter used to draw all
+     * nineteen whatever was selected, so picking Back and reading the list below it said nothing
+     * about which muscles Back had actually answered with — the two vocabularies were two lists in
+     * one block rather than a choice and its refinements.
+     *
+     * [muscleGroup] may be a BROAD part ("Back"), a PRECISE muscle ("Lats") or null:
+     *
+     *  - null or blank is "any muscle", which is every precise muscle — the block's opening state;
+     *  - a precise muscle answers with its own GROUP's muscles, because that is the list the user is
+     *    already looking at when they tap it (tapping "Lats" must not leave the user in a list of
+     *    one, and must not silently re-open the other five groups);
+     *  - anything unrecognised falls back to every muscle rather than to an empty row: an empty
+     *    filter is indistinguishable from a broken one.
+     *
+     * THE SIX BROAD PARTS PARTITION THE NINETEEN EXACTLY. That is what makes narrowing safe, and
+     * `MuscleFilterGroupingTest` pins it: no precise muscle falls outside the six, so no muscle
+     * becomes unreachable by picking a group, and no two groups claim the same one.
+     */
+    fun getPreciseMuscleGroupsFor(muscleGroup: String?): List<String> {
+        if (muscleGroup.isNullOrBlank()) return getPreciseMuscleGroups()
+        val topic = getTopicForMuscle(muscleGroup)
+        if (topic == "Other") return getPreciseMuscleGroups()
+        return getPreciseMuscleGroups().filter { getTopicForMuscle(it) == topic }
+    }
 
     /** Lowercase keys of [getBroadMuscleGroups], for the lookup in [exercisesForMuscleGroup]. */
     private val broadMuscleGroupKeys =

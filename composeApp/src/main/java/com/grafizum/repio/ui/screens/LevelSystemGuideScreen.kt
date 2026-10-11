@@ -386,11 +386,26 @@ private fun LevelLockExample() {
 
             Spacer(modifier = Modifier.weight(1f))
 
-            // The pair the card anchors at its right edge: the lock chip, then the pencil.
+            // The pair the card anchors at its right edge: the pencil, then the lock chip,
+            // which CLOSES the row. The order matters and is the card's own (owner,
+            // 2026-10-11: the lock must not "look like its randomly floating and not
+            // anchored"): first is the pencil, last is the chip whose right edge lands on
+            // the card's content column.
             Row(
                 verticalAlignment = Alignment.CenterVertically,
                 horizontalArrangement = Arrangement.spacedBy(2.dp)
             ) {
+                // The pencil, drawn the same size the card draws its glyph so the shape is
+                // recognisable on the workout screen. Its 6dp of padding stand in for the
+                // card's own +6dp shift, which pulls the glyph toward the chip beside it.
+                Icon(
+                    imageVector = Icons.Default.Edit,
+                    contentDescription = null,
+                    tint = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier
+                        .padding(horizontal = 6.dp)
+                        .size(20.dp)
+                )
                 // The lock chip, in its locked state: a primary hairline around the same 14%
                 // primary fill the action banner uses. Both numbers are the card's own.
                 Surface(
@@ -417,17 +432,6 @@ private fun LevelLockExample() {
                         )
                     }
                 }
-
-                // The pencil that shares that corner on the card, drawn the same size the card
-                // draws its glyph so the shape is recognisable on the workout screen.
-                Icon(
-                    imageVector = Icons.Default.Edit,
-                    contentDescription = null,
-                    tint = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier
-                        .padding(horizontal = 6.dp)
-                        .size(20.dp)
-                )
             }
         }
         GuideCaption(getString("lock_example_caption"))
