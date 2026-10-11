@@ -1573,3 +1573,28 @@ Running the sync needs `grafizum-dashboard/apps/sync-cli`, and **the CWD must be
 workspace** — `node --import tsx` resolves `tsx` from the working directory, not from the
 script's own location, so running it from the project root fails with
 `ERR_MODULE_NOT_FOUND` for a package that is installed.
+
+### The ledger can add and change a task, but it cannot CLOSE one
+
+A sync matches a task by `(source path, title)` and applies title, status, priority and notes,
+with one deliberate exception: when the incoming status is `done` and the stored status is
+already `review`, `done` or `cancelled`, **the status is dropped**
+(`packages/core/src/repo.ts`). A Markdown source that keeps reporting "done" must not re-open
+a task the owner has already been handed, so the handover is sticky. Measured 2026-10-11: the
+run reported `29 changed, 29 completed` and the board still showed 31 `review` rows; only a
+direct `PATCH` closed them.
+
+- **Moving review → done is an API call, not a sync.** Do both, or the file and the board
+disagree: flip the ledger line, sync, then PATCH every open row
+(`tools/dashboard_set_status.py <id> done "<reason>"`, which derives its own
+`Idempotency-Key` so a re-run is a no-op).
+- **`/v1/tasks` pages by `offset` only.** The endpoint answers `page=` with the same first
+  page every time; one unpaginated read silently drops everything after it. Use
+  `tools/dashboard_tasks.py`, which loops until a short page comes back — not a hand-rolled
+  fetch.
+- **There is no DELETE for a task.** The only DELETE routes on the command center are project
+  memory documents and the GitHub passthrough, so a stray row (another agent's write-path
+  probe, say) is closed with `cancelled` and a reason rather than removed.
+- **A note over 5000 characters is clamped on a word boundary, not rejected** — so a long task
+  record reaches the board TRUNCATED and the loss is silent. Keep `TODO.md` under the limit and
+  put the durable rule here; that is the whole reason this section exists.
