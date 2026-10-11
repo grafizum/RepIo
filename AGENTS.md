@@ -1038,6 +1038,45 @@ Whatever a broad filter finds, the *stored* muscle group stays precise
 (`getMuscleGroupForExercise(name)`), because the label and the Analytics split read it.
 `ExerciseMuscleFilterTest` locks all of this down.
 
+## Adding an exercise in level mode PICKS it; custom mode still TYPES it (2026-10-11)
+
+Owner ruling: *"adding an exercise card needs to stay as it is for custom but changed for when
+level system is active ... i want the whole card to have graphical informations rather than bloat
+text"*. So the add card has two shapes, and which one it takes is decided by ONE flag plus one
+null: `exercise == null && levelSystemOn`. An **edit** never uses the picker (it is about the row
+it was opened on), and neither does custom mode.
+
+Both add cards - the routine editor and the welcome/setup form - draw the SAME
+`ExercisePickerBody`, and that sharing is the point: they are separate dialogs and a level feature
+has already landed in one of them only once. Search and filters are ONE list, not two modes: a
+blank query IS the filter pool in popularity order, and typing narrows that same pool through
+`ExerciseSearch` (canonical *and* translated names). The card's rows are graphics - equipment
+glyph, name, precise-muscle badge - never the method paragraph, which is custom mode's context.
+The rows themselves come from `exercisePickerPool`, extracted from the composable because every
+failure mode of that sentence is a pool question; `ExercisePickerPoolTest` and
+`ExercisePickerBodyTest` pin it.
+
+Two rules inside it are easy to get wrong:
+
+- **The kit is a CEILING, and a chip cannot grant kit the user never declared.** Ticking
+  "Barbell" for a dumbbell owner offers nothing rather than movements they cannot load.
+- **`Other` is not kit that can be lacked.** The catalogue files a plank, a hollow hold, every
+  stretch and pose - and a walk - under `Other`, so a picker opened on the user's chip list alone
+  hides 115 movements and nobody who has ever answered the equipment question can add a Plank.
+  `defaultEquipmentFilter` adds it to the kit; it stays a real chip that unticks.
+
+A THIRD RULE IS GEOMETRIC, and it shipped broken once because every test was green: **the card's
+list must state its own height.** Both add cards draw `ExercisePickerBody` inside `AppDialog`'s
+DEFAULT body, which SCROLLS - and a scrolling parent measures its children with an unbounded
+height, so the list's `Modifier.weight` resolved to nothing and every row was laid out at **0px**.
+The owner met exactly that on the phone: *"not just a label but actually exercises i can select
+from"*. It is now `heightIn(min = 200.dp, max = 0.40 x window)`
+(`PICKER_LIST_MAX_WINDOW_SHARE`), so the box is bounded in either host. The replace dialog works
+for the opposite reason - it passes `scrollableBody = false`, which is what bounds its list.
+Two consequences to keep: a component test in a bounded column CANNOT see this class of bug
+(`AddExerciseCardTest` renders the DIALOG, not the component), and the "Exercises (N)" caption is
+gone - that count lives in the list's content description, spoken and not drawn.
+
 ## The launcher icon follows the APP THEME, so light and dark are SEPARATE RESOURCES
 
 Android resolves `mipmap-night-anydpi-v26/` OVER `mipmap-anydpi-v26/` whenever the **system** is in dark mode, and it does this before the app gets a say. So while a light theme and its night twin shared ONE resource name, a light app theme on a dark phone always showed the dark plate — which is exactly the owner's report on 2026-10-02: *"on light beige it showsorange dark and the rest also still shows the dark icons not the light once"*. Beige had always been `icon_bg_white`, so this was never about the five dark plates commit `4f2f1a7` introduced: reverting those could not touch it, because the override is Android's resource resolution and not a value in our files.
