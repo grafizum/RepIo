@@ -242,9 +242,26 @@ object ExerciseEquipmentTags {
         // Yoga poses whose names contain gear words ("Chair Pose" needs no chair).
         "chair pose" to req(emptySet()),
         "revolved chair pose" to req(emptySet()),
-        // Rows under a sturdy table need something sturdy to hang from — the
-        // chair tier (a table is furniture the home checkboxes cover).
-        "inverted row" to chairOrBench(),
+        // AN INVERTED ROW HANGS FROM A BAR AT HEIGHT, WHICH A CHAIR IS NOT.
+        //
+        // Owner report (board task_41225r40140w145f3h1m0p1i): "Inverted row
+        // requires a machine, another thing which is shown when only selecting
+        // dumbell and chair. This exercise shouldnt be shown and be replaced with
+        // one that actually fits." The row's own instructions name the apparatus
+        // ("using the bar of the Smith machine to hang and pull from"), so the
+        // gate asked for the wrong thing: it used the chair/bench tier on the
+        // theory that "a table is furniture the home checkboxes cover", which is
+        // what put a bar exercise in front of a user whose only furniture is a
+        // kitchen chair. You cannot row under a chair at any height.
+        //
+        // The bar tiers are the ones that can actually hold the body: a pull-up
+        // bar/rig set at a height, or parallel (dip) bars. Both are inside the
+        // Bodyweight family, so the row stays filed where it belongs - see
+        // EquipmentCategoryConsistencyTest, which fails a row whose category and
+        // requirements disagree. The suspension versions have their own pool
+        // siblings (Rings Inverted Row, TRX Row), so rings are deliberately not
+        // listed here.
+        "inverted row" to req(s(PULL_UP_BAR), s(DIP_BARS)),
         // Weighted floor work: any weight source the home checkboxes grant.
         "weighted wall crunch" to req(s(BACKPACK_OR_WEIGHTED_BAG), s(DUMBBELLS_ONLY)),
         // Gear-specific items with no home equivalent.

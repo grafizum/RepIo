@@ -231,9 +231,40 @@ class ExerciseEquipmentTagsTest {
         // "Chair Pose" is a yoga pose — its name lies about the gear.
         assertTrue(ExerciseEquipmentTags.isAvailable("Chair Pose", bwOnly))
         assertTrue(ExerciseEquipmentTags.isAvailable("Plank", bwOnly))
-        // An inverted row needs something sturdy to hang from: chair tier.
-        assertTrue(ExerciseEquipmentTags.isAvailable("Inverted Row", bwChair))
+        // An inverted row hangs from a bar at height, and a chair is not that.
+        assertTrue(ExerciseEquipmentTags.isAvailable("Inverted Row", bwPullUpBar))
         assertFalse(ExerciseEquipmentTags.isAvailable("Inverted Row", bwOnly))
+        assertFalse(ExerciseEquipmentTags.isAvailable("Inverted Row", bwChair))
+    }
+
+    /**
+     * The owner's own kit: dumbbells and a chair.
+     *
+     * Board task_41225r40140w145f3h1m0p1i: "Inverted row requires a machine,
+     * another thing which is shown when only selecting dumbell and chair. This
+     * exercise shouldnt be shown and be replaced with one that actually fits."
+     * The chair tier used to satisfy it, so the bar row was offered to a user with
+     * nothing to hang a bar from. Both halves are asserted here: the row is gone,
+     * and the dumbbell row that takes its place in the same day is reachable.
+     */
+    @Test
+    fun theDumbbellAndChairKitLosesTheBarRowAndKeepsADumbbellRow() {
+        val dumbbellsAndChair = dumbbellsOnly + ExerciseEquipmentTags.CHAIR
+        assertFalse(
+            "a bar row must not be offered to a kit with nothing to hang a bar from",
+            ExerciseEquipmentTags.isAvailable("Inverted Row", dumbbellsAndChair),
+        )
+        assertTrue(
+            "the replacement row has to fit the kit that lost the bar row",
+            ExerciseEquipmentTags.isAvailable("Bent-Over Dumbbell Row", dumbbellsAndChair),
+        )
+        // The bar tiers still reach it, so the row is re-gated rather than removed.
+        assertTrue(
+            ExerciseEquipmentTags.isAvailable(
+                "Inverted Row",
+                dumbbellsAndChair + ExerciseEquipmentTags.DIP_BARS,
+            ),
+        )
     }
 
     // ---------- 5. Presets, legacy categories and migration ----------

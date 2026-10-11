@@ -791,7 +791,7 @@ fun SettingsScreen(
                         ThemeOptionRow(
                             theme = ThemeColorItem(
                                 "DEVELOPER", "developer_theme",
-                                Color(0xFF131313), Color(0xFFD6B266)
+                                Color(0xFF131313), Color(0xFFE2B75A)
                             ),
                             isSelected = selectedTheme.equals("DEVELOPER", ignoreCase = true),
                             onSelect = { viewModel.setThemeOption("DEVELOPER") },

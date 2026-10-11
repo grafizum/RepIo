@@ -240,7 +240,8 @@ class DarkThemeContrastTest {
      * FLAME's are not.
      *
      * The 2026-10-10 revision lifted this scheme's greys off pure black (#131313 canvas,
-     * #1B1B1B cards, #252525 nested blocks) at the owner's request. Those are three
+     * #1B1B1B cards, #252525 nested blocks) at the owner's request. (The 2026-10-11 revision
+     * tried one step more and was reverted - it moved the accent's chroma only.) Those are three
      * DIFFERENT numbers now, which is exactly the state the FLAME case above cannot see:
      * the ramp is derived from `surfaceVariant` towards `onSurface` (`withThemedContainers`),
      * so raising the surfaces moves the upper two steps with them, and it would be easy to

@@ -244,16 +244,34 @@ private val RainbowColorScheme = darkColorScheme(
  * had to rise with the surfaces (#3F3F3F -> #4A4A4A): a rim is only visible against the
  * colour it sits on, so lifting the cards without it would have quietly erased the borders.
  *
- * Contrast, against the surfaces they sit on: accent #D6B266 on #131313 is 10.00:1 (9.28:1
- * on a card, 8.24:1 on a nested block), body #EDEBE8 on #131313 is 15.62:1, muted #A0A0A0
- * on #252525 is 5.86:1, the container's own text #E9D9B8 on #343434 is 8.95:1, and the
- * button label #1C1810 on the gold fill is 9.50:1 - all clear of the 4.5:1 body and 3:1
- * large-text thresholds that DarkThemeContrastTest enforces.
+ * REVISED AGAIN 2026-10-11, and THIS is the revision in force. The owner asked for colours
+ * "a bit more vibrant and not so fumed / smoked / boring"; three palettes were rendered for
+ * that decision (design/developer-theme-vibrance.html: this scheme with a hotter gold, a
+ * cool graphite, and a two-accent one), and the answer rejected the SHAPE rather than the
+ * accent - "the palette is ugly it looks horrible, revert it back to how it was and simply
+ * make the primary golden color a bit more vivid / vibrant". So the greys, the containers
+ * and the rim are back to their 2026-10-10 values (#131313 canvas, #1B1B1B cards, #252525
+ * nested blocks, #343434 / #2F2F2F containers, #4A4A4A rim). The lifted one-more-step ladder
+ * this revision first shipped was the "smoked" look being complained about, not its cure -
+ * a lesson worth keeping: whiteness of surface reads as haze, not as vibrance. ONE value
+ * moved, and it is the only one:
+ *
+ *   * THE ACCENT'S CHROMA, with hue and lightness held exactly: #D6B266 (HSL 41/58/62) ->
+ *     #E2B75A (HSL 41/70/62). Saturation is the axis the word "vivid" names; brightening the
+ *     gold instead only washes it towards yellow-white against a canvas that did not move.
+ *
+ * Contrast in force: accent #E2B75A on #131313 is 9.87:1 (9.15:1 on a card and 8.14:1 on a
+ * nested block, against 9.22:1 / 8.55:1 / 7.61:1 before the accent moved), the button label
+ * #1C1810 on the gold fill is 9.39:1, body #EDEBE8 on #131313 is 15.62:1, muted #A0A0A0 on
+ * #252525 is 5.86:1, the container's own text #E9D9B8 on #343434 is 8.94:1 and the rim is
+ * 1.94:1 on a card - all clear of the 4.5:1 body, 3:1 large-text and 1.5:1 rim floors
+ * DarkThemeContrastTest enforces. The five-step container ramp is back to #131313 / #1B1B1B /
+ * #252525 / #2F2F2F / #373737.
  */
 private val DeveloperColorScheme = darkColorScheme(
-    // The one accent: the phone's own gold, strengthened slightly on the owner's request
-    // (2026-10-10, above), and the only non-grey in the whole scheme.
-    primary = Color(0xFFD6B266),
+    // The one accent: the phone's own gold, its chroma raised on the owner's request
+    // (2026-10-11, above), and the only non-grey in the whole scheme.
+    primary = Color(0xFFE2B75A),
     onPrimary = Color(0xFF1C1810),
     // A neutral grey block carrying the accent's own tint for its text.
     primaryContainer = Color(0xFF343434),
@@ -265,7 +283,7 @@ private val DeveloperColorScheme = darkColorScheme(
     // TRUE dark grey, lifted off pure black: three steps of the SAME neutral, no hue in any
     // of them. The source phone rendered #0A0A0A; the owner has since asked for a very dark
     // grey rather than black, which is the one place this scheme deliberately departs from
-    // the sampled values.
+    // the sampled values. A further lift was tried on 2026-10-11 and reverted - see above.
     background = Color(0xFF131313),
     onBackground = Color(0xFFEDEBE8),
     surface = Color(0xFF1B1B1B),
