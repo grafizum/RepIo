@@ -1,5 +1,7 @@
 package com.grafizum.repio
 
+import androidx.compose.ui.semantics.SemanticsProperties
+import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
@@ -12,6 +14,7 @@ import com.grafizum.repio.ui.components.EditorLevelData
 import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.screens.AddExerciseDialog
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
+import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -165,6 +168,58 @@ class AddExerciseCardTest {
             "the list no longer states how many movements it holds",
             composeTestRule.onNodeWithTag("exercise_picker_list", useUnmergedTree = true)
                 .fetchSemanticsNode().boundsInRoot.height > 0f
+        )
+    }
+
+    /**
+     * NEITHER THE COUNT LINE NOR RESET SITS ABOVE THE LIST.
+     *
+     * Owner, 2026-10-11: *"i want the 'reset' button gone over the list of exercises that are being
+     * shown"* (the count label went in the same pass). A FILTER IS ACTIVATED FIRST on purpose: the
+     * removed control only ever appeared once something was filtering, so an assertion made on the
+     * untouched card would pass against the old code too - a test that cannot fail is not a test.
+     */
+    @Test
+    fun nothingSitsBetweenTheFiltersAndTheListAnyMore() {
+        renderAddCard()
+
+        composeTestRule.onNodeWithTag("muscle_filter_toggle").performClick()
+        composeTestRule.onNodeWithTag("muscle_chip_Chest").performClick()
+
+        composeTestRule.onNodeWithText("Reset").assertDoesNotExist()
+        composeTestRule.onNodeWithText("Exercises (", substring = true).assertDoesNotExist()
+        // ...and the way back out is the filter itself, which must still be offered.
+        composeTestRule.onNodeWithTag("muscle_chip_any").assertExists()
+    }
+
+    /**
+     * The muscle row's value is a GLYPH now, and the name it carries is its accessible one.
+     *
+     * Owner, 2026-10-11: *"instead of the muscle group label name it shows also the icon"*. Both
+     * halves are asserted on the drawn node: it has no text left on it (the chip is gone) and it
+     * still says which part is filtering the list, so the row cannot become a picture nobody can
+     * name.
+     */
+    @Test
+    fun theMuscleRowDrawsTheGroupsGlyphInsteadOfItsName() {
+        renderAddCard()
+
+        composeTestRule.onNodeWithTag("muscle_filter_toggle").performClick()
+        composeTestRule.onNodeWithTag("muscle_chip_Chest").performClick()
+
+        val value = composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
+            .fetchSemanticsNode()
+        val text = value.config.getOrNull(SemanticsProperties.Text).orEmpty()
+        assertTrue(
+            "the muscle row still draws its value as text ($text), so it is not the equipment row's " +
+                "style",
+            text.isEmpty()
+        )
+        assertEquals(
+            "the glyph does not name the part it is drawing",
+            "Chest",
+            value.config.getOrNull(SemanticsProperties.ContentDescription)
+                ?.joinToString("") { it }
         )
     }
 

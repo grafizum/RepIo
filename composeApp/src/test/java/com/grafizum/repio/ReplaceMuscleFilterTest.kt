@@ -89,25 +89,41 @@ class ReplaceMuscleFilterTest {
         }
     }
 
-    /** The number the dialog's own header prints in "Exercises (N)". */
+    /**
+     * How many alternatives the dialog is offering.
+     *
+     * Read from the LIST rather than from a caption. The visible "Exercises (N)" line was removed
+     * on the owner's instruction (2026-10-11: *"i want the 'reset' button gone over the list of
+     * exercises that are being shown"*, with the count label it shared the row with), and the
+     * count moved to the list's accessibility description - spoken, never drawn. The assertion it
+     * feeds is the one worth keeping: the filter must reach the pool lookup, so a chip that renders
+     * correctly and passes the wrong muscle through still fails.
+     */
     private fun shownCount(): Int {
-        val node = composeTestRule
-            .onNodeWithText("Exercises (", substring = true)
-            .fetchSemanticsNode()
-        val text = node.config.getOrNull(SemanticsProperties.Text)
-            ?.joinToString("") { it.text }
+        val node = composeTestRule.onNodeWithTag("replace_alternatives_list").fetchSemanticsNode()
+        val text = node.config.getOrNull(SemanticsProperties.ContentDescription)
+            ?.joinToString("") { it }
             .orEmpty()
         val match = Regex("\\((\\d+)\\)").find(text)
-        assertTrue("the list printed no count: \"$text\"", match != null)
+        assertTrue("the alternatives list carries no count: \"$text\"", match != null)
         return match!!.groupValues[1].toInt()
     }
 
-    /** The muscle the collapsed row is showing. */
+    /**
+     * The muscle the collapsed row is showing.
+     *
+     * Read from the GLYPH's accessible name since 2026-10-11: the row used to carry the muscle as
+     * text in a bordered chip, and now draws it as the part's own icon (owner: *"instead of the
+     * muscle group label name it shows also the icon"*). The assertion it feeds is unchanged in
+     * force - the row must name the group that is filtering the list - it is only read from the
+     * place the name now lives. The icon is found in the unmerged tree because a glyph with a
+     * content description is merged into the row it sits on.
+     */
     private fun shownMuscle(): String =
-        composeTestRule.onNodeWithTag("muscle_filter_value")
+        composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
             .fetchSemanticsNode()
-            .config.getOrNull(SemanticsProperties.Text)
-            ?.joinToString("") { it.text }
+            .config.getOrNull(SemanticsProperties.ContentDescription)
+            ?.joinToString("") { it }
             .orEmpty()
 
     /**
@@ -337,14 +353,19 @@ class ReplaceMuscleFilterTest {
             maxOf(value.height, toggle.height)
         }
         fun text(t: String) = composeTestRule.onNodeWithText(t).fetchSemanticsNode().boundsInRoot
-        fun countBox() = composeTestRule.onNodeWithText("Exercises (", substring = true)
-            .fetchSemanticsNode().boundsInRoot
-        // Re-fetched per state: the count line and the list room both MOVE when the filter opens,
-        // and reusing a stale box is how a report ends up claiming the layout did not change.
-        fun chrome() = countBox().bottom - text("Replace Exercise").top
-        // The Cancel button is pinned below the body, so count-line-to-Cancel is exactly the room
+        // The list's OWN top edge, because the "Exercises (N)" caption above it is gone (owner,
+        // 2026-10-11). It was the last thing between the filters and the alternatives, and the
+        // count it carried is spoken by this same node now. The two measurements it anchored are
+        // unchanged in meaning: chrome is still "everything above the list", list room is still
+        // "everything left for it".
+        fun listTop() = composeTestRule.onNodeWithTag("replace_alternatives_list")
+            .fetchSemanticsNode().boundsInRoot.top
+        // Re-fetched per state: the list's top and its room both MOVE when the filter opens, and
+        // reusing a stale box is how a report ends up claiming the layout did not change.
+        fun chrome() = listTop() - text("Replace Exercise").top
+        // The Cancel button is pinned below the body, so list-top-to-Cancel is exactly the room
         // the alternatives get — the number the whole layout exists to protect.
-        fun listRoom() = text("Cancel").top - countBox().bottom
+        fun listRoom() = text("Cancel").top - listTop()
 
         val equipment = box("equipment_filter_toggle")
         val chromeCollapsed = chrome()

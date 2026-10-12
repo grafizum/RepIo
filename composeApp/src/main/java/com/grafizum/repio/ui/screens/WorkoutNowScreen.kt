@@ -373,7 +373,12 @@ fun WorkoutNowScreen(
                         (slideInHorizontally { width -> width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> -width } + fadeOut(tween(300)))
                     } else {
                         (slideInHorizontally { width -> -width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> width } + fadeOut(tween(300)))
-                    }.using(SizeTransform(clip = false))
+                    // CLIPPED, not `SizeTransform(clip = false)` as this was. See the same note in
+                    // [RoutineScreen]: `clip = false` sized the transition to the union of both
+                    // days, so two complete day screens were measured and laid out on the frames
+                    // the user is watching. Clipping bounds both to the container, which is where
+                    // the day's list scrolls from anyway.
+                    }.using(SizeTransform(clip = true))
                 },
                 label = "DayTransition"
             ) { targetDay ->

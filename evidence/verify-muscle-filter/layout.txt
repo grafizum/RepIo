@@ -3,16 +3,16 @@ REPLACE DIALOG — FILTER HEIGHTS (Pixel7Pro 3.5x, so 1dp = 3.5px)
 COLLAPSED (the list is what the dialog is for):
   muscle filter row:          40.0dp
   equipment filter row:       40.0dp
-  chrome above the list:      321.4dp
-  room for the alternatives:  401.1dp
+  chrome above the list:      290.3dp
+  room for the alternatives:  432.3dp
 
 EXPANDED (the choices, one tap away):
   body-part chip block:       104.0dp
   caption + gap:              28.9dp
   precise-muscle chip block:  104.0dp
   the two blocks together:    236.9dp
-  chrome above the list:      566.3dp (was 321.4dp)
-  room for the alternatives:  156.3dp (was 401.1dp)
+  chrome above the list:      535.1dp (was 290.3dp)
+  room for the alternatives:  187.4dp (was 432.3dp)
 
 Owner, 2026-10-09: the filter must stay 'nicely spacious yet compact and small'.
 Compact is the one collapsed line; spacious is the two vocabularies staying apart,

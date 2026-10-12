@@ -680,16 +680,26 @@ fun ScreenHeader(
 /**
  * Draws a short gradient scrim over the bottom edge of the content, matching
  * the background color, to hint that content continues below the fold.
+ *
+ * [scrim] resolves the color the fade runs INTO, and is a lambda because it is read inside
+ * [composed]'s composable scope - a plain `Color` parameter would read the theme outside of
+ * one. The default is the app background, which is what a scrim on a screen wants; a scrim
+ * drawn inside a dialog passes the dialog's own surface ([AppDialog] uses
+ * surfaceContainerHigh), because the background color there is simply not what is behind the
+ * content - the fade would paint the wrong color and read as a smudge rather than a fold.
  */
-fun Modifier.bottomEdgeFade(height: Dp = 20.dp): Modifier = composed {
-    val scrim = MaterialTheme.colorScheme.background
+fun Modifier.bottomEdgeFade(
+    height: Dp = 20.dp,
+    scrim: @Composable () -> Color = { MaterialTheme.colorScheme.background }
+): Modifier = composed {
+    val scrimColor = scrim()
     drawWithContent {
         drawContent()
         val fadePx = height.toPx()
         if (size.height > fadePx) {
             drawRect(
                 brush = Brush.verticalGradient(
-                    colors = listOf(scrim.copy(alpha = 0f), scrim),
+                    colors = listOf(scrimColor.copy(alpha = 0f), scrimColor),
                     startY = size.height - fadePx,
                     endY = size.height
                 ),

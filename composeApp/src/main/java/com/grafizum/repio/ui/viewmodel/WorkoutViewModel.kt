@@ -493,9 +493,6 @@ class WorkoutViewModel(
     private val _supportUiState = MutableStateFlow(SupportUiState())
     val supportUiState: StateFlow<SupportUiState> = _supportUiState.asStateFlow()
 
-    private val _refreshTrigger = MutableSharedFlow<Unit>(replay = 0)
-    val refreshTrigger = _refreshTrigger.asSharedFlow()
-
     // Hoisted UI states to prevent "rescrolling" on recomposition
     val workoutNowScrollState = ScrollState(0)
     val dayChipsListState = LazyListState()
@@ -725,16 +722,21 @@ class WorkoutViewModel(
     }
 
     private fun saveWorkoutNowState(state: WorkoutNowState) {
-        prefs.putString("saved_workout_day", state.selectedDayOfWeek)
-        prefs.putInt("saved_exercise_index", state.currentExerciseIndex)
-        prefs.putInt("saved_set_number", state.currentSetNumber)
-        prefs.putFloat("saved_weight_kg", state.currentWeightKg.toFloat())
-        prefs.putInt("saved_reps", state.currentReps)
-        prefs.putInt("saved_exercise_seconds", state.currentExerciseSeconds)
-        prefs.putBoolean("saved_is_completed", state.isWorkoutCompleted)
-        prefs.putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
-        // The session is only valid for the calendar date it was saved on.
-        prefs.putLong("saved_session_date", startOfTodayMillis())
+        // ONE transaction, not nine. Each put used to open, serialise, write and fsync the prefs
+        // file on its own, and all nine ran inside the frame the user tapped a day on - the
+        // micro-lag reported as "lagging slightly when changing training days".
+        prefs.edit {
+            putString("saved_workout_day", state.selectedDayOfWeek)
+            putInt("saved_exercise_index", state.currentExerciseIndex)
+            putInt("saved_set_number", state.currentSetNumber)
+            putFloat("saved_weight_kg", state.currentWeightKg.toFloat())
+            putInt("saved_reps", state.currentReps)
+            putInt("saved_exercise_seconds", state.currentExerciseSeconds)
+            putBoolean("saved_is_completed", state.isWorkoutCompleted)
+            putInt("saved_total_sets_logged", state.totalSetsLoggedToday)
+            // The session is only valid for the calendar date it was saved on.
+            putLong("saved_session_date", startOfTodayMillis())
+        }
         saveDayProgress(state.selectedDayOfWeek, state)
     }
 
@@ -945,20 +947,25 @@ class WorkoutViewModel(
             val wasManual = _isManualReentry.value
             _isFirstTimeUser.value = false
             _isManualReentry.value = false
-            prefs.putBoolean("is_first_time", false)
-            // The replacement flow is over, so the persisted intent must not
-            // survive it (a later "New" sets it again).
-            prefs.putBoolean("setup_manual_reentry", false)
-            
-            // Persist setup parameters for later goal changes
-            prefs.putString("setup_type", setupType)
-            prefs.putString("setup_body_parts", bodyParts.joinToString(","))
-            prefs.putString("setup_days", selectedDays.joinToString(","))
-            prefs.putString("setup_intensity", intensity)
-            prefs.putString("setup_template_id", templateId)
-            prefs.putString("setup_equipment", equipment.joinToString(","))
-            prefs.putString("setup_duration", workoutDuration)
-            prefs.putString("setup_split_style", splitStyle)
+            // ONE commit for the whole setup. These were ten sequential transactions, each
+            // opening and fsyncing the prefs file, back to back on the frame the user finished
+            // the welcome flow - the longest such burst in the app.
+            prefs.edit {
+                putBoolean("is_first_time", false)
+                // The replacement flow is over, so the persisted intent must not
+                // survive it (a later "New" sets it again).
+                putBoolean("setup_manual_reentry", false)
+
+                // Persist setup parameters for later goal changes
+                putString("setup_type", setupType)
+                putString("setup_body_parts", bodyParts.joinToString(","))
+                putString("setup_days", selectedDays.joinToString(","))
+                putString("setup_intensity", intensity)
+                putString("setup_template_id", templateId)
+                putString("setup_equipment", equipment.joinToString(","))
+                putString("setup_duration", workoutDuration)
+                putString("setup_split_style", splitStyle)
+            }
             
             setRequestedWorkoutSubTab(if (wasManual) 1 else 0)
         }
@@ -1148,7 +1155,6 @@ class WorkoutViewModel(
         val currentState = _workoutNowState.value
         // If it's already the selected day, don't reset progress (preserves state on tab switch/app resume)
         if (currentState.selectedDayOfWeek == dayOfWeek) {
-            viewModelScope.launch { _refreshTrigger.emit(Unit) }
             return
         }
 
@@ -1166,7 +1172,6 @@ class WorkoutViewModel(
         )
         _workoutNowState.value = newState
         saveWorkoutNowState(newState)
-        viewModelScope.launch { _refreshTrigger.emit(Unit) }
     }
 
     fun navigateToExercise(index: Int, totalExercises: Int) {
@@ -1638,12 +1643,17 @@ class WorkoutViewModel(
         _workoutNowState.update { newState }
         saveWorkoutNowState(newState)
 
-        // Remember what the user chose for this exercise so it becomes the suggestion next time
+        // Remember what the user chose for this exercise so it becomes the suggestion next time.
+        // Batched into ONE commit: this used to open a second prefs transaction right after
+        // [saveWorkoutNowState]'s own, so a single stepper tap wrote the prefs file twice on the
+        // frame the user tapped it.
         currentExerciseName()?.let { name ->
-            if (!WorkoutTemplates.isBodyweightExercise(name) || newWeight > 0.0) {
-                prefs.putFloat("cache_weight_$name", newWeight.toFloat())
+            prefs.edit {
+                if (!WorkoutTemplates.isBodyweightExercise(name) || newWeight > 0.0) {
+                    putFloat("cache_weight_$name", newWeight.toFloat())
+                }
+                putInt("cache_reps_$name", newReps)
             }
-            prefs.putInt("cache_reps_$name", newReps)
         }
     }
 

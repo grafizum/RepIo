@@ -1,26 +1,37 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Cable crossover: two towers, one high-to-low cable with handles. -->
+<!-- Cable station, redrawn 2026-10-12 (owner: "display cables differently depending on what
+     that filter actually means"). WHAT THE FILTER MEANS: every movement behind the Cable chip
+     is SINGLE-PULLEY cable work - Cable Curl, Cable Fly, Cable Tricep Pushdown, Seated Cable
+     Row (48 mentions in ExerciseCatalog) - so the old TWO-TOWER CABLE CROSSOVER drew a machine
+     the filter does not offer. This is the station those exercises are done on: one tower, a
+     pulley at the top, a slack cable down to a D-handle. It also separates the icon from
+     ic_eq_machine, which gained a seat in the same pass. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- towers -->
+    <!-- tower -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.8"
-        android:pathData="M4.5,3.5 H9 V20.5 H4.5 Z M15,3.5 H19.5 V20.5 H15 Z" />
-    <!-- cable from the high pulley to the low pulley -->
+        android:pathData="M15.5,3.5 H19.5 V20.5 H15.5 Z" />
+    <!-- pulley hung on the tower's face -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.4"
         android:strokeLineCap="round"
-        android:pathData="M6.75,6.5 C10.5,8.5 13.5,13 17.25,17.5" />
-    <!-- handles -->
+        android:pathData="M14,6.2 m-1.5,0 a1.5,1.5 0 1 0 3,0 a1.5,1.5 0 1 0 -3,0" />
+    <!-- the cable, slack, dropping to the handle -->
     <path
-        android:fillColor="#FF000000"
-        android:pathData="M6.75,6.5 m-1.2,0 a1.2,1.2 0 1 0 2.4,0 a1.2,1.2 0 1 0 -2.4,0" />
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.2"
+        android:strokeLineCap="round"
+        android:pathData="M14,7.7 C13.4,10.6 12.6,13.4 11.4,15.6" />
+    <!-- D-handle -->
     <path
-        android:fillColor="#FF000000"
-        android:pathData="M17.25,17.5 m-1.2,0 a1.2,1.2 0 1 0 2.4,0 a1.2,1.2 0 1 0 -2.4,0" />
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M9.9,14.7 L12.9,16.5" />
 </vector>

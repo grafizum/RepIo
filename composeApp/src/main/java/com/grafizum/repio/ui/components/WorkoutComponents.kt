@@ -51,6 +51,7 @@ import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.graphics.painter.Painter
 import androidx.compose.ui.input.pointer.pointerInput
+import androidx.compose.ui.res.painterResource
 import androidx.compose.ui.unit.Constraints
 import androidx.compose.ui.unit.Dp
 import androidx.compose.ui.unit.IntOffset
@@ -2602,6 +2603,14 @@ fun weeklyBalanceIssues(
     exercises: List<RoutineExerciseEntity>,
     scopeGroups: Collection<String>? = null
 ): List<WeeklyBalanceIssue> {
+    // NOTHING TO JUDGE IS NOT A VERDICT. An empty week scores 0 for every group, which is
+    // under every floor, so the check would report chest, back and legs as undertrained for a
+    // routine nobody has built yet — the first thing a new user would see on the custom tab
+    // (owner, 2026-10-12: "in the custom build show the days empty not filled with already
+    // exercises"). Fixed here rather than at the call sites so a third caller cannot
+    // reintroduce it.
+    if (exercises.isEmpty()) return emptyList()
+
     val scope = (scopeGroups ?: BALANCE_GROUP_KEYS).toSet()
     return BALANCE_GROUPS.mapNotNull { (key, keywords, range) ->
         if (key !in scope) return@mapNotNull null
@@ -4806,6 +4815,18 @@ fun WorkoutDayWheel(
     val window = LocalWindowSize.current
     var totalDrag by remember { mutableFloatStateOf(0f) }
 
+    // THE SWIPE HANDLER IS INSTALLED ONCE, SO ITS READS MUST BE LIVE.
+    //
+    // `pointerInput(Unit)` below deliberately does not restart on a day change (restarting it
+    // was the original micro-lag: the gesture that CHANGED the day tore down and re-installed
+    // itself on its own success). But a lambda that never restarts also never refreshes its
+    // captures, so a plain read of [selectedDay] inside it would be frozen at the day the wheel
+    // first composed with - swipe right from Monday twice and you would land on Tuesday twice.
+    // These two keep the values current without a restart: the gesture coroutine reads the state
+    // object, and recomposition writes through it.
+    val swipeSelectedDay by rememberUpdatedState(selectedDay)
+    val swipeOnDaySelected by rememberUpdatedState(onDaySelected)
+
     // Strict gesture lock to prevent main app tab switching while swiping on the wheel
     val lockConnection = remember {
         object : NestedScrollConnection {
@@ -4822,22 +4843,34 @@ fun WorkoutDayWheel(
         modifier = modifier
             .fillMaxWidth()
             .nestedScroll(lockConnection)
-            .pointerInput(selectedDay) {
+            // NO key on purpose, and the two live reads above are what make that safe. See the
+            // note on [swipeSelectedDay]: keyed on `selectedDay` (as this was) the detector was
+            // torn down and re-installed after EVERY day change - which is the gesture that
+            // caused the change, so a swipe that landed its threshold paid for a coroutine
+            // restart on its own success.
+            .pointerInput(Unit) {
                 detectHorizontalDragGestures(
                     onHorizontalDrag = { _, dragAmount ->
                         totalDrag += dragAmount
                     },
                     onDragEnd = {
-                        val currentIndex = allDays.indexOfFirst { it.name == selectedDay }
+                        val currentIndex = allDays.indexOfFirst { it.name == swipeSelectedDay }
                         if (totalDrag > 120f) { // Swipe Right -> Next Day
                             val nextIndex = (currentIndex + 1) % 7
-                            onDaySelected(allDays[nextIndex].name)
+                            swipeOnDaySelected(allDays[nextIndex].name)
                         } else if (totalDrag < -120f) { // Swipe Left -> Previous Day
                             val prevIndex = (currentIndex - 1 + 7) % 7
-                            onDaySelected(allDays[prevIndex].name)
+                            swipeOnDaySelected(allDays[prevIndex].name)
                         }
                         totalDrag = 0f
                     },
+                    // Reset here TOO, not only in onDragEnd - this predates the restart fix and
+                    // stays on purpose. onDragCancel fires when the gesture is claimed by a
+                    // parent (the horizontal tab pager this wheel deliberately locks) or when
+                    // the pointer is cancelled, and a partial distance left in place counts
+                    // toward the NEXT swipe's threshold: without this reset a
+                    // swiped-then-interrupted drag would make the following tap change two days
+                    // instead of one.
                     onDragCancel = { totalDrag = 0f }
                 )
             }
@@ -5775,32 +5808,45 @@ fun MuscleGroupFilterCollapsible(
                 )
             }
 
-            // The current selection, drawn as a chip rather than as text: the equipment row
-            // shows glyphs, and a filter's value reading as a value (not as another label) is
-            // what keeps the two rows legible side by side.
-            Surface(
-                shape = RoundedCornerShape(8.dp),
-                color = if (selectedMuscleGroup == null) Color.Transparent
-                        else MaterialTheme.colorScheme.primary.copy(alpha = 0.14f),
-                border = BorderStroke(
-                    1.dp,
-                    if (selectedMuscleGroup == null) MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.6f)
-                    else MaterialTheme.colorScheme.primary.copy(alpha = 0.55f)
-                ),
-            ) {
-                // The tag sits on the TEXT rather than on the Surface around it, so a test can
-                // read the value the row is showing ("Back") instead of only proving a box is
-                // on screen — the difference between "the row exists" and "the row is honest".
+            // THE VALUE, DRAWN THE EQUIPMENT ROW'S WAY: a glyph, not a bordered chip.
+            //
+            // Owner, 2026-10-11: *"i want the equipment way of displaying with the 'show more'
+            // dropdown menu label to also have the same style in muscle group 'show more' label.
+            // And instead of the muscle group label name it shows also the icon."* The two rows
+            // were already the same control - same TextButton, same labelSmall+bold label, same
+            // 16dp chevron, same 8dp padding - so this chip was the whole difference between them.
+            //
+            // The glyph rides the group's own colour (the same colour its badge and the Analytics
+            // split read), so the icon says WHICH part twice: once by shape, once by hue. The name
+            // moves to the content description where it costs no width, exactly as the equipment
+            // row's labels do - and [muscleGroupTextColor], not [muscleGroupColor], is the tint,
+            // because this is INK on the dialog's surface: the light palette dips below legible
+            // contrast there, which is why the badge's own text already uses it.
+            //
+            // "Any" - and a group the app cannot place - still reads as a WORD:
+            // [muscleGroupIconRes] answers null for both, because a glyph for "every muscle" would
+            // name a body part the user has not chosen. That is the same fallback the equipment row
+            // makes when it has no glyph to draw.
+            val muscleIconRes = muscleGroupIconRes(selectedMuscleGroup)
+            if (selectedMuscleGroup == null || muscleIconRes == null) {
                 Text(
                     text = if (selectedMuscleGroup == null) anyLabel
                            else translateMuscleGroup(selectedMuscleGroup),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (selectedMuscleGroup == null) MaterialTheme.colorScheme.onSurfaceVariant
-                            else MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
                     maxLines = 1,
                     overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.semantics { testTag = "muscle_filter_value" }
+                )
+            } else {
+                // The tag sits on the VALUE rather than on a box around it, so a test reads what
+                // the row is showing ("Back") instead of only proving something is on screen.
+                Icon(
+                    painter = painterResource(muscleIconRes),
+                    contentDescription = translateMuscleGroup(selectedMuscleGroup),
+                    tint = muscleGroupTextColor(selectedMuscleGroup),
                     modifier = Modifier
-                        .padding(horizontal = 8.dp, vertical = 3.dp)
+                        .size(22.dp)
                         .semantics { testTag = "muscle_filter_value" }
                 )
             }
@@ -5852,11 +5898,33 @@ fun MuscleGroupFilterCollapsible(
             // [EXPANDED_FILTER_MAX_WINDOW_SHARE]. The six body parts fit; the nineteen precise
             // muscles do not, so they scroll inside the block instead of pushing the exercise list
             // out of the dialog — which is what the measurement recorded when this was unbounded.
+            // THE BLOCK MUST SAY IT IS A FOLD, NOT A LIST THAT ENDED. Owner, 2026-10-12: *"around the
+            // muscle groups make a very thin line with rounded borders around it so that the user can
+            // understand its scrollable"*. A border was rejected on the grounds that it would box a list
+            // that is not itself a control and that, when short, is not a fold at all — the fade this
+            // uses instead is the one [bottomEdgeFade] already draws for the screen shell, so the two
+            // read as one vocabulary for "there is more below".
+            //
+            // The scrim is the DIALOG'S surface, not the app background: the chips are drawn on
+            // [AppDialog]'s surfaceContainerHigh, and a background-colored fade there paints a stripe
+            // of the wrong colour rather than a fold.
+            //
+            // AND IT IS GATED ON [canScrollForward], because the six body parts with no group chosen
+            // FIT inside the cap. A fade on a block that cannot move is a promise of content that does
+            // not exist, and this filter starts in exactly that state.
+            val muscleScroll = rememberScrollState()
             Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .heightIn(max = (window.windowHeightDp * EXPANDED_FILTER_MAX_WINDOW_SHARE).dp)
-                    .verticalScroll(rememberScrollState()),
+                    .verticalScroll(muscleScroll)
+                    .then(
+                        if (muscleScroll.canScrollForward) {
+                            Modifier.bottomEdgeFade(
+                                scrim = { MaterialTheme.colorScheme.surfaceContainerHigh }
+                            )
+                        } else Modifier
+                    ),
                 verticalArrangement = Arrangement.spacedBy(8.dp)
             ) {
                 // BODY PARTS — the same six the filter has always offered, with Any first so
@@ -6136,33 +6204,26 @@ fun ReplaceExerciseDialog(
                     onSelect = { selectedMuscleGroup = it ?: ANY_MUSCLE_GROUP_KEY }
                 )
 
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth()
-                ) {
-                    Text(
-                        text = getString("exercises_count", visibleAlternatives.size),
-                        style = MaterialTheme.typography.bodySmall,
-                        color = MaterialTheme.colorScheme.onSurfaceVariant,
-                        modifier = Modifier.weight(1f)
-                    )
-                    // Reset widens the view back to everything: clear the query and
-                    // both filters, mirroring the welcome screen's filter dialog.
-                    if (searchQuery.isNotBlank() || selectedEquipment.isNotEmpty() ||
-                        selectedMuscleGroup != ANY_MUSCLE_GROUP_KEY
-                    ) {
-                        TextButton(
-                            onClick = {
-                                searchQuery = ""
-                                selectedEquipment = emptyList()
-                                selectedMuscleGroup = ANY_MUSCLE_GROUP_KEY
-                            },
-                            contentPadding = PaddingValues(horizontal = 8.dp)
-                        ) {
-                            Text(getString("reset"), style = MaterialTheme.typography.labelSmall)
-                        }
-                    }
-                }
+                // NEITHER THE COUNT LINE NOR RESET SITS ABOVE THE LIST HERE EITHER.
+                //
+                // Owner, 2026-10-11: *"i want the 'reset' button gone over the list of exercises
+                // that are being shown"* - and the count caption went in the same pass. The
+                // add-exercise card lost this row first ([ExercisePicker.kt]); this is its twin,
+                // the surface the same complaint was about, and leaving the row here would have
+                // been the one place two sibling pickers still disagreed.
+                //
+                // Reset was a second control for undoing what the two filter rows above already
+                // undo in place: the "Any" chip for muscle, an untick for equipment. Both are
+                // visible CHOICES rather than a word in the corner, and neither can be mistaken
+                // for the list's own heading - which is what a Reset sitting on top of the
+                // alternatives looked like.
+                //
+                // The count did not disappear, it moved to where it costs nothing: how many
+                // movements the list holds is real information, and a screen reader is the one
+                // reader that cannot see how far the list goes - see the list's own description
+                // below. Resolved OUTSIDE `semantics {}` because that lambda is not a composable
+                // scope, so a string lookup cannot happen inside it.
+                val listDescription = getString("exercises_count", visibleAlternatives.size)
 
                 if (visibleAlternatives.isEmpty()) {
                     Text(
@@ -6176,7 +6237,11 @@ fun ReplaceExerciseDialog(
                         // instead of a fixed cap a short window cannot honour.
                         modifier = Modifier
                             .fillMaxWidth()
-                            .weight(1f),
+                            .weight(1f)
+                            .semantics {
+                                testTag = "replace_alternatives_list"
+                                contentDescription = listDescription
+                            },
                         verticalArrangement = Arrangement.spacedBy(8.dp)
                     ) {
                         itemsIndexed(visibleAlternatives) { _, altName ->

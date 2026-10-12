@@ -3,6 +3,7 @@ import java.io.FileInputStream
 
 plugins {
     alias(libs.plugins.android.application)
+    alias(libs.plugins.android.baseline.profile)
     alias(libs.plugins.kotlin.android)
     alias(libs.plugins.kotlin.compose)
     alias(libs.plugins.google.devtools.ksp)
@@ -240,6 +241,11 @@ secrets {
 
 dependencies {
     implementation(libs.androidx.core.ktx)
+    // Installs the baseline profile baked into the AAB. Without this the profile is generated at
+    // build time and then silently dropped on the device: ART keeps interpreting the app's hot
+    // methods (day wheel, exercise list, the Compose recompose paths) instead of AOT-compiling
+    // them, which is the single largest startup and scroll win available for a Play release.
+    implementation(libs.androidx.profileinstaller)
     implementation(libs.androidx.appcompat)
     implementation(libs.androidx.activity.compose)
     implementation(libs.androidx.lifecycle.runtime.compose)
@@ -300,4 +306,28 @@ dependencies {
     // testInstrumentationRunner above, so it has to be on the androidTest classpath too.
     androidTestImplementation(libs.androidx.junit)
     androidTestImplementation(libs.androidx.runner)
+
+    // The baseline profile is GENERATED on a device and PACKAGED into the release bundle, so the
+    // plugin needs the same androidTest classpath the generator runs against.
+    baselineProfile(project(":composeApp"))
+}
+
+// ------------------------------------------------------------------ baseline profile
+//
+// WHY THIS IS THE BIGGEST PLAY RELEASE LEVER IN THIS FILE. Without a profile, ART interprets the
+// app on first runs and compiles only what it happens to execute; the Compose hot paths this app
+// lives on - the day wheel, the exercise list, the level card - are reached through reflection-
+// shaped call graphs that a JIT profile alone warms slowly. A bundled baseline profile makes the
+// installer AOT-compile exactly those methods before first launch.
+//
+// WHAT IT COSTS TO GENERATE: `./gradlew :composeApp:generateBaselineProfile` with a connected
+// device or emulator. That task is deliberately NOT wired into assembleRelease - generation needs
+// hardware and takes minutes, and a release build must stay reproducible from source alone. Until
+// it has been run once, the plugin packages no profile and the build still succeeds; the profile
+// simply stays absent. Run it on the owner's phone (or any API 24+ device) before the first real
+// Play upload, then commit composeApp/src/main/baseline-prof.txt.
+baselineProfile {
+    // Left at the plugin defaults deliberately. The generate task instruments the app's own
+    // startup and main-activity paths, which is what a first Play launch actually exercises;
+    // a custom target package or a narrowed instrumentation would only shrink the profile.
 }

@@ -1,23 +1,30 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Barbell: shaft with a plate pair each side. -->
+<!-- Barbell, redrawn 2026-10-12 (owner: "biggest in the inside and less big weights outside
+     like actual dumbells"). The bar is now the biggest thing in the box - full width, the
+     heaviest stroke in the set's lane - and the plates are small stubs near the ends, which is
+     the ratio a real barbell has. The old drawing inverted that: 7.6-tall plate bars at 2.6
+     weight against a 1.8 shaft, so the icon read as two dumbbells facing each other. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
+    <!-- the bar: edge to edge, heaviest line -->
     <path
         android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
+        android:strokeWidth="2.4"
         android:strokeLineCap="round"
-        android:pathData="M2.5,12 H21.5" />
+        android:pathData="M2,12 H22" />
+    <!-- outer plates: small stubs -->
     <path
         android:strokeColor="#FF000000"
-        android:strokeWidth="2.6"
+        android:strokeWidth="2.2"
         android:strokeLineCap="round"
-        android:pathData="M6.2,8.2 V15.8 M17.8,8.2 V15.8" />
+        android:pathData="M6.2,9.7 V14.3 M17.8,9.7 V14.3" />
+    <!-- inner plates: thinner, shorter still -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.6"
         android:strokeLineCap="round"
-        android:pathData="M9.4,9.6 V14.4 M14.6,9.6 V14.4" />
+        android:pathData="M9,10.7 V13.3 M15,10.7 V13.3" />
 </vector>

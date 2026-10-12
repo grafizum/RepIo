@@ -259,11 +259,12 @@ fun FirstTimeSetupScreen(
         )
     }
 
-    val customExercises = remember {
-        mutableStateListOf<RoutineExerciseEntity>().apply {
-            addAll(DefaultData.routineExercises)
-        }
-    }
+    // EMPTY, not prefilled. The custom builder used to open with [DefaultData.routineExercises]
+    // already spread across the days, so a user who wanted their own week first had to delete
+    // someone else's. The days still open with their default workout/rest split — only the
+    // exercises are gone; the + on each day is how they come back. A blank week is not an
+    // unbalanced one, so [weeklyBalanceIssues] issues no verdict on it.
+    val customExercises = remember { mutableStateListOf<RoutineExerciseEntity>() }
     
     val customSelectedExercises = remember { mutableStateListOf<RoutineExerciseEntity>() }
     var isCustomSelectionMode by remember { mutableStateOf(false) }

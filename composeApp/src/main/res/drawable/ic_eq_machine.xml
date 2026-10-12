@@ -1,38 +1,43 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Gym machine: weight-stack tower with dividers, seat on a post, lever arm. Replaces the robot-arm icon. -->
+<!-- Gym machine, v2 (2026-10-12). SAME LANE as the rest of the set - stroke only, round caps,
+     24dp on the 24x24 viewport - but with ONE ZONE PER ELEMENT, which the first attempt did
+     not have: the seat, backrest, post, pulley and handle all landed in the same few units and
+     the icon read as noise at 22dp. Layout now, all three parts in their own band:
+       right third  - the weight-stack tower, four plate dividers (what makes it a machine)
+       top left     - a T-handle hanging where the seat back would not be
+       bottom left  - the seat pad on its post
+     The tower plus dividers is what separates this from ic_eq_cable (one tower, one pulley,
+     a long slack cable, no seat). -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
-    <!-- stack tower outline -->
+    <!-- weight-stack tower -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.8"
-        android:pathData="M14.5,3.5 H19 V20.5 H14.5 Z" />
-    <!-- weight stack dividers -->
+        android:pathData="M15.5,3.5 H20 V20.5 H15.5 Z" />
+    <!-- the plates -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.2"
-        android:pathData="M14.5,7 H19 M14.5,10.5 H19 M14.5,14 H19" />
-    <!-- lever arm from the tower pivot towards the seat -->
+        android:pathData="M15.5,7 H20 M15.5,10 H20 M15.5,13 H20 M15.5,16 H20" />
+    <!-- T-handle, upper left, clear of everything -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
-        android:pathData="M14.5,8.5 L9.5,11.5" />
-    <!-- pivot -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M14.5,8.5 m-1.2,0 a1.2,1.2 0 1 0 2.4,0 a1.2,1.2 0 1 0 -2.4,0" />
-    <!-- seat -->
-    <path
-        android:fillColor="#FF000000"
-        android:pathData="M5.5,13.2 H11 V15.8 H5.5 Z" />
-    <!-- seat post -->
+        android:pathData="M4.5,7 H9.5 M7,7 V11" />
+    <!-- seat pad on its post, lower left -->
     <path
         android:strokeColor="#FF000000"
         android:strokeWidth="1.8"
         android:strokeLineCap="round"
-        android:pathData="M8.2,15.8 V20.5" />
+        android:pathData="M4.5,15.5 H10" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M7.2,15.5 V20.5" />
 </vector>

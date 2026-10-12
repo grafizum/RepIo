@@ -333,7 +333,16 @@ class ExercisePickerBodyTest {
             "the caption above the muscles does not name the group they came from: \"$captionText\"",
             captionText.contains("Back")
         )
-        composeTestRule.onNodeWithTag("muscle_filter_value").assertTextEquals("Back")
+        // The row names the group through the glyph's accessible name now, not through a text chip
+        // (owner, 2026-10-11: *"instead of the muscle group label name it shows also the icon"*).
+        assertEquals(
+            "the row no longer names the group it is filtering by",
+            "Back",
+            composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
+                .fetchSemanticsNode()
+                .config.getOrNull(SemanticsProperties.ContentDescription)
+                ?.joinToString("") { it }
+        )
     }
 
     /**

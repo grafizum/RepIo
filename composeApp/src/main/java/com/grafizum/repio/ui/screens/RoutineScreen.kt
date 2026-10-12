@@ -354,7 +354,20 @@ fun WorkoutScreen(
                         (slideInHorizontally { width -> width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> -width } + fadeOut(tween(300)))
                     } else {
                         (slideInHorizontally { width -> -width } + fadeIn(tween(300))).togetherWith(slideOutHorizontally { width -> width } + fadeOut(tween(300)))
-                    }.using(SizeTransform(clip = false))
+                    // CLIPPED, not `SizeTransform(clip = false)` as this was.
+                    //
+                    // `clip = false` asks the animation to size itself to the UNION of the two
+                    // days, so the taller day's cards are measured, laid out and drawn at full
+                    // height while both days slide - two complete screens of work on the same
+                    // frames the user is watching. Clipping to the container bounds both days to
+                    // one screen, which is also what the gesture wants: the day wheel is a fixed
+                    // height, so content that grows past it should scroll, not stretch the
+                    // transition.
+                    //
+                    // The slide itself is unchanged in direction; the fades are shortened because
+                    // a fade is what the eye reads as "something is animating", and at 300ms it
+                    // outlasts the slide it is meant to cover.
+                    }.using(SizeTransform(clip = true))
                 },
                 label = "DayTransition"
             ) { targetDay ->

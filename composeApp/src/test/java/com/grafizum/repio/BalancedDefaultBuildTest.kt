@@ -186,4 +186,22 @@ class BalancedDefaultBuildTest {
         // The same week under the default (all-groups) scope still names them.
         assertTrue(weeklyBalanceIssues(noLegs).isNotEmpty())
     }
+
+    /**
+     * AN EMPTY BUILDER IS NOT AN UNBALANCED ONE.
+     *
+     * Owner, 2026-10-12: *"in the custom build show the days empty not filled with already
+     * exercises"*. The custom tab now opens with zero exercises, so it necessarily passes an
+     * empty list to [weeklyBalanceIssues]. Without this test that case would only be checked by
+     * reading the source: a regression that reports every group as undertrained on a blank week
+     * would greet a first-time user with six red warnings for a routine they have not built yet.
+     */
+    @Test
+    fun anEmptyBuilderIssuesNoVerdict() {
+        assertEquals(
+            "a week with no exercises must not be reported as unbalanced",
+            emptyList<WeeklyBalanceIssue>(),
+            weeklyBalanceIssues(emptyList()),
+        )
+    }
 }

@@ -1,7 +1,9 @@
 package com.grafizum.repio
 
 import com.grafizum.repio.data.WorkoutTemplates
+import com.grafizum.repio.ui.components.muscleGroupIconRes
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Test
 
@@ -76,6 +78,55 @@ class MuscleFilterGroupingTest {
             "the caption's group label must come out as Back for Lats",
             "Back",
             WorkoutTemplates.getTopicForMuscle("Lats")
+        )
+    }
+
+    /**
+     * ONE GLYPH PER BROAD PART, AND NO GLYPH FOR ANYTHING THAT IS NOT ONE.
+     *
+     * Owner, 2026-10-11: *"i want the equipment way of displaying ... to also have the same style in
+     * muscle group 'show more' label. And instead of the muscle group label name it shows also the
+     * icon."* The row's value is drawn from [muscleGroupIconRes], which reduces whatever the filter
+     * holds - a broad part or a precise muscle - through the SAME topic function the partition above
+     * and the badge's colour use, so the glyph cannot disagree with the rest of the app about which
+     * part a muscle belongs to.
+     *
+     * Distinctness is the assertion that matters as much as the lookup: six parts, six drawings. Two
+     * parts sharing one glyph would make a row filtering by Back show the shape of a leg.
+     */
+    @Test
+    fun everyBroadPartHasItsOwnGlyphAndNothingElseHasOne() {
+        val glyphs = broad.associateWith { muscleGroupIconRes(it) }
+
+        assertTrue(
+            "a broad part has no glyph to draw: $glyphs",
+            glyphs.values.all { it != null }
+        )
+        assertEquals(
+            "two broad parts share one drawing: " +
+                "${glyphs.entries.groupBy({ it.value }, { it.key }).filterValues { it.size > 1 }}",
+            broad.size,
+            glyphs.values.filterNotNull().toSet().size
+        )
+
+        // A PRECISE selection draws its GROUP's glyph: the row holds "Lats" the moment that muscle
+        // is tapped, and it must still read as Back rather than losing its icon.
+        precise.forEach { muscle ->
+            assertEquals(
+                "the glyph for '$muscle' is not its group's",
+                glyphs[WorkoutTemplates.getTopicForMuscle(muscle)],
+                muscleGroupIconRes(muscle)
+            )
+        }
+
+        // "Any" means every muscle, which is not a body part - null is what makes the row fall back
+        // to the word, the same way the equipment row falls back to "All equipment".
+        assertNull("the Any state must not draw a body part", muscleGroupIconRes(null))
+        assertNull(muscleGroupIconRes(""))
+        assertNull(muscleGroupIconRes("   "))
+        assertNull(
+            "a group the app cannot place must not draw a guessed body part",
+            muscleGroupIconRes("Spleen")
         )
     }
 

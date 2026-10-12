@@ -6,7 +6,6 @@ import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
-import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.fillMaxWidth
 import androidx.compose.foundation.layout.heightIn
 import androidx.compose.foundation.layout.padding
@@ -24,7 +23,6 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
-import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -329,33 +327,16 @@ fun ExercisePickerBody(
             onSelect = { selectedMuscleGroup = it }
         )
 
-        // THE COUNT LINE IS GONE. Owner, 2026-10-11: *"remove ... the 'exercise (34)' label i want
-        // it to actually show all of those exercises in a scroll box"*. It was the third thing in a
-        // row that already said what was filtering (the two collapse rows above), and the number it
-        // printed was the one piece of information the list below it states far better by simply
-        // being there. Reset survives - a way back out of a filter is a control, not a caption - and
-        // the row itself is only drawn when there is something to reset, so an untouched card is
-        // search, filters, and exercises.
-        if (searchQuery.isNotBlank() || selectedMuscleGroup != null ||
-            selectedEquipment != startingFilter
-        ) {
-            Row(
-                verticalAlignment = Alignment.CenterVertically,
-                horizontalArrangement = Arrangement.End,
-                modifier = Modifier.fillMaxWidth()
-            ) {
-                TextButton(
-                    onClick = {
-                        searchQuery = ""
-                        selectedMuscleGroup = null
-                        selectedEquipment = startingFilter
-                    },
-                    contentPadding = PaddingValues(horizontal = 8.dp)
-                ) {
-                    Text(getString("reset"), style = MaterialTheme.typography.labelSmall)
-                }
-            }
-        }
+        // NEITHER THE COUNT LINE NOR RESET IS DRAWN. Owner, 2026-10-11: *"remove ... the 'exercise
+        // (34)' label"* and *"i want the 'reset' button gone over the list of exercises that are
+        // being shown"*. The count was the third thing in a row that already said what was
+        // filtering, and its number is stated far better by the list simply being there; Reset was
+        // a second control for undoing what the two filter rows above already undo in place.
+        //
+        // So the card now goes search -> filters -> exercises, with nothing between the filters and
+        // the list. The way back out of a filter is the filter itself: the "Any" chip for muscle,
+        // and an untick for equipment - both of which are visible choices rather than a word in the
+        // corner, and neither of which can be mistaken for the list's own heading.
 
         // Resolved OUTSIDE the `semantics {}` block below: that lambda is not a composable scope, so
         // a string lookup cannot happen inside it.

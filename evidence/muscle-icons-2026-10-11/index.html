@@ -1,0 +1,273 @@
+<!doctype html>
+<meta charset="utf-8">
+<title>Muscle group icons - RepIo</title>
+<style>
+  body { margin:0; padding:28px; background:#EFEBE6; color:#2B2723;
+         font:15px/1.5 -apple-system, Segoe UI, Roboto, sans-serif; }
+  h1 { font-size:20px; margin:0 0 4px; }
+  p.intro { max-width:74ch; margin:0 0 22px; color:#5C554E; }
+  h2 { font-size:15px; margin:0 0 10px; }
+  .grid { display:grid; grid-template-columns:repeat(auto-fill,minmax(260px,1fr)); gap:18px; }
+  .card { background:#fff; border:1px solid #DED7CF; border-radius:14px; padding:14px; }
+  .wide { grid-column:1/-1; margin-bottom:18px; }
+  .kits { display:flex; flex-wrap:wrap; gap:10px; }
+  .kit { flex:0 0 auto; width:104px; background:#F4F1ED; border-radius:10px;
+          padding:10px 6px 6px; text-align:center; }
+  .kit svg { display:block; margin:0 auto; }
+  .kit .cap { margin-top:8px; }
+  .pair { display:flex; gap:12px; }
+  .onlight, .ondark { flex:1; border-radius:10px; padding:10px; text-align:center; }
+  .onlight { background:#F4F1ED; }
+  .ondark { background:#1E1E1E; }
+  .ondark .cap { color:#9A9A9A; }
+  .cap { font-size:10px; letter-spacing:.03em; text-transform:uppercase; color:#8A837B; margin:6px 0; }
+  .row { display:flex; align-items:center; gap:6px; margin-top:14px; border-radius:10px;
+          padding:10px 12px; border:1px solid #DED7CF; }
+  .rowlabel { font-weight:700; }
+  .spacer { flex:1; }
+  .toggle { font-size:12px; font-weight:700; }
+  .chev { opacity:.7; }
+  .value-text { font-weight:700; font-size:13px; }
+  .anyrow { margin-top:18px; background:#fff; border:1px solid #DED7CF; border-radius:14px; padding:14px; }
+  code { background:#EFEBE6; padding:1px 5px; border-radius:5px; font-size:12px; }
+</style>
+<h1>Muscle group icons</h1>
+<p class="intro">
+  The six glyphs behind the muscle filter's collapsed row, read straight out of
+  <code>composeApp/src/main/res/drawable/ic_muscle_*.xml</code> - the same path data the app
+  renders, tinted with the app's own per-group ink. Each is ONE body part drawn alone: an arm, a
+  pair of legs, a chest, a back, a core, a pair of shoulders. The strip at the top is the
+  equipment set they were redrawn to match. Left column is a light surface (Warm Beige), right
+  column the dark theme. The small one is the real 22dp size; the large one is there so you can
+  judge the drawing itself. The row under each card is how it will read in the filter.
+</p>
+
+    <section class="card wide">
+      <h2>The equipment set - the style these have to match</h2>
+      <div class="kits">
+      <div class="kit">
+        <div class="cap">Barbell</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2,12 H22" fill="none" stroke="#2B2723" stroke-width="2.4" stroke-linecap="round" /><path d="M6.2,9.7 V14.3 M17.8,9.7 V14.3" fill="none" stroke="#2B2723" stroke-width="2.2" stroke-linecap="round" /><path d="M9,10.7 V13.3 M15,10.7 V13.3" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M2,12 H22" fill="none" stroke="#2B2723" stroke-width="2.4" stroke-linecap="round" /><path d="M6.2,9.7 V14.3 M17.8,9.7 V14.3" fill="none" stroke="#2B2723" stroke-width="2.2" stroke-linecap="round" /><path d="M9,10.7 V13.3 M15,10.7 V13.3" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Bench</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.4,11.2 H18.6 A1.5,1.5 0 0 1 18.6,14.2 H5.4 A1.5,1.5 0 0 1 5.4,11.2 Z" fill="#2B2723" /><path d="M7,14.2 V19 M17,14.2 V19" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M5.4,19 H8.6 M15.4,19 H18.6" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.4,11.2 H18.6 A1.5,1.5 0 0 1 18.6,14.2 H5.4 A1.5,1.5 0 0 1 5.4,11.2 Z" fill="#2B2723" /><path d="M7,14.2 V19 M17,14.2 V19" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M5.4,19 H8.6 M15.4,19 H18.6" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Cable</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5,3.5 H19.5 V20.5 H15.5 Z" fill="none" stroke="#2B2723" stroke-width="1.8" /><path d="M14,6.2 m-1.5,0 a1.5,1.5 0 1 0 3,0 a1.5,1.5 0 1 0 -3,0" fill="none" stroke="#2B2723" stroke-width="1.4" stroke-linecap="round" /><path d="M14,7.7 C13.4,10.6 12.6,13.4 11.4,15.6" fill="none" stroke="#2B2723" stroke-width="1.2" stroke-linecap="round" /><path d="M9.9,14.7 L12.9,16.5" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5,3.5 H19.5 V20.5 H15.5 Z" fill="none" stroke="#2B2723" stroke-width="1.8" /><path d="M14,6.2 m-1.5,0 a1.5,1.5 0 1 0 3,0 a1.5,1.5 0 1 0 -3,0" fill="none" stroke="#2B2723" stroke-width="1.4" stroke-linecap="round" /><path d="M14,7.7 C13.4,10.6 12.6,13.4 11.4,15.6" fill="none" stroke="#2B2723" stroke-width="1.2" stroke-linecap="round" /><path d="M9.9,14.7 L12.9,16.5" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Leg ext.</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.6,2.8 H8.4 V10.4 H6.6 Z" fill="#2B2723" /><path d="M5.2,10.4 H18.8 A1.4,1.4 0 0 1 18.8,13.2 H5.2 A1.4,1.4 0 0 1 5.2,10.4 Z" fill="#2B2723" /><path d="M7.2,13.2 V19.4 M16.8,13.2 V19.4" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M6.6,13.2 H8.4" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.6,2.8 H8.4 V10.4 H6.6 Z" fill="#2B2723" /><path d="M5.2,10.4 H18.8 A1.4,1.4 0 0 1 18.8,13.2 H5.2 A1.4,1.4 0 0 1 5.2,10.4 Z" fill="#2B2723" /><path d="M7.2,13.2 V19.4 M16.8,13.2 V19.4" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M6.6,13.2 H8.4" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Dip bars</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6,4.5 V20.5 M18,4.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M3.5,8.5 H8.5 M15.5,8.5 H20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M4.5,12.5 H8.5 M15.5,12.5 H19.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6,4.5 V20.5 M18,4.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M3.5,8.5 H8.5 M15.5,8.5 H20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M4.5,12.5 H8.5 M15.5,12.5 H19.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Kettlebell</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,8.2 C16.7,8.2 20,11.9 20,16.1 C20,19.4 17.5,21.5 12,21.5 C6.5,21.5 4,19.4 4,16.1 C4,11.9 7.3,8.2 12,8.2 Z" fill="#2B2723" /><path d="M9,8.5 V6.5 A3,3 0 0 1 15,6.5 V8.5" fill="none" stroke="#2B2723" stroke-width="2" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,8.2 C16.7,8.2 20,11.9 20,16.1 C20,19.4 17.5,21.5 12,21.5 C6.5,21.5 4,19.4 4,16.1 C4,11.9 7.3,8.2 12,8.2 Z" fill="#2B2723" /><path d="M9,8.5 V6.5 A3,3 0 0 1 15,6.5 V8.5" fill="none" stroke="#2B2723" stroke-width="2" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Machine</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5,3.5 H20 V20.5 H15.5 Z" fill="none" stroke="#2B2723" stroke-width="1.8" /><path d="M15.5,7 H20 M15.5,10 H20 M15.5,13 H20 M15.5,16 H20" fill="none" stroke="#2B2723" stroke-width="1.2" /><path d="M4.5,7 H9.5 M7,7 V11" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M4.5,15.5 H10" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,15.5 V20.5" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M15.5,3.5 H20 V20.5 H15.5 Z" fill="none" stroke="#2B2723" stroke-width="1.8" /><path d="M15.5,7 H20 M15.5,10 H20 M15.5,13 H20 M15.5,16 H20" fill="none" stroke="#2B2723" stroke-width="1.2" /><path d="M4.5,7 H9.5 M7,7 V11" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M4.5,15.5 H10" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,15.5 V20.5" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Pull-up</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5,3.5 V20.5 M19,3.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M5,6.8 H19" fill="none" stroke="#2B2723" stroke-width="2.2" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5,3.5 V20.5 M19,3.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M5,6.8 H19" fill="none" stroke="#2B2723" stroke-width="2.2" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Rack</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6,3.5 V20.5 M18,3.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M4,8.4 H20" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M9,8.4 m-1.7,0 a1.7,1.7 0 1 0 3.4,0 a1.7,1.7 0 1 0 -3.4,0" fill="#2B2723" /><path d="M15,8.4 m-1.7,0 a1.7,1.7 0 1 0 3.4,0 a1.7,1.7 0 1 0 -3.4,0" fill="#2B2723" /><path d="M6,11 H8.6 M18,11 H15.4" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6,3.5 V20.5 M18,3.5 V20.5" fill="none" stroke="#2B2723" stroke-width="2" stroke-linecap="round" /><path d="M4,8.4 H20" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M9,8.4 m-1.7,0 a1.7,1.7 0 1 0 3.4,0 a1.7,1.7 0 1 0 -3.4,0" fill="#2B2723" /><path d="M15,8.4 m-1.7,0 a1.7,1.7 0 1 0 3.4,0 a1.7,1.7 0 1 0 -3.4,0" fill="#2B2723" /><path d="M6,11 H8.6 M18,11 H15.4" fill="none" stroke="#2B2723" stroke-width="1.6" stroke-linecap="round" /></svg>
+      </div>
+
+      <div class="kit">
+        <div class="cap">Rings</div>
+        <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.5,2.5 V10 M16.5,2.5 V10" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M7.5,10 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" fill="none" stroke="#2B2723" stroke-width="2" /><path d="M16.5,10 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" fill="none" stroke="#2B2723" stroke-width="2" /></svg>
+        <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M7.5,2.5 V10 M16.5,2.5 V10" fill="none" stroke="#2B2723" stroke-width="1.8" stroke-linecap="round" /><path d="M7.5,10 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" fill="none" stroke="#2B2723" stroke-width="2" /><path d="M16.5,10 m-3,0 a3,3 0 1 0 6,0 a3,3 0 1 0 -6,0" fill="none" stroke="#2B2723" stroke-width="2" /></svg>
+      </div></div>
+    </section>
+<div class="grid">
+
+    <section class="card">
+      <h2>Chest</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,5.1 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12,7.0 V7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C9.6,7.3 10.7,7.2 12,7.2 C13.3,7.2 14.4,7.3 15.4,7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C6.6,8.2 5.2,9.5 4.6,11.5 C4.1,13.0 4.2,14.7 4.4,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M15.4,7.6 C17.4,8.2 18.8,9.5 19.4,11.5 C19.9,13.0 19.8,14.7 19.6,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M4.4,16.1 C4.6,17.7 5.2,18.9 6.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M19.6,16.1 C19.4,17.7 18.8,18.9 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M6.0,19.7 C9.2,20.7 14.8,20.7 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M11.5,9.9 C9.3,8.9 6.9,9.4 6.1,11.2 C5.6,12.7 6.1,14.3 7.3,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12.5,9.9 C14.7,8.9 17.1,9.4 17.9,11.2 C18.4,12.7 17.9,14.3 16.7,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,5.1 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12,7.0 V7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C9.6,7.3 10.7,7.2 12,7.2 C13.3,7.2 14.4,7.3 15.4,7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C6.6,8.2 5.2,9.5 4.6,11.5 C4.1,13.0 4.2,14.7 4.4,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M15.4,7.6 C17.4,8.2 18.8,9.5 19.4,11.5 C19.9,13.0 19.8,14.7 19.6,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M4.4,16.1 C4.6,17.7 5.2,18.9 6.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M19.6,16.1 C19.4,17.7 18.8,18.9 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M6.0,19.7 C9.2,20.7 14.8,20.7 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M11.5,9.9 C9.3,8.9 6.9,9.4 6.1,11.2 C5.6,12.7 6.1,14.3 7.3,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12.5,9.9 C14.7,8.9 17.1,9.4 17.9,11.2 C18.4,12.7 17.9,14.3 16.7,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,5.1 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M12,7.0 V7.6" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C9.6,7.3 10.7,7.2 12,7.2 C13.3,7.2 14.4,7.3 15.4,7.6" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C6.6,8.2 5.2,9.5 4.6,11.5 C4.1,13.0 4.2,14.7 4.4,16.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M15.4,7.6 C17.4,8.2 18.8,9.5 19.4,11.5 C19.9,13.0 19.8,14.7 19.6,16.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M4.4,16.1 C4.6,17.7 5.2,18.9 6.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M19.6,16.1 C19.4,17.7 18.8,18.9 18.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M6.0,19.7 C9.2,20.7 14.8,20.7 18.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M11.5,9.9 C9.3,8.9 6.9,9.4 6.1,11.2 C5.6,12.7 6.1,14.3 7.3,15.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M12.5,9.9 C14.7,8.9 17.1,9.4 17.9,11.2 C18.4,12.7 17.9,14.3 16.7,15.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,5.1 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M12,7.0 V7.6" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C9.6,7.3 10.7,7.2 12,7.2 C13.3,7.2 14.4,7.3 15.4,7.6" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C6.6,8.2 5.2,9.5 4.6,11.5 C4.1,13.0 4.2,14.7 4.4,16.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M15.4,7.6 C17.4,8.2 18.8,9.5 19.4,11.5 C19.9,13.0 19.8,14.7 19.6,16.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M4.4,16.1 C4.6,17.7 5.2,18.9 6.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M19.6,16.1 C19.4,17.7 18.8,18.9 18.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M6.0,19.7 C9.2,20.7 14.8,20.7 18.0,19.7" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M11.5,9.9 C9.3,8.9 6.9,9.4 6.1,11.2 C5.6,12.7 6.1,14.3 7.3,15.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /><path d="M12.5,9.9 C14.7,8.9 17.1,9.4 17.9,11.2 C18.4,12.7 17.9,14.3 16.7,15.1" fill="none" stroke="#F87171" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,5.1 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12,7.0 V7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C9.6,7.3 10.7,7.2 12,7.2 C13.3,7.2 14.4,7.3 15.4,7.6" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M8.6,7.6 C6.6,8.2 5.2,9.5 4.6,11.5 C4.1,13.0 4.2,14.7 4.4,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M15.4,7.6 C17.4,8.2 18.8,9.5 19.4,11.5 C19.9,13.0 19.8,14.7 19.6,16.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M4.4,16.1 C4.6,17.7 5.2,18.9 6.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M19.6,16.1 C19.4,17.7 18.8,18.9 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M6.0,19.7 C9.2,20.7 14.8,20.7 18.0,19.7" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M11.5,9.9 C9.3,8.9 6.9,9.4 6.1,11.2 C5.6,12.7 6.1,14.3 7.3,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /><path d="M12.5,9.9 C14.7,8.9 17.1,9.4 17.9,11.2 C18.4,12.7 17.9,14.3 16.7,15.1" fill="none" stroke="#DC2626" stroke-width="1.8" stroke-linecap="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+
+    <section class="card">
+      <h2>Back</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.0,6.6 C7.6,5.8 10.2,5.6 12,5.6 C13.8,5.6 16.4,5.8 19.0,6.6 C18.8,9.8 17.6,13.0 15.7,15.2 C14.7,16.4 13.4,17.2 12,17.6 C10.6,17.2 9.3,16.4 8.3,15.2 C6.4,13.0 5.2,9.8 5.0,6.6 Z" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.2 V17.4" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M8.3,8.2 C7.9,10.1 8.5,12.0 9.8,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M15.7,8.2 C16.1,10.1 15.5,12.0 14.2,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.0,6.6 C7.6,5.8 10.2,5.6 12,5.6 C13.8,5.6 16.4,5.8 19.0,6.6 C18.8,9.8 17.6,13.0 15.7,15.2 C14.7,16.4 13.4,17.2 12,17.6 C10.6,17.2 9.3,16.4 8.3,15.2 C6.4,13.0 5.2,9.8 5.0,6.6 Z" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.2 V17.4" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M8.3,8.2 C7.9,10.1 8.5,12.0 9.8,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M15.7,8.2 C16.1,10.1 15.5,12.0 14.2,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.0,6.6 C7.6,5.8 10.2,5.6 12,5.6 C13.8,5.6 16.4,5.8 19.0,6.6 C18.8,9.8 17.6,13.0 15.7,15.2 C14.7,16.4 13.4,17.2 12,17.6 C10.6,17.2 9.3,16.4 8.3,15.2 C6.4,13.0 5.2,9.8 5.0,6.6 Z" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.2 V17.4" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /><path d="M8.3,8.2 C7.9,10.1 8.5,12.0 9.8,13.1" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /><path d="M15.7,8.2 C16.1,10.1 15.5,12.0 14.2,13.1" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.0,6.6 C7.6,5.8 10.2,5.6 12,5.6 C13.8,5.6 16.4,5.8 19.0,6.6 C18.8,9.8 17.6,13.0 15.7,15.2 C14.7,16.4 13.4,17.2 12,17.6 C10.6,17.2 9.3,16.4 8.3,15.2 C6.4,13.0 5.2,9.8 5.0,6.6 Z" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.2 V17.4" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /><path d="M8.3,8.2 C7.9,10.1 8.5,12.0 9.8,13.1" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /><path d="M15.7,8.2 C16.1,10.1 15.5,12.0 14.2,13.1" fill="none" stroke="#60A5FA" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M5.0,6.6 C7.6,5.8 10.2,5.6 12,5.6 C13.8,5.6 16.4,5.8 19.0,6.6 C18.8,9.8 17.6,13.0 15.7,15.2 C14.7,16.4 13.4,17.2 12,17.6 C10.6,17.2 9.3,16.4 8.3,15.2 C6.4,13.0 5.2,9.8 5.0,6.6 Z" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.2 V17.4" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M8.3,8.2 C7.9,10.1 8.5,12.0 9.8,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /><path d="M15.7,8.2 C16.1,10.1 15.5,12.0 14.2,13.1" fill="none" stroke="#2563EB" stroke-width="1.8" stroke-linecap="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+
+    <section class="card">
+      <h2>Legs</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" fill="none" stroke="#34D399" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" fill="none" stroke="#059669" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+
+    <section class="card">
+      <h2>Shoulders</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M12,8.9 V10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M12,8.9 V10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M12,8.9 V10.0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M12,8.9 V10.0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /><path d="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" fill="none" stroke="#F472B6" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M12,8.9 V10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /><path d="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" fill="none" stroke="#DB2777" stroke-width="1.8" stroke-linecap="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+
+    <section class="card">
+      <h2>Arms</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" fill="none" stroke="#818CF8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" fill="none" stroke="#818CF8" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" fill="none" stroke="#4F46E5" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+
+    <section class="card">
+      <h2>Core</h2>
+      <div class="pair">
+        <div class="onlight">
+          <div class="cap">as drawn (22dp)</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.0,6.4 H16.0 C16.5,6.4 16.8,6.7 16.8,7.2 V16.8 C16.8,17.3 16.5,17.6 16.0,17.6 H8.0 C7.5,17.6 7.2,17.3 7.2,16.8 V7.2 C7.2,6.7 7.5,6.4 8.0,6.4 Z" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.4 V17.6" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,10.1 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,13.9 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">×4 to judge</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.0,6.4 H16.0 C16.5,6.4 16.8,6.7 16.8,7.2 V16.8 C16.8,17.3 16.5,17.6 16.0,17.6 H8.0 C7.5,17.6 7.2,17.3 7.2,16.8 V7.2 C7.2,6.7 7.5,6.4 8.0,6.4 Z" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.4 V17.6" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,10.1 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,13.9 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+        <div class="ondark">
+          <div class="cap">in the dark theme</div>
+          <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.0,6.4 H16.0 C16.5,6.4 16.8,6.7 16.8,7.2 V16.8 C16.8,17.3 16.5,17.6 16.0,17.6 H8.0 C7.5,17.6 7.2,17.3 7.2,16.8 V7.2 C7.2,6.7 7.5,6.4 8.0,6.4 Z" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.4 V17.6" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,10.1 H16.8" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,13.9 H16.8" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /></svg>
+          <div class="cap">&nbsp;</div>
+          <svg width="88" height="88" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.0,6.4 H16.0 C16.5,6.4 16.8,6.7 16.8,7.2 V16.8 C16.8,17.3 16.5,17.6 16.0,17.6 H8.0 C7.5,17.6 7.2,17.3 7.2,16.8 V7.2 C7.2,6.7 7.5,6.4 8.0,6.4 Z" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.4 V17.6" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,10.1 H16.8" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,13.9 H16.8" fill="none" stroke="#FACC15" stroke-width="1.8" stroke-linecap="round" /></svg>
+        </div>
+      </div>
+      
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <svg width="22" height="22" viewBox="0 0 24 24" xmlns="http://www.w3.org/2000/svg"><path d="M8.0,6.4 H16.0 C16.5,6.4 16.8,6.7 16.8,7.2 V16.8 C16.8,17.3 16.5,17.6 16.0,17.6 H8.0 C7.5,17.6 7.2,17.3 7.2,16.8 V7.2 C7.2,6.7 7.5,6.4 8.0,6.4 Z" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" stroke-linejoin="round" /><path d="M12,6.4 V17.6" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,10.1 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /><path d="M7.2,13.9 H16.8" fill="none" stroke="#CA8A04" stroke-width="1.8" stroke-linecap="round" /></svg>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+    </section>
+</div>
+<div class="anyrow">
+  <h2>Any (every muscle)</h2>
+  <p class="intro" style="margin:0 0 10px">
+    No body part is chosen, so no glyph is drawn - the row falls back to the word, exactly as the
+    equipment row falls back to "All equipment" when it has no kit glyph to show.
+  </p>
+  
+    <div class="row" style="background:#F4F1ED">
+      <span class="rowlabel">Muscle Group</span>
+      <span class="value-text" style="color:#64748B">Any</span>
+      <span class="spacer"></span>
+      <span class="toggle">Show more <span class="chev">⌄</span></span>
+    </div>
+</div>

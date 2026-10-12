@@ -1,5 +1,7 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- Pull-up bar: two posts, top bar, grip ticks. -->
+<!-- Pull-up bar: two posts and the bar between them. The two grip ticks that used to hang
+     under the bar are GONE (owner, 2026-10-12: "remove those 2 weird lines") - at 22dp they
+     read as stray marks, not as grips. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
@@ -17,10 +19,4 @@
         android:strokeWidth="2.2"
         android:strokeLineCap="round"
         android:pathData="M5,6.8 H19" />
-    <!-- grip marks -->
-    <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.5"
-        android:strokeLineCap="round"
-        android:pathData="M10.2,9 V11.2 M13.8,9 V11.2" />
 </vector>
