@@ -333,15 +333,18 @@ class ExercisePickerBodyTest {
             "the caption above the muscles does not name the group they came from: \"$captionText\"",
             captionText.contains("Back")
         )
-        // The row names the group through the glyph's accessible name now, not through a text chip
-        // (owner, 2026-10-11: *"instead of the muscle group label name it shows also the icon"*).
+        // The row names the group IN WORDS. It carried the glyph's accessible name between
+        // 2026-10-11 and 2026-10-12, and the owner rejected that placement on sight: *"the icons
+        // should be in the muscles group filters not in the fucking exercises displaying"* - a
+        // lone glyph above the exercise list reads as a mark belonging to the rows, not to the
+        // filter. So the value is text again and the glyph moved onto the body-part chips.
         assertEquals(
             "the row no longer names the group it is filtering by",
             "Back",
             composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
                 .fetchSemanticsNode()
-                .config.getOrNull(SemanticsProperties.ContentDescription)
-                ?.joinToString("") { it }
+                .config.getOrNull(SemanticsProperties.Text)
+                ?.joinToString("") { it.text }
         )
     }
 

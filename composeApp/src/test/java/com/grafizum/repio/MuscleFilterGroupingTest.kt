@@ -86,10 +86,11 @@ class MuscleFilterGroupingTest {
      *
      * Owner, 2026-10-11: *"i want the equipment way of displaying ... to also have the same style in
      * muscle group 'show more' label. And instead of the muscle group label name it shows also the
-     * icon."* The row's value is drawn from [muscleGroupIconRes], which reduces whatever the filter
-     * holds - a broad part or a precise muscle - through the SAME topic function the partition above
-     * and the badge's colour use, so the glyph cannot disagree with the rest of the app about which
-     * part a muscle belongs to.
+     * icon."* The BODY-PART CHIP draws its glyph from [muscleGroupIconRes] (the collapsed row's
+     * value went back to plain text on 2026-10-12 — see [MuscleGlyphFamilyTest]), which reduces
+     * whatever the filter holds - a broad part or a precise muscle - through the SAME topic function
+     * the partition above and the badge's colour use, so the glyph cannot disagree with the rest of
+     * the app about which part a muscle belongs to.
      *
      * Distinctness is the assertion that matters as much as the lookup: six parts, six drawings. Two
      * parts sharing one glyph would make a row filtering by Back show the shape of a leg.

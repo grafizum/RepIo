@@ -271,9 +271,12 @@ class MuscleGlyphFamilyTest {
     // ---------------------------------------------------------------- what the row asks for
 
     /**
-     * THE ONE THING THE FILTER ROW CANNOT GET WRONG. It draws
-     * `muscleGroupIconRes(selectedMuscleGroup)` in place of the group's name, so a group that
-     * answers with the wrong glyph, or with none, silently mislabels the list under it.
+     * THE ONE THING THE FILTER CANNOT GET WRONG. Each broad part resolves to its own glyph
+     * ([muscleGroupIconRes]), which the body-part chip draws as its leading icon — so a group
+     * that answers with the wrong glyph, or with none, silently mislabels the choice the user is
+     * about to make. The glyph moved here from the collapsed row's value slot on 2026-10-12, when
+     * the owner rejected it sitting in the exercise list: *"the icons should be in the muscles
+     * group filters not in the ... exercises displaying"*.
      */
     @Test
     fun everyBroadPartResolvesToItsOwnGlyph() {

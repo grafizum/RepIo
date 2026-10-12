@@ -5,6 +5,8 @@ import androidx.compose.ui.semantics.getOrNull
 import androidx.compose.ui.test.assertIsDisplayed
 import androidx.compose.ui.test.junit4.createComposeRule
 import androidx.compose.ui.test.onNodeWithTag
+import androidx.compose.ui.test.hasAnyDescendant
+import androidx.compose.ui.test.hasTestTag
 import androidx.compose.ui.test.onNodeWithText
 import androidx.compose.ui.test.performClick
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
@@ -193,34 +195,66 @@ class AddExerciseCardTest {
     }
 
     /**
-     * The muscle row's value is a GLYPH now, and the name it carries is its accessible one.
+     * THE GLYPH SITS ON THE CHOICE, NOT ON THE LIST.
      *
-     * Owner, 2026-10-11: *"instead of the muscle group label name it shows also the icon"*. Both
-     * halves are asserted on the drawn node: it has no text left on it (the chip is gone) and it
-     * still says which part is filtering the list, so the row cannot become a picture nobody can
-     * name.
+     * The muscle row's value is WORDS, and the body-part chip that picks it carries the glyph.
+     * This is a correction of the 2026-10-11 placement, which put the glyph IN the row's value
+     * slot: owner, 2026-10-12, on seeing it on the phone: *"the icons should be in the muscles
+     * group filters not in the fucking exercises displaying"*. The row sits directly above the
+     * exercise list inside the picker, so a lone body-part glyph there reads as a mark belonging
+     * to the rows underneath rather than as a filter summary - which is exactly the complaint.
+     *
+     * The equipment chips already draw an 18dp leading glyph ([EquipmentFilterRow]), so putting
+     * the muscle glyphs on their chips is also what makes the two filters one control family,
+     * which was the original ask behind the icon work.
+     *
+     * Both halves are asserted: the row still NAMES the part that is filtering (in text, so it
+     * survives translation), and the chip for that part draws a picture of it.
      */
     @Test
-    fun theMuscleRowDrawsTheGroupsGlyphInsteadOfItsName() {
+    fun theMuscleRowNamesItsGroupAndTheChipCarriesTheGlyph() {
         renderAddCard()
 
         composeTestRule.onNodeWithTag("muscle_filter_toggle").performClick()
         composeTestRule.onNodeWithTag("muscle_chip_Chest").performClick()
 
+        // The row says the group in words.
         val value = composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
             .fetchSemanticsNode()
-        val text = value.config.getOrNull(SemanticsProperties.Text).orEmpty()
-        assertTrue(
-            "the muscle row still draws its value as text ($text), so it is not the equipment row's " +
-                "style",
-            text.isEmpty()
-        )
         assertEquals(
-            "the glyph does not name the part it is drawing",
+            "the muscle row no longer names the part that is filtering the list",
             "Chest",
-            value.config.getOrNull(SemanticsProperties.ContentDescription)
-                ?.joinToString("") { it }
+            value.config.getOrNull(SemanticsProperties.Text)
+                ?.joinToString("") { it.text }
         )
+
+        // And the chip that picked it carries the picture, on top of its own label.
+        // Read from the MERGED node: a FilterChip merges its descendants, so its label only
+        // appears once merged (the unmerged tree answers with the bare wrapper).
+        val chipText = composeTestRule.onNodeWithTag("muscle_chip_Chest")
+            .fetchSemanticsNode()
+            .config.getOrNull(SemanticsProperties.Text)
+            ?.joinToString("") { it.text }
+            .orEmpty()
+        assertTrue(
+            "the Chest chip lost its label, so it is a picture nobody can name: \"$chipText\"",
+            chipText.isNotBlank()
+        )
+        // The glyph itself, through the handle it carries — scoped to the CHEST chip, because
+        // every part that has a glyph draws one (six in the "Any" state). An Icon with no content
+        // description is dropped from the semantics tree, so this handle is the only way "does the
+        // chip draw its body part" can be asked at all — and it is what makes the assertions above
+        // more than label checks: removing the leadingIcon makes this node vanish and the test red.
+        composeTestRule.onNode(
+            hasTestTag("muscle_chip_Chest") and hasAnyDescendant(hasTestTag("muscle_chip_glyph")),
+            useUnmergedTree = true
+        ).assertIsDisplayed()
+
+        // And "Any" draws no glyph of its own: nothing is chosen, so no body part can be named.
+        composeTestRule.onNode(
+            hasTestTag("muscle_chip_any") and hasAnyDescendant(hasTestTag("muscle_chip_glyph")),
+            useUnmergedTree = true
+        ).assertDoesNotExist()
     }
 
     /**

@@ -5808,48 +5808,26 @@ fun MuscleGroupFilterCollapsible(
                 )
             }
 
-            // THE VALUE, DRAWN THE EQUIPMENT ROW'S WAY: a glyph, not a bordered chip.
+            // THE VALUE IS THE GROUP'S NAME, AS TEXT.
             //
-            // Owner, 2026-10-11: *"i want the equipment way of displaying with the 'show more'
-            // dropdown menu label to also have the same style in muscle group 'show more' label.
-            // And instead of the muscle group label name it shows also the icon."* The two rows
-            // were already the same control - same TextButton, same labelSmall+bold label, same
-            // 16dp chevron, same 8dp padding - so this chip was the whole difference between them.
+            // It used to be a glyph. Owner, 2026-10-12: *"the icons should be in the muscles group
+            // filters not in the fucking exercises displaying"* - and the complaint is precise: this
+            // slot sits in the exercise PICKER, directly above the list, so a lone body-part glyph
+            // here reads as a mark belonging to the rows underneath rather than as a filter value.
+            // The row is a summary of WHAT IS FILTERING, so it has to say it in words - "Back" -
+            // which is also the only form that survives translation and a precise muscle name.
             //
-            // The glyph rides the group's own colour (the same colour its badge and the Analytics
-            // split read), so the icon says WHICH part twice: once by shape, once by hue. The name
-            // moves to the content description where it costs no width, exactly as the equipment
-            // row's labels do - and [muscleGroupTextColor], not [muscleGroupColor], is the tint,
-            // because this is INK on the dialog's surface: the light palette dips below legible
-            // contrast there, which is why the badge's own text already uses it.
-            //
-            // "Any" - and a group the app cannot place - still reads as a WORD:
-            // [muscleGroupIconRes] answers null for both, because a glyph for "every muscle" would
-            // name a body part the user has not chosen. That is the same fallback the equipment row
-            // makes when it has no glyph to draw.
-            val muscleIconRes = muscleGroupIconRes(selectedMuscleGroup)
-            if (selectedMuscleGroup == null || muscleIconRes == null) {
-                Text(
-                    text = if (selectedMuscleGroup == null) anyLabel
-                           else translateMuscleGroup(selectedMuscleGroup),
-                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                    color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    maxLines = 1,
-                    overflow = TextOverflow.Ellipsis,
-                    modifier = Modifier.semantics { testTag = "muscle_filter_value" }
-                )
-            } else {
-                // The tag sits on the VALUE rather than on a box around it, so a test reads what
-                // the row is showing ("Back") instead of only proving something is on screen.
-                Icon(
-                    painter = painterResource(muscleIconRes),
-                    contentDescription = translateMuscleGroup(selectedMuscleGroup),
-                    tint = muscleGroupTextColor(selectedMuscleGroup),
-                    modifier = Modifier
-                        .size(22.dp)
-                        .semantics { testTag = "muscle_filter_value" }
-                )
-            }
+            // The glyph did not go away; it moved to where the user makes the choice, the body-part
+            // chips inside the filter. See the leadingIcon on the broad chips below.
+            Text(
+                text = if (selectedMuscleGroup == null) anyLabel
+                       else translateMuscleGroup(selectedMuscleGroup),
+                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis,
+                modifier = Modifier.semantics { testTag = "muscle_filter_value" }
+            )
 
             Spacer(modifier = Modifier.weight(1f))
 
@@ -5947,6 +5925,33 @@ fun MuscleGroupFilterCollapsible(
                         FilterChip(
                             selected = selectedMuscleGroup == group,
                             onClick = { onSelect(group) },
+                            // THE GLYPH LIVES HERE, ON THE CHOICE THE USER MAKES - the same place
+                            // the equipment chips carry theirs (see [EquipmentFilterRow]), so the
+                            // two filters are one control family again. It is a LEADING ICON rather
+                            // than a replacement for the label: the chip still says "Back" in words,
+                            // and the glyph beside it says it a second time by shape. A chip whose
+                            // only content was a picture would be a guess at what it filters.
+                            //
+                            // The tint is the group's own colour, so shape and hue agree - and it is
+                            // [muscleGroupTextColor], not [muscleGroupColor], because this is INK on
+                            // the chip's surface and the light palette dips below legible contrast
+                            // there (yellow-400 on white is ~1.6:1).
+                            leadingIcon = muscleGroupIconRes(group)?.let { res ->
+                                {
+                                    Icon(
+                                        painter = painterResource(res),
+                                        contentDescription = null,
+                                        tint = muscleGroupTextColor(group),
+                                        // A handle, for the same reason the chips carry one: an
+                                        // Icon with no content description is dropped from the
+                                        // semantics tree, so "does this chip draw its glyph" has
+                                        // nothing to ask otherwise.
+                                        modifier = Modifier
+                                            .size(18.dp)
+                                            .semantics { testTag = "muscle_chip_glyph" }
+                                    )
+                                }
+                            },
                             label = { Text(translateMuscleGroup(group), maxLines = 1) },
                             shape = RoundedCornerShape(10.dp),
                             // A handle per chip, so "does picking this muscle narrow the list" can

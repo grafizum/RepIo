@@ -32,11 +32,21 @@ import com.grafizum.repio.data.WorkoutTemplates
  * 24x24 viewport - and carries no body around it. [MuscleGlyphFamilyTest] holds the lane open: it
  * measures the equipment set's own stroke weights and requires all six to sit inside them.
  *
+ * WHERE THE GLYPH IS DRAWN: as the LEADING ICON of the body-part chip that picks the group,
+ * beside its name — the same place the equipment chips carry theirs ([EquipmentFilterRow]), so
+ * the two filters are one control family. It is deliberately NOT drawn in the collapsed row's
+ * value slot, which is where it went first: owner, 2026-10-12, on seeing that build on the
+ * phone — *"the icons should be in the muscles group filters not in the fucking exercises
+ * displaying"*. The collapsed row sits directly above the exercise list inside the picker, so a
+ * lone body-part glyph there reads as a mark belonging to the rows underneath rather than as a
+ * summary of the filter. The chip keeps its label as well, so the glyph says which part a second
+ * time rather than being the only way to tell.
+ *
  * NULL IS A REAL ANSWER, unlike the equipment side's generic `Category` fallback. The muscle row's
- * opening state is "Any" - every muscle - and no single body part draws that. The caller falls back
- * to the word, which is exactly what the equipment row already does when it has no glyph to show
- * ("All equipment", "No equipment needed"). A generic silhouette here would claim a group the user
- * has not chosen.
+ * opening state is "Any" — every muscle — and no single body part draws that. The caller skips the
+ * leadingIcon entirely, which is what the equipment row already does when it has no glyph to show
+ * ("All equipment", "No equipment needed"). A generic silhouette here would claim a group the
+ * user has not chosen.
  */
 @DrawableRes
 fun muscleGroupIconRes(muscleGroup: String?): Int? =

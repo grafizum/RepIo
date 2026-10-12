@@ -112,18 +112,19 @@ class ReplaceMuscleFilterTest {
     /**
      * The muscle the collapsed row is showing.
      *
-     * Read from the GLYPH's accessible name since 2026-10-11: the row used to carry the muscle as
-     * text in a bordered chip, and now draws it as the part's own icon (owner: *"instead of the
-     * muscle group label name it shows also the icon"*). The assertion it feeds is unchanged in
-     * force - the row must name the group that is filtering the list - it is only read from the
-     * place the name now lives. The icon is found in the unmerged tree because a glyph with a
-     * content description is merged into the row it sits on.
+     * Read as TEXT. The row carried the glyph's accessible name between 2026-10-11 and 2026-10-12
+     * (owner: *"instead of the muscle group label name it shows also the icon"*), and the owner
+     * rejected that placement the next day - *"the icons should be in the muscles group filters not
+     * in the ... exercises displaying"* - because a lone glyph in the picker, directly above the
+     * exercise list, reads as a mark belonging to the rows underneath rather than to the filter.
+     * The assertion this feeds is unchanged in force: the row must NAME the group filtering the
+     * list, in words that survive translation. The glyph itself now leads the body-part chips.
      */
     private fun shownMuscle(): String =
         composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
             .fetchSemanticsNode()
-            .config.getOrNull(SemanticsProperties.ContentDescription)
-            ?.joinToString("") { it }
+            .config.getOrNull(SemanticsProperties.Text)
+            ?.joinToString("") { it.text }
             .orEmpty()
 
     /**
