@@ -17,6 +17,7 @@ import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.screens.AddExerciseDialog
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -195,37 +196,40 @@ class AddExerciseCardTest {
     }
 
     /**
-     * THE GLYPH SITS ON THE CHOICE, NOT ON THE LIST.
+     * THE GLYPH IS ON THE FILTER ROW AND ON THE CHOICE.
      *
-     * The muscle row's value is WORDS, and the body-part chip that picks it carries the glyph.
-     * This is a correction of the 2026-10-11 placement, which put the glyph IN the row's value
-     * slot: owner, 2026-10-12, on seeing it on the phone: *"the icons should be in the muscles
-     * group filters not in the fucking exercises displaying"*. The row sits directly above the
-     * exercise list inside the picker, so a lone body-part glyph there reads as a mark belonging
-     * to the rows underneath rather than as a filter summary - which is exactly the complaint.
+     * The muscle row's value is the part's GLYPH - the equipment row's own vocabulary, 22dp and
+     * accent-tinted - and the body-part chip that picks it carries the same glyph beside its name.
+     * Owner, 2026-10-13: *"instead of \"back\" in the replace card, it should show the icon like it
+     * does in the equipment, and right next to it the \"show more\" dropdown button EXACTLY like the
+     * \"equipment\" section above shows"*.
      *
-     * The equipment chips already draw an 18dp leading glyph ([EquipmentFilterRow]), so putting
-     * the muscle glyphs on their chips is also what makes the two filters one control family,
-     * which was the original ask behind the icon work.
-     *
-     * Both halves are asserted: the row still NAMES the part that is filtering (in text, so it
-     * survives translation), and the chip for that part draws a picture of it.
+     * The row drew the glyph, lost it on 2026-10-12 (*"the icons should be in the muscles group
+     * filters not in the fucking exercises displaying"*) and has it again; the two instructions name
+     * different surfaces - the exercise display versus the muscle group filter - and this row is the
+     * filter. So BOTH halves are asserted here: the row carries the part's name as the glyph's
+     * content description (translation-safe, and read aloud), and the chip for that part draws a
+     * picture of it on top of its own label.
      */
     @Test
-    fun theMuscleRowNamesItsGroupAndTheChipCarriesTheGlyph() {
+    fun theMuscleRowCarriesTheGlyphAndTheChipCarriesItToo() {
         renderAddCard()
 
         composeTestRule.onNodeWithTag("muscle_filter_toggle").performClick()
         composeTestRule.onNodeWithTag("muscle_chip_Chest").performClick()
 
-        // The row says the group in words.
+        // The row names the part through its glyph's description, and draws no word at all.
         val value = composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
             .fetchSemanticsNode()
         assertEquals(
             "the muscle row no longer names the part that is filtering the list",
             "Chest",
+            value.config.getOrNull(SemanticsProperties.ContentDescription)
+                ?.joinToString("")
+        )
+        assertNull(
+            "the value slot is drawing the word rather than the part's glyph",
             value.config.getOrNull(SemanticsProperties.Text)
-                ?.joinToString("") { it.text }
         )
 
         // And the chip that picked it carries the picture, on top of its own label.

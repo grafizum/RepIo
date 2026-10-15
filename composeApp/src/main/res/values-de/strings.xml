@@ -403,6 +403,9 @@
     <string name="muscle_group">Muskelgruppe</string>
     <string name="sets">Sätze</string>
     <string name="reps">Wdh.</string>
+    <string name="per_side_arm">je Arm</string>
+    <string name="per_side_leg">je Bein</string>
+    <string name="per_side_side">je Seite</string>
     <string name="demo_link_optional">Demo-Link (optional)</string>
     <string name="reset_program_title">Programm zurücksetzen?</string>
     <string name="reset_program_text">Dies stellt das ursprüngliche Trainingsprogramm wieder her.</string>
@@ -613,8 +616,6 @@
     <string name="action_back">Zurück</string>
     <string name="previous">Vorherige</string>
     <string name="next">Nächste</string>
-    <string name="restart_required_title">Neustart erforderlich</string>
-    <string name="restart_required_message">Um das neue Design vollständig anzuwenden, muss die App neu gestartet werden.</string>
     <string name="ok">OK</string>
     <string name="confirm">Bestätigen</string>
     <string name="confirm_action_question">Das Anwenden dieser Änderungen wird deine aktuelle Trainingskonfiguration anpassen.</string>
@@ -785,6 +786,9 @@
     <string name="rpe_explanation_rir_0">Absolutes Versagen</string>
     <string name="rpe_explanation_rir_range">%1$d–%2$d Wdh. im Tank</string>
     <string name="rpe_long_description">Intensität: %1$s. Wähle ein Gewicht, bei dem du noch %2$s hättest.</string>
+    <!-- Das eine Intensitäts-Label der Übungszeile: das Wort der Zeile, dann seine RPE-Zahl. -->
+    <string name="rpe_rir_label">%1$s (RPE %2$d · %3$d Wdh. im Tank)</string>
+    <string name="rpe_rir_label_range">%1$s (RPE %2$d–%3$d · %4$d–%5$d Wdh. im Tank)</string>
 
     <!-- FAQ RPE & RIR -->
     <string name="rpe_rir_faq">RPE &amp; RIR Guide</string>
@@ -879,15 +883,20 @@
     <string name="stage_example_title">Was ist eine Stufe?</string>
     <string name="stage_example_caption">Innerhalb eines Levels steigst du durch Wiederholungen von Stufe zu Stufe auf \u2014 eine Wiederholung mehr in jedem Satz, aus 8 / 8 / 8 wird 9 / 9 / 9.</string>
     <string name="level_up_example_title">Level-Aufstieg und Wiederholungs-Reset</string>
+    <string name="level_stage_dropdown">Zwischenschritte anzeigen</string>
     <string name="level_up_example_arrow">mehr Gewicht</string>
     <string name="level_up_example_caption">Wenn du die letzte Stufe abschließt, steigst du ein Level auf und startest mit niedrigeren Wiederholungen bei mehr Gewicht.</string>
     <string name="large_jump_example_title">Große Sprünge, weniger Wiederholungen</string>
     <string name="large_jump_example_arrow">großer Sprung</string>
     <string name="large_jump_example_caption">Wenn das nächste Gewicht ein großer Sprung ist, setzt die App deine Wiederholungen zurück, damit es machbar bleibt.</string>
+    <string name="level_max">max</string>
+    <string name="level_max_example_title">Das maximale Level</string>
+    <string name="level_max_example_arrow">trotzdem weiter</string>
+    <string name="level_max_example_caption">Jede Übung hat ein forschungsbasiertes Maximum, markiert mit &quot;max&quot;. Es ist eine Markierung, kein Ende: darüber steigen die Level im gleichen Tempo weiter.</string>
     <string name="lock_example_title">Eine Übung sperren</string>
     <string name="lock_example_caption">Tippe auf der Level-Karte auf die Sperre, um DIESE Übung auf ihrem aktuellen Level zu halten \u2014 sie bleibt dort auch nach einem abgeschlossenen Training, und das Level-Feld bietet keinen Wechsel mehr an. Zum Entsperren erneut tippen.</string>
     <string name="difficulty_change_example_title">Startschwierigkeit ändern</string>
-    <string name="difficulty_change_example_caption">Du kannst die Startschwierigkeit für jede Übung vor deinem ersten Satz ändern.</string>
+    <string name="difficulty_change_example_caption">Du kannst die Startschwierigkeit für jede Übung vor deinem ersten Satz ändern. Eine höhere Schwierigkeit startet dich weiter oben in der Leiter - das Level steht direkt auf jeder Option.</string>
 
 
     <!-- Level-Anpassung + Sammel-Anpassung — TODO:. -->

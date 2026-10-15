@@ -410,6 +410,9 @@
     <string name="muscle_group">Gruppo Muscolare</string>
     <string name="sets">Serie</string>
     <string name="reps">Ripetizioni</string>
+    <string name="per_side_arm">per braccio</string>
+    <string name="per_side_leg">per gamba</string>
+    <string name="per_side_side">per lato</string>
     <string name="demo_link_optional">Link Demo (Opzionale)</string>
     <string name="reset_program_title">Ripristinare Programma?</string>
     <string name="reset_program_text">Questo ripristinerà il programma di allenamento originale.</string>
@@ -622,8 +625,6 @@
     <string name="action_back">Indietro</string>
     <string name="previous">Precedente</string>
     <string name="next">Successivo</string>
-    <string name="restart_required_title">Riavvio Richiesto</string>
-    <string name="restart_required_message">Per applicare il nuovo tema completamente, l\'app deve essere riavviata.</string>
     <string name="ok">OK</string>
     <string name="confirm">Conferma</string>
     <string name="confirm_action_question">L\'applicazione di queste modifiche modificherà la tua configurazione attuale.</string>
@@ -794,6 +795,9 @@
     <string name="rpe_explanation_rir_0">Cedimento assoluto</string>
     <string name="rpe_explanation_rir_range">%1$d–%2$d rip di riserva</string>
     <string name="rpe_long_description">Intensità: %1$s. Usa un peso con cui avresti ancora %2$s alla fine della serie.</string>
+    <!-- L'unica etichetta di intensità della riga esercizio: la parola della riga, poi la sua cifra. -->
+    <string name="rpe_rir_label">%1$s (RPE %2$d · %3$d rip di riserva)</string>
+    <string name="rpe_rir_label_range">%1$s (RPE %2$d–%3$d · %4$d–%5$d rip di riserva)</string>
 
     <!-- FAQ RPE & RIR -->
     <string name="rpe_rir_faq">Guida RPE e RIR</string>
@@ -888,15 +892,20 @@
     <string name="stage_example_title">Che cos\'è uno stadio?</string>
     <string name="stage_example_caption">All\'interno di un livello avanzi di stadio in stadio aggiungendo ripetizioni \u2014 una ripetizione in pi\u00f9 in ogni serie: 8 / 8 / 8 diventa 9 / 9 / 9.</string>
     <string name="level_up_example_title">Passaggio di livello e reset delle ripetizioni</string>
+    <string name="level_stage_dropdown">Mostra i passaggi intermedi</string>
     <string name="level_up_example_arrow">più carico</string>
     <string name="level_up_example_caption">Quando completi l\'ultimo stadio, sali di livello e ricominci con meno ripetizioni e più carico.</string>
     <string name="large_jump_example_title">Salti grandi, meno ripetizioni</string>
     <string name="large_jump_example_arrow">grande salto</string>
     <string name="large_jump_example_caption">Se il prossimo carico è un grande salto, l\'app azzera le tue ripetizioni per renderlo gestibile.</string>
+    <string name="level_max">max</string>
+    <string name="level_max_example_title">Il livello massimo</string>
+    <string name="level_max_example_arrow">continua comunque</string>
+    <string name="level_max_example_caption">Ogni esercizio ha un massimo basato sulle evidenze, segnato con &quot;max&quot;. È un riferimento, non un limite: sopra di esso i livelli continuano a salire allo stesso ritmo.</string>
     <string name="lock_example_title">Bloccare un esercizio</string>
     <string name="lock_example_caption">Tocca il blocco sulla scheda del livello per tenere QUESTO esercizio al livello attuale \u2014 resta lì anche dopo un allenamento completato, e il riquadro del livello non offre più il cambio. Toccalo di nuovo per sbloccare.</string>
     <string name="difficulty_change_example_title">Cambiare la difficoltà iniziale</string>
-    <string name="difficulty_change_example_caption">Puoi cambiare la difficoltà iniziale per ogni esercizio prima della tua prima serie.</string>
+    <string name="difficulty_change_example_caption">Puoi cambiare la difficoltà iniziale per ogni esercizio prima della tua prima serie. Una difficoltà più alta ti fa partire più in alto nella scala - il livello di partenza è scritto su ogni opzione.</string>
 
 
     <!-- Regolazione livelli + regolazione collettiva — TODO:. -->

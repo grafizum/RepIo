@@ -87,7 +87,6 @@ import androidx.compose.foundation.gestures.detectTapGestures
 import androidx.compose.ui.input.pointer.pointerInput
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.unit.dp
-import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
@@ -137,7 +136,6 @@ fun SettingsScreen(
     val defaultExerciseTimerSeconds by viewModel.defaultExerciseTimerSeconds.collectAsState()
     val appLanguage by viewModel.appLanguage.collectAsState()
     val weightUnit by viewModel.weightUnit.collectAsState()
-    val showRestartDialog by viewModel.showRestartDialog.collectAsState()
     // val context = LocalContext.current
     var expandedLanguage by remember { mutableStateOf(false) }
     var showSupportCard by remember { mutableStateOf(false) }
@@ -322,52 +320,15 @@ fun SettingsScreen(
         )
     }
 
-    if (showRestartDialog) {
-        AlertDialog(
-            onDismissRequest = { /* Force user to click OK to apply changes correctly */ },
-            properties = DialogProperties(
-                dismissOnBackPress = false,
-                dismissOnClickOutside = false
-            ),
-            title = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(getString("restart_required_title"))
-                }
-            },
-            text = {
-                Box(
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .clickable(
-                            indication = null,
-                            interactionSource = remember { MutableInteractionSource() }
-                        ) { focusManager.clearFocus() }
-                ) {
-                    Text(getString("restart_required_message"))
-                }
-            },
-            confirmButton = {
-                Button(
-                    onClick = {
-                        focusManager.clearFocus()
-                        viewModel.applyThemeRestart()
-                        // (context as? Activity)?.finishAffinity()
-                    }
-                ) {
-                    Text(getString("ok"))
-                }
-            },
-            shape = RoundedCornerShape(16.dp),
-            containerColor = MaterialTheme.colorScheme.surface
-        )
-    }
+    // THE "Restart Required" DIALOG IS GONE, and it is not coming back in a friendlier wording.
+    //
+    // It sat here with dismissOnBackPress = false so the user could not escape it, and its only
+    // button ran `viewModel.applyThemeRestart()`, which switched the launcher icon with flags 0 -
+    // telling the system it may kill the process - which is what it did. So the flow was: pick a
+    // colour, be told a restart is needed, agree, and watch the app close. Every part of that
+    // was self-inflicted: the colours were already live, and the icon now switches under
+    // DONT_KILL_APP, so there is nothing left for a restart to apply. See
+    // [WorkoutViewModel.setThemeOption].
 
     Column(
         modifier = modifier
@@ -791,7 +752,10 @@ fun SettingsScreen(
                         ThemeOptionRow(
                             theme = ThemeColorItem(
                                 "DEVELOPER", "developer_theme",
-                                Color(0xFF131313), Color(0xFFE2B75A)
+                                // The canvas is `DarkBackground`, the accent is the scheme's
+                                // `primary` - both spelled out because this row draws EVERY
+                                // theme, so it cannot read the active scheme (see above).
+                                Color(0xFF0E0E0E), Color(0xFFE2B75A)
                             ),
                             isSelected = selectedTheme.equals("DEVELOPER", ignoreCase = true),
                             onSelect = { viewModel.setThemeOption("DEVELOPER") },
@@ -922,67 +886,32 @@ fun SettingsScreen(
                 ) {
                     RankTableContent()
                 }
-            }
 
-            Spacer(modifier = Modifier.height(12.dp))
-
-            // FAQ SECTION
-            Card(
-                shape = RoundedCornerShape(16.dp),
-                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                border = BorderStroke(
-                    width = 1.dp,
-                    color = if (showFAQ) MaterialTheme.colorScheme.primary 
-                            else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)),
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable { 
-                        showFAQ = !showFAQ 
+                // RPE & RIR - the intensity scale the exercise rows label with.
+                //
+                // IT SITS IN THIS COLUMN LIKE EVERY OTHER INSTRUCTION. It used to be its own
+                // hand-written card BELOW the column, with a Spacer(12.dp) on top of the 12dp
+                // this column already puts between cards: 24dp against the 12dp the three
+                // guides share, the one gap on the page that did not match. Being a
+                // GuideSectionCard rather than a copy of one also gives it the same shape,
+                // border and chevron as its neighbours, and the same behaviour - opening it
+                // now closes the cards it used to leave open (and its own toggle closes
+                // theirs), which is what the other three have always done.
+                GuideSectionCard(
+                    title = getString("rpe_rir_faq"),
+                    description = getString("rpe_rir_explanation"),
+                    expanded = showFAQ,
+                    onToggle = {
+                        showFAQ = !showFAQ
                         if (showFAQ) {
                             showSupportCard = false
                             showLevelGuide = false
+                            showOverallLevelGuide = false
+                            showRankGuide = false
                         }
                     }
-            ) {
-                Column(modifier = Modifier.padding(16.dp)) {
-                    Row(
-                        verticalAlignment = Alignment.CenterVertically,
-                        horizontalArrangement = Arrangement.SpaceBetween,
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Column(modifier = Modifier.weight(1f)) {
-                            Text(
-                                text = getString("rpe_rir_faq"),
-                                style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant
-                            )
-                            Text(
-                                text = getString("rpe_rir_explanation"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
-                            )
-                        }
-
-                        IconButton(onClick = { 
-                            showFAQ = !showFAQ 
-                            if (showFAQ) {
-                                showSupportCard = false
-                                showLevelGuide = false
-                            }
-                        }) {
-                            Icon(
-                                imageVector = if (showFAQ) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown,
-                                contentDescription = null,
-                                tint = MaterialTheme.colorScheme.primary
-                            )
-                        }
-                    }
-
-                    AnimatedVisibility(visible = showFAQ) {
-                        Column(modifier = Modifier.padding(top = 16.dp)) {
-                            FAQContent()
-                        }
-                    }
+                ) {
+                    FAQContent()
                 }
             }
 
@@ -1249,8 +1178,19 @@ private fun ThemeOptionRow(
 
 @Composable
 private fun FAQContent() {
+    // THE SPACING OF THE OTHER GUIDES, because this is the one that read differently.
+    //
+    // Owner prompt, 2026-10-15: *"first of all i want it to have the same spacing to the other
+    // instructions have"*. Three things were off, and all three are the same idea - use the
+    // rhythm the other guides already use:
+    //
+    //  - the two blocks sat 16dp apart where [LevelSystemGuideContent] puts its blocks at 12dp;
+    //  - and the three RPE lines (and the three RIR lines) were bare siblings with NO gap at
+    //    all, so they read as one wrapping paragraph rather than a list;
+    //  - the card they live in was the only instruction card outside the Instructions column,
+    //    and so the only one with a 24dp gap above it (see the card itself).
     Column(
-        verticalArrangement = Arrangement.spacedBy(16.dp)
+        verticalArrangement = Arrangement.spacedBy(12.dp)
     ) {
         // RPE Section
         Column {
@@ -1265,9 +1205,13 @@ private fun FAQContent() {
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = getString("rpe_10"), style = MaterialTheme.typography.bodySmall)
-            Text(text = getString("rpe_9"), style = MaterialTheme.typography.bodySmall)
-            Text(text = getString("rpe_8"), style = MaterialTheme.typography.bodySmall)
+            // The three rungs are a LIST, so they get a gap: 4dp is one line of bodySmall's own
+            // leading, which is what separates list items without breaking the block apart.
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text = getString("rpe_10"), style = MaterialTheme.typography.bodySmall)
+                Text(text = getString("rpe_9"), style = MaterialTheme.typography.bodySmall)
+                Text(text = getString("rpe_8"), style = MaterialTheme.typography.bodySmall)
+            }
         }
 
         // RIR Section
@@ -1283,9 +1227,11 @@ private fun FAQContent() {
                 style = MaterialTheme.typography.bodyMedium
             )
             Spacer(modifier = Modifier.height(8.dp))
-            Text(text = getString("rir_0"), style = MaterialTheme.typography.bodySmall)
-            Text(text = getString("rir_1"), style = MaterialTheme.typography.bodySmall)
-            Text(text = getString("rir_2"), style = MaterialTheme.typography.bodySmall)
+            Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+                Text(text = getString("rir_0"), style = MaterialTheme.typography.bodySmall)
+                Text(text = getString("rir_1"), style = MaterialTheme.typography.bodySmall)
+                Text(text = getString("rir_2"), style = MaterialTheme.typography.bodySmall)
+            }
         }
     }
 }

@@ -12,9 +12,11 @@ import androidx.compose.ui.test.performScrollTo
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
+import com.grafizum.repio.ui.components.muscleGroupIconRes
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import com.github.takahirom.roborazzi.RobolectricDeviceQualifiers
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -109,22 +111,29 @@ class ReplaceMuscleFilterTest {
         return match!!.groupValues[1].toInt()
     }
 
+    /** The semantics of the collapsed row's value slot, whichever form it is drawn in. */
+    private fun muscleValue() =
+        composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
+            .fetchSemanticsNode()
+
     /**
      * The muscle the collapsed row is showing.
      *
-     * Read as TEXT. The row carried the glyph's accessible name between 2026-10-11 and 2026-10-12
-     * (owner: *"instead of the muscle group label name it shows also the icon"*), and the owner
-     * rejected that placement the next day - *"the icons should be in the muscles group filters not
-     * in the ... exercises displaying"* - because a lone glyph in the picker, directly above the
-     * exercise list, reads as a mark belonging to the rows underneath rather than to the filter.
-     * The assertion this feeds is unchanged in force: the row must NAME the group filtering the
-     * list, in words that survive translation. The glyph itself now leads the body-part chips.
+     * Read as the value's CONTENT DESCRIPTION, because since 2026-10-13 the value is the part's
+     * GLYPH - the equipment row's own vocabulary - and the group's name rides on the icon for
+     * anything that cannot see it. Owner, 2026-10-13: *"instead of \"back\" in the replace card,
+     * it should show the icon like it does in the equipment, and right next to it the \"show more\"
+     * dropdown button EXACTLY like the \"equipment\" section above shows"*.
+     *
+     * The row carried the glyph once before, was switched to words on 2026-10-12, and is a glyph
+     * again now. What the assertion protects is unchanged in force either way: the row must still
+     * say WHICH part is filtering the list, in a form that survives translation - [shownMuscle]
+     * reads the description, and [theCollapsedRowDrawsTheGlyphOfWhatItFiltersBy] pins that the value
+     * slot is the glyph rather than the old word.
      */
     private fun shownMuscle(): String =
-        composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
-            .fetchSemanticsNode()
-            .config.getOrNull(SemanticsProperties.Text)
-            ?.joinToString("") { it.text }
+        muscleValue().config.getOrNull(SemanticsProperties.ContentDescription)
+            ?.joinToString("")
             .orEmpty()
 
     /**
@@ -181,20 +190,78 @@ class ReplaceMuscleFilterTest {
      * whose whole job is to say one word.
      */
     @Test
-    fun theFilterIsOneRowThatNamesWhatItIsFilteringBy() {
+    fun theCollapsedRowDrawsTheGlyphOfWhatItFiltersBy() {
         render()
 
         chip("muscle_filter_toggle").assertExists()
         chip("muscle_filter_value").assertIsDisplayed()
+        // The GLYPH, in the equipment row's own vocabulary: the value slot draws the body part
+        // and carries its translated name as the icon's description. The second assertion is the
+        // one that fails if this ever goes back to being the word "Back" - a Text node has no
+        // content description and a text payload, which is the exact opposite of both halves here.
         assertEquals(
-            "the collapsed row does not name the muscle the list is filtered to",
+            "the collapsed row's glyph does not name the muscle the list is filtered to",
             REPLACED_TOPIC, shownMuscle()
+        )
+        assertNull(
+            "the value slot is still drawing the group's NAME as text, not its glyph",
+            muscleValue().config.getOrNull(SemanticsProperties.Text)
+        )
+        // And the glyph is the one this part maps to, so the row cannot end up showing, say, the
+        // chest picture beside a Back filter: [muscleGroupIconRes] is the single mapper, and this
+        // is the same call the value slot makes.
+        assertEquals(
+            R.drawable.ic_muscle_back,
+            muscleGroupIconRes(REPLACED_TOPIC)
         )
         // Every choice is behind the toggle: nothing of the vocabulary is on screen yet.
         chip("muscle_filter_precise_row").assertDoesNotExist()
         chip("muscle_chip_any").assertDoesNotExist()
         chip("muscle_chip_precise_Lats").assertDoesNotExist()
         composeTestRule.onNodeWithText("Precise muscles").assertDoesNotExist()
+    }
+
+    /**
+     * THE TOGGLE SITS RIGHT NEXT TO THE VALUE, exactly as it does in the equipment row above.
+     *
+     * Owner, 2026-10-13: *"instead of \"back\" in the replace card, it should show the icon like it
+     * does in the equipment, and right next to it the \"show more\" dropdown button EXACTLY like the
+     * \"equipment\" section above shows"*. The second half is a DISTANCE, so it is measured against
+     * the equipment row's own: the muscle value's right edge to its button's left edge, against the
+     * kit glyph's right edge to the same button's left edge.
+     *
+     * MEASURED ON THE PHONE BEFORE THIS FIX (SM-S906B, uiautomator): the muscle glyph ended at
+     * x=397 and its "Show more" began at 767 - a 141dp hole where the equipment row's button began
+     * 6dp after its last glyph. The hole was a `Spacer(weight(1f))` between the value and the
+     * button, and the row now leaves its spare width at the END as the equipment row does.
+     */
+    @Test
+    fun theToggleSitsRightNextToTheValueLikeTheEquipmentRowsDoes() {
+        render()
+        val density = composeTestRule.density.density
+        fun box(tag: String) = chip(tag).fetchSemanticsNode().boundsInRoot
+
+        val value = box("muscle_filter_value")
+        val muscleToggle = box("muscle_filter_toggle")
+        val muscleGap = (muscleToggle.left - value.right) / density
+
+        // The equipment row's own gap, from the kit glyph its filter opens on.
+        val kitKey = WorkoutTemplates.getEquipmentForExercise(REPLACED)
+        val kitGlyph = box("equipment_glyph_$kitKey")
+        val kitToggle = box("equipment_filter_toggle")
+        val kitGap = (kitToggle.left - kitGlyph.right) / density
+
+        assertTrue(
+            "the muscle row's button is ${"%.1f".format(muscleGap)}dp from its value while the " +
+                "equipment row's is ${"%.1f".format(kitGap)}dp from its glyph, so the two filter " +
+                "rows do not read as one control",
+            muscleGap <= kitGap + 6f
+        )
+        assertTrue(
+            "the muscle value and its toggle are ${"%.1f".format(muscleGap)}dp apart - the row " +
+                "has gone back to pushing the button to the far edge",
+            muscleGap <= 12f
+        )
     }
 
     /**

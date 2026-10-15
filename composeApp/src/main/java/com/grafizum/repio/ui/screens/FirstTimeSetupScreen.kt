@@ -1092,8 +1092,9 @@ fun FirstTimeSetupScreen(
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
                                                                 if (exercise.targetIntensity.isNotBlank()) {
-                                                                    val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(exercise.targetIntensity)
-                                                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                                                    // The one label the routine card also prints, so the setup
+                                                                    // preview and the card cannot describe one value two ways.
+                                                                    val displayIntensity = com.grafizum.repio.ui.components.displayIntensityLabel(exercise.targetIntensity)
                                                                     Spacer(modifier = Modifier.width(window.inlineGap))
                                                                     Text(
                                                                         text = "• $displayIntensity",

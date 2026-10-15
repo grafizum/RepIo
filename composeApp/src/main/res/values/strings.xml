@@ -421,6 +421,9 @@
     <string name="muscle_group">Muscle Group</string>
     <string name="sets">Sets</string>
     <string name="reps">Reps</string>
+    <string name="per_side_arm">each arm</string>
+    <string name="per_side_leg">each leg</string>
+    <string name="per_side_side">each side</string>
     <string name="demo_link_optional">Demo Link (Optional)</string>
     <string name="reset_program_title">Reset Program to Default?</string>
     <string name="reset_program_text">This will restore the original workout program.</string>
@@ -631,8 +634,6 @@
     <string name="saturday_short">Sat</string>
     <string name="sunday_short">Sun</string>
     <string name="action_back">Back</string>
-    <string name="restart_required_title">Restart Required</string>
-    <string name="restart_required_message">To apply the new theme and splash screen fully, the app needs to restart.</string>
     <string name="ok">OK</string>
     <string name="confirm">Confirm</string>
     <string name="confirm_action_question">Applying these changes will modify your current workout configuration.</string>
@@ -808,6 +809,9 @@
     <string name="rpe_explanation_rir_0">Absolute failure</string>
     <string name="rpe_explanation_rir_range" tools:ignore="PluralsCandidate">%1$d–%2$d reps in the tank</string>
     <string name="rpe_long_description">Intensity: %1$s. Use a weight where you would still have %2$s at the end of your set.</string>
+    <!-- The exercise row's one intensity label: the word the row carries, then its figure. -->
+    <string name="rpe_rir_label">%1$s (RPE %2$d · %3$d RIR)</string>
+    <string name="rpe_rir_label_range">%1$s (RPE %2$d–%3$d · %4$d–%5$d RIR)</string>
 
     <!-- FAQ RPE & RIR -->
     <string name="rpe_rir_faq">RPE &amp; RIR Guide</string>
@@ -903,15 +907,21 @@
     <string name="stage_example_title">What is a stage?</string>
     <string name="stage_example_caption">Within a level, you progress through stages by adding reps \u2014 one rep on every set at once, so 8 / 8 / 8 becomes 9 / 9 / 9.</string>
     <string name="level_up_example_title">Level-up and rep reset</string>
+    <!-- The arrow on a Roman stage row that opens the steps the rounding hid between it and the next row. -->
+    <string name="level_stage_dropdown">Show the steps between</string>
     <string name="level_up_example_arrow">load up</string>
     <string name="level_up_example_caption">When you finish the last stage, you move up a level and start again at lower reps with more load.</string>
     <string name="large_jump_example_title">Big jumps, smaller reps</string>
     <string name="large_jump_example_arrow">big jump</string>
     <string name="large_jump_example_caption">If the next load is a big jump, the app resets your reps to make it manageable.</string>
+    <string name="level_max">max</string>
+    <string name="level_max_example_title">The max level</string>
+    <string name="level_max_example_arrow">keep going anyway</string>
+    <string name="level_max_example_caption">Each exercise has an evidence-backed max, marked &quot;max&quot;. It is a marker, not an end: levels above it keep adding load at the same pace.</string>
     <string name="lock_example_title">Locking an exercise</string>
     <string name="lock_example_caption">Tap the lock on the level card to hold THIS exercise on its current level \u2014 it stays where it is even after a finished workout, and the level box stops offering a change. Tap it again to unlock.</string>
     <string name="difficulty_change_example_title">Changing your starting difficulty</string>
-    <string name="difficulty_change_example_caption">You can change your starting difficulty for each exercise before your first set.</string>
+    <string name="difficulty_change_example_caption">You can change your starting difficulty for each exercise before your first set. A harder difficulty starts you further up the ladder - the level it opens on is written on each option.</string>
 
     <!-- Level system — live card and level details -->
     <string name="levels_menu_title">Levels</string>

@@ -426,13 +426,62 @@ fun WorkoutScreen(
                 // ticks, and gated behind a dwell the finger has to serve.
                 val dragScrollMargin = with(density) { 72.dp.toPx() }
 
-                fun moveExerciseByDrag(exerciseId: Long, fingerYInItem: Float, dragDelta: Float) {
-                    dragOffsetY += dragDelta
-
+                /**
+                 * The travelling half of the drag: [travel] pixels move the held card one
+                 * slot at a time and leave the remainder as its painted offset.
+                 *
+                 * IT IS A SEPARATE FUNCTION BECAUSE THE CARD TRAVELS FOR TWO DIFFERENT
+                 * REASONS, and only one of them used to be wired up.
+                 *
+                 * OWNER REPORT, 2026-10-15: *"moving an exercise wih the auto scrolling up and
+                 * down just places the exercise somewhere along the way even though i didnt lift
+                 * the finger."* Measured on emulator-5554, long-pressing the first of Monday's nine
+                 * exercises and parking the finger past the bottom border: the finger's walk down
+                 * the list advanced the card correctly (idx 0 -> 4 over ~830px), and then the glide
+                 * ran — `firstVisibleItemIndex` 0 -> 3 -> 5, the list travelling about five rows
+                 * under a finger that sent no further events — while the held card's index stayed
+                 * 4. The card was therefore left a screen and a half behind the finger it is
+                 * supposed to be under, and lifting there commits it at that stale slot: the
+                 * owner's "somewhere along the way".
+                 *
+                 * The missing half is a sign, not a second rule. `dispatchRawDelta` moves the LIST
+                 * by N pixels, which is exactly the same event as the FINGER moving N pixels in the
+                 * other direction, and the card has to travel for both: the scroll takes the row
+                 * out from under the card, so the card must take the row's place. Feeding the glide
+                 * through the same function is what keeps one rule — no threshold, no spacing, no
+                 * direction is repeated here.
+                 */
+                fun travelDraggedItem(exerciseId: Long, travel: Float) {
                     val currentIndex = reorderedList.indexOfFirst { it.id == exerciseId }
                     if (currentIndex == -1) return
                     val spacing = with(density) { 16.dp.toPx() }
 
+                    // The neighbours' heights, read from the VISIBLE list - the only place a
+                    // row's measured size is known. A neighbour that is not composed reports
+                    // null and the step is refused rather than guessed at.
+                    val nextSize = listState.layoutInfo.visibleItemsInfo
+                        .find { it.key == reorderedList.getOrNull(currentIndex + 1)?.id }?.size
+                    val prevSize = listState.layoutInfo.visibleItemsInfo
+                        .find { it.key == reorderedList.getOrNull(currentIndex - 1)?.id }?.size
+
+                    val stepped = exerciseDragTravel(
+                        index = currentIndex,
+                        travel = dragOffsetY + travel,
+                        listSize = reorderedList.size,
+                        nextSize = nextSize,
+                        prevSize = prevSize,
+                        spacing = spacing
+                    )
+                    dragOffsetY = stepped.offset
+                    if (stepped.index != currentIndex) {
+                        val newList = reorderedList.toMutableList()
+                        val item = newList.removeAt(currentIndex)
+                        newList.add(stepped.index, item)
+                        reorderedList = newList
+                    }
+                }
+
+                fun moveExerciseByDrag(exerciseId: Long, fingerYInItem: Float, dragDelta: Float) {
                     // WHERE THE FINGER IS, recorded for the glide loop: its local Y
                     // inside the card plus the card's current LAYOUT offset (never its
                     // painted offset, which the drag itself moves). A move event is the
@@ -444,34 +493,7 @@ fun WorkoutScreen(
                         ?.plus(fingerYInItem)
                         ?: Float.NaN
 
-                    // Move DOWN
-                    if (dragOffsetY > 0 && currentIndex < reorderedList.size - 1) {
-                        val nextItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex + 1].id }
-                        if (nextItemInfo != null) {
-                            val threshold = (nextItemInfo.size + spacing) / 2
-                            if (dragOffsetY > threshold) {
-                                val newList = reorderedList.toMutableList()
-                                val item = newList.removeAt(currentIndex)
-                                newList.add(currentIndex + 1, item)
-                                reorderedList = newList
-                                dragOffsetY -= (nextItemInfo.size + spacing)
-                            }
-                        }
-                    }
-                    // Move UP
-                    else if (dragOffsetY < 0 && currentIndex > 0) {
-                        val prevItemInfo = listState.layoutInfo.visibleItemsInfo.find { it.key == reorderedList[currentIndex - 1].id }
-                        if (prevItemInfo != null) {
-                            val threshold = -(prevItemInfo.size + spacing) / 2
-                            if (dragOffsetY < threshold) {
-                                val newList = reorderedList.toMutableList()
-                                val item = newList.removeAt(currentIndex)
-                                newList.add(currentIndex - 1, item)
-                                reorderedList = newList
-                                dragOffsetY += (prevItemInfo.size + spacing)
-                            }
-                        }
-                    }
+                    travelDraggedItem(exerciseId, dragDelta)
                 }
 
                 fun endExerciseDrag() {
@@ -517,6 +539,11 @@ fun WorkoutScreen(
                             // read back from it: the end of the list shows up in the next
                             // tick anyway, as canScrollForward/Backward going false.
                             listState.dispatchRawDelta(wanted)
+                            // AND THE HELD CARD TRAVELS BY THE SAME AMOUNT. Without this
+                            // the list slides out from under a motionless finger and the
+                            // card is stranded at the slot it happened to be at when the
+                            // glide began — see travelDraggedItem.
+                            draggingItemId?.let { travelDraggedItem(it, wanted) }
                         }
                         kotlinx.coroutines.delay(16)
                     }
@@ -1290,6 +1317,48 @@ fun WorkoutScreen(
  *    happens on the frame the list is still composing it) asks for no scroll rather than
  *    guessing where it went.
  */
+/**
+ * Where ONE step of travel leaves the card being dragged: the slot it occupies now, and the
+ * travel that is left over as its painted offset.
+ */
+data class DragTravel(val index: Int, val offset: Float)
+
+/**
+ * One step of a dragged card's travel: past half of the next row it takes that row's place, and
+ * past half of the previous row it takes that one's — the two thresholds the drag has always had,
+ * in one place.
+ *
+ * THE SAME RULE ANSWERS FOR A MOVING FINGER AND FOR A MOVING LIST, and that is the whole point of
+ * it being here rather than inline in the gesture: `dispatchRawDelta` scrolls the list by N pixels,
+ * which is the same event as the finger moving N pixels the other way, so a glide that moves the
+ * list must move the card too. Measured on emulator-5554 on 2026-10-15, a glide scrolling the list
+ * five rows under a parked finger left the held card behind at its old slot - the owner's "places
+ * the exercise somewhere along the way". Both callers now feed this one function.
+ *
+ * A neighbour whose height is unknown ([nextSize]/[prevSize] null, because the row is not composed)
+ * refuses the step rather than inventing a threshold, and either end of the list refuses it too.
+ * The leftover travel is deliberately allowed to exceed a row: it is the painted offset, and
+ * consuming a whole row per step is what keeps the card under the finger.
+ */
+fun exerciseDragTravel(
+    index: Int,
+    travel: Float,
+    listSize: Int,
+    nextSize: Int?,
+    prevSize: Int?,
+    spacing: Float
+): DragTravel {
+    if (index < 0 || listSize <= 0) return DragTravel(index, travel)
+    if (travel > 0f && index < listSize - 1 && nextSize != null) {
+        val threshold = (nextSize + spacing) / 2f
+        if (travel > threshold) return DragTravel(index + 1, travel - (nextSize + spacing))
+    } else if (travel < 0f && index > 0 && prevSize != null) {
+        val threshold = -(prevSize + spacing) / 2f
+        if (travel < threshold) return DragTravel(index - 1, travel + (prevSize + spacing))
+    }
+    return DragTravel(index, travel)
+}
+
 fun exerciseDragAutoScrollDelta(
     fingerYInViewport: Float?,
     viewportTop: Float,

@@ -28,6 +28,7 @@ import com.grafizum.repio.ui.components.exercisePickerPool
 import com.grafizum.repio.ui.components.resolvePreciseMuscleGroup
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
 import org.junit.Test
@@ -240,7 +241,8 @@ class ExercisePickerBodyTest {
      * (other) is not shown"*. Both halves are asserted here against the drawn row rather than
      * against the vocabulary behind it: the kit's own glyphs are there, the kit-free category's is
      * not, and the list underneath it STILL contains kit-free movements - because "not shown" was
-     * never meant to mean "not offered", and the category carries 144 of the catalogue's movements.
+     * never meant to mean "not offered", and the category carries 154 of the catalogue's movements
+     * (144 until the 2026-10-13 bodyweight-station move - see EquipmentFilterCoverageTest).
      */
     @Test
     fun theFilterRowDrawsTheKitsGlyphsAndNoneForTheKitFreeCategory() {
@@ -333,18 +335,21 @@ class ExercisePickerBodyTest {
             "the caption above the muscles does not name the group they came from: \"$captionText\"",
             captionText.contains("Back")
         )
-        // The row names the group IN WORDS. It carried the glyph's accessible name between
-        // 2026-10-11 and 2026-10-12, and the owner rejected that placement on sight: *"the icons
-        // should be in the muscles group filters not in the fucking exercises displaying"* - a
-        // lone glyph above the exercise list reads as a mark belonging to the rows, not to the
-        // filter. So the value is text again and the glyph moved onto the body-part chips.
+        // The row names the group THROUGH THE GLYPH. Owner, 2026-10-13: *"instead of \"back\" in the
+        // replace card, it should show the icon like it does in the equipment, and right next to it
+        // the \"show more\" dropdown button EXACTLY like the \"equipment\" section above shows"*.
+        // The name is the icon's content description, so the row still says which part is filtering
+        // - in the user's language - and the glyphed value is what the eye gets.
+        val value = composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
+            .fetchSemanticsNode()
         assertEquals(
             "the row no longer names the group it is filtering by",
             "Back",
-            composeTestRule.onNodeWithTag("muscle_filter_value", useUnmergedTree = true)
-                .fetchSemanticsNode()
-                .config.getOrNull(SemanticsProperties.Text)
-                ?.joinToString("") { it.text }
+            value.config.getOrNull(SemanticsProperties.ContentDescription)?.joinToString("")
+        )
+        assertNull(
+            "the value slot is drawing the word rather than the part's glyph",
+            value.config.getOrNull(SemanticsProperties.Text)
         )
     }
 

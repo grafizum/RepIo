@@ -273,6 +273,14 @@ class StringResourceIntegrityTest {
             // machine and Leg press.
             "equipment_tag_smith",
 
+            // The short "max" chip. It is the abbreviation both languages already
+            // print on a label this size (German "max.", Italian "max"), and the
+            // chip is three letters in 6dp of padding, so the alternatives are a
+            // longer word that does not fit the marker or one the reader has to
+            // expand. The guide card's sentence about it IS translated, so nothing
+            // here is English prose left behind.
+            "level_max",
+
             // "Level" is the word German lifters use, including this app's own guide.
             // The editor's own level-row heading joins them; Italian does translate
             // it ("Livello"), and the list is per KEY so it applies to both.

@@ -39,6 +39,8 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.draw.clipToBounds
 import androidx.compose.ui.focus.onFocusChanged
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.graphics.lerp
+import androidx.compose.ui.graphics.luminance
 import androidx.compose.ui.graphics.vector.ImageVector
 import androidx.compose.ui.platform.LocalContext
 import androidx.compose.ui.res.stringResource
@@ -92,9 +94,11 @@ import com.grafizum.repio.ui.components.ExerciseEditDialog
 import com.grafizum.repio.ui.components.EditorLevelData
 import com.grafizum.repio.ui.components.EditorLevelOption
 import com.grafizum.repio.ui.components.EditorLevelStage
+import com.grafizum.repio.ui.components.EditorStageGroup
 import kotlinx.coroutines.delay
 
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
+import com.grafizum.repio.ui.theme.LocalLightTheme
 
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
@@ -252,10 +256,7 @@ fun WorkoutNowScreen(
                         viewModel.resetWorkoutSession()
                         showRestartDialog = false
                     },
-                    colors = ButtonDefaults.buttonColors(
-                        containerColor = MaterialTheme.colorScheme.primary,
-                        contentColor = MaterialTheme.colorScheme.onPrimary
-                    )
+                    colors = workoutActionButtonColors()
                 ) {
                     Text(getString("restart"))
                 }
@@ -495,10 +496,7 @@ fun WorkoutNowScreen(
                                     if (targetDay == today) {
                                         Button(
                                             onClick = { viewModel.resetWorkoutSession() },
-                                            colors = ButtonDefaults.buttonColors(
-                                                containerColor = MaterialTheme.colorScheme.primary,
-                                                contentColor = MaterialTheme.colorScheme.onPrimary
-                                            ),
+                                            colors = workoutActionButtonColors(),
                                             shape = RoundedCornerShape(16.dp),
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
@@ -646,10 +644,7 @@ fun WorkoutNowScreen(
                                     Button(
                                         onClick = { showRestartDialog = true },
                                         shape = RoundedCornerShape(12.dp),
-                                        colors = ButtonDefaults.buttonColors(
-                                            containerColor = MaterialTheme.colorScheme.primary,
-                                            contentColor = MaterialTheme.colorScheme.onPrimary
-                                        ),
+                                        colors = workoutActionButtonColors(),
                                         border = if (isDeveloper) BorderStroke(1.dp, MaterialTheme.colorScheme.outline) else null,
                                         contentPadding = PaddingValues(horizontal = 10.dp, vertical = 2.dp),
                                         modifier = Modifier
@@ -709,13 +704,47 @@ fun WorkoutNowScreen(
 
                             if (isTimerForThisDay && !isExTimer) {
                                 // Running Rest Timer Card (Only for Rest)
+                                //
+                                // SAME RIM AND SHAPE AS THE TWO CARDS BELOW IT, ONE GREY RUNG
+                                // UNDER THEIR FILL (owner, 2026-10-14: "for the timer reset do
+                                // the same things of background color border etc. as the
+                                // design", then "i want the rest timer slightly greyed again
+                                // so it gives the vibe that its there temporary"). It used to
+                                // be a 15% accent wash inside a 40% accent rim at 16dp, which
+                                // is THREE ways off the card family in this column: the cards
+                                // are [workoutCardFill] at 20dp with a [workoutCardRim] edge.
+                                // So the one card that means "a timer is running" also looked
+                                // like it belonged to a different screen - and on a dark theme
+                                // the wash was the muddy tan the owner rejected for the other
+                                // cards. It now reads as a card of the same family - see the
+                                // fill's own comment below for why it recedes - whose accent
+                                // is in its writing (the timer icon, the label, the countdown)
+                                // rather than in its fill, which is the rule those cards follow.
                                 Card(
-                                    shape = RoundedCornerShape(16.dp),
+                                    shape = RoundedCornerShape(20.dp),
                                     colors = CardDefaults.cardColors(
-                                        containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                        // SLIGHTLY GREYED, because this card is TEMPORARY.
+                                        //
+                                        // Owner, 2026-10-14: *"actually i want the rest timer
+                                        // slightly greyed again so it gives the vibe that its
+                                        // there temporary"*. It is the only card on My Workout
+                                        // that comes and goes by itself - it exists while a
+                                        // rest or transition is counting down and is gone the
+                                        // moment the user logs the next set. The two cards
+                                        // under it are the workout, so ONE RUNG DOWN the grey
+                                        // ladder is the whole signal: `surfaceVariant` is the
+                                        // neutral card grey (#191919 on a dark scheme, one step
+                                        // under the hero cards' #1E1E1E) and on a light scheme
+                                        // it is the neutral #F4F1ED instead of the hero cards'
+                                        // warm `primary` tint - greyer in both appearances, so
+                                        // the timer reads as a passing overlay rather than as
+                                        // part of the plan. The rim and the shape still come
+                                        // from the shared card pair, so it stays in the
+                                        // family; only its surface recedes.
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
                                         contentColor = MaterialTheme.colorScheme.primary
                                     ),
-                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.40f)),
+                                    border = BorderStroke(1.dp, workoutCardRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
                                     modifier = Modifier.fillMaxWidth()
                                 ) {
                                     Row(
@@ -793,16 +822,16 @@ fun WorkoutNowScreen(
                             }
 
                             // CURRENT EXERCISE CARD — the hero of the screen. Painted in
-                            // the same language as the level card below it: the theme's
-                            // primary tint over the surface with a hairline primary rim,
-                            // so the two cards read as one family instead of a grey box
-                            // above a tinted one. Developer skin keeps its flat look.
+                            // the same language as the level card below it — one fill rule
+                            // for both ([workoutCardFill]), so the two cards read as one
+                            // family instead of a grey box above a tinted one — with a
+                            // hairline primary rim.
                             Card(
                                 shape = RoundedCornerShape(20.dp),
                                 colors = CardDefaults.cardColors(
-                                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.08f)),
+                                    containerColor = workoutCardFill(MaterialTheme.colorScheme, LocalLightTheme.current)),
                                 elevation = CardDefaults.cardElevation(defaultElevation = 0.dp),
-                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)),
+                                border = BorderStroke(1.dp, workoutCardRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Column(modifier = Modifier.padding(window.cardPadding)) {
@@ -875,13 +904,17 @@ fun WorkoutNowScreen(
 
                                     AnimatedVisibility(visible = showPeek) {
                                         Column(modifier = Modifier.padding(top = 8.dp, bottom = 12.dp)) {
-                                            // Nested well: one shade of the primary IN — the same
-                                            // recipe as the level card's banner — so the description
-                                            // reads as recessed into the card family.
+                                            // Nested well, and the SAME recipe as the level card's
+                                            // banner ([workoutWellFill] / [workoutWellRim]): the
+                                            // primary tint on a light scheme, the grey ladder's
+                                            // own card rung with a full-strength accent rim on a
+                                            // dark one - so the description reads as a card
+                                            // inside the card without painting the accent as a
+                                            // fill.
                                             Surface(
-                                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                                                color = workoutWellFill(MaterialTheme.colorScheme, LocalLightTheme.current),
                                                 shape = RoundedCornerShape(12.dp),
-                                                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                                                border = BorderStroke(1.dp, workoutWellRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
                                                 modifier = Modifier.fillMaxWidth()                                                ) {
                                                 Row(modifier = Modifier.padding(window.cardPadding / 2)) {
                                                     Icon(
@@ -962,7 +995,15 @@ fun WorkoutNowScreen(
                             // clean "what am I doing" view. Exercises outside the level
                             // system (custom mode, non-ready rows) get the same card
                             // without the level header, showing the routine's own reps.
-                            Spacer(modifier = Modifier.height(window.sectionSpacing))
+                            //
+                            // NO extra spacer before it any more (owner, 2026-10-14:
+                            // "between the 2 cards ... i want slightly less space"). The
+                            // column already separates every child with `spacedBy(16.dp)`,
+                            // and an explicit `sectionSpacing` spacer on top of that made
+                            // this one gap 16 + sectionSpacing (48dp at the default scale)
+                            // where every other gap on the screen is 16 - so the two cards
+                            // read as belonging to different groups. Dropping the spacer
+                            // puts them the same distance apart as everything else.
                             LevelPrescriptionCard(
                                 exerciseName = currentExercise.name,
                                 level = progLevel,
@@ -1055,10 +1096,7 @@ fun WorkoutNowScreen(
                                 // COUNTER / SKIP BUTTON (Full Width)
                                 Button(
                                     onClick = { viewModel.advanceAfterTimer(dayExercises) },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
+                                    colors = workoutActionButtonColors(),
                                     shape = RoundedCornerShape(20.dp),
                                     border = null,
                                     modifier = Modifier.fillMaxWidth().height(52.dp)
@@ -1086,10 +1124,7 @@ fun WorkoutNowScreen(
                                             viewModel.logCurrentSetAndAdvance(dayExercises) 
                                         }
                                     },
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
+                                    colors = workoutActionButtonColors(),
                                     shape = RoundedCornerShape(20.dp),
                                     border = null,
                                     modifier = Modifier.fillMaxWidth().height(52.dp)
@@ -1123,10 +1158,7 @@ fun WorkoutNowScreen(
                                 Button(
                                     onClick = { viewModel.navigateToExercise(workoutState.currentExerciseIndex - 1, dayExercises.size) },
                                     enabled = workoutState.currentExerciseIndex > 0,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
+                                    colors = workoutActionButtonColors(),
                                     shape = RoundedCornerShape(20.dp),
                                     border = null,
                                     modifier = Modifier.weight(1f).fillMaxHeight()
@@ -1138,10 +1170,7 @@ fun WorkoutNowScreen(
                                 Button(
                                     onClick = { viewModel.navigateToExercise(workoutState.currentExerciseIndex + 1, dayExercises.size) },
                                     enabled = workoutState.currentExerciseIndex < dayExercises.size - 1,
-                                    colors = ButtonDefaults.buttonColors(
-                                        containerColor = MaterialTheme.colorScheme.primary,
-                                        contentColor = MaterialTheme.colorScheme.onPrimary
-                                    ),
+                                    colors = workoutActionButtonColors(),
                                     shape = RoundedCornerShape(20.dp),
                                     border = null,
                                     modifier = Modifier.weight(1f).fillMaxHeight()
@@ -1429,15 +1458,19 @@ fun levelEditorOptions(
     // count is the exercise's pattern length - the same number the card's stage
     // dots are drawn from - so the two cannot disagree about how many there are.
     val stageCount = ProgressionEngine.patternLength(entry).coerceAtLeast(1)
+    // The rung the research ends on. It is a MARK, not a stop: the levels above it
+    // are drawn and selectable like every other rung (owner 2026-10-13).
+    val maxRung = ProgressionEngine.effectiveMaxLevel(entry)
 
     return range.map { level ->
         EditorLevelOption(
             level = level,
             isCurrent = level == state.level,
+            isMax = level == maxRung,
             loadText = ProgressionEngine.prescribedValueAtLevel(entry, level)
                 ?.let { prescriptionDisplayText(it) }
                 .orEmpty(),
-            stages = roundedStages(
+            stageGroups = roundedStageGroups(
                 (1..stageCount).map { stage ->
                     EditorLevelStage(
                         stage = stage,
@@ -1522,7 +1555,36 @@ fun editorLevelData(
  * the user stands is worse than a busy one. A pattern that is mixed the whole way down
  * (nothing to round to) falls back to every stage rather than showing an empty list.
  */
-internal fun roundedStages(all: List<EditorLevelStage>): List<EditorLevelStage> {
+/** The stages worth showing, in order - [roundedStages], by index. */
+internal fun roundedStages(all: List<EditorLevelStage>): List<EditorLevelStage> =
+    roundedStageGroups(all).map { it.shown }
+
+/**
+ * The shown rows, EACH CARRYING the stages it rounded away (see [EditorStageGroup]).
+ *
+ * OWNER, 2026-10-14: *"i want to be able to have each roman section (9 9 9) or
+ * (10 10 10) have an arrow dropdown which will then show the other roman level steps
+ * underneath it which is from one (9 9 9) to the next (10 10 10)"*. The in-betweens
+ * are the stages strictly between one shown row and the next, and the LAST row
+ * carries none: the dropdown answers "how does this step up to the next", so with no
+ * next row there is nothing of that kind to show, and a flat ladder (Archer Pull Ups
+ * runs 12/12/12 on all thirteen stages) grows no arrows at all instead of a dozen
+ * rows of the same numbers.
+ */
+internal fun roundedStageGroups(all: List<EditorLevelStage>): List<EditorStageGroup> {
+    val shown = shownStagesOf(all)
+    val shownStages = shown.map { it.stage }.toSet()
+    return shown.mapIndexed { index, row ->
+        val next = shown.getOrNull(index + 1)
+        val hidden = if (next == null) emptyList() else all.filter {
+            it.stage > row.stage && it.stage < next.stage && it.stage !in shownStages
+        }
+        EditorStageGroup(shown = row, hidden = hidden)
+    }
+}
+
+/** The filtering half of [roundedStageGroups]: one row per round prescription. */
+private fun shownStagesOf(all: List<EditorLevelStage>): List<EditorLevelStage> {
     val rounded = all.filter { it.reps.distinct().size <= 1 }
     // No round stage to show - do not hide the level's own ladder entirely.
     if (rounded.isEmpty()) return all
@@ -1600,9 +1662,13 @@ private fun HeaderActionPill(
  * exercise card above stays a clean "what am I doing" view, so the two never
  * repeat each other.
  *
- * The card is painted from the theme's own palette (a primary tint over the
- * surface, a primary border) rather than a neutral one, so it reads as part of
- * the app's colour system instead of a detached grey box.
+ * The card is painted with [workoutCardFill] — the primary tint on a light scheme, the
+ * scheme's own card grey on a dark one — and always with a primary rim and primary writing,
+ * so the accent marks it as part of the app's colour system (owner, 2026-10-14: the accent
+ * may be the border and the writing, never the fill of the whole card) instead of a
+ * detached grey box. Since the same day's "accent gold, not a creamy gold" note, that rim
+ * and the banner's is the FULL accent on a dark scheme rather than a tint of it — see
+ * [workoutCardRim] and [workoutWellFill].
  *
  * The level pill between the arrows is an actual button — a tonal fill or a
  * ring, plus a border — so "this opens the level picker" is visible instead of a
@@ -1917,6 +1983,183 @@ fun levelCardShowsPerSetBanner(cardBody: LevelCardBody, repTargetCount: Int): Bo
     cardBody == LevelCardBody.BANNER_DURATION ||
         (cardBody == LevelCardBody.BANNER && repTargetCount > 0)
 
+/**
+ * The fill of the workout tab's two hero cards: the current exercise card and, under it,
+ * the level card. Both wear it, so the pair keeps reading as one family.
+ *
+ * ON A LIGHT SCHEME it is the 8% primary tint both cards have always had, and that is the
+ * half the owner asked to KEEP - 2026-10-14: *"exactly as the light theme is doing with white
+ * and beige, the card is in beige but a lot different so it fits well with the light
+ * background"*. A warm bronze at 8% over #F7F4EE IS a beige card on a cream canvas, so on a
+ * light scheme the accent is legitimately doing surface duty.
+ *
+ * ON A DARK SCHEME the same expression is the defect he reported in the same breath: *"the
+ * theme primary color is still shown as the main card of my workout tab"*. Measured off the
+ * emulator in the DEVELOPER theme, 8% of gold over #0E0E0E lands on #1F1B14, and that one
+ * colour covered 25.6% of the screen. A dark scheme's accent is vivid by design - that is what
+ * makes it an accent - so a card of it is a wash rather than a signal.
+ *
+ * IT IS ONE RUNG LIGHTER THAN THE GENERAL CARD, which is the owner's own correction (2026-10-14,
+ * third pass: *"make the card you actually change slightly lighter? i want it to have the same
+ * visuals as the light beige theme"*). Measured on the device, the beige theme's workout card is
+ * #F4F0EB against a general card of #F4F1ED - the LIGHTER of the two panels, by a hair, and it is
+ * the warmth that separates it. A dark scheme may not use warmth for a card fill (that is a wash
+ * of the accent, above), so the separation has to be luminance: `surfaceContainerHigh` (#1E1E1E,
+ * 1.158:1 from the canvas) over the general card's `surfaceVariant` (#191919, 1.098:1), a 1.055
+ * step. The previous shape had it the other way round - the workout card at the general grey
+ * while every other card rode Material's elevation up to #2C2C2C - so the hero card was the
+ * darkest panel on the screen. The rim is what makes it unmistakably the hero card; this only
+ * has to stop it being the shadow of one.
+ *
+ * WHAT THE ACCENT KEEPS, because this is a replacement and not a ban: the 1dp rim both cards
+ * carry, the writing on them, the level pill, the per-set banner and the action buttons - the
+ * things that mean something. That is the rule as he stated it: *"have the primary color only
+ * be used as information / box color but only border or writing etc", never as the fill of a
+ * whole card. [workoutCardRim], [workoutWellRim] and [workoutWellFill] are how strong each of
+ * those is on a dark scheme.
+ *
+ * A pure function of the scheme and the appearance rather than a composable read, so
+ * [DarkThemeContrastTest] can hold EVERY dark theme to it without rendering a screen.
+ */
+internal fun workoutCardFill(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.primary.copy(alpha = 0.08f) else scheme.surfaceContainerHigh
+
+/**
+ * THE ACCENT IS A LINE AND A WORD, NOT A WASH.
+ *
+ * Owner, 2026-10-14, on the same two cards: *"instead of a creamy gold i want an accent gold"*.
+ * A gold at 35% over a grey is not a dimmer gold - it is a DIFFERENT colour, a tan (#675838 over
+ * the old card), and that is the one thing an accent must never be. So the pair below splits the
+ * job in two, in both appearances, and each half is one line:
+ *
+ *  * [workoutCardRim] and [workoutWellRim] draw the accent AT FULL STRENGTH on a light scheme
+ *    (the 35% / 25% tints are kept there, because the owner's ruling was about the dark theme
+ *    and a softened bronze on cream is a designed edge, not a muddy one) and as the accent
+ *    itself on a dark one. A 1dp line of the real gold is what the reference shows.
+ *  * [workoutWellFill] keeps the 12% primary tint on a light scheme and takes the CARD rung of the
+ *    grey ladder on a dark one instead of a wash of the accent. These blocks are a description
+ *    tucked under the exercise name, the "SET 2 OF 3 - 10 reps" strip and the REP BANNER, and
+ *    they are cards inside a card: `surfaceVariant` (#191919), one rung under the hero card
+ *    (#1E1E1E) and two under nothing - it is the same grey every other card in the app wears.
+ *
+ *    IT USED TO BE THE CANVAS GREY, and that is the whole point of this line. The reasoning was
+ *    a strict mirror of the beige theme, where the well (#E7DFD5) is 1.16:1 from its card
+ *    (#F4F0EB) - a step that lands, over the dark card, exactly ON #0E0E0E. Mirror-correct and
+ *    still wrong: a fill equal to the page is not a recessed panel, it is a hole, and the rep
+ *    banner read as the page showing through the card rather than as a block inside it. The owner
+ *    said so on the device: *"make the rep card slightly lighter"*. A step that only exists
+ *    relative to the CARD has to stay visible against the PAGE as well, and `surfaceVariant` is
+ *    the one rung that is both. The accent still does everything that MEANS something on these
+ *    cards: the rim, the heading, the level number, the load line - never the fill.
+ *
+ * Pure functions of the scheme and the appearance, like [workoutCardFill], so a test can hold
+ * them without rendering a screen.
+ */
+internal fun workoutCardRim(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.primary.copy(alpha = 0.35f) else scheme.primary
+
+internal fun workoutWellRim(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.primary.copy(alpha = 0.25f) else scheme.primary
+
+internal fun workoutWellFill(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.primary.copy(alpha = 0.12f) else scheme.surfaceVariant
+
+/**
+ * THE PRIMARY ACTION ON A DARK THEME IS A TONE OF THE ACCENT, NOT THE ACCENT AT FULL STRENGTH.
+ *
+ * Owner, 2026-10-14: *"the other dark themes are too strong ... i want them to be less strong on
+ * the eye especially if the primary color is shown orange in the my workout tab it is very heavy
+ * on the eye"*. MEASURED on emulator-5554 with FLAME selected, rather than estimated: the vivid
+ * #FF6D00 covered **8.3% of the whole My Workout frame**, and **5.2% of that was ONE element** -
+ * the full-width "Save set & next" button, whose clickable bounds uiautomator reports as
+ * 994x137 px. A slab of hot orange that size is the "heavy", and the accent is not doing a job
+ * there: it is being used as an AREA, which is the one thing the two workout cards had already
+ * stopped doing ([workoutCardFill] is a tint, [workoutCardRim] a line).
+ *
+ * So the dark themes that are NOT the developer skin get a TONE of their accent instead of the
+ * accent itself - the primary pulled into the canvas, which keeps the hue and gives up the glare.
+ * The label stays the accent (see [workoutActionLabel]), so the button still announces which theme
+ * it belongs to, and it still reads as a filled, primary action rather than as a quiet outline.
+ *
+ * THE TWO EXEMPTIONS ARE DELIBERATE. DEVELOPER keeps its solid gold: it is the theme the owner
+ * tuned by hand and asked for "an accent gold", and it is not one of the themes he called too
+ * strong. The LIGHT themes keep the solid fill too, because their accents are a bronze / teal / red
+ * / blue that never glared, and their `onPrimary` is already a designed pair.
+ *
+ * A pure function of the scheme and the two appearance flags, like [workoutCardFill], so a test
+ * can hold every dark theme to it without rendering a screen.
+ */
+internal fun workoutActionFill(
+    scheme: ColorScheme,
+    isLightTheme: Boolean,
+    isDeveloperSkin: Boolean,
+): Color =
+    if (isLightTheme || isDeveloperSkin) scheme.primary
+    else lerp(scheme.primary, scheme.background, ACTION_TONE_TOWARD_CANVAS)
+
+/**
+ * THE LABEL FOR [workoutActionFill]: the accent, lightened ONLY AS FAR AS IT MUST BE.
+ *
+ * The fill above is dark and low-glare, so the label has to be readable on it. The accents differ
+ * wildly in luminance - Emerald is bright, RoyalBlue is dark enough that its raw accent cannot
+ * clear 4.5:1 on ANY dark fill - so one fixed lightening would either under-serve the dark accents
+ * or wash out the bright ones. The accent is instead walked toward white in tenths until it clears
+ * the floor, which keeps every label on its own hue and turns the readability into a property of
+ * the function rather than a per-theme guess.
+ * `workoutActionLabelsStayReadableOnTheirOwnTone` holds every dark theme to it.
+ */
+internal fun workoutActionLabel(
+    scheme: ColorScheme,
+    isLightTheme: Boolean,
+    isDeveloperSkin: Boolean,
+): Color {
+    if (isLightTheme || isDeveloperSkin) return scheme.onPrimary
+    val fill = workoutActionFill(scheme, isLightTheme, isDeveloperSkin)
+    var label = scheme.primary
+    var towardWhite = 0f
+    while (towardWhite < 1f && workoutContrast(label, fill) < ACTION_LABEL_MIN_CONTRAST) {
+        towardWhite = (towardWhite + 0.1f).coerceAtMost(1f)
+        label = lerp(scheme.primary, Color.White, towardWhite)
+    }
+    return label
+}
+
+/**
+ * WCAG 2.1 contrast ratio between two colours.
+ *
+ * Here so that the button's own readability rule can be asserted from a unit test, on every dark
+ * theme, without rendering a screen - the same reason [workoutActionFill] is a pure function.
+ */
+internal fun workoutContrast(a: Color, b: Color): Float {
+    val la = a.luminance()
+    val lb = b.luminance()
+    return (maxOf(la, lb) + 0.05f) / (minOf(la, lb) + 0.05f)
+}
+
+/** How far a dark theme's accent is pulled into the canvas for a primary action's fill. */
+private const val ACTION_TONE_TOWARD_CANVAS = 0.82f
+
+/** The floor a label on that tone must clear. 4.5:1 is the WCAG AA body-text floor. */
+private const val ACTION_LABEL_MIN_CONTRAST = 4.5f
+
+/**
+ * The colours EVERY primary action on this screen wears, in one place.
+ *
+ * A composable rather than four lines at each call site because the call sites are exactly how the
+ * solid slab got there: seven independent `ButtonDefaults.buttonColors(primary, onPrimary)` blocks
+ * cannot be softened together, and a new button added tomorrow would inherit the glare by default.
+ * One door, and the appearance flags are read from the composition the way the theme provides them.
+ */
+@Composable
+internal fun workoutActionButtonColors(): ButtonColors = ButtonDefaults.buttonColors(
+    containerColor = workoutActionFill(
+        MaterialTheme.colorScheme, LocalLightTheme.current, LocalDeveloperSkin.current,
+    ),
+    contentColor = workoutActionLabel(
+        MaterialTheme.colorScheme, LocalLightTheme.current, LocalDeveloperSkin.current,
+    ),
+)
+
 @OptIn(ExperimentalMaterial3Api::class) // Surface(onClick) for the level pill
 @Composable
 // `internal` rather than `private` ONLY so a test can lay the card out and measure
@@ -1991,11 +2234,21 @@ internal fun LevelPrescriptionCard(
 
     Surface(
         shape = RoundedCornerShape(20.dp),
-        // Level mode wears the primary tint; custom mode a neutral surface so
-        // the card visually confirms which mode is driving the workout. Both
+        // Level mode wears the theme's card fill ([workoutCardFill]: the primary tint on a
+        // light scheme, the neutral card grey on a dark one); custom mode a lighter neutral
+        // so the card still visually confirms which mode is driving the workout. Both
         // get a hairline rim so they hold their edge against the background.
-        color = if (inSystem) MaterialTheme.colorScheme.primary.copy(alpha = 0.08f) else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = if (inSystem) 0.35f else 0.18f)),
+        color = if (inSystem) workoutCardFill(MaterialTheme.colorScheme, LocalLightTheme.current)
+                else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
+        // THE SAME RIM AS THE CARD ABOVE IT (owner, 2026-10-14: "the border of the card
+        // under be the same as the card above"). It used to be its own inline tint,
+        // `primary.copy(alpha = 0.35f)`, which happens to equal [workoutCardRim] on a LIGHT
+        // scheme and is a WASH of the accent on a dark one - where [workoutCardRim] is the
+        // accent at full strength. So the two cards wore visibly different edges on exactly
+        // the theme the owner was looking at. Reading the rim from the one shared function is
+        // what makes them match in every theme and in both appearances, and it is the rule
+        // the exercise card above already followed.
+        border = BorderStroke(1.dp, workoutCardRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
         modifier = Modifier.fillMaxWidth()
     ) {
         Column(
@@ -2299,14 +2552,14 @@ internal fun LevelPrescriptionCard(
                     // instruction - "changed the style slightly so it fits with the rest of
                     // the content in that card". The level box beside it is a 1dp primary
                     // ring with no fill, so the chip is the same ring in the same family: a
-                    // hairline of primary, filled with the 14% primary tint the action
-                    // banner below uses once the lock is ON. It used to wear the neutral
-                    // `outlineVariant` grey, which is the one colour nothing else in this
-                    // card is drawn in - the reason it read as a foreign control.
+                    // hairline of primary, filled - once the lock is ON - with the same well
+                    // [workoutWellFill] paints the action banner below. It used to wear the
+                    // neutral `outlineVariant` grey, which is the one colour nothing else in
+                    // this card is drawn in - the reason it read as a foreign control.
                     Surface(
                         onClick = onToggleLock,
                         shape = RoundedCornerShape(12.dp),
-                        color = if (locked) MaterialTheme.colorScheme.primary.copy(alpha = 0.14f)
+                        color = if (locked) workoutWellFill(MaterialTheme.colorScheme, LocalLightTheme.current)
                                 else Color.Transparent,
                         border = BorderStroke(
                             1.dp,
@@ -2364,8 +2617,8 @@ internal fun LevelPrescriptionCard(
                 ) {
                     Surface(
                         shape = RoundedCornerShape(14.dp),
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.25f)),
+                        color = workoutWellFill(MaterialTheme.colorScheme, LocalLightTheme.current),
+                        border = BorderStroke(1.dp, workoutWellRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         Row(
@@ -2405,6 +2658,19 @@ internal fun LevelPrescriptionCard(
                                             maxLines = 1,
                                             modifier = Modifier.padding(bottom = 3.dp)
                                         )
+                                        // WHOSE reps they are: a one-arm row's 8
+                                        // means 8 per arm, and the banner is the
+                                        // surface read mid-set (owner, 2026-10-13:
+                                        // "define that its 8 reps on each arm").
+                                        WorkoutTemplates.perSideLabelKey(exerciseName)?.let { key ->
+                                            Text(
+                                                text = " " + getString(key),
+                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                maxLines = 1,
+                                                modifier = Modifier.padding(bottom = 6.dp)
+                                            )
+                                        }
                                     }
                                 }
                             }

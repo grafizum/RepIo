@@ -35,12 +35,14 @@ import androidx.compose.ui.Alignment
 import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
+import androidx.compose.ui.platform.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.OverallLevelRank
+import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.ui.components.LEVEL_STAGE_SEPARATOR
 import com.grafizum.repio.ui.components.LevelStageLabel
 import com.grafizum.repio.ui.components.RankBadge
@@ -81,6 +83,9 @@ fun LevelSystemGuideExamples() {
         GuideExampleCard(getString("stage_example_title")) { StageBoxesExample() }
         GuideExampleCard(getString("level_up_example_title")) { LevelUpExample() }
         GuideExampleCard(getString("large_jump_example_title")) { LargeJumpExample() }
+        // THE MAX, taught beside the lock for the same reason: it is a mark the
+        // user meets on the ladder and would otherwise read as a stop.
+        GuideExampleCard(getString("level_max_example_title")) { MaxLevelExample() }
         GuideExampleCard(getString("difficulty_change_example_title")) { DifficultyButtonsExample() }
         // THE LOCK, taught where the rest of the system is taught.
         //
@@ -310,31 +315,156 @@ private fun GuideStageBox(stage: String, reps: String, done: Boolean = false, cu
 
 // ------------------------------------------------------------------
 // Example 3 & 4 — Level-up reset and large-jump reset.
-// Two data rows with an arrow between: the last stage of a level,
-// then the reset to stage I at more load.
+//
+// Two data rows with an arrow between: the last stage of a level, then the reset to
+// stage I at more load. Every number is read from the ENGINE —
+// [ProgressionEngine.levelUp], the same call the workout screen makes — for one real
+// exercise each, the way the difficulty card below reads its starting levels.
+//
+// OWNER REPORT, 2026-10-13: *"Between (level up and rep reset) and (big jumps smaller
+// reps), there is no real rep difference shown i want it displayed differently."*
+//
+// He was reading two cards that told the same story. The first printed no load at all,
+// so its caption's "with more load" pointed at nothing, and both printed the identical
+// "12 / 12 / 12" -> "8 / 8 / 8": one picture, twice. Now the first card shows an
+// ordinary step (the bench's own +10%) and the second a big one (the dumbbell press's
+// +33%, which the engine itself classifies "large"), so the pair can be told apart at a
+// glance and neither can drift from the data it illustrates.
+//
+// The two cards still land on the same reset reps. That is the DATA's answer rather than
+// a drawing choice: every row in the v5 pool declares post-jump reps of 8 / 8 / 8, which
+// is exactly what the standard reset already uses (see the note in TODO.md).
 // ------------------------------------------------------------------
+
+/** The real exercise and rung each worked example is built from. */
+private object GuideJumpExamples {
+    /** An ordinary step: the bench moves +10% between its third and fourth rungs. */
+    const val LEVEL_UP_EXERCISE = "Barbell Bench Press"
+    const val LEVEL_UP_RUNG = 3
+
+    /**
+     * A big step: the concentration curl moves +50% straight off level 1.
+     *
+     * The example has to sit at the BOTTOM of a ladder, and that is not a
+     * convenience - it is now the only place a big jump lives. Every load ladder
+     * walks ONE step from level 1 (owner 2026-10-13: "the increase of the weight
+     * should always be the same"), so the size of a step in PERCENT shrinks as
+     * the load grows: 2 kg to 3 kg is +50%, while the barbell bench's own 2.5 kg
+     * is +12.5% at level 1 and +1.4% at its top. A big jump is therefore a light
+     * ladder's problem, which is what the card shows.
+     */
+    const val BIG_JUMP_EXERCISE = "Concentration Curl"
+    const val BIG_JUMP_RUNG = 1
+}
+
+/** One row of a worked example: the rung, and what the app prescribes on it. */
+private data class GuideJumpRow(
+    val level: Int,
+    val stage: String,
+    val load: Double?,
+    val reps: List<Int>,
+)
+
+/**
+ * The two rows of a level-up example, computed by the engine for one real exercise:
+ * the rung the user finished (its last stage) and the rung the app moves them to.
+ *
+ * Null when the pool carries no usable ladder for [exerciseName] or the rung has no rung
+ * above it — the caller's signal to draw its plain fallback rather than to crash.
+ */
+private fun guideJump(exerciseName: String, rung: Int): Pair<GuideJumpRow, GuideJumpRow>? {
+    val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+    if (!ProgressionEngine.isProgressionReady(entry)) return null
+    if (rung < ProgressionEngine.minLevel(entry) || rung >= ProgressionEngine.maxLevel(entry)) return null
+
+    val topStage = ProgressionEngine.patternLength(entry)
+    val from = GuideJumpRow(
+        level = rung,
+        stage = ProgressionEngine.stageName(topStage),
+        load = ProgressionEngine.valueAtLevel(entry, rung),
+        reps = ProgressionEngine.prescribedReps(entry, rung, topStage).orEmpty()
+    )
+    val result = ProgressionEngine.levelUp(
+        entry,
+        ProgressionEngine.ProgressionState(level = rung, stage = topStage)
+    ) ?: return null
+    val to = GuideJumpRow(
+        level = result.newState.level,
+        stage = ProgressionEngine.stageName(result.stage),
+        load = result.value,
+        reps = result.reps
+    )
+    return from to to
+}
+
+/**
+ * A row's left half: the engine's load in the app's own kg format, then the same
+ * "Level 3 | XIII" box the live level card uses. Rows without a load (bodyweight and
+ * timed work) keep the box alone rather than printing a made-up number.
+ */
+@Composable
+private fun jumpRowLeft(row: GuideJumpRow): String {
+    val load = row.load
+    val label = levelStageLabel(row.level, row.stage)
+    if (load == null) return label
+    return getString("weight_kg_intl", decimalText(load, if (load % 1.0 == 0.0) 0 else 1)) +
+        " — " + label
+}
+
+/** A row's right half: the per-set target reps, as the app prints them. */
+private fun jumpRowReps(row: GuideJumpRow): String = row.reps.joinToString(" / ")
 
 @Composable
 private fun LevelUpExample() {
+    val jump = guideJump(GuideJumpExamples.LEVEL_UP_EXERCISE, GuideJumpExamples.LEVEL_UP_RUNG)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        GuideDataRow(levelStageLabel(3, "XIII"), "12 / 12 / 12")
-        GuideArrowRow(getString("level_up_example_arrow"))
-        GuideDataRow(levelStageLabel(4, "I"), "8 / 8 / 8", highlight = true)
+        if (jump != null) {
+            GuideDataRow(jumpRowLeft(jump.first), jumpRowReps(jump.first))
+            GuideArrowRow(getString("level_up_example_arrow"))
+            GuideDataRow(jumpRowLeft(jump.second), jumpRowReps(jump.second), highlight = true)
+        } else {
+            // Only reachable on a broken data build. The shape of a level-up is still
+            // worth drawing, but with no numbers invented for it.
+            GuideDataRow(levelStageLabel(3, "XIII"), "")
+            GuideArrowRow(getString("level_up_example_arrow"))
+            GuideDataRow(levelStageLabel(4, "I"), "", highlight = true)
+        }
     }
     GuideCaption(getString("level_up_example_caption"))
 }
 
 @Composable
 private fun LargeJumpExample() {
+    val jump = guideJump(GuideJumpExamples.BIG_JUMP_EXERCISE, GuideJumpExamples.BIG_JUMP_RUNG)
     Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-        // The number is illustrative data, but the unit goes through the same
-        // format the rest of the app prints loads with, so the guide cannot end up
-        // phrasing "6 kg" differently from the workout screen.
-        GuideDataRow(getString("weight_kg_intl", "6") + " — " + levelStageLabel(2, "XIII"), "12 / 12 / 12")
-        GuideArrowRow(getString("large_jump_example_arrow"))
-        GuideDataRow(getString("weight_kg_intl", "10") + " — " + levelStageLabel(3, "I"), "8 / 8 / 8", highlight = true)
+        if (jump != null) {
+            GuideDataRow(jumpRowLeft(jump.first), jumpRowReps(jump.first))
+            GuideArrowRow(getString("large_jump_example_arrow"))
+            GuideDataRow(jumpRowLeft(jump.second), jumpRowReps(jump.second), highlight = true)
+        } else {
+            GuideDataRow(levelStageLabel(2, "XIII"), "")
+            GuideArrowRow(getString("large_jump_example_arrow"))
+            GuideDataRow(levelStageLabel(3, "I"), "", highlight = true)
+        }
     }
     GuideCaption(getString("large_jump_example_caption"))
+}
+
+/**
+ * The max rung, drawn the way the level list draws it: the marked level, then the
+ * level above it, which is still a real rung.
+ */
+@Composable
+private fun MaxLevelExample() {
+    Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
+        GuideDataRow(
+            getString("adjust_levels_n", 11) + "  " + getString("level_max"),
+            "12 / 12 / 12"
+        )
+        GuideArrowRow(getString("level_max_example_arrow"))
+        GuideDataRow(getString("adjust_levels_n", 12), "8 / 8 / 8", highlight = true)
+    }
+    GuideCaption(getString("level_max_example_caption"))
 }
 
 /**
@@ -492,21 +622,64 @@ private fun GuideDataRow(left: String, right: String, highlight: Boolean = false
 // Three static pills (Easy | Medium | Hard); the chosen one is tinted.
 // ------------------------------------------------------------------
 
+/**
+ * The level each difficulty STARTS an exercise at, read from the engine rather
+ * than written into the card.
+ *
+ * Owner board task_5f5u1p0x5v1z5p366g4r5455, 2026-10-13: "With starting difficulty
+ * (still in the level instructions) show also the starting level based on what
+ * difficulty choose". The numbers come from [ProgressionEngine.startingPrescription]
+ * - the same call the setup screen makes - for one staple movement, so this card
+ * cannot print a level the app does not actually start a user on, and the guide's
+ * other examples already show concrete numbers ("20 kg", "12 / 12 / 12") without
+ * naming a movement.
+ */
+private fun guideStartLevel(difficulty: ProgressionEngine.Difficulty): Int? =
+    ProgressionEngine.startingPrescription("Barbell Bench Press", difficulty)?.level
+
+/** The example's three options, addressable one at a time. */
+const val GUIDE_DIFFICULTY_EASY_TAG = "guide_difficulty_easy"
+const val GUIDE_DIFFICULTY_MEDIUM_TAG = "guide_difficulty_medium"
+const val GUIDE_DIFFICULTY_HARD_TAG = "guide_difficulty_hard"
+
 @Composable
 private fun DifficultyButtonsExample() {
     Row(
         horizontalArrangement = Arrangement.spacedBy(8.dp),
         modifier = Modifier.fillMaxWidth()
     ) {
-        GuideDifficultyPill(getString("intensity_easy"), selected = true, modifier = Modifier.weight(1f))
-        GuideDifficultyPill(getString("intensity_medium"), selected = false, modifier = Modifier.weight(1f))
-        GuideDifficultyPill(getString("intensity_hard"), selected = false, modifier = Modifier.weight(1f))
+        // One tag per option: several cards in this guide print a "Level N" row, so a
+        // test asserting an option's own level has to say WHICH option it means.
+        GuideDifficultyPill(
+            getString("intensity_easy"),
+            selected = true,
+            startLevel = guideStartLevel(ProgressionEngine.Difficulty.EASY),
+            modifier = Modifier.weight(1f).testTag(GUIDE_DIFFICULTY_EASY_TAG)
+        )
+        GuideDifficultyPill(
+            getString("intensity_medium"),
+            selected = false,
+            startLevel = guideStartLevel(ProgressionEngine.Difficulty.MEDIUM),
+            modifier = Modifier.weight(1f).testTag(GUIDE_DIFFICULTY_MEDIUM_TAG)
+        )
+        GuideDifficultyPill(
+            getString("intensity_hard"),
+            selected = false,
+            startLevel = guideStartLevel(ProgressionEngine.Difficulty.HARD),
+            modifier = Modifier.weight(1f).testTag(GUIDE_DIFFICULTY_HARD_TAG)
+        )
     }
     GuideCaption(getString("difficulty_change_example_caption"))
 }
 
 @Composable
-private fun GuideDifficultyPill(label: String, selected: Boolean, modifier: Modifier = Modifier) {
+private fun GuideDifficultyPill(
+    label: String,
+    selected: Boolean,
+    /** The level this difficulty starts an exercise at, or null when unknown. */
+    startLevel: Int? = null,
+    modifier: Modifier = Modifier
+) {
     Surface(
         shape = RoundedCornerShape(10.dp),
         color = if (selected) MaterialTheme.colorScheme.primary.copy(alpha = 0.12f)
@@ -518,16 +691,33 @@ private fun GuideDifficultyPill(label: String, selected: Boolean, modifier: Modi
         ),
         modifier = modifier
     ) {
-        Text(
-            text = label,
-            style = MaterialTheme.typography.labelMedium.copy(
-                fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
-            ),
-            color = if (selected) MaterialTheme.colorScheme.primary
-                    else MaterialTheme.colorScheme.onSurfaceVariant,
-            textAlign = TextAlign.Center,
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
             modifier = Modifier.padding(vertical = 10.dp)
-        )
+        ) {
+            Text(
+                text = label,
+                style = MaterialTheme.typography.labelMedium.copy(
+                    fontWeight = if (selected) FontWeight.Bold else FontWeight.Normal
+                ),
+                color = if (selected) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.onSurfaceVariant,
+                textAlign = TextAlign.Center
+            )
+            // The starting LEVEL under the difficulty's name: the whole point of
+            // the card is that the choice is not cosmetic, and "Easy" alone does
+            // not say where on the ladder you begin.
+            if (startLevel != null) {
+                Text(
+                    text = getString("adjust_levels_n", startLevel),
+                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                    color = if (selected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.75f),
+                    textAlign = TextAlign.Center,
+                    maxLines = 1
+                )
+            }
+        }
     }
 }
 

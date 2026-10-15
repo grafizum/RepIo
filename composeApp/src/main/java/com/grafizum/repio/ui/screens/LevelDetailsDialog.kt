@@ -488,6 +488,23 @@ private fun LevelRowContent(
                 maxLines = 1,
                 overflow = TextOverflow.Ellipsis
             )
+            // The researched max, marked rather than enforced: the rows above it
+            // keep climbing, so the user has to be able to see which rung is "max".
+            if (row.isMax) {
+                Surface(
+                    shape = RoundedCornerShape(6.dp),
+                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                    modifier = Modifier.padding(start = 6.dp)
+                ) {
+                    Text(
+                        text = getString("level_max"),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                    )
+                }
+            }
             // The graphical weight: fill scales with the rung, the current one
             // glows in full primary while the others stay quiet.
             LevelWeightBar(

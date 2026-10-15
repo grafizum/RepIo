@@ -330,9 +330,6 @@ class WorkoutViewModel(
     private val _allAvailableExercises = MutableStateFlow<List<String>>(emptyList())
     val allAvailableExercises: StateFlow<List<String>> = _allAvailableExercises.asStateFlow()
 
-    private val _showRestartDialog = MutableStateFlow(false)
-    val showRestartDialog: StateFlow<Boolean> = _showRestartDialog.asStateFlow()
-
     /**
      * Onboarding gate for the v5 level system: shown once per install (fresh
      * or after updating to this version) until the user completes the guide.
@@ -862,12 +859,33 @@ class WorkoutViewModel(
         }
     }
 
+    /**
+     * Pick a theme: the whole change happens here, and nothing is left for the user to do.
+     *
+     * This used to end with `_showRestartDialog.value = true` and a dialog whose single button
+     * ran [applyThemeRestart] - i.e. it asked the user to restart, then killed the process to
+     * honour the request. Neither half was necessary:
+     *
+     *  * the COLOURS are already live. `_themeOption` is what the Compose scheme reads, so they
+     *    changed on the tap, before the dialog had even drawn - measured on emulator-5554: the
+     *    preference flipped and the screen repainted while `pidof` returned the same PID;
+     *  * the ICON now switches without killing, because [IconSwitchHelper.switchIcon] writes
+     *    `DONT_KILL_APP` (see `iconSwitchFlags`).
+     *
+     * The splash theme is the one thing a live switch cannot repaint, and it does not need to:
+     * it applies to the next cold start, which lands on the alias this call enables. So the
+     * dialog is gone rather than reworded - a prompt that exists only to ask for a restart that
+     * the app was causing itself is worse than no prompt.
+     *
+     * OWNER REQUEST, 2026-10-14: "can we change the theme and icon without needing to close and
+     * reopen the app manually".
+     */
     fun setThemeOption(theme: String) {
         val oldTheme = _themeOption.value
         _themeOption.value = theme
         prefs.putString("theme_option", theme)
         if (oldTheme != theme) {
-            _showRestartDialog.value = true
+            applyAppIconChange(theme)
         }
     }
 
@@ -881,15 +899,6 @@ class WorkoutViewModel(
     fun setDeveloperThemeEnabled(enabled: Boolean) {
         _developerThemeEnabled.value = enabled
         prefs.putBoolean("developer_theme_enabled", enabled)
-    }
-
-    fun dismissRestartDialog() {
-        _showRestartDialog.value = false
-    }
-
-    fun applyThemeRestart() {
-        applyAppIconChange(_themeOption.value)
-        _showRestartDialog.value = false
     }
 
     fun setAppLanguage(languageCode: String) {
@@ -1234,15 +1243,21 @@ class WorkoutViewModel(
         // tops out at the 50-rep end of the owner's checkpoint ladder. So every
         // row now ends where its own evidence says it ends.
         //
-        // THE SAFETY ARGUMENT, which is why this is not cosmetic: the old comment
-        // on [extendLevelList] claimed "with extrapolated ladders every level is
-        // genuinely selectable, so the added rows are real prescriptions". They
-        // were - real, and unreachable. `valueAtLevel` past the ladder extrapolates
-        // by the row's own increment with nothing stopping it, so level 300 of a
-        // barbell row is a weight no human lifts, and [setExerciseLevel] clamped to
-        // THIS function rather than to the ceiling, so it could be selected and
-        // logged. A ceiling the app will let you walk past is not a ceiling.
-        return ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value)
+        // ADD MORE LEVELS AFTER IT (owner 2026-10-13): the evidence end is a
+        // MARKER, not the end of the list. "keep each exercise's max as is and add
+        // more levels after it ... past-max levels must be selectable". So the
+        // exercised own max is the floor of this list, and the extension grid the
+        // user unlocks for the exercise ([extensionLevelFor], in
+        // [ProgressionEngine.EXTENSION_CHUNK] steps up to
+        // [ProgressionEngine.PICKER_LEVEL_LIMIT]) is how far past it the list runs.
+        // The rows above the max are real: `valueAtLevelWithCeiling` keeps climbing
+        // by the row's own increment and `repsAtLevel` by its own rep step, which is
+        // why the writer can accept a rung up there at all - it is a load the user
+        // chose, drawn from the same arithmetic as the rest of the ladder.
+        return maxOf(
+            ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value),
+            extensionLevelFor(exerciseName)
+        )
     }
 
     /** The number of Roman stages in the exercise's rep pattern (its width). */
@@ -1502,6 +1517,8 @@ class WorkoutViewModel(
         val stageReps: List<Int>,
         val isCurrent: Boolean,
         val isBeyondPlan: Boolean,
+        /** True on the exercise's max rung, which the row labels "max". */
+        val isMax: Boolean = false,
         /**
          * True when this row's prescription is reps rather than a load, so the
          * picker shows the reps instead of the variation name. A bodyweight
@@ -1524,6 +1541,7 @@ class WorkoutViewModel(
         if (!ProgressionEngine.isProgressionReady(entry)) return emptyList()
         val current = progressionDisplayLevel(exerciseName) ?: return emptyList()
         val shown = progressionMaxLevel(exerciseName)
+        val max = ProgressionEngine.effectiveMaxLevel(entry)
         return (1..shown).map { level ->
             LevelDetailRow(
                 level = level,
@@ -1536,6 +1554,7 @@ class WorkoutViewModel(
                 stageReps = ProgressionEngine.prescribedReps(entry, level, 1).orEmpty(),
                 isCurrent = level == current,
                 isBeyondPlan = false,
+                isMax = level == max,
                 repProgressed = ProgressionEngine.isRepProgressed(entry)
             )
         }
@@ -1703,35 +1722,35 @@ class WorkoutViewModel(
 
     /**
      * Grows the level list for [exerciseName] by one chunk of
-     * [ProgressionEngine.EXTENSION_CHUNK] levels, and is now a NO-OP.
+     * [ProgressionEngine.EXTENSION_CHUNK] levels, which is how the rungs PAST the
+     * exercise's max are reached (owner 2026-10-13: "add more levels after it").
      *
-     * It used to grow to [ProgressionEngine.PICKER_LEVEL_LIMIT] (500) on the
-     * stated reasoning that "with extrapolated ladders every level is genuinely
-     * selectable, so the added rows are real prescriptions". They were real, and
-     * beyond what a human can lift: `valueAtLevel` extrapolates by the row's own
-     * increment forever, with nothing stopping it. Since 2026-10-04
-     * [progressionMaxLevel] ends at the row's own humane ceiling, so there is
-     * nothing for this to unlock and the function is kept only so the call site
-     * still compiles - the button is hidden by [canExtendLevelList].
-     *
-     * The persisted `level_extension_*` keys are left alone rather than cleared:
-     * an exercise that HAD been extended keeps its stored level, and the clamp in
-     * [setExerciseLevel] pulls it back to the ceiling on the next change. Silently
-     * deleting a user's level is a worse outcome than letting the clamp do it.
+     * It was a NO-OP between 2026-10-04 and this ruling, when the humane ceiling
+     * was the list's end. The grid it writes is persisted per exercise, so a grown
+     * ladder stays grown next session, and it stops at
+     * [ProgressionEngine.PICKER_LEVEL_LIMIT] - the bound `clampLevel` writes to, so
+     * the list can never offer a rung the writer would refuse.
      */
     fun extendLevelList(exerciseName: String) {
-        // Intentionally empty - see above.
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return
+        if (!ProgressionEngine.isProgressionReady(entry)) return
+        val next = (progressionMaxLevel(exerciseName) + ProgressionEngine.EXTENSION_CHUNK)
+            .coerceAtMost(ProgressionEngine.PICKER_LEVEL_LIMIT)
+        prefs.putInt(extensionKey(exerciseName), next)
     }
 
     /**
-     * Always false since 2026-10-04: a ladder now ends at the exercise's own humane
-     * ceiling, so there is nothing to extend to and the button would only offer
-     * rows the app refuses to select.
+     * True while there is another chunk of levels to unlock, i.e. while the list is
+     * still short of [ProgressionEngine.PICKER_LEVEL_LIMIT].
+     *
+     * Always-false between 2026-10-04 and 2026-10-13, when the ladder ended at the
+     * row's own humane ceiling and the button would only have offered rows the app
+     * refuses to select.
      */
     fun canExtendLevelList(exerciseName: String): Boolean {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return false
         if (!ProgressionEngine.isProgressionReady(entry)) return false
-        return false
+        return progressionMaxLevel(exerciseName) < ProgressionEngine.PICKER_LEVEL_LIMIT
     }
 
     /**
@@ -1758,7 +1777,12 @@ class WorkoutViewModel(
             // rep ladder - leaves an older number behind on the device. Read
             // back unclamped it showed "Level 7" over a picker that offered four
             // rungs, so the read clamps to the same bound the writer uses.
-            val max = ProgressionEngine.effectiveMaxLevel(entry, _weightUnit.value)
+            //
+            // That bound is the LIST's, not the researching exercise's max: a rung
+            // past the max is a level the user may legitimately be on now (owner
+            // 2026-10-13), and clamping back to the max would silently walk their
+            // stored level down every time the screen loaded.
+            val max = progressionMaxLevel(exerciseName)
             return stored.copy(level = stored.level.coerceIn(1, max))
         }
         // First session: derive the state from the difficulty chosen in setup.

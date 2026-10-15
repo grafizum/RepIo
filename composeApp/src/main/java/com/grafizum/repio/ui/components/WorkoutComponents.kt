@@ -102,6 +102,7 @@ import com.grafizum.repio.ui.theme.BrightLime
 import com.grafizum.repio.ui.theme.FlameOrange
 import com.grafizum.repio.ui.theme.NeonCyan
 
+import com.grafizum.repio.ui.screens.workoutActionButtonColors
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.theme.LocalLightTheme
 import androidx.compose.ui.window.Dialog
@@ -516,7 +517,12 @@ fun exerciseSetsSummaryLabel(
     prescribed: ProgressionEngine.PrescribedValue? = null,
 ): String {
     if (!WorkoutTemplates.isExerciseTimeBased(exerciseName)) {
-        return getQuantityString("sets_x_reps_pl", targetSets, targetSets, storedTarget)
+        val line = getQuantityString("sets_x_reps_pl", targetSets, targetSets, storedTarget)
+        // WHOSE reps: "3 sets x 8-12 reps" on a one-arm row means 8-12 per ARM
+        // (owner, 2026-10-13), so the shared summary line says so after the unit.
+        val perSide = WorkoutTemplates.perSideLabelKey(exerciseName)
+            ?.let { " - " + getString(it) }
+        return line + (perSide ?: "")
     }
     val seconds = prescribed
         ?.takeIf { it.kind == ProgressionEngine.ValueKind.DURATION }
@@ -855,10 +861,7 @@ fun ExerciseVideoLinkButton(
                 inputUrlText = videoUrl
                 showInputDialog = true
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
+            colors = workoutActionButtonColors(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(10.dp),
             modifier = modifier
@@ -885,10 +888,7 @@ fun ExerciseVideoLinkButton(
                 focusManager.clearFocus()
                 openUrl(videoUrl)
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
+            colors = workoutActionButtonColors(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(10.dp),
             modifier = modifier.semantics { testTag = "watch_demo_button" }
@@ -914,10 +914,7 @@ fun ExerciseVideoLinkButton(
                 inputUrlText = ""
                 showInputDialog = true
             },
-            colors = ButtonDefaults.buttonColors(
-                containerColor = MaterialTheme.colorScheme.primary,
-                contentColor = MaterialTheme.colorScheme.onPrimary
-            ),
+            colors = workoutActionButtonColors(),
             contentPadding = PaddingValues(horizontal = 16.dp, vertical = 8.dp),
             shape = RoundedCornerShape(10.dp),
             modifier = modifier.semantics { testTag = "input_demo_button" }
@@ -998,6 +995,45 @@ fun ExerciseVideoLinkButton(
                 }
             }
         )
+    }
+}
+
+/**
+ * The one intensity label an exercise row shows: the word it carries, and what that word means
+ * on the RPE/RIR scale.
+ *
+ * Owner prompt, 2026-10-15: *"we have RPE and RIR inside the settings instructions ... i want it
+ * to be integrated in the workout creation or exercises (just as labels for users nothing more)"*.
+ * The templates write "Moderate", "Heavy", "Very Heavy", "Light" and "To Failure", and only a
+ * row that literally said "RPE 8" got an explanation ([getRpeRirExplanation] matches the three
+ * characters "RPE"), so the words the app actually stores showed a bare adjective. Each one now
+ * prints its figure: **Moderate (RPE 7 · 3 RIR)**.
+ *
+ * IT IS A LABEL AND NOTHING ELSE. Nothing is written, no field is added, the stored word is
+ * printed unchanged in front of the figure, and a word with no figure in the table
+ * ([com.grafizum.repio.data.rpeRirFor]) is shown exactly as before — the fallback is the old
+ * behaviour, not an invented number.
+ *
+ * A row that already names the scale ("RPE 8", "2 RIR") keeps today's text: the first through
+ * the existing explanation, the second because attaching an RPE/RIR figure to a value that
+ * already states the scale would print the same idea twice.
+ */
+@Composable
+fun displayIntensityLabel(intensity: String): String {
+    if (intensity.isBlank()) return ""
+
+    // The existing path first, unchanged: a literal "RPE 8" keeps its "2 reps in the tank".
+    val explanation = getRpeRirExplanation(intensity)
+    if (explanation.isNotBlank()) return "$intensity ($explanation)"
+
+    val lower = intensity.lowercase()
+    if (lower.contains("rpe") || lower.contains("rir") || lower.contains("reserve")) return intensity
+
+    val figure = com.grafizum.repio.data.rpeRirFor(intensity) ?: return intensity
+    return if (figure.isRange) {
+        getString("rpe_rir_label_range", intensity, figure.low, figure.high, figure.rirLow, figure.rirHigh)
+    } else {
+        getString("rpe_rir_label", intensity, figure.low, figure.rirLow)
     }
 }
 
@@ -1260,8 +1296,7 @@ fun ExpandableExerciseCard(
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
                                 if (exercise.targetIntensity.isNotBlank()) {
-                                    val rpeExpl = getRpeRirExplanation(exercise.targetIntensity)
-                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                    val displayIntensity = displayIntensityLabel(exercise.targetIntensity)
                                     // A real gap, not the single space this used to
                                     // carry in front of the bullet. At font scale 1.8
                                     // on the 411dp phone that space rendered as ~7px
@@ -3490,15 +3525,42 @@ data class EditorLevelData(
  * list that quoted a different number from the card for the same rung would make
  * the whole editor feel broken.
  */
+/**
+ * One Roman stage row of a level, plus the stages that sit BETWEEN it and the next
+ * row shown.
+ *
+ * WHY THE HIDDEN ONES ARE CARRIED AT ALL. The list shows one row per prescription
+ * (I 8/8/8, IV 9/9/9, VII 10/10/10 ...) because a pattern that climbs one rep at a
+ * time buries the level under mixtures nobody acts on - the owner's ruling of
+ * 2026-10-09. But that ruling removed them from the MENU, not from the pattern, and
+ * the user who wants to see how 9/9/9 becomes 10/10/10 had nowhere to look.
+ *
+ * OWNER, 2026-10-14: *"i want to be able to have each roman section (9 9 9) or
+ * (10 10 10) have an arrow dropdown which will then show the other roman level steps
+ * underneath it which is from one (9 9 9) to the next (10 10 10)"*. So each shown
+ * row carries its in-betweens, the card draws an arrow only when there are some, and
+ * opening it shows exactly the climb the rounding hid. Picking a revealed stage
+ * writes it like any other (the owner's answer when asked): they are real stages the
+ * engine climbs through and the workout card already draws their dots.
+ */
+data class EditorStageGroup(
+    val shown: EditorLevelStage,
+    /** Empty when nothing was rounded away between this row and the next. */
+    val hidden: List<EditorLevelStage> = emptyList()
+)
+
 data class EditorLevelOption(
     val level: Int,
     val isCurrent: Boolean,
     val loadText: String,
+    /** True on the rung the exercise's researched max lands on, which is marked. */
+    val isMax: Boolean = false,
     /**
-     * The level's stages in Roman numerals, lowest first, each with the reps it
-     * asks for. This is the level's "expansion": see [LevelPickerCard].
+     * The level's stages in Roman numerals, lowest first, each with the reps it asks
+     * for and the stages rounded away beneath it. This is the level's "expansion":
+     * see [LevelPickerCard].
      */
-    val stages: List<EditorLevelStage> = emptyList()
+    val stageGroups: List<EditorStageGroup> = emptyList()
 )
 
 /**
@@ -3590,6 +3652,52 @@ internal fun LevelPickerCard(
     // them, because an 8dp spacer written before the font grew is 8dp after it.
     val window = LocalWindowSize.current
     val inlineGap = window.inlineGap
+    // ONE BOX FOR EVERY ROMAN ROW, arrow or not.
+    //
+    // A shown row stands 48dp tall because the arrow it may carry is a 32dp target
+    // inside 8dp of padding twice. The rows a dropdown reveals carry no arrow, so
+    // they came out 32dp - a thinner box under a thicker one, read as a lesser kind
+    // of row. OWNER, 2026-10-14: *"the smaller in between roman numbers, dont remove
+    // the dropdown when selecting them, keep their edges / borders the same shape as
+    // the big one ... dont minimize anything on selection and make sure the left
+    // starting position of the box is the same as the bigger box"*. The minimum
+    // height gives every row the arrow row's box - same left edge, same right edge,
+    // same 8dp corners and the same height - and, because it is a MINIMUM and not
+    // the selected row's own measure, a row keeps that box when it is picked (the
+    // tick it grows fits inside it). 32dp + 8dp twice: the arrow's target and the
+    // row's own vertical padding (see the arrow below).
+    val stageRowHeight = 32.dp + 8.dp * 2
+    // ...AND WHAT MAKES AN IN-BETWEEN ROW READ AS IN BETWEEN.
+    //
+    // OWNER, 2026-10-14 (the same day, later): *"Reverse how the levels between the roman
+    // big step numbers are shown, the smaller roman numbers make them smaller again and
+    // make sure that they are slightly more to the right positioned so i can see that they
+    // are treated as in between roman numbers."*
+    //
+    // That reverses the NUMERAL half of the ruling above: a revealed row is no longer the
+    // big row's twin from edge to edge. The BOX still is - same left and right edge, same
+    // height, same 8dp corner - because the row is a real choice and a list that staggers
+    // sideways under the thumb is the defect [stageRowHeight] exists to prevent. What
+    // recedes is the numeral the owner is naming: one type step down from the big rows'
+    // `labelLarge` to `labelMedium`, and this far right, on top of the row's own 10dp
+    // padding - so II sits INBOARD of I and IV rather than beside them at their own rank.
+    val revealedNumeralIndent = 12.dp
+    // WHICH STAGE'S DROPDOWN IS OPEN, at most one (see [EditorStageGroup]). Keyed on
+    // the selected level, so picking another rung cannot leave a dropdown standing
+    // open under a level the user has left.
+    var openedStage by remember(selectedLevel) { mutableStateOf<Int?>(null) }
+    // ...and WHAT IT SHOWED when it was opened.
+    //
+    // OWNER, 2026-10-14: *"the smaller in between roman numbers, dont remove the
+    // dropdown when selecting them ... instead keep it dropped down and selected dont
+    // minimize anything on selection"*. The rows under an arrow have to be remembered
+    // rather than recomputed, because picking one makes it the CURRENT stage - and the
+    // current stage is drawn as a row of its own (see [roundedStages]' carve-out), which
+    // would empty the list the arrow is showing and snap it shut under the user's
+    // finger. The snapshot keeps the list exactly as opened, with the picked row marked
+    // as the current one; it is cleared when the level changes, because there the whole
+    // list is somebody else's.
+    var openedRows by remember(selectedLevel) { mutableStateOf<List<EditorLevelStage>>(emptyList()) }
     Surface(
         color = MaterialTheme.colorScheme.primary.copy(alpha = 0.06f),
         shape = RoundedCornerShape(12.dp),
@@ -3747,6 +3855,26 @@ internal fun LevelPickerCard(
                                 maxLines = 1,
                                 overflow = TextOverflow.Ellipsis
                             )
+                            // The researched max, marked where the rung is listed for
+                            // the same reason the full ladder marks it: the rungs above
+                            // it are real, so nothing else says where the evidence ends.
+                            if (option.isMax) {
+                                Spacer(modifier = Modifier.width(inlineGap))
+                                Surface(
+                                    shape = RoundedCornerShape(6.dp),
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.5f)),
+                                    modifier = Modifier.semantics { testTag = "editor_level_max_chip" }
+                                ) {
+                                    Text(
+                                        text = getString("level_max"),
+                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        modifier = Modifier.padding(horizontal = 6.dp, vertical = 1.dp)
+                                    )
+                                }
+                            }
                             if (selected && !stackLoad) {
                                 Spacer(modifier = Modifier.width(inlineGap))
                                 Text(
@@ -3831,10 +3959,21 @@ internal fun LevelPickerCard(
                         // 1.8x emulator: 28dp clips "XIII", and a weighted column
                         // steals the room the reps need (see the note on the rows
                         // themselves).
-                        if (selected && option.stages.isNotEmpty()) {
+                        if (selected && option.stageGroups.isNotEmpty()) {
                             Spacer(modifier = Modifier.height(6.dp))
                             Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                                option.stages.forEach { stage ->
+                                // A row drawn inside an OPEN dropdown is not drawn twice:
+                                // picking a revealed stage can make it a shown row of its own
+                                // (the current stage always is), and the open list is the one
+                                // the user is looking at.
+                                option.stageGroups
+                                    .filterNot { it.shown.stage in openedRows.map { row -> row.stage } }
+                                    .forEach { group ->
+                                    // The row itself, and the stages the rounding pass
+                                    // hid between it and the next one - see
+                                    // [EditorStageGroup].
+                                    val stage = group.shown
+                                    val opened = openedStage == stage.stage
                                     // The LOCAL choice wins over the reported one while
                                     // both are in flight: the host's `isCurrent` still
                                     // points at the stage the user just left until its
@@ -3867,7 +4006,9 @@ internal fun LevelPickerCard(
                                     ) {
                                         Row(
                                             verticalAlignment = Alignment.CenterVertically,
-                                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 8.dp)
+                                            modifier = Modifier
+                                                .heightIn(min = stageRowHeight)
+                                                .padding(horizontal = 10.dp, vertical = 8.dp)
                                         ) {
                                             // The numeral takes what its own
                                             // glyphs need and no more - a weighted
@@ -3884,7 +4025,15 @@ internal fun LevelPickerCard(
                                                 text = stage.roman,
                                                 style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.ExtraBold),
                                                 color = MaterialTheme.colorScheme.primary,
-                                                maxLines = 1
+                                                maxLines = 1,
+                                                // Tagged because this is the size the
+                                                // in-between numerals recede FROM, and it
+                                                // is the one thing the two kinds of row do
+                                                // not share - so it is worth measuring
+                                                // rather than eyeballing.
+                                                modifier = Modifier.semantics {
+                                                    testTag = "editor_stage_numeral_${stage.roman}"
+                                                }
                                             )
                                             Spacer(modifier = Modifier.width(inlineGap))
                                             Text(
@@ -3918,6 +4067,131 @@ internal fun LevelPickerCard(
                                                     tint = MaterialTheme.colorScheme.primary,
                                                     modifier = Modifier.size(18.dp)
                                                 )
+                                            }
+                                            // THE ARROW, drawn only where there is
+                                            // something under it. A stage with nothing
+                                            // rounded away between it and the next row
+                                            // grows no control: a control that opens
+                                            // nothing is the pressable-and-refusing
+                                            // pattern this project has already paid
+                                            // for twice. An OPEN one keeps its arrow even
+                                            // if the rows moved out from under it, so the
+                                            // user can always close what was opened.
+                                            if (group.hidden.isNotEmpty() || opened) {
+                                                Spacer(modifier = Modifier.width(inlineGap))
+                                                Box(
+                                                    contentAlignment = Alignment.Center,
+                                                    modifier = Modifier
+                                                        .size(32.dp)
+                                                        .clip(RoundedCornerShape(8.dp))
+                                                        .clickable {
+                                                            if (opened) {
+                                                                openedStage = null
+                                                                openedRows = emptyList()
+                                                            } else {
+                                                                openedStage = stage.stage
+                                                                openedRows = group.hidden
+                                                            }
+                                                        }
+                                                        .semantics {
+                                                            testTag = "editor_stage_dropdown_${stage.roman}"
+                                                        }
+                                                ) {
+                                                    Icon(
+                                                        imageVector = if (opened) Icons.Default.ExpandLess
+                                                                      else Icons.Default.ExpandMore,
+                                                        contentDescription = getString("level_stage_dropdown"),
+                                                        tint = MaterialTheme.colorScheme.primary.copy(alpha = 0.75f),
+                                                        modifier = Modifier.size(18.dp)
+                                                    )
+                                                }
+                                            }
+                                        }
+                                    }
+                                    // THE CLIMB THE ROUNDING HID, opened: the stages
+                                    // between this row and the next, drawn and tappable
+                                    // exactly like the rows above them - the same box, the
+                                    // same 8dp corner, the same left and right edges, the
+                                    // same height and the same behaviour when picked, so a
+                                    // revealed stage is not a lesser KIND of row (see
+                                    // [stageRowHeight]). Its NUMERAL is not the big row's
+                                    // though - smaller and set inboard, which is the
+                                    // owner's "in between" cue (see
+                                    // [revealedNumeralIndent]).
+                                    if (opened) {
+                                        openedRows.forEach { hidden ->
+                                            val hiddenSelected = if (selectedStage != null &&
+                                                selectedLevel == option.level
+                                            ) {
+                                                hidden.stage == selectedStage
+                                            } else {
+                                                hidden.isCurrent
+                                            }
+                                            Surface(
+                                                onClick = { onSelectStage?.invoke(option.level, hidden.stage) },
+                                                enabled = onSelectStage != null,
+                                                shape = RoundedCornerShape(8.dp),
+                                                color = if (hiddenSelected)
+                                                    MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)
+                                                else MaterialTheme.colorScheme.surface.copy(alpha = 0.55f),
+                                                border = BorderStroke(
+                                                    1.dp,
+                                                    if (hiddenSelected) MaterialTheme.colorScheme.primary
+                                                    else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
+                                                ),
+                                                modifier = Modifier
+                                                    .fillMaxWidth()
+                                                    .semantics {
+                                                        testTag = "editor_level_stage_${hidden.roman}"
+                                                    }
+                                            ) {
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    modifier = Modifier
+                                                        .heightIn(min = stageRowHeight)
+                                                        .padding(horizontal = 10.dp, vertical = 8.dp)
+                                                ) {
+                                                    Text(
+                                                        text = hidden.roman,
+                                                        // One step DOWN the type scale - not
+                                                        // the big rows' `labelLarge`. The
+                                                        // weight stays: this is still a Roman
+                                                        // numeral, not a footnote, and the
+                                                        // distinction is one of rank, which
+                                                        // the size alone carries.
+                                                        style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold),
+                                                        color = MaterialTheme.colorScheme.primary,
+                                                        maxLines = 1,
+                                                        modifier = Modifier
+                                                            // ...and inboard of the big rows'
+                                                            // numerals, so the eye reads II as
+                                                            // a step BETWEEN I and IV rather
+                                                            // than a rung of their rank.
+                                                            .padding(start = revealedNumeralIndent)
+                                                            .semantics {
+                                                                testTag = "editor_stage_numeral_${hidden.roman}"
+                                                            }
+                                                    )
+                                                    Spacer(modifier = Modifier.width(inlineGap))
+                                                    Text(
+                                                        text = if (hidden.reps.isEmpty()) ""
+                                                               else hidden.reps.joinToString(" / ") + " " + getString("reps"),
+                                                        style = MaterialTheme.typography.bodySmall,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                                        modifier = Modifier.weight(1f),
+                                                        maxLines = 1,
+                                                        overflow = TextOverflow.Ellipsis
+                                                    )
+                                                    if (hiddenSelected) {
+                                                        Spacer(modifier = Modifier.width(inlineGap))
+                                                        Icon(
+                                                            imageVector = Icons.Default.Check,
+                                                            contentDescription = getString("level_details_current"),
+                                                            tint = MaterialTheme.colorScheme.primary,
+                                                            modifier = Modifier.size(18.dp)
+                                                        )
+                                                    }
+                                                }
                                             }
                                         }
                                     }
@@ -4722,6 +4996,25 @@ fun ExerciseEditDialog(
                             onLockedTap = lockedFieldNotice,
                             modifier = Modifier.weight(1f).fillMaxHeight(),
                             keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        )
+                    }
+
+                    // WHAT THE WORD MEANS, under the field it was typed into.
+                    //
+                    // Owner prompt, 2026-10-15: RPE and RIR "integrated in the workout creation
+                    // or exercises (just as labels for users nothing more)". This is the same
+                    // helper the exercise card prints, so the editor and the card can never
+                    // describe one value two ways - and it is a hint, not a control: the field
+                    // itself is unchanged and still takes any text.
+                    //
+                    // Shown only when it adds something: a word with no figure in the table
+                    // would just echo the field back.
+                    val intensityHint = displayIntensityLabel(targetIntensityStr)
+                    if (intensityHint.isNotBlank() && intensityHint != targetIntensityStr) {
+                        Text(
+                            text = intensityHint,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
                         )
                     }
                 }
@@ -5757,11 +6050,21 @@ fun EquipmentFilterCollapsible(
  * choices one tap away, and every dp it does not spend going to the exercise list, which is
  * what the dialog is for.
  *
- * SO THE SHAPE IS DELIBERATELY THE EQUIPMENT ROW'S: label, current selection, "Show more" /
- * "Show less". The words do the work the equipment row gives to glyphs, because a muscle has
- * no icon in this app and inventing nineteen would be a vocabulary of its own. The label
- * yields at a large font scale exactly as the equipment row's does — the row then reads as
- * "selected value + chevron", which still says "this is a filter and it is openable".
+ * SO THE SHAPE IS DELIBERATELY THE EQUIPMENT ROW'S: label, the value, "Show more" / "Show less" —
+ * the same TextButton, the same `labelSmall` label, the same 16dp chevron, so the two rows are one
+ * control family rather than two takes on a filter.
+ *
+ * AND THE VALUE IS THAT PART'S GLYPH, since 2026-10-13: owner, *"instead of \"back\" in the replace
+ * card, it should show the icon like it does in the equipment, and right next to it the \"show
+ * more\" dropdown button EXACTLY like the \"equipment\" section above shows"*. The one-glyph-per-
+ * body-part vocabulary already existed and was drawn in this slot before; the 2026-10-12 note that
+ * removed it (*"the icons should be in the muscles group filters not in the fucking exercises
+ * displaying"*) was about the exercise DISPLAY under the picker, and this row IS one of the filters
+ * — so the two instructions agree and the glyph belongs here. The group's NAME is not lost: it is
+ * the glyph's content description (translated, and read aloud), and it is still printed on the
+ * body-part chips one tap away below. The label yields at a large font scale exactly as the
+ * equipment row's does — the row then reads as "glyph + chevron", which still says "this is a
+ * filter and it is openable".
  *
  * EXPANDED, IT IS TWO ROWS RATHER THAN ONE, and that is the "nicely spacious" half: body
  * parts first (the predictable partition, and what the filter STARTS on), then the precise
@@ -5808,28 +6111,59 @@ fun MuscleGroupFilterCollapsible(
                 )
             }
 
-            // THE VALUE IS THE GROUP'S NAME, AS TEXT.
+            // THE VALUE IS THE PART'S GLYPH, exactly as the equipment row above shows its kit.
             //
-            // It used to be a glyph. Owner, 2026-10-12: *"the icons should be in the muscles group
-            // filters not in the fucking exercises displaying"* - and the complaint is precise: this
-            // slot sits in the exercise PICKER, directly above the list, so a lone body-part glyph
-            // here reads as a mark belonging to the rows underneath rather than as a filter value.
-            // The row is a summary of WHAT IS FILTERING, so it has to say it in words - "Back" -
-            // which is also the only form that survives translation and a precise muscle name.
+            // Owner, 2026-10-13 - the current instruction: *"instead of \"back\" in the replace
+            // card, it should show the icon like it does in the equipment, and right next to it the
+            // \"show more\" dropdown button EXACTLY like the \"equipment\" section above shows"*.
             //
-            // The glyph did not go away; it moved to where the user makes the choice, the body-part
-            // chips inside the filter. See the leadingIcon on the broad chips below.
-            Text(
-                text = if (selectedMuscleGroup == null) anyLabel
-                       else translateMuscleGroup(selectedMuscleGroup),
-                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.semantics { testTag = "muscle_filter_value" }
-            )
-
-            Spacer(modifier = Modifier.weight(1f))
+            // THIS SLOT DREW THE GLYPH BEFORE and lost it on 2026-10-12, when the owner said
+            // *"the icons should be in the muscles group filters not in the fucking exercises
+            // displaying"*. Today's instruction is what corrects that reading: the complaint was
+            // about the exercise DISPLAY - a glyph among the rows under the picker - while THIS row
+            // is one of the muscle group filters, which is where the icons were asked for. So the
+            // glyph is back, in the same 22dp accent-tinted vocabulary as the equipment row, and the
+            // group's NAME moves into its content description: still said in words, in the user's
+            // own language, and still read out by a screen reader - which is the half the text
+            // version was there to protect - while the eye gets the shape the equipment row uses.
+            //
+            // The words have not left the screen either: the body-part chips inside the filter keep
+            // their labels, each led by this same glyph (see the leadingIcon below).
+            val valueGlyph = muscleGroupIconRes(selectedMuscleGroup)
+            if (selectedMuscleGroup != null && valueGlyph != null) {
+                // CONTENT-SIZED, so the toggle sits immediately after it - the `weight(1f, fill =
+                // false)` the equipment row's glyph strip uses, which leaves the row's spare width
+                // at its END instead of between the value and its button. That gap was the owner's
+                // second half: measured on the SM-S906B before this change, the muscle glyph sat at
+                // x 339..397 with its "Show more" at 767..920, while the equipment row's button began
+                // 16px after its last glyph (2026-10-13: *"and right next to it the \"show more\"
+                // dropdown button EXACTLY like the \"equipment\" section above shows"*).
+                Icon(
+                    painter = painterResource(valueGlyph),
+                    contentDescription = translateMuscleGroup(selectedMuscleGroup),
+                    tint = equipmentGlyphTint(),
+                    modifier = Modifier
+                        .size(22.dp)
+                        .weight(1f, fill = false)
+                        .semantics { testTag = "muscle_filter_value" }
+                )
+            } else {
+                // ANY has no body part to draw, and a custom exercise's free-text group may have
+                // none either - the same place the equipment row falls back to words ("All
+                // equipment", "No equipment needed"), and the same weight it gives them, so the
+                // button lands on the row's end exactly as it does there.
+                Text(
+                    text = if (selectedMuscleGroup == null) anyLabel
+                           else translateMuscleGroup(selectedMuscleGroup),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f)
+                        .semantics { testTag = "muscle_filter_value" }
+                )
+            }
 
             // The toggle is the same control in both states — a text button on a roomy
             // window, an icon button at a large font scale, where the words would push the
@@ -5932,16 +6266,21 @@ fun MuscleGroupFilterCollapsible(
                             // and the glyph beside it says it a second time by shape. A chip whose
                             // only content was a picture would be a guess at what it filters.
                             //
-                            // The tint is the group's own colour, so shape and hue agree - and it is
-                            // [muscleGroupTextColor], not [muscleGroupColor], because this is INK on
-                            // the chip's surface and the light palette dips below legible contrast
-                            // there (yellow-400 on white is ~1.6:1).
+                            // The tint is the THEME PRIMARY - the exact tint the equipment
+                            // glyphs wear ([equipmentGlyphTint]) - so the two filter rows are
+                            // one family in colour as well as shape. Owner, 2026-10-12:
+                            // *"all the same color the current theme primary color, like the
+                            // equipment"*. It used to be the group's own hue (shape and hue
+                            // agreeing per muscle); six different colours in one row is what
+                            // the owner is asking to stop, and a single accent also dodges the
+                            // light palette's contrast problem on a chip surface
+                            // (yellow-400 on white is ~1.6:1).
                             leadingIcon = muscleGroupIconRes(group)?.let { res ->
                                 {
                                     Icon(
                                         painter = painterResource(res),
                                         contentDescription = null,
-                                        tint = muscleGroupTextColor(group),
+                                        tint = equipmentGlyphTint(),
                                         // A handle, for the same reason the chips carry one: an
                                         // Icon with no content description is dropped from the
                                         // semantics tree, so "does this chip draw its glyph" has
