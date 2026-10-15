@@ -64,6 +64,26 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
 
 
+/**
+ * Room the Analytics scroll box leaves for a card's elevation shadow — INSIDE the box.
+ *
+ * The scrolling column clips its content, so the Overall Level card's own 4dp shadow had nowhere
+ * to be drawn at the top of the list and the card read as cut off above its label. Owner board
+ * task_13503y3v4d5e3o6w5e5e0e5v, 2026-10-12: *"the shadow around \"overall level\" makes the
+ * label look cut off above so give the overlay top section a bit smaller so the shadows can also
+ * go over the top side of the overall level card"*.
+ *
+ * It is measured against the card's own elevation (4dp in [StatCard], read at its compact size),
+ * so the number cannot quietly fall below the shadow it exists to show.
+ */
+internal val CARD_SHADOW_HEADROOM = 6.dp
+
+/**
+ * What is left of the gap that used to sit ABOVE the scroll box. The headroom it gave up moved
+ * inside the box, so the card ends up where it always did — with its shadow now drawn.
+ */
+internal val SHADOW_HEADROOM_ABOVE_SCROLL = 2.dp
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
@@ -196,7 +216,9 @@ fun AnalyticsScreen(
 
         // Removed showCalendarDialog block
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Smaller than the 8dp this used to be, with the difference spent INSIDE the scroll
+        // box below: see [CARD_SHADOW_HEADROOM].
+        Spacer(modifier = Modifier.height(SHADOW_HEADROOM_ABOVE_SCROLL))
 
         // Cards column: compact stat card + week metrics + muscle focus.
         //
@@ -217,6 +239,9 @@ fun AnalyticsScreen(
                 },
             verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)
         ) {
+            // The Overall Level card's shadow, which the box's own clip would otherwise eat.
+            Spacer(modifier = Modifier.height(CARD_SHADOW_HEADROOM))
+
             // 1. QUICK STAT CARD (compact so the Analytics tab fits one screen)
             //
             // The Overall Level sits here now, in place of the consecutive-days

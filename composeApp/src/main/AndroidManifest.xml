@@ -39,6 +39,8 @@
             android:name="com.grafizum.repio.MainActivityFlame"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_flame_dark"
             android:theme="@style/Theme.App.Starting.Flame">
@@ -53,6 +55,8 @@
             android:name="com.grafizum.repio.MainActivityBeige"
             android:enabled="true"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_beige_light"
             android:theme="@style/Theme.App.Starting.Beige">
@@ -67,6 +71,8 @@
             android:name="com.grafizum.repio.MainActivityPurple"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_purple_dark"
             android:theme="@style/Theme.App.Starting.Purple">
@@ -81,6 +87,8 @@
             android:name="com.grafizum.repio.MainActivityEmerald"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_emerald_light"
             android:theme="@style/Theme.App.Starting.Emerald">
@@ -95,6 +103,8 @@
             android:name="com.grafizum.repio.MainActivityCrimson"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_crimson_light"
             android:theme="@style/Theme.App.Starting.Crimson">
@@ -109,6 +119,8 @@
             android:name="com.grafizum.repio.MainActivityRoyalBlue"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_royal_blue_light"
             android:theme="@style/Theme.App.Starting.RoyalBlue">
@@ -123,6 +135,8 @@
             android:name="com.grafizum.repio.MainActivityOcean"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_ocean_dark"
             android:theme="@style/Theme.App.Starting.Ocean">
@@ -137,6 +151,8 @@
             android:name="com.grafizum.repio.MainActivityRose"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_rose_dark"
             android:theme="@style/Theme.App.Starting.Rose">
@@ -151,6 +167,8 @@
             android:name="com.grafizum.repio.MainActivityRetro"
             android:enabled="false"
             android:exported="true"
+            android:excludeFromRecents="true"
+            android:taskAffinity=""
             android:windowSoftInputMode="adjustResize"
             android:icon="@mipmap/ic_launcher_retro_dark"
             android:theme="@style/Theme.App.Starting.Retro">

@@ -45,6 +45,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.*
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.Icon
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.NavigationBar
@@ -89,6 +90,8 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import com.grafizum.repio.ui.screens.*
+import com.grafizum.repio.ui.theme.DarkBarSurface
+import com.grafizum.repio.ui.theme.LocalLightTheme
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getTodayDayOfWeek
@@ -99,6 +102,7 @@ import androidx.lifecycle.ViewModelProvider
 import com.grafizum.repio.data.AppDatabase
 import com.grafizum.repio.data.WorkoutRepository
 import com.grafizum.repio.util.AppUpdateChecker
+import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.ui.components.AdaptiveWidthContainer
 import com.grafizum.repio.ui.components.AppDialog
@@ -122,6 +126,55 @@ fun Context.findActivity(): Activity? = when (this) {
     is ContextWrapper -> baseContext.findActivity()
     else -> null
 }
+
+/**
+ * The sliding pill behind the selected tab.
+ *
+ * It was `primary.copy(alpha = 0.1f)` everywhere, and on a dark scheme that is NOT a dimmer
+ * accent - it is a different colour: 10% of gold over the bar's raised grey lands on #3F3B31, a
+ * muddy tan, measured on the emulator at 1.5% of the frame as a 246x166px patch that follows the
+ * selection from tab to tab. Owner, 2026-10-14: *"instead of a creamy gold i want an accent
+ * gold"*. The accent already marks the selected tab where it can actually be an accent - the
+ * icon and the label are full `primary` (see `selectedIconColor` below) - so the pill takes a
+ * neutral rung of the same grey ladder on a dark scheme and keeps its soft bronze tint on a light
+ * one, where a tint of the accent over cream is a designed edge rather than a muddied one.
+ *
+ * A dark scheme's pill is deliberately a WHISPER: `surfaceContainerHighest` is one rung above the
+ * bar's own raised grey, so it reads as a faint lift and does no signalling of its own. Making
+ * the selected tab legible is the accent's job here, and the gold icon at 10:1 on the canvas does
+ * it without painting the accent as a surface.
+ *
+ * Pure, so `DarkThemeContrastTest` can hold every dark theme to it without rendering the bar.
+ */
+internal fun navIndicatorFill(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.primary.copy(alpha = 0.1f) else scheme.surfaceContainerHighest
+
+/**
+ * The bottom bar's own grey.
+ *
+ * Owner, 2026-10-14: *"the grey of the bottom bar ... is the one you were supposed to make darker
+ * ... i want it to have the same visuals as the light beige theme"*. The bar was `surface` (plus
+ * Material's 3dp tonal lift), and on a dark scheme that composited to #2C2C2C - 1.42:1 from the
+ * canvas, where the beige theme's bar is #F0EBE5 against a #FDFCFB canvas, 1.157:1, and is the
+ * WIDEST neutral step that theme ever takes. So the bar states its rung instead of inheriting one,
+ * with the tonal lift left on top of it for the shadow (it can only add a whisper now - see the
+ * dark scheme's `surfaceTint`).
+ *
+ * ON A LIGHT SCHEME it is `surfaceContainerHigh`, which `withThemedContainers` collapses onto the
+ * scheme's own `surface` - the bar is a step off the canvas and that is all it needs to be.
+ *
+ * ON A DARK SCHEME it is [DarkBarSurface] (#1B1B1B, 1.121:1), NOT the card rung it used to share.
+ * Sharing `surfaceContainerHigh` with the workout hero cards meant the card the whole pass was
+ * about was the SAME grey as the bar around it, and the owner's next correction was exactly that:
+ * *"make the card you actually change slightly lighter?"*. Measured on the device, both came back
+ * #1E1E1E. The bar is chrome and the card is a panel, so the chrome sits one notch down and the
+ * panel is the lightest thing on a dark screen.
+ *
+ * The pill inside it ([navIndicatorFill]) is one rung higher again (1.168:1 over this bar), which
+ * is close to the beige theme's own pill-to-bar step, 1.132:1.
+ */
+internal fun navBarFill(scheme: ColorScheme, isLightTheme: Boolean): Color =
+    if (isLightTheme) scheme.surfaceContainerHigh else DarkBarSurface
 
 sealed class Screen(val route: String, val title: String) {
     object Home : Screen("home", "Home") { override val icon = Icons.Default.Home }
@@ -172,22 +225,6 @@ open class MainActivity : AppCompatActivity() {
 
         // Handle initial intent
         handleIntent(intent)
-
-        // Sync theme preference with the launched activity variant to prevent startup conflicts
-        val launchedActivityName = this::class.java.name
-        val themeFromActivity = when (launchedActivityName) {
-            "com.grafizum.repio.MainActivityPurple" -> "PURPLE"
-            "com.grafizum.repio.MainActivityBeige" -> "BEIGE"
-            "com.grafizum.repio.MainActivityFlame" -> "FLAME"
-            "com.grafizum.repio.MainActivityEmerald" -> "EMERALD"
-            "com.grafizum.repio.MainActivityCrimson" -> "CRIMSON"
-            "com.grafizum.repio.MainActivityRoyalBlue" -> "ROYAL_BLUE"
-            "com.grafizum.repio.MainActivityOcean" -> "OCEAN"
-            "com.grafizum.repio.MainActivityRose" -> "ROSE"
-            "com.grafizum.repio.MainActivityRetro" -> "DEVELOPER"
-            else -> null
-        }
-        themeFromActivity?.let { viewModel.updateThemeOptionSilent(it) }
 
         setContent {
             val themeOption by viewModel.themeOption.collectAsState()
@@ -263,7 +300,43 @@ open class MainActivity : AppCompatActivity() {
         handleIntent(intent)
     }
 
+    /** Once per process: see [onResume]'s repair. */
+    private var launcherIconRepaired = false
+
+    override fun onResume() {
+        super.onResume()
+        // THE LAUNCHER ENTRY IS PUT BACK IN STEP WITH THE STORED THEME, once per process.
+        //
+        // Two jobs, one moment. (1) MIGRATION: the entries stopped being the app on
+        // 2026-10-14 (they hand off to this activity now - see [ThemeLauncherEntry]), so a
+        // device that updates INTO that split still has whatever component the old build
+        // enabled, and since that component no longer exists Android falls back to the entry
+        // the manifest enables, which is Beige - every existing user would find their icon
+        // turned cream. (2) REPAIR: any install whose icon and theme have drifted apart gets
+        // them back together, which is the state the owner's report was about.
+        //
+        // ON RESUME, NOT IN Application.onCreate: the entry that launched the process calls
+        // finish() as soon as it has handed off, and by onResume that transient entry task is
+        // gone, so disabling entries here cannot take a window with it - which is exactly the
+        // property the hand-off exists to guarantee. Doing it one step earlier, while the
+        // entry was still the thing on screen, would close the launch it is trying to serve.
+        if (!launcherIconRepaired) {
+            launcherIconRepaired = true
+            applyAppIconChange(viewModel.themeOption.value)
+        }
+    }
+
     private fun handleIntent(intent: Intent?) {
+        // THE THEME THE LAUNCHER ENTRY RAN UNDER, handed over as an extra - the same "sync the
+        // theme preference with what was launched" the class-name map used to do, which can no
+        // longer work: every theme entry hands off to this activity now (see
+        // [ThemeLauncherEntry]), so this class's own name identifies no theme at all.
+        // In [handleIntent] rather than in onCreate so a tap on the icon while the app is
+        // already running lands here too, through onNewIntent.
+        intent?.getStringExtra(ThemeLauncherEntry.EXTRA_THEME_KEY)?.let { theme ->
+            viewModel.updateThemeOptionSilent(theme)
+            intent.removeExtra(ThemeLauncherEntry.EXTRA_THEME_KEY)
+        }
         intent?.getStringExtra("TARGET_SCREEN")?.let {
             _navTarget.value = it
             intent.removeExtra("TARGET_SCREEN")
@@ -742,7 +815,7 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                 bottomBar = {
                     Surface(
                         tonalElevation = 3.dp,
-                        color = MaterialTheme.colorScheme.surface,
+                        color = navBarFill(MaterialTheme.colorScheme, LocalLightTheme.current),
                         modifier = Modifier.fillMaxWidth()
                     ) {
                         BoxWithConstraints(
@@ -796,7 +869,10 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
                                         val pageOffset = pagerState.currentPage + pagerState.currentPageOffsetFraction
                                         translationX = with(density) { (pageOffset * tabWidth.toPx()) }
                                     },
-                                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.1f),
+                                color = navIndicatorFill(
+                                    MaterialTheme.colorScheme,
+                                    LocalLightTheme.current
+                                ),
                                 shape = RoundedCornerShape(12.dp)
                             ) {}
 

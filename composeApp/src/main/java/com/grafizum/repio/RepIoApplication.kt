@@ -58,10 +58,15 @@ class RepIoApplication : Application() {
             // enabled is what produced duplicate icons before, and it is also
             // pointless work.
             //
-            // killApp = false: this runs inside Application.onCreate, and passing
-            // 0 for the flags lets the system kill the process we are standing in.
+            // No kill flag to pass any more: [IconSwitchHelper.switchIcon] always writes its
+            // component states with DONT_KILL_APP. That mattered most here, inside
+            // Application.onCreate, where a flags-0 write would let the system kill the process
+            // we are standing in. It is not enough on its own, mind: what made the app close on
+            // a theme change was the ENTRY it had been launched from being disabled, which is
+            // why the entries now hand off to [MainActivity] instead of being the app - see
+            // [ThemeLauncherEntry].
             if (initialTheme != IconSwitchHelper.MANIFEST_DEFAULT_THEME) {
-                IconSwitchHelper.switchIcon(this, initialTheme, killApp = false)
+                IconSwitchHelper.switchIcon(this, initialTheme)
             }
         }
 

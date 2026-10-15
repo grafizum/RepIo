@@ -1,6 +1,9 @@
 package com.grafizum.repio.ui.theme
 
 import android.app.Activity
+import androidx.compose.animation.animateColorAsState
+import androidx.compose.animation.core.FastOutSlowInEasing
+import androidx.compose.animation.core.tween
 import androidx.compose.foundation.isSystemInDarkTheme
 import androidx.compose.material3.ColorScheme
 import androidx.compose.material3.MaterialTheme
@@ -260,40 +263,63 @@ private val RainbowColorScheme = darkColorScheme(
  *     #E2B75A (HSL 41/70/62). Saturation is the axis the word "vivid" names; brightening the
  *     gold instead only washes it towards yellow-white against a canvas that did not move.
  *
- * Contrast in force: accent #E2B75A on #131313 is 9.87:1 (9.15:1 on a card and 8.14:1 on a
- * nested block, against 9.22:1 / 8.55:1 / 7.61:1 before the accent moved), the button label
- * #1C1810 on the gold fill is 9.39:1, body #EDEBE8 on #131313 is 15.62:1, muted #A0A0A0 on
- * #252525 is 5.86:1, the container's own text #E9D9B8 on #343434 is 8.94:1 and the rim is
- * 1.94:1 on a card - all clear of the 4.5:1 body, 3:1 large-text and 1.5:1 rim floors
- * DarkThemeContrastTest enforces. The five-step container ramp is back to #131313 / #1B1B1B /
- * #252525 / #2F2F2F / #373737.
+ * Contrast in force, on the ladder this scheme shares with the other four dark themes: accent
+ * #E2B75A on the #0E0E0E canvas is 10.25:1 (9.79:1 on `surface` and 9.34:1 on a card, 8.86:1 on
+ * the hero-card rung), the button label #1C1810 on the gold fill is 9.39:1, body #EDEBE8 on
+ * #0E0E0E is 16.22:1, muted #A0A0A0 on a card is 6.72:1 and the rim is 1.98:1 on a card - all
+ * clear of the 4.5:1 body, 3:1 large-text and 1.5:1 rim floors DarkThemeContrastTest enforces.
+ *
+ * REVISED 2026-10-14, the owner's "same grey shading palette" pass. The SIX greys this scheme
+ * used to spell out are now read from the shared ladder in `Color.kt`, so the developer theme
+ * and the four hued dark themes cannot drift apart again - and the canvas moved one notch
+ * deeper (#131313 -> #0E0E0E) with the cards held still, which is the "cards ... less dark so
+ * it sees as a front" half of the same request. The only value here that is NOT the shared
+ * grey is the accent, which is the point: on a dark theme the shading is the same everywhere
+ * and the colour is the identity.
+ *
+ * SAME DAY, SECOND PASS - THE CREAM GOLD IS GONE. Owner, on the cards: "instead of a creamy
+ * gold i want an accent gold". This scheme used to carry TWO golds: the accent #E2B75A and a
+ * cream #E9D9B8 doing the writing on gold-ish grey blocks, which is the colour that reads as
+ * "creamy" the moment it is not a whole card. `onPrimaryContainer` is the accent itself now
+ * (8.86:1 on the block it writes on, against the 4.5:1 floor), so the theme has ONE gold and it
+ * is the one the owner picked. The diluted gold FILLS elsewhere in the app - the 12% washes
+ * and the 35% rims, which is the other thing "creamy" means, a gold mixed into the grey - are
+ * handled where they are drawn; see [workoutWellFill] and [workoutCardRim] in WorkoutNowScreen.
+ * The LIGHT themes keep their own container text: this is a dark-gold ruling.
  */
 private val DeveloperColorScheme = darkColorScheme(
     // The one accent: the phone's own gold, its chroma raised on the owner's request
     // (2026-10-11, above), and the only non-grey in the whole scheme.
     primary = Color(0xFFE2B75A),
     onPrimary = Color(0xFF1C1810),
-    // A neutral grey block carrying the accent's own tint for its text.
-    primaryContainer = Color(0xFF343434),
-    onPrimaryContainer = Color(0xFFE9D9B8),
+    // A neutral grey block carrying the accent's own tint for its text, off the SHARED ladder
+    // like every other surface here (#343434 and #2F2F2F were this scheme's own private
+    // greys, which is exactly the drift the 2026-10-14 pass removed).
+    primaryContainer = DarkSurfaceHigh,
+    // THE ACCENT, not a cream mixed down from it: the writing on this block is meant to be the
+    // same gold as everything else in the theme (2026-10-14, "instead of a creamy gold i want
+    // an accent gold"). The old #E9D9B8 read as a milky gold on this block, which is the one
+    // thing a block whose whole job is to carry the accent must not look like; the accent itself
+    // measures 8.86:1 here, against the 4.5:1 body floor.
+    onPrimaryContainer = Color(0xFFE2B75A),
     secondary = Color(0xFFB8B8B8),
     onSecondary = Color(0xFF1A1A1A),
-    secondaryContainer = Color(0xFF2F2F2F),
+    secondaryContainer = DarkSurfaceHighest,
     onSecondaryContainer = Color(0xFFE6E6E6),
-    // TRUE dark grey, lifted off pure black: three steps of the SAME neutral, no hue in any
-    // of them. The source phone rendered #0A0A0A; the owner has since asked for a very dark
-    // grey rather than black, which is the one place this scheme deliberately departs from
-    // the sampled values. A further lift was tried on 2026-10-11 and reverted - see above.
-    background = Color(0xFF131313),
+    // TRUE dark grey, lifted off pure black: the shared neutral ladder, no hue in any of them.
+    // The source phone rendered #0A0A0A; the owner has since asked for a very dark grey rather
+    // than black, which is the one place this scheme deliberately departs from the sampled
+    // values. A further lift was tried on 2026-10-11 and reverted - see above.
+    background = DarkBackground,
     onBackground = Color(0xFFEDEBE8),
-    surface = Color(0xFF1B1B1B),
+    surface = DarkSurface,
     onSurface = Color(0xFFEDEBE8),
-    surfaceVariant = Color(0xFF252525),
+    surfaceVariant = DarkSurfaceVariant,
     onSurfaceVariant = Color(0xFFA0A0A0),
-    // Light enough to draw the hairline rims a dark UI leans on: 1.94:1 on a card and 1.73:1
-    // on a nested block, against the 1.5:1 floor. It rides the raised surfaces - a rim
+    // Light enough to draw the hairline rims a dark UI leans on: 1.94:1 on `surface` and 1.88:1
+    // on a card, against the 1.5:1 floor. It rides the raised surfaces - a rim
     // tuned to a black canvas looks drawn but invisible once the cards are lifted.
-    outline = Color(0xFF4A4A4A),
+    outline = DarkBorder,
     error = Color(0xFFFFB4AB),
     onError = Color(0xFF690005)
 )
@@ -415,6 +441,33 @@ private fun TextStyle.scaledBy(factor: Float): TextStyle = copy(
  * mapping is kept — their surfaces already differ enough from the background
  * that a further ramp adds noise, not depth.
  *
+ * THE TWO UPPER STEPS ARE THE SHARED LADDER AGAIN, and both halves of that sentence were
+ * earned the hard way. They were DERIVED (`surfaceVariant.blendTowards(onSurface, 0.05/0.09)`)
+ * from 2026-10-10 to 2026-10-14, for a real reason: the fixed constants then in `Color.kt`
+ * were a COLD grey that no dark palette actually used, so every dark theme got a band of the
+ * wrong colour under its chips, inputs and sheets. Deriving them from the scheme removed that
+ * band. But it derived them from a DIFFERENT `surfaceVariant` per theme, so the ramp was not
+ * the same ramp either — Flame's chips were #26262A and the developer theme's were #303030,
+ * i.e. the "same grey shading palette" the owner asked for was still three ladders wearing one
+ * name. Now that every dark scheme reads ONE neutral ladder from `Color.kt` (see the note
+ * there), the constants are the scheme's own surfaces again and the objection is void: the
+ * five steps below are byte-identical on every dark theme, and the ramp test asserts the
+ * spacing between them rather than the provenance of each value.
+ *
+ * SURFACE TINT: NEVER THE ACCENT. `surfaceTint` is what Material composites into `surface` at
+ * an elevation-dependent alpha, and it defaults to `primary` — which is right for Material's
+ * own purple and wrong for a scheme whose accent is a vivid gold or orange. Measured on this
+ * app's DEVELOPER theme, `Surface(tonalElevation = 3.dp, color = surface)` on the bottom
+ * navigation bar produced #2B2820 and `Surface(surfaceContainerHigh, tonalElevation = 6.dp)` on
+ * every dialog produced #302C22 — the entire navigation bar (9.3% of every screen, measured
+ * off a 1080x2400 capture) and every dialog and sheet, painted with a gold wash. That is the
+ * worst possible place for an accent: elevation is not a state, so the accent was not
+ * signalling anything, it was just tinting the chrome. Tinting towards `onSurface` keeps the
+ * elevation system intact — a 3dp bar still lifts, still by the same amount (the composite
+ * lands at #2D2C2B against #2B2820, a 2-unit difference) — but every elevated surface now
+ * lifts in the scheme's own NEUTRAL ink instead of its accent. A dark theme's colour belongs
+ * on the things that mean something: the primary action, the current state, a focal number.
+ *
  * Applied where the scheme is chosen, so a new palette cannot forget it.
  */
 internal fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark: Boolean) =
@@ -423,31 +476,33 @@ internal fun androidx.compose.material3.ColorScheme.withThemedContainers(isDark:
         surfaceContainerLow = surface,
         surfaceContainer = surface,
         surfaceContainerHigh = surface,
-        surfaceContainerHighest = surfaceVariant
+        surfaceContainerHighest = surfaceVariant,
+        // The light palettes do not set `outlineVariant` either, so their dividers were
+        // baseline #CAC4D0 - a cool purple-grey against palettes whose rims are warm brown,
+        // teal or red. Collapsing it onto the scheme's own outline is the same move the
+        // container ramp above makes, and it keeps a divider a rung quieter than nothing.
+        outlineVariant = outline
     ) else copy(
         surfaceContainerLowest = background,
         surfaceContainerLow = surface,
         surfaceContainer = surfaceVariant,
-        // DERIVED FROM THE SCHEME ITSELF, not from the shared cold-grey constants these
-        // two steps used to read. Those constants made every dark theme's upper ramp a
-        // FIXED grey, so any palette whose surfaces were not that grey got a band of the
-        // wrong colour under its chips, inputs and sheets. Mixing a little of the scheme's
-        // own text colour into its variant gives every dark palette a ramp in ITS OWN
-        // tone, and only ever moves the step towards the text, so contrast cannot drop.
-        // Measured on the developer scheme, which is now the one that leans on it hardest:
-        // #252525 -> #2F2F2F -> #373737, steps of 1.145:1 and 1.125:1, both inside the
-        // 1.02-1.2:1 band the ramp test holds every dark theme to.
-        surfaceContainerHigh = surfaceVariant.blendTowards(onSurface, 0.05f),
-        surfaceContainerHighest = surfaceVariant.blendTowards(onSurface, 0.09f)
+        surfaceContainerHigh = DarkSurfaceHigh,
+        surfaceContainerHighest = DarkSurfaceHighest,
+        // THE ELEVATION TINT IS A DARK NEUTRAL, NOT A LIGHT INK.
+        //
+        // This was `onSurface` (#EDEBE8, near-white) and that one value is what the owner
+        // reported on 2026-10-14 as *"the grey of the bottom bar and the general cards
+        // background color ... make darker"*: Material composites the tint into an elevated
+        // surface, so the bottom bar (surface + 3dp) and EVERY Material card (surface + 1dp) came
+        // back #2C2C2C - 1.42:1 from the canvas, where the light beige theme's widest neutral step
+        // is 1.157:1. The lift is kept, because a raised surface should still read as raised; only
+        // its ink changes, to the ladder's own top rung, so elevation lifts a surface by a whisper
+        // inside the palette instead of painting it a lighter grey. It is still NOT the accent -
+        // that is the property `elevationLiftsInTheSchemesOwnNeutralInk` asserts.
+        surfaceTint = DarkSurfaceHighest,
+        // See [DarkHairline] - the dividers were baseline purple on every dark theme.
+        outlineVariant = DarkHairline
     )
-
-/** Mixes [fraction] of [other] into this colour, for deriving a surface step. */
-private fun Color.blendTowards(other: Color, fraction: Float) = Color(
-    red = red + (other.red - red) * fraction,
-    green = green + (other.green - green) * fraction,
-    blue = blue + (other.blue - blue) * fraction,
-    alpha = alpha
-)
 
 private fun androidx.compose.material3.Typography.scaledFor(scale: Float): androidx.compose.material3.Typography {
     if (scale == 1f) return this
@@ -613,6 +668,104 @@ internal fun isDarkThemeUsedFor(themeKey: String, isSystemDark: Boolean): Boolea
         else -> isDarkThemeUsedFor(IconSwitchHelper.defaultThemeFor(isSystemDark), isSystemDark)
     }
 
+/**
+ * How long a palette swap takes.
+ *
+ * Owner, 2026-10-15: *"add a small transition when changing theme so that its not instant but
+ * still fast and snappy"*. One deliberate number, and it is a compromise between two visible
+ * failures rather than a taste: at 0ms the whole app blinks to a new palette and the eye reads
+ * it as a redraw (the complaint), and long enough to notice the animation is long enough to
+ * feel like waiting. 220ms is under the ~250ms where a full-screen change stops reading as a
+ * response to the tap and starts reading as a transition to sit through.
+ *
+ * The platform still has the last word: Compose runs this through
+ * [androidx.compose.runtime.MotionDurationScale], which follows the system's animation scale,
+ * so a phone with animations switched off in Developer options (or a duration scale of 0)
+ * keeps the instant switch it asked for. That is why the number is not `0`-or-nothing here.
+ */
+internal const val THEME_CHANGE_MS = 220
+
+/**
+ * The scheme the app already paints with, with every colour arriving at its new value over
+ * [THEME_CHANGE_MS] instead of snapping to it.
+ *
+ * WHAT IT DOES NOT DO is rebuild anything. This is the same [ColorScheme] the tree composes
+ * against, so the pager keeps its page, every list keeps its scroll position, no screen re-runs
+ * its side effects and nothing is composed twice - only colours move. The two alternatives both
+ * lose something real: `Crossfade`ing the tree would animate the same pixels and throw away the
+ * state underneath (a theme change that scrolls you back to the top is a worse bug than the
+ * blink), and the JVM has no way to interpolate a [ColorScheme] role-by-role without naming the
+ * roles anyway.
+ *
+ * ALL 36 ROLES THIS MATERIAL3 VERSION HAS, NOT THE 23 THIS CODEBASE NAMES. The difference is
+ * the whole point: the roles it never reads by hand are exactly the ones Material paints for it
+ * - `surfaceContainerHighest` on every Card, `inverseSurface`/`inverseOnSurface` on a snackbar,
+ * `scrim` behind a dialog, `surfaceTint` on every elevation. Animating a subset would mean the
+ * accent glides while the cards it sits on snap, which is more distracting than no animation at
+ * all. `DarkThemeContrastTest` enumerates the same roles for the same reason: the scheme is the
+ * app's colour, all of it.
+ *
+ * Animating each role with its own [animateColorAsState] rather than driving one progress value
+ * is what makes a SECOND change mid-flight behave. Each colour keeps its own current value, so
+ * tapping three themes in a row continues from what is on screen; a single progress value would
+ * have to be re-based on the interpolated scheme to do the same, and getting that wrong shows up
+ * as a flash back to the palette the app was leaving.
+ */
+@Composable
+private fun ColorScheme.withThemeChangeMotion(): ColorScheme = copy(
+    primary = themedColor(primary),
+    onPrimary = themedColor(onPrimary),
+    primaryContainer = themedColor(primaryContainer),
+    onPrimaryContainer = themedColor(onPrimaryContainer),
+    inversePrimary = themedColor(inversePrimary),
+    secondary = themedColor(secondary),
+    onSecondary = themedColor(onSecondary),
+    secondaryContainer = themedColor(secondaryContainer),
+    onSecondaryContainer = themedColor(onSecondaryContainer),
+    tertiary = themedColor(tertiary),
+    onTertiary = themedColor(onTertiary),
+    tertiaryContainer = themedColor(tertiaryContainer),
+    onTertiaryContainer = themedColor(onTertiaryContainer),
+    background = themedColor(background),
+    onBackground = themedColor(onBackground),
+    surface = themedColor(surface),
+    onSurface = themedColor(onSurface),
+    surfaceVariant = themedColor(surfaceVariant),
+    onSurfaceVariant = themedColor(onSurfaceVariant),
+    surfaceTint = themedColor(surfaceTint),
+    inverseSurface = themedColor(inverseSurface),
+    inverseOnSurface = themedColor(inverseOnSurface),
+    error = themedColor(error),
+    onError = themedColor(onError),
+    errorContainer = themedColor(errorContainer),
+    onErrorContainer = themedColor(onErrorContainer),
+    outline = themedColor(outline),
+    outlineVariant = themedColor(outlineVariant),
+    scrim = themedColor(scrim),
+    surfaceBright = themedColor(surfaceBright),
+    surfaceDim = themedColor(surfaceDim),
+    surfaceContainer = themedColor(surfaceContainer),
+    surfaceContainerHigh = themedColor(surfaceContainerHigh),
+    surfaceContainerHighest = themedColor(surfaceContainerHighest),
+    surfaceContainerLow = themedColor(surfaceContainerLow),
+    surfaceContainerLowest = themedColor(surfaceContainerLowest)
+)
+
+/**
+ * One role, moving to [target] over [THEME_CHANGE_MS].
+ *
+ * `animateColorAsState` starts wherever the colour currently IS, so the first composition snaps
+ * (there is nothing to move from) and a change arriving mid-flight carries on from the colour on
+ * screen. Both behaviours are wanted and neither is written here.
+ */
+@Composable
+private fun themedColor(target: Color): Color =
+    animateColorAsState(
+        targetValue = target,
+        animationSpec = tween(durationMillis = THEME_CHANGE_MS, easing = FastOutSlowInEasing),
+        label = "theme"
+    ).value
+
 @Composable
 fun WorkoutTrackerTheme(
     themeOption: String = "DEFAULT",
@@ -637,7 +790,12 @@ fun WorkoutTrackerTheme(
 
     val isLightTheme = !isDarkThemeUsed
 
-    val colorScheme = resolveColorScheme(themeOption, isDark).withThemedContainers(isDarkThemeUsed)
+    // The containers are resolved BEFORE the motion, so the ramp a theme derives is animated
+    // too and a light/dark switch moves its card fills with the rest instead of snapping
+    // under a palette that is still gliding.
+    val colorScheme = resolveColorScheme(themeOption, isDark)
+        .withThemedContainers(isDarkThemeUsed)
+        .withThemeChangeMotion()
 
     val view = LocalView.current
     if (!view.isInEditMode) {
