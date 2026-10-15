@@ -646,6 +646,40 @@ fun HomeScreen(
                                 )
                             }
 
+                            // WHAT THE SET IS SUPPOSED TO FEEL LIKE, on the list a user reads
+                            // BEFORE training rather than only where the routine is edited.
+                            //
+                            // Owner prompt, 2026-10-15: RPE and RIR "integrated in the workout
+                            // creation or exercises (just as labels for users nothing more)".
+                            //
+                            // IT GETS ITS OWN LINE, and that is a measurement, not a preference.
+                            // On the 1080px emulator, inline after the sets summary it rendered
+                            // 512-905 and squeezed the muscle group from 255px to its own
+                            // ellipsis at 58px - the row's fixed content (310px of summary, 393px
+                            // of label, 66px of dot and gaps) is already over the 840px the row
+                            // has to spend, so SOMETHING had to lose and it was the group name.
+                            // A short form would not have saved it (even "RPE 7 - 3 RIR" leaves
+                            // the name 112px of the 255 it needs), so the figure moves instead of
+                            // the group: nothing on the summary line changes width, and the label
+                            // is measured here against the full row.
+                            //
+                            // Same helper as the card, so the two can never describe one value
+                            // two ways, and the same "word (figures)" form - a summary that
+                            // abbreviates what the card spells out is a second vocabulary.
+                            if (exercise.targetIntensity.isNotBlank()) {
+                                val displayIntensity = displayIntensityLabel(exercise.targetIntensity)
+                                if (displayIntensity.isNotBlank()) {
+                                    Spacer(modifier = Modifier.height(3.dp))
+                                    Text(
+                                        text = "• $displayIntensity",
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                        color = MaterialTheme.colorScheme.primary,
+                                        maxLines = 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+                                }
+                            }
+
                             AnimatedVisibility(
                                 visible = isExpanded,
                                 enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 

@@ -104,10 +104,11 @@ class IntensityScaleTest {
     }
 
     /**
-     * The half a mapping test cannot hold: both label sites still go through the ONE helper.
+     * The half a mapping test cannot hold: every label site still goes through the ONE helper.
      *
-     * There are three places the intensity text is shown (the routine card, the setup preview and
-     * the editor's hint), and they were already two copies of one expression before this change.
+     * There are four places the intensity text is shown (the routine card, the setup preview, the
+     * editor's hint and Home's schedule row), and the first ones were already two copies of one
+     * expression before this change.
      * A future edit that re-inlines the old `${'$'}{word} (${'$'}explanation)` shape in one of
      * them would leave that screen printing a bare adjective again while the others printed the
      * figure — which is exactly the kind of drift the copies caused the first time.
@@ -116,6 +117,7 @@ class IntensityScaleTest {
     fun everyLabelSiteUsesTheOneHelper() {
         val rowSite = File("src/main/java/com/grafizum/repio/ui/components/WorkoutComponents.kt").readText()
         val setupSite = File("src/main/java/com/grafizum/repio/ui/screens/FirstTimeSetupScreen.kt").readText()
+        val scheduleSite = File("src/main/java/com/grafizum/repio/ui/screens/HomeScreen.kt").readText()
 
         assertTrue(
             "the exercise row no longer uses displayIntensityLabel, so it shows the bare word",
@@ -124,6 +126,17 @@ class IntensityScaleTest {
         assertTrue(
             "the setup preview no longer uses displayIntensityLabel",
             setupSite.contains("displayIntensityLabel(exercise.targetIntensity)")
+        )
+        assertTrue(
+            "Home's schedule row no longer uses displayIntensityLabel, so the list a user reads " +
+                "before training shows the bare adjective again",
+            scheduleSite.contains(
+                "val displayIntensity = displayIntensityLabel(exercise.targetIntensity)"
+            )
+        )
+        assertTrue(
+            "Home's schedule row builds its own intensity label again instead of calling the helper",
+            !scheduleSite.contains("getRpeRirExplanation")
         )
         // WHERE THE EXPLANATION IS ASKED FOR, and how many times. WorkoutComponents.kt is the
         // helper's own file, so exactly two mentions are right: the declaration and the call
