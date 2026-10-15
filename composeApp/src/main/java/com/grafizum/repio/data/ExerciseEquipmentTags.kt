@@ -98,9 +98,17 @@ object ExerciseEquipmentTags {
         KETTLEBELL_ONLY, KETTLEBELL_AND_BENCH,
     )
 
-    /** Tags the welcome screen's "Home equipment" checkboxes grant. */
+    /**
+     * Tags the welcome screen's "Home equipment" checkboxes grant.
+     *
+     * BENCH, DIP_BARS and GYMNASTIC_RINGS moved to the GYM section on the owner's
+     * ruling (2026-10-13): *"Put dip bars rings and bench inside the gym cathegory
+     * not home."* This is a SECTION change only - the tags, their tiles, their
+     * grants and every saved selection are untouched, so a user who ticked Bench
+     * under Home before the update still owns it; it simply shows under Gym now.
+     */
     val HOME_EQUIPMENT_TAGS = listOf(
-        CHAIR, BENCH, PULL_UP_BAR, DIP_BARS, GYMNASTIC_RINGS,
+        CHAIR, PULL_UP_BAR,
         WALL, STAIRS, BACKPACK_OR_WEIGHTED_BAG, TOWEL, RESISTANCE_BANDS,
     )
 
@@ -119,6 +127,8 @@ object ExerciseEquipmentTags {
     val GYM_EQUIPMENT_TAGS = listOf(
         DUMBBELLS_ONLY, BARBELL_AND_RACK, BARBELL_AND_FLOOR,
         KETTLEBELL_ONLY, CABLE_MACHINE, MACHINE_OTHER,
+        // Moved out of HOME_EQUIPMENT_TAGS by the owner's 2026-10-13 ruling.
+        BENCH, DIP_BARS, GYMNASTIC_RINGS,
     )
 
     // ---------- PRESETS ----------

@@ -29,7 +29,14 @@ import org.junit.Test
  *  - `setExerciseLevel` clamped to THAT number rather than to the ceiling, so an
  *    impossible load could be selected and logged.
  *
- * A ceiling the app lets you walk past is not a ceiling.
+ * A ceiling the app PRESCRIBES past, without being asked to, is not a ceiling.
+ *
+ * REVISED 2026-10-13, owner ruling: the max is a MARKER, not a wall. The ladder
+ * carries real prescriptions above it and the user may climb on, so this suite
+ * asserts the load ceiling over the range the evidence covers (levels 1..max,
+ * which is also what the app prescribes by default) and separately asserts that
+ * the max rung IS the row's own ceiling - the rung the researched number lands
+ * on. Above it the climb is the user's own choice and is not a safety claim.
  *
  * WHAT REPLACES IT is evidence each row already carries: 478 of the 594 rows have
  * a sourced `HumanCeiling` ("elite dumbbell curl ~45-50 kg/arm"), and
@@ -51,12 +58,9 @@ class HumaneCeilingTest {
     }
 
     /**
-     * THE property: at every level the app would let a user reach, the prescribed
-     * load never exceeds the row's own recorded human ceiling.
-     *
-     * Stepped rather than swept level-by-level because a ladder can run to
-     * hundreds of levels and the interesting failures are at the extremes - the
-     * last rung, and well past it in case anything still selects out there.
+     * THE property: across the range the evidence covers - level 1 to the row's
+     * own max, which is the whole of what the app prescribes by default - the
+     * load never exceeds the row's recorded human ceiling.
      */
     @Test
     fun noPrescribedLoadEverExceedsItsHumanCeiling() {
@@ -67,9 +71,8 @@ class HumaneCeilingTest {
             if (!ProgressionEngine.isProgressionReady(row)) continue
             val max = ProgressionEngine.effectiveMaxLevel(row)
 
-            // The end of the ladder, the level above it (which must clamp, not
-            // extrapolate), and a level far past anything selectable.
-            val probes = listOf(1, max, max + 1, max * 2, max + ProgressionEngine.EXTENSION_CHUNK)
+            // The first rung, the last, and both ends of the middle.
+            val probes = listOf(1, max / 2, max - 1, max)
             for (level in probes.filter { it >= 1 }) {
                 val load = ProgressionEngine.valueAtLevelWithCeiling(row, level) ?: continue
                 if (load > ceiling + 1e-6) {
@@ -83,6 +86,55 @@ class HumaneCeilingTest {
                 offenders.take(5).joinToString("; "),
             offenders.isEmpty(),
         )
+    }
+
+    /**
+     * ...and the max rung is exactly the ceiling, not an overshoot: the marker
+     * sits on the researched number.
+     */
+    @Test
+    fun theMarkedRungIsTheCeilingItself() {
+        val offenders = mutableListOf<String>()
+        for (row in ready) {
+            val ceiling = row.ceiling?.load ?: continue
+            if (ProgressionEngine.valueKindOf(row) != ProgressionEngine.ValueKind.LOAD) continue
+            val max = ProgressionEngine.effectiveMaxLevel(row)
+            val atMax = ProgressionEngine.valueAtLevelWithCeiling(row, max) ?: continue
+            if (kotlin.math.abs(atMax - ceiling) > 1e-6) {
+                offenders += "${row.slug} level $max -> $atMax, ceiling $ceiling"
+            }
+        }
+        assertTrue(
+            "the max rung must land on the researched ceiling: " +
+                offenders.take(5).joinToString("; "),
+            offenders.isEmpty(),
+        )
+    }
+
+    /**
+     * Past the max, both kinds of ladder keep climbing (owner ruling 2026-10-13:
+     * the max is a mark, not a stop) - one rung above it is a different, bigger
+     * number in every row, because a level that repeats the one below it is the
+     * defect that put this whole rule in the engine.
+     */
+    @Test
+    fun everyRungAboveTheMaxKeepsClimbing() {
+        val flat = mutableListOf<String>()
+        for (row in ready) {
+            val max = ProgressionEngine.effectiveMaxLevel(row)
+            val probe = max + 1
+            if (ProgressionEngine.valueKindOf(row) == ProgressionEngine.ValueKind.VARIATION) continue
+            if (ProgressionEngine.isRepLadder(row)) {
+                if (ProgressionEngine.repsAtLevel(row, probe) <= ProgressionEngine.repsAtLevel(row, max)) {
+                    flat += "${row.slug} reps at $probe do not climb"
+                }
+            } else {
+                val above = ProgressionEngine.valueAtLevelWithCeiling(row, probe) ?: continue
+                val atMax = ProgressionEngine.valueAtLevelWithCeiling(row, max) ?: continue
+                if (above <= atMax) flat += "${row.slug} load at $probe is $above, not above $atMax"
+            }
+        }
+        assertTrue("these rungs do not climb past the max: " + flat.take(5).joinToString("; "), flat.isEmpty())
     }
 
     /**

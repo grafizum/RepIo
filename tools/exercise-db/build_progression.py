@@ -213,24 +213,31 @@ EQUIPMENT_OVERRIDES = {
     "goblet-squat": "Dumbbell",
     # Done under a doorway bar or a sturdy table - home gear, no plates.
     "inverted-row": "Bodyweight",
-    # A captain's chair and a stability ball are gym apparatus, not floor work.
-    "captains-chair-knee-raise": "Machine",
-    "captains-chair-leg-raise": "Machine",
-    "stability-ball-push-up": "Machine",
-    "stability-ball-push-up-hands-on-ball": "Machine",
-    "stability-ball-wall-squat": "Machine",
-    # Owner report 2026-10-09, after auditing every pool row's own instructions
-    # against the equipment gate: "Back extensions only works with a certain bench
-    # which i didnt select so thats wrongly shown". A 45-degree / hyperextension
-    # bench is gym apparatus, and the ball rows below put the hands or feet on a
-    # ball - the same drawer the three stability-ball rows above already sit in.
-    # The gates were tightened in ExerciseEquipmentTags first; these entries stop
-    # the CATEGORY from disagreeing with them (EquipmentCategoryConsistencyTest).
-    "back-extension": "Machine",
-    "ball-pike": "Machine",
-    "stability-ball-knee-tuck": "Machine",
-    "stability-ball-hip-bridge": "Machine",
-    "ball-leg-curl": "Machine",
+    # A captain's chair and a stability ball are apparatus the chip vocabulary
+    # does not name, so these rows live in "Other" - NOT in "Machine", which is
+    # what the owner ruled on 2026-10-13: "The filter machines in add exercise
+    # is not at all showing machines exercise but bodyweight. I dont want to see
+    # bodyweight exercises if bodyweight is not selected." They are bodyweight-
+    # LOADED movements (their ladders are rep ladders, not weight stacks), and
+    # their fine gates still ask for MACHINE_OTHER, so a user without the
+    # station/ball never sees them under any chip; "Other" is simply the honest
+    # drawer for "needs an implement no chip names".
+    #
+    # The 2026-10-09 reasoning still holds for the GATES (captain's chair and
+    # ball rows are not floor work) - only the coarse CATEGORY moved, from
+    # Machine to Other, to stop the Machine chip listing bodyweight work.
+    # EquipmentCategoryConsistencyTest allows every tag under "Other", so the
+    # category and the requirements no longer disagree.
+    "captains-chair-knee-raise": "Other",
+    "captains-chair-leg-raise": "Other",
+    "stability-ball-push-up": "Other",
+    "stability-ball-push-up-hands-on-ball": "Other",
+    "stability-ball-wall-squat": "Other",
+    "back-extension": "Other",
+    "ball-pike": "Other",
+    "stability-ball-knee-tuck": "Other",
+    "stability-ball-hip-bridge": "Other",
+    "ball-leg-curl": "Other",
     # "...a specific machine or another person on one's back ... this method uses a
     # weight belt": the variant still needs the apparatus, not just a floor.
     "donkey-calf-raise": "Machine",

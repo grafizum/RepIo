@@ -211,14 +211,25 @@ class ProgressionEngineTest {
     }
 
     @Test
-    fun theLadderEndsAtItsTopLevel() {
+    fun theLadderKeepsClimbingPastItsTopLevel() {
         val entry = entry("Barbell Bench Press")
-        // The ceiling-aware ladder ends at the effective max: past it the
-        // exercise is mastered and levelUp returns null (mastery takes over).
+        // The max is a MARKER, not a wall (owner 2026-10-13: "keep each exercise's
+        // max as is and add more levels after it ... past-max levels must be
+        // selectable"), so the top stage of the max rung levels up into the rung
+        // above it instead of ending the ladder.
+        val effMax = ProgressionEngine.effectiveMaxLevel(entry)
         val top = ProgressionEngine.ProgressionState(
-            level = ProgressionEngine.effectiveMaxLevel(entry), stage = 13,
+            level = effMax, stage = ProgressionEngine.patternLength(entry),
         )
-        assertNull("the top of the ladder must not wrap around", ProgressionEngine.levelUp(entry, top))
+        val next = ProgressionEngine.levelUp(entry, top)
+        assertNotNull("the max must not end the ladder", next)
+        assertEquals(effMax + 1, next!!.newState.level)
+        assertTrue(next.value!! > ProgressionEngine.valueAtLevelWithCeiling(entry, effMax)!!)
+        // The ladder still cannot run past the picker's own limit.
+        val atLimit = ProgressionEngine.ProgressionState(
+            level = ProgressionEngine.PICKER_LEVEL_LIMIT, stage = ProgressionEngine.patternLength(entry),
+        )
+        assertNull(ProgressionEngine.levelUp(entry, atLimit))
     }
 
     // --- Data-error contract ---------------------------------------------------
@@ -291,11 +302,13 @@ class ProgressionEngineTest {
         assertEquals(4, ProgressionEngine.clampLevel(be, 4))
         // Back Extension is a REP LADDER now, so its ceiling is the rep climb
         // (floor 8 -> 50 = 43 levels), not the 6 rungs its variation ladder had.
-        // The clamp has to land on THAT or a user could park on a level the app
-        // has no data for.
         val top = ProgressionEngine.effectiveMaxLevel(be)
         assertEquals(ProgressionEngine.repRungs(be), top)
-        assertEquals(top, ProgressionEngine.clampLevel(be, 999))
+        // The max is a MARKER, not a wall (owner 2026-10-13): the writer's bound
+        // is the picker's own limit, so a level past the exercise's max is stored
+        // as the level the user asked for rather than clamped back onto the max.
+        assertEquals(ProgressionEngine.PICKER_LEVEL_LIMIT, ProgressionEngine.clampLevel(be, 999))
+        assertEquals(top + 1, ProgressionEngine.clampLevel(be, top + 1))
     }
 
     // --- Display helpers (the My-Workout UI path) ------------------------------

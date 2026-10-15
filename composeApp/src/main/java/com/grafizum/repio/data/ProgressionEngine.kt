@@ -332,7 +332,10 @@ object ProgressionEngine {
     fun repsAtLevel(entry: ProgressionEntry, level: Int): Int {
         val floor = repFloorOf(entry)
         val top = repCeilingFor(entry)
-        return (floor + repStepFor(entry) * (level - 1)).coerceIn(floor, top)
+        val raw = floor + repStepFor(entry) * (level - 1)
+        // Past the top rung the climb continues: the max is a marker, not a wall
+        // (owner 2026-10-13). Below it the top still lands inside the ceiling.
+        return if (level <= repRungs(entry)) raw.coerceIn(floor, top) else raw.coerceAtLeast(top)
     }
 
     /** How many rungs the ladder has. */
@@ -526,9 +529,13 @@ object ProgressionEngine {
             val band = (repStepFor(entry) - 1).coerceAtLeast(0)
             val climb = stageClimb(entry)
             val scale = if (climb > 0) band.toDouble() / climb else 0.0
+            // The ceiling caps the rungs inside the ladder; past the top rung the
+            // climb continues, so the picker's rung above the max shows a bigger
+            // number instead of repeating the ceiling (owner 2026-10-13).
+            val upper = if (level <= repRungs(entry)) top else Int.MAX_VALUE
             return base.indices.map { i ->
                 val delta = base[i] - (floorRow.getOrNull(i) ?: base[i])
-                (target + (delta * scale).roundToInt()).coerceIn(floor, top)
+                (target + (delta * scale).roundToInt()).coerceIn(floor, upper)
             }
         }
 
@@ -699,6 +706,62 @@ object ProgressionEngine {
     // Level ladders
     // ------------------------------------------------------------------
 
+    /**
+     * The starting load of a LOAD ladder and the ONE step it repeats from there,
+     * or null for every other row (a variation, a duration, or a row with no
+     * increment to walk).
+     *
+     * OWNER REPORT, 2026-10-13 (board task_4j6j3m5f49730n5c4b0g3g6l): *"And
+     * progressive increase makes absolute no sense, the increase of the weight
+     * should always be the same (add more levels since the max will be the same
+     * but the steps in between will be more)"*.
+     *
+     * He is reading the AUTHORED ladders, and 295 of the 454 load ladders grow
+     * their step. The bench is the pattern: 20, 22.5, 25, 27.5, 30, 35, 40, 45,
+     * 50, 60 - 2.5 kg four times, then 5 kg four times, then 10 kg - so the user
+     * meets a 2.5 kg level-up and, ten levels later, a 10 kg one it did not ask
+     * for. A ladder now walks ONE step from its starting load to its researched
+     * top, so the increase is identical at every rung and the top does not move;
+     * what grows is the number of levels it takes to reach it (the bench goes
+     * from 58 rungs to 65 at a constant 2.5 kg). That is also exactly what the
+     * POUND ladder has always done, so the two units now state one rule.
+     *
+     * The step is the SMALLEST the row itself declares - its own increment, or
+     * the finest authored step when that is finer - so a constant ladder can
+     * never be coarser than the one it replaces and never drops a load the row
+     * used to be able to reach (a dumbbell authored 4, 5, 6, 8 ... with a 2 kg
+     * declared increment keeps a 1 kg step). Kilogram rows are quantised to a
+     * half-kilo, exactly as [loadGridStep] already does, so a rung is always a
+     * weight the gym can set; pin and band counts stay whole.
+     */
+    fun constantStepLadder(entry: ProgressionEntry): Pair<Double, Double>? {
+        if (valueKindOf(entry) != ValueKind.LOAD) return null
+        val base = entry.level1 ?: entry.levelValues.firstOrNull() ?: return null
+        if (base <= 0.0) return null
+        val declared = entry.increment?.takeIf { it > 0.0 }
+        val finestAuthored = entry.levelValues
+            .zipWithNext { a, b -> b - a }
+            .filter { it > 0.0 }
+            .minOrNull()
+        val raw = listOfNotNull(declared, finestAuthored).minOrNull() ?: return null
+        val step = if (entry.unit.contains("kg")) {
+            ((raw / 0.5).roundToInt() * 0.5).coerceAtLeast(0.5)
+        } else {
+            raw
+        }
+        return base to step
+    }
+
+    /**
+     * The VALUE a LOAD ladder climbs to, when the row declares one: the
+     * researched human ceiling, else the row's own maximum progression value.
+     * Null for a row with neither, which is the signal to keep the declared rung
+     * count rather than invent a top.
+     */
+    private fun ladderTopValue(entry: ProgressionEntry): Double? =
+        entry.ceiling?.load?.takeIf { it > 0.0 }
+            ?: entry.maxValue?.takeIf { it > 0.0 }
+
     /** The load at a main level of an exercise, or null when the ladder is absent. */
     fun valueAtLevel(
         entry: ProgressionEntry,
@@ -706,6 +769,10 @@ object ProgressionEngine {
         unit: WeightUnit = WeightUnit.KG
     ): Double? {
         if (unit == WeightUnit.LBS) poundLadder(entry)?.let { return it.at(level) }
+        // A plate ladder walks ONE step from level 1 (see [constantStepLadder]).
+        constantStepLadder(entry)?.let { (base, step) ->
+            return base + step * (level - 1)
+        }
         if (entry.levelValues.isNotEmpty()) {
             val n = entry.levelValues.size
             if (level <= n) {
@@ -743,12 +810,15 @@ object ProgressionEngine {
 
     /** Clamps a user-chosen level into the exercise's (ceiling-aware) range. */
     fun clampLevel(entry: ProgressionEntry, level: Int, unit: WeightUnit = WeightUnit.KG): Int =
-        level.coerceIn(minLevel(entry), effectiveMaxLevel(entry, unit))
+        // The max is a marker, not a wall: levels keep going past it, so the bound
+        // is the picker's own limit rather than [effectiveMaxLevel].
+        level.coerceIn(minLevel(entry), PICKER_LEVEL_LIMIT)
 
     /**
      * How many rungs the level picker lists. Deliberately far past every
      * exercise's own ladder — the pool tops out around level 30 — because the
-     * rungs above a program's end are marked, not prescribed (see [LadderRung]).
+     * rungs keep going past a program's end, and the rung its max lands on is
+     * marked "max" (see [LadderRung]).
      */
     const val PICKER_LEVEL_LIMIT = 500
 
@@ -760,23 +830,17 @@ object ProgressionEngine {
     const val EXTENSION_CHUNK = 50
 
     /**
-     * One row of the level picker: a rung of the exercise's own program, or —
-     * past the end of that program — a reference row the app prescribes nothing
-     * for.
-     *
-     * [beyondPlan] rows carry neither a [prescribed] value nor [stageReps], on
-     * purpose. [valueAtLevel] would happily keep answering past the ladder (it
-     * clamps to the last rung), so a level-300 row would otherwise show the
-     * level-30 load and read as a real target. Nothing can be selected up there
-     * either: the stored level passes through [clampLevel], which is what keeps
-     * the overall level — and the E→SS+ bands measured against it — inside the
-     * range the data actually supports.
+     * One row of the level picker. Every rung carries a real prescription,
+     * including the ones above [effectiveMaxLevel] — [isMax] marks the rung the
+     * researched ceiling lands on, which the picker labels "max" rather than
+     * stopping at it (owner 2026-10-13).
      */
     data class LadderRung(
         val level: Int,
         val prescribed: PrescribedValue?,
         val stageReps: List<Int>,
-        val beyondPlan: Boolean
+        /** True on [effectiveMaxLevel]'s rung, so the UI can label it "max". */
+        val isMax: Boolean
     )
 
     /**
@@ -792,24 +856,15 @@ object ProgressionEngine {
         if (!isProgressionReady(entry)) return emptyList()
         val max = effectiveMaxLevel(entry)
         return (1..listLength.coerceAtLeast(max)).map { level ->
-            if (level > max) {
-                LadderRung(
-                    level = level,
-                    prescribed = null,
-                    stageReps = emptyList(),
-                    beyondPlan = true
-                )
-            } else {
-                LadderRung(
-                    level = level,
-                    prescribed = prescribedValueAtLevel(entry, level),
-                    // Level-aware: a rep-progressed row shows MORE reps on a
-                    // higher rung, so the picker says what each level asks for
-                    // rather than repeating stage I on every row.
-                    stageReps = prescribedReps(entry, level, 1).orEmpty(),
-                    beyondPlan = false
-                )
-            }
+            LadderRung(
+                level = level,
+                prescribed = prescribedValueAtLevel(entry, level),
+                // Level-aware: a rep-progressed row shows MORE reps on a
+                // higher rung, so the picker says what each level asks for
+                // rather than repeating stage I on every row.
+                stageReps = prescribedReps(entry, level, 1).orEmpty(),
+                isMax = level == max
+            )
         }
     }
 
@@ -850,10 +905,14 @@ object ProgressionEngine {
             )
         } else {
             // Level-up: advance the load, reset reps per the CSV. The ladder
-            // ends at the ceiling-aware max: past it the exercise is mastered
-            // and the mastery flow (not another level) takes over.
+            // does NOT end at the ceiling-aware max: that rung is a MARKER, and
+            // the levels after it keep climbing (owner 2026-10-13: "add more
+            // levels after it ... past-max levels must be selectable"). The only
+            // bound left is the picker's own limit, which is also what
+            // [clampLevel] writes to - so a level the app can list is a level it
+            // can level up into.
             val newLevel = state.level + 1
-            if (newLevel > effectiveMaxLevel(entry)) return null
+            if (newLevel > PICKER_LEVEL_LIMIT) return null
             // A rep-progressed row (bodyweight/hold/cardio) must NOT reset to
             // the pattern floor here: there is no heavier load to compensate,
             // so a reset would silently DROP the user's reps at the moment
@@ -1136,8 +1195,9 @@ object ProgressionEngine {
 
         /** The load at a rung. The last rung IS the ceiling, not an overshoot. */
         fun at(level: Int): Double {
-            val clamped = level.coerceIn(1, levels)
-            return if (clamped == levels) topLb else baseLb + stepLb * (clamped - 1)
+            val l = level.coerceAtLeast(1)
+            // Past the ladder's own end it keeps climbing (see valueAtLevelWithCeiling).
+            return if (l >= levels) topLb + stepLb * (l - levels) else baseLb + stepLb * (l - 1)
         }
     }
 
@@ -1183,6 +1243,17 @@ object ProgressionEngine {
         if (unit == WeightUnit.LBS) poundLadder(entry)?.let { return it.at(level) }
         val ceiling = entry.ceiling?.load
         val effMax = effectiveMaxLevel(entry)
+        // Above the max the ladder keeps climbing at the row's own rate, so the
+        // max is a marker rather than a wall (owner 2026-10-13: "both climb like
+        // usual based on the normal climbing until max level was").
+        if (level > effMax) {
+            val atMax = valueAtLevelWithCeiling(entry, effMax, unit) ?: return null
+            val below = if (effMax > 1) valueAtLevelWithCeiling(entry, effMax - 1, unit) else null
+            val step = loadGridStep(entry)
+                ?: (atMax - (below ?: atMax)).takeIf { it > 0.0 }
+                ?: return atMax
+            return atMax + step * (level - effMax)
+        }
         if (ceiling != null && level >= effMax) return ceiling
         val raw = valueAtLevel(entry, level)
         if (ceiling == null) return raw
@@ -1193,6 +1264,13 @@ object ProgressionEngine {
             if (max <= 1 || ceiling <= base) return ceiling
             return (base + (ceiling - base) * (level - 1) / (max - 1)).coerceAtMost(ceiling)
         }
+        // A CONSTANT-STEP ladder needs no stretch zone at all: [valueAtLevel]
+        // already walks the row's own step from level 1 to the top, so the
+        // stretch arithmetic below would fight it. Measured before this guard
+        // existed: arnold-press read 37 kg at level 32 and then 36 kg at 33, a
+        // ladder that went DOWN between two rungs, because the stretch zone was
+        // still re-spreading a growth that had already been spread.
+        if (constantStepLadder(entry) != null) return raw.coerceAtMost(ceiling)
         val declared = maxLevel(entry)
         if (level <= declared) return raw.coerceAtMost(ceiling)
         // Stretch zone (declared < level <= effMax). A LOAD ladder grows by the
@@ -1218,6 +1296,9 @@ object ProgressionEngine {
      * - rows without a ladder keep their declared max level.
      * - rows whose ceiling is a variation cap (bodyweight ladders, ceiling
      *   == the ladder's own max value) keep their declared max level.
+     * - a LOAD ladder whose ceiling is reached before the declared max ends at
+     *   the rung that reaches it, so no level repeats a load (see the branch
+     *   below; the declared max there is a variation count, not a rung count).
      */
     fun effectiveMaxLevel(entry: ProgressionEntry, unit: WeightUnit = WeightUnit.KG): Int {
         // A pound ladder's length is its own: 5 lb rungs to the same ceiling are
@@ -1239,9 +1320,33 @@ object ProgressionEngine {
         // spread below is kept for DURATION ladders, whose rungs are seconds
         // rather than plates and which have no increment to obey.
         if (valueKindOf(entry) == ValueKind.LOAD) {
+            // CONSTANT STEP (owner 2026-10-13, board task_4j6j3m5f49730n5c4b0g3g6l):
+            // the step is the row's own, so the RUNG COUNT follows from it rather
+            // than the step following from the CSV's rung count. The bench's 58
+            // rungs of a growing 2.5/5/10 kg step become 65 rungs of 2.5 kg to
+            // the same 180 kg ceiling, which is precisely "more levels, same max".
+            constantStepLadder(entry)?.let { (base, step) ->
+                val top = ladderTopValue(entry) ?: return@let
+                if (top <= base) return@let
+                return (((top - base) / step).roundToInt() + 1).coerceAtLeast(1)
+            }
             val step = loadGridStep(entry) ?: return declared
             val ladderTop = valueAtLevel(entry, declared) ?: return declared
-            if (ceiling <= ladderTop) return declared
+            if (ceiling <= ladderTop) {
+                // The authored rungs already reach the ceiling within the declared
+                // max, so the declared max is NOT the number of loads that exist:
+                // it is the CSV's variation count (30-40) while only ~10 distinct
+                // weights are authored. Trusting it repeated the ceiling for every
+                // level above the last loadable rung — arnold-press walked 30
+                // levels of the same 30 kg, bent-over-row 20 levels of 32 kg —
+                // which is the owner's 2026-10-09 report ("from level 11 to level
+                // 30 the exact same weight and reps … fix this for every
+                // exercise"). The program ends at the rung that reaches the
+                // ceiling: every authored load below it, then the ceiling itself.
+                val loads = entry.levelValues
+                if (loads.isEmpty()) return declared
+                return (loads.count { it < ceiling } + 1).coerceAtLeast(1)
+            }
             val extra = ((ceiling - ladderTop) / step).roundToInt()
             return declared + extra.coerceAtLeast(0)
         }
@@ -1281,11 +1386,15 @@ object ProgressionEngine {
         if (!isProgressionReady(entry)) return false
         if (isRepLadder(entry)) return repCheckpointAtLevel(entry, state.level) != null
         val effMax = effectiveMaxLevel(entry, unit)
-        if (state.level < effMax) return false
-        if (state.level > effMax) return true
-        // At the effective max: mastered only when there is genuinely no
-        // further stage — i.e. the user completed the top stage, not when
-        // they merely arrived at it.
+        // The offer is due ON the max rung, and that rung only. A level PAST it is
+        // not mastery any more - the ladder keeps climbing there (owner
+        // 2026-10-13: the max is a marker, not the end), so the mastery card
+        // fires once where the researched evidence ends, and the user who
+        // ignores it carries on training the same movement.
+        if (state.level != effMax) return false
+        // On the max rung: mastered only when there is genuinely no further
+        // stage — i.e. the user completed the top stage, not when they merely
+        // arrived at it.
         return state.stage >= patternLength(entry)
     }
 

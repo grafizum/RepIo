@@ -24,9 +24,13 @@ import org.junit.Test
  *     601 movements is unreachable with every chip on;
  *   - the welcome screen's sixteen TILES cover it as well, once each tile grants the family it
  *     stands for - 0 unreachable;
- *   - dropping the kit-free `Other` CATEGORY is what hides movements, and it hides 144 of them
- *     (601 -> 457). It is not equipment the user can lack, so the picker must keep filtering by
- *     it while drawing no chip for it.
+ *   - dropping the kit-free `Other` CATEGORY is what hides movements, and it hides 154 of them
+ *     (601 -> 447). It is not equipment the user can lack, so the picker must keep filtering by
+ *     it while drawing no chip for it. The count was 144 until the owner's 2026-10-13 ruling
+ *     ("the filter machines ... is not at all showing machines exercise but bodyweight") moved
+ *     the ten bodyweight-station rows - the stability-ball family, the captain's chair pair,
+ *      back extension and donkey calf raise - out of Machine and into this drawer; their fine
+ *     gates still ask for MACHINE_OTHER, so a user without the station sees no change.
  *
  * These are the assertions behind those numbers. They are written against the catalogue rather
  * than against a copy of it, so a movement added later cannot quietly become invisible: it will
@@ -98,9 +102,11 @@ class EquipmentFilterCoverageTest {
 
     /**
      * WHY `Other` STAYS IN THE FILTER. This is the regression that produced the rule: the category
-     * is not equipment, it is "needs no kit at all" - a plank, a walk, every stretch and pose -
-     * and treating it as a chip the user did not tick hid 144 of the 601 movements from everyone
-     * who had ever answered the equipment question.
+     * is not equipment the user can lack - a plank, a walk, every stretch and pose - and treating
+     * it as a chip the user did not tick hid those movements from everyone who had ever answered
+     * the equipment question. It now also holds the bodyweight-station rows (ball, captain's
+     * chair, 45-degree bench) whose fine gates ask for an implement no chip names, so the
+     * "Machine" chip can no longer show bodyweight work (owner, 2026-10-13).
      */
     @Test
     fun droppingTheKitFreeCategoryIsWhatHidesMovements() {
@@ -108,9 +114,9 @@ class EquipmentFilterCoverageTest {
         val hidden = catalogue.toSet() - withoutOther
 
         assertEquals(
-            "the kit-free category is documented as protecting 144 movements; the catalogue now " +
+            "the kit-free category is documented as protecting 154 movements; the catalogue now " +
                 "counts ${hidden.size} behind it",
-            144,
+            154,
             hidden.size
         )
     }

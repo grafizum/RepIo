@@ -1829,7 +1829,21 @@ object WorkoutTemplates {
 
     private val ENGINE_PUSH_PARTS = listOf("Chest", "Front Deltoids", "Lateral Deltoids", "Triceps")
     private val ENGINE_PULL_PARTS = listOf("Lats", "Upper Traps", "Rear Deltoids", "Biceps")
+
     private val ENGINE_LEG_PARTS = listOf("Quadriceps", "Hamstrings", "Glutes", "Calves")
+
+    /**
+     * The trunk movements a trunk-less session closes on, rotated across the week.
+     *
+     * Owner report 2026-10-13: "when looking at the week the system created, i see
+     * no core exercises on any day at all. thats not balanced or is it?" It was the
+     * 3-day (full_body) and 6-day (push/pull/legs) weeks: neither day type declares
+     * a trunk muscle, so a full week of generated training touched the abs on no
+     * day. These are the candidates that close such a session (see
+     * [generateEngineProgram]), and they are the same three the dedicated core day
+     * trains, so the app has one vocabulary for the trunk.
+     */
+    private val ENGINE_TRUNK_PARTS = listOf("Abs", "Obliques", "Spinal Erectors")
 
     /**
      * A LOWER day is the lower-body half of an upper/lower week, and it is NOT
@@ -1867,6 +1881,22 @@ object WorkoutTemplates {
         "core" -> listOf("Abs", "Obliques", "Spinal Erectors")
         else -> emptyList()
     }
+
+    /** True for a trunk muscle, through the app's own broad-topic mapping. */
+    private fun isTrunkPart(part: String): Boolean = getTopicForMuscle(part) == "Core"
+
+    /**
+     * True for a MAJOR part - chest, back or legs - again by the app's own topic
+     * mapping.
+     *
+     * It is the same three the balance card gives a FLOOR to (chest 1, back 1,
+     * legs 3 per week); shoulders, arms and core have a floor of 0. That is what
+     * makes "may this slot be spent on something else" a question with an answer
+     * rather than a guess: a closing slot that would otherwise train a deltoid, an
+     * arm or a calf is free, one that would train a chest or a leg is not.
+     */
+    private fun isMajorPart(part: String): Boolean =
+        getTopicForMuscle(part) in setOf("Chest", "Back", "Legs")
 
     private fun engineTypeLabel(type: String): String =
         if (type == "full_body") "Full Body" else type.replaceFirstChar { it.uppercase() }
@@ -1986,6 +2016,10 @@ object WorkoutTemplates {
             return GeneratedProgram(emptyList(), emptyList(), emptyList(), emptyList())
         }
         val types = engineSplitFor(orderedDays.size)
+        // Judged over the WHOLE week, before any day is built: a week that already
+        // carries a trunk day keeps it as its only source of trunk work (see the
+        // closing-slot rules below).
+        val weekHasATrunkDay = types.any { type -> enginePartsFor(type).any { isTrunkPart(it) } }
         // Slots are built BY TIME from the goal template and the picked
         // session window — see engineSlotsFor. The prompt's flat 6-exercise
         // cap is superseded by the owner's duration requirement: these
@@ -2003,6 +2037,9 @@ object WorkoutTemplates {
         val unsatisfied = mutableListOf<String>()
         val usedThisWeek = mutableSetOf<String>()
         var prevDayParts: Set<String> = emptySet()
+        // Week-scoped, not day-scoped: it is what makes the closing slot rotate
+        // across the week instead of restarting on the same part every session.
+        var tailCursor = 0
 
         orderedDays.forEachIndexed { index, dayName ->
             val type = types.getOrElse(index) { "full_body" }
@@ -2016,13 +2053,59 @@ object WorkoutTemplates {
                     isRestDay = false
                 )
             )
+            // WHAT THE DAY'S OWN ROTATION CANNOT REACH, and what it never trains
+            // at all.
+            //
+            // A day type declares more parts than a session has slots - a
+            // full_body day carries eight and the quick window spends five - so
+            // `parts[slotIndex % parts.size]` never leaves the first few and the
+            // tail (biceps, triceps, and on a trunk-less week the abs) trained on
+            // NO day of the week. Owner report 2026-10-13: "when looking at the
+            // week the system created, i see no core exercises on any day at all.
+            // thats not balanced or is it?"
+            //
+            // Both rules below act on the CLOSING slot of the day, which was
+            // already an isolation - so no compound is displaced and the trunk is
+            // never promoted into the lead slots:
+            //
+            //  1. A TRUNK-LESS WEEK closes each of its sessions on one trunk
+            //     movement, rotating Abs -> Obliques -> Spinal Erectors. The whole
+            //     week is judged at once here: a week that already carries a trunk
+            //     day (the 5- and 7-day splits have a lower/core day; the 4- and
+            //     7-day ones a lower day) is left EXACTLY as it was - adding a
+            //     second source of trunk work to it would break the balance card's
+            //     ceiling, which counts 10 core rows a week as the evidence-backed
+            //     maximum.
+            //  2. Otherwise the closing slot rotates through the parts this day
+            //     cannot reach, so the tail is trained across the week.
+            //
+            // A slot that trains a MAJOR is left alone by both, and that is the
+            // balance rule rather than caution: a short day is five slots, the
+            // floors need chest, back and three leg movements, and five cannot hold
+            // those AND the trunk - so the trunk waits for a day with room instead
+            // of dropping the week under the legs floor, which is the report the
+            // balance card exists for.
+            val rotationReachesTrunk = parts.take(slots.size).any { isTrunkPart(it) }
+            val claimTrunkSlot = !weekHasATrunkDay && !rotationReachesTrunk
+            val unreached = parts.drop(slots.size)
+            // The LAST slot of the day that has no major to train - the one slot
+            // that can be spent without touching the chest/back/legs floors. A day
+            // with none (every slot trains a major, which is what a five-slot
+            // full_body session is) is left alone by both rules below.
+            val spareSlot = slots.indices.lastOrNull { !isMajorPart(parts[it % parts.size]) }
             val trainedToday = mutableSetOf<String>()
             slots.forEachIndexed { slotIndex, slot ->
                 // Round-robin the day's mapped parts. When the day type repeats
                 // (the prompt's own 3-day full_body week), prefer a part not
                 // trained on the previous workout day — best effort, because a
                 // full-body day trains the same majors by construction.
-                val base = parts[slotIndex % parts.size]
+                val roundRobin = parts[slotIndex % parts.size]
+                val base = when {
+                    slotIndex != spareSlot -> roundRobin
+                    claimTrunkSlot -> ENGINE_TRUNK_PARTS[tailCursor++ % ENGINE_TRUNK_PARTS.size]
+                    unreached.isNotEmpty() -> unreached[tailCursor++ % unreached.size]
+                    else -> roundRobin
+                }
                 val part = if (base in prevDayParts) {
                     parts.firstOrNull { it !in prevDayParts && it !in trainedToday } ?: base
                 } else base
@@ -2605,6 +2688,35 @@ object WorkoutTemplates {
 
     /** Every exercise covered by the authoritative equipment table, sorted. */
     fun getEquipmentTableNames(): List<String> = exerciseEquipment.keys.sorted()
+
+    /**
+     * The string key that tells the user a set of THIS exercise is done one side
+     * at a time ("each arm" / "each leg" / "each side"), or null when a set
+     * counts both sides together.
+     *
+     * Owner, 2026-10-13: *"When giving one arm exercises define that its 8 reps
+     * on each arm (care that exercises like bicycle crunch also have 'on each
+     * side' type of exercise so the same applies to those too)"*. The prescription
+     * numbers are per-side by construction (a one-arm row's 8 reps means 8 per
+     * arm), so this is a DISPLAY fact about the exercise, not a change to the
+     * ladders - the card and the summary line say whose reps they are.
+     *
+     * Read from the NAME rather than a new catalog column because the naming is
+     * the data here: "Single-Arm", "Single-Leg", "One Arm" and the bicycle /
+     * side-plank family are exactly the movements the request names, and a
+     * column would have to be hand-flagged to say the same thing.
+     */
+    fun perSideLabelKey(name: String): String? {
+        val n = name.trim().lowercase()
+        return when {
+            // Alternating one-side work: the set is finished when BOTH sides
+            // have had their share, so "each side" is the honest phrase.
+            "bicycle" in n || "side plank" in n || "mountain climber" in n -> "per_side_side"
+            "single-arm" in n || "single arm" in n || "one-arm" in n || "one arm" in n -> "per_side_arm"
+            "single-leg" in n || "single leg" in n -> "per_side_leg"
+            else -> null
+        }
+    }
 
     private fun isExerciseInGroup(name: String, group: String): Boolean =
         ExerciseCatalog.muscleFor(name).equals(group, ignoreCase = true)

@@ -6,6 +6,7 @@ import com.grafizum.repio.data.ProgressionEntry
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
 import org.junit.Test
+import kotlin.math.roundToInt
 import kotlin.math.roundToLong
 
 /**
@@ -51,7 +52,12 @@ class LoadGridTest {
                 rungs++
             }
         }
-        assertTrue("only $rungs rungs swept", rungs > 5_000)
+        // The floor is a non-vacuity guard, not the invariant. It read 5_000
+        // while the clamped rows padded their program with repeats of the
+        // ceiling; ending those ladders at the rung that reaches the ceiling
+        // (see noLevelOfALoadLadderRepeatsTheLoadBelowIt) removed those rungs
+        // legitimately, so the real count is now ~4.4k.
+        assertTrue("only $rungs rungs swept", rungs > 4_000)
     }
 
     /**
@@ -61,32 +67,43 @@ class LoadGridTest {
      * sequence, quantised, never to a fractional kilogram.
      */
     @Test
-    fun theStretchZoneWalksTheRowsOwnIncrement() {
+    fun everyRungWalksTheRowsOwnIncrementAndLandsOnALoadableGrid() {
         var checked = 0
         for (entry in loadLadders()) {
-            val declared = ProgressionEngine.maxLevel(entry)
-            val top = ProgressionEngine.effectiveMaxLevel(entry)
-            val step = ProgressionEngine.loadGridStep(entry)!!
-            assertTrue("${entry.id} step $step", step >= 0.5)
+            val grid = ProgressionEngine.loadGridStep(entry)!!
+            assertTrue("${entry.id} step $grid", grid >= 0.5)
             if (entry.increment != null) {
-                assertEquals("${entry.id} ignored its own increment", entry.increment!!, step, 1e-9)
+                assertEquals("${entry.id} ignored its own increment", entry.increment!!, grid, 1e-9)
             }
-            if (top <= declared) continue
-            val ladderTop = ProgressionEngine.valueAtLevelWithCeiling(entry, declared)!!
-            for (level in declared + 1 until top) {
-                val expected = ladderTop + step * (level - declared)
-                assertEquals(
-                    "${entry.id} level $level",
-                    expected,
-                    ProgressionEngine.valueAtLevelWithCeiling(entry, level)!!,
-                    1e-9
-                )
+            // The walked step is the row's own increment, or FINER when the row's
+            // authored ladder uses halves of it (a dumbbell authored 4, 5, 6, 8
+            // under a declared 2 kg) - never coarser, so a constant ladder can
+            // never remove a load the row used to reach.
+            val (_, walked) = ProgressionEngine.constantStepLadder(entry)!!
+            assertTrue(
+                "${entry.id}: the ladder walks $walked, coarser than the row's own $grid",
+                walked <= grid + 1e-9
+            )
+            // And every rung is a weight that exists: kilogram rows sit on the
+            // half-kilo grid, including the researched ceiling that tops them.
+            if (entry.unit.contains("kg")) {
+                val top = ProgressionEngine.effectiveMaxLevel(entry)
+                for (level in 1..top) {
+                    val value = ProgressionEngine.valueAtLevelWithCeiling(entry, level)!!
+                    assertEquals(
+                        "${entry.id} level $level reads an off-grid $value",
+                        value,
+                        (value * 2).roundToInt() / 2.0,
+                        1e-9
+                    )
+                }
             }
             checked++
         }
-        // Ten rows in the current pool: the big barbell compounds and the two
-        // arm curls, whose researched ceilings sit above their authored tops.
-        assertTrue("only $checked ladders have a stretch zone", checked >= 9)
+        // Every load ladder in the pool, not the ten whose researched ceiling sat
+        // above an authored top: the constant-step rule made the whole pool walk
+        // the row's own increment (see ConstantWeightStepTest).
+        assertEquals("every load ladder is swept", loadLadders().size, checked)
     }
 
     /** The researched ceiling is the ladder's final rung, not an overshoot. */
@@ -108,13 +125,7 @@ class LoadGridTest {
      *
      * A derived rung count can leave a level that changes nothing, and a
      * level-up with nothing to do is the failure the whole rule exists to
-     * prevent. Scoped to the stretch rows on purpose: the ceiling CLAMP is the
-     * mirror image of the same defect and is still open — 287 of the 338 load
-     * rows have their authored ladder cut short by the researched ceiling,
-     * which repeats the top load for 4,684 levels in total (arnold-press walks
-     * 30 levels of 30 kg because its ceiling is 30). That is a rung-count
-     * change like this one and is reported to the owner rather than slipped in
-     * here.
+     * prevent.
      */
     @Test
     fun noLevelUpInTheStretchZoneIsARungWithNothingToDo() {
@@ -132,6 +143,64 @@ class LoadGridTest {
             checked++
         }
         assertTrue("only $checked stretch zones checked", checked >= 9)
+    }
+
+    /**
+     * No load ladder repeats a load inside its own program — the CLAMP case.
+     *
+     * The mirror image of the stretch-zone case above and the one the owner
+     * reported by name: 287 of the 338 load rows had their authored ladder cut
+     * short by the researched ceiling while `effectiveMaxLevel` trusted the
+     * CSV's declared max (30-40), so every level past the last loadable rung
+     * repeated the ceiling — 4,684 duplicate levels in total (arnold-press
+     * walked 30 levels of the same 30 kg, bent-over-row 20 levels of 32 kg).
+     * `effectiveMaxLevel` now ends a clamped ladder at the rung that reaches the
+     * ceiling, so this sweeps EVERY load row and requires a strictly rising load.
+     */
+    @Test
+    fun noLevelOfALoadLadderRepeatsTheLoadBelowIt() {
+        var rows = 0
+        var duplicates = 0
+        for (entry in loadLadders()) {
+            val top = ProgressionEngine.effectiveMaxLevel(entry)
+            var previous = Double.NEGATIVE_INFINITY
+            for (level in 1..top) {
+                val value = ProgressionEngine.valueAtLevelWithCeiling(entry, level)!!
+                if (value <= previous) duplicates++
+                assertEquals(
+                    "${entry.id} repeats $previous at level $level",
+                    true,
+                    value > previous
+                )
+                previous = value
+            }
+            rows++
+        }
+        assertEquals("$rows load rows swept", rows, loadLadders().size)
+        assertEquals("no level may repeat the load below it", 0, duplicates)
+    }
+
+    /**
+     * A load ladder the level system can actually climb.
+     *
+     * Two rows shipped a ladder whose FIRST rung was already at (or past) the
+     * researched ceiling: barbell-rear-delt-row carried a 20-60 kg ladder under a
+     * 15 kg ceiling, barbell-front-raise a 20-60 one under a 20 kg ceiling. The
+     * old engine hid that behind 30-40 levels all clamped to the ceiling; once
+     * the program ends at the rung that reaches the ceiling it collapsed to a
+     * SINGLE level, and a branch swap into the row had nothing left to climb
+     * (EvolutionOfferTest caught it). The data was what was wrong — the ladder
+     * must start below the ceiling — so both rows now derive theirs from their
+     * own level-1 value and increment.
+     */
+    @Test
+    fun everyLoadLaddersFirstRungSitsBelowItsCeiling() {
+        val offenders = loadLadders().mapNotNull { entry ->
+            val ceiling = entry.ceiling!!.load!!
+            val first = entry.levelValues.firstOrNull() ?: return@mapNotNull null
+            if (first >= ceiling) "${entry.slug}: first rung $first >= ceiling $ceiling" else null
+        }
+        assertEquals(emptyList<String>(), offenders)
     }
 
     /** The picker has to be able to render the ladder it is handed. */

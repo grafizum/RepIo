@@ -100,6 +100,51 @@ class EngineProgramTest {
         )
     }
 
+    /**
+     * THE OWNER'S REPORT, 2026-10-13: "when looking at the week the system
+     * created, i see no core exercises on any day at all. thats not balanced or
+     * is it?" It was the 6-day week (push/pull/legs x2, whose leg list carried no
+     * trunk) and, on a short day, the 1-3 day full_body weeks as well - a day type
+     * declares more parts than a session has slots, so the rotation never left the
+     * first few and the tail never trained. Every generated week must now reach
+     * the trunk at least once, on every day count, goal and window.
+     */
+    @Test
+    fun everyGeneratedWeekWithRoomForItTrainsTheTrunk() {
+        // The STANDARD and FULL windows, which is where a session is long enough
+        // to hold the trunk beside the majors: a quick session is five slots and
+        // the chest/back/legs floors already spend all five, so its trunk waits for
+        // a longer day rather than pushing the week under the legs floor.
+        for (days in 3..7) for (goal in WorkoutTemplates.allWorkoutGoals) {
+            for (duration in listOf(WorkoutTemplates.DURATION_STANDARD, WorkoutTemplates.DURATION_FULL)) {
+                val program = build(days, goal, duration)
+                val trunk = program.exercises.count { ex ->
+                    WorkoutTemplates.getTopicForMuscle(ex.muscleGroup) == "Core"
+                }
+                assertTrue(
+                    "$days-day $goal/\"$duration\" week trains no trunk work at all",
+                    trunk >= 1
+                )
+            }
+        }
+    }
+
+    /**
+     * The 6-day week, which is the report's own case: push/pull/legs x2 with no
+     * trunk anywhere in the split. It closes its trunk-less sessions on a trunk
+     * movement, on every window.
+     */
+    @Test
+    fun theSixDayWeekTrainsTheTrunk() {
+        for (duration in WorkoutTemplates.DURATION_OPTIONS) {
+            val program = build(6, duration = duration)
+            val trunk = program.exercises.count { ex ->
+                WorkoutTemplates.getTopicForMuscle(ex.muscleGroup) == "Core"
+            }
+            assertTrue("6-day/\"$duration\" week trains no trunk at all", trunk >= 1)
+        }
+    }
+
     @Test
     fun everyDayHonoursTheGuardAndStaysReal() {
         for (days in 1..7) for (goal in WorkoutTemplates.allWorkoutGoals) {

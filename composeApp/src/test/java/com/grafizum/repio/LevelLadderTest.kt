@@ -12,11 +12,12 @@ import org.junit.Test/**
  * Guards the level picker's list against the generated v5 data.
  *
  *  - the list runs to the requested 500 rows, not to the exercise's own max,
- *  - every rung of the exercise's program keeps its real prescription,
- *  - rungs past that program are marked and carry nothing (the engine would
- *    otherwise hand back a clamped load and the row would read as a target),
- *  - a 500 jump cannot be stored: the level passes through clampLevel, which is
- *    what keeps the overall level and its E→SS+ bands inside the data's range.
+ *  - every rung keeps its real prescription, INCLUDING the ones past the max
+ *    (owner 2026-10-13: the max is a marker, not a wall - the ladder climbs on),
+ *  - the rung the max lands on is the one marked [LadderRung.isMax], and it is
+ *    the only one,
+ *  - a 500 jump is stored as 500: clampLevel's bound is the picker's own limit
+ *    rather than the exercise's max.
  *
  * Since the human-ceiling work the picker's "program" is the ceiling-aware
  * ladder: the bench's 40 declared levels stretch to 80 so the researched
@@ -55,12 +56,18 @@ class LevelLadderTest {
     @Test
     fun everyRungOfTheProgramKeepsItsRealPrescription() {
         val be = bench()
-        val max = ProgressionEngine.maxLevel(be)
-        assertTrue("the tail must be non-empty for this test", max in 2..60)
+        // The PROGRAM is the ceiling-aware ladder, not the CSV's declared max:
+        // the declared number is the variation count (40) while the ladder the
+        // app walks runs to the researched ceiling (58).
+        val max = benchProgramLength()
+        assertTrue("the tail must be non-empty for this test", max in 2..200)
         val program = ProgressionEngine.ladderRungs(be).take(max)
 
         assertEquals(max, program.size)
-        assertTrue("no rung of a real program may be marked", program.none { it.beyondPlan })
+        assertTrue(
+            "only the program's own last rung is the max",
+            program.last().isMax && program.dropLast(1).none { it.isMax }
+        )
         assertEquals(ProgressionEngine.romanStageReps(be, 1).orEmpty(), program.first().stageReps)
         program.forEach { rung ->
             assertNotNull("level ${rung.level} must keep its prescription", rung.prescribed)
@@ -71,75 +78,87 @@ class LevelLadderTest {
         }
     }
 
+    /**
+     * The max is a MARKER: exactly one rung carries it, and the ladder does not
+     * stop there (owner 2026-10-13: "labels the max ... but continues climbing,
+     * the max is just a mark").
+     */
     @Test
-    fun theFirstRungPastTheProgramIsTheFirstMarkedOne() {
+    fun theMaxIsMarkedOnOneRungAndTheLadderClimbsPastIt() {
         val be = bench()
         val max = benchProgramLength()
         val rungs = ProgressionEngine.ladderRungs(be)
 
-        assertTrue("level $max is the program's last rung", rungs[max - 1].beyondPlan.not())
-        assertTrue(rungs[max].beyondPlan)
-        assertTrue("the tail must run all the way", rungs.drop(max).all { it.beyondPlan })
-    }
+        val marked = rungs.filter { it.isMax }
+        assertEquals("exactly one rung is the max", 1, marked.size)
+        assertEquals(max, marked.single().level)
 
-    @Test
-    fun rungsPastTheProgramCarryNothingEvenThoughTheEngineCouldAnswer() {
-        val be = bench()
-        val max = benchProgramLength()
-        val beyond = ProgressionEngine.ladderRungs(be).drop(max)
-
+        // Past the max every rung is still a real prescription that keeps rising:
+        // this is what the picker shows the user, so a repeat or a null here is the
+        // "level that changes nothing" defect in the rows above the max.
+        val beyond = rungs.drop(max)
         assertTrue(beyond.isNotEmpty())
-        assertTrue(beyond.all { it.prescribed == null && it.stageReps.isEmpty() })
-
-        // The reason the row is explicit rather than "whatever the engine says":
-        // valueAtLevel clamps, so level 300 still resolves to a load. Showing it
-        // would present the level-30 weight as if it were a level-300 target.
-        val level300 = ProgressionEngine.ladderRungs(be)[299]
-        assertNull(level300.prescribed)
-        assertNotNull(ProgressionEngine.prescribedValueAtLevel(be, 300))
+        assertTrue(beyond.all { it.prescribed != null })
+        val loads = (max..max + 5).map { ProgressionEngine.valueAtLevelWithCeiling(be, it)!! }
+        assertEquals("the rungs above the max must keep climbing", loads.sorted(), loads)
+        loads.zipWithNext { lower, upper ->
+            assertTrue("level above $max must be heavier than the one below", upper > lower)
+        }
+        assertNotEquals(
+            ProgressionEngine.prescribedValueAtLevel(be, max)!!.value,
+            ProgressionEngine.prescribedValueAtLevel(be, max + 1)!!.value
+        )
     }
 
+    /** A LEVEL jump is stored as itself all the way to the picker's own limit. */
     @Test
-    fun aJumpPastTheProgramCannotBeStored() {
+    fun aJumpPastTheMaxIsStoredAsTheLevelAskedFor() {
         val be = bench()
         val max = benchProgramLength()
 
-        assertEquals(max, ProgressionEngine.clampLevel(be, 500))
-        assertEquals(max, ProgressionEngine.clampLevel(be, max + 1))
+        assertEquals(max + 1, ProgressionEngine.clampLevel(be, max + 1))
+        assertEquals(ProgressionEngine.PICKER_LEVEL_LIMIT, ProgressionEngine.clampLevel(be, 500))
         assertEquals(1, ProgressionEngine.clampLevel(be, 0))
     }
 
     /**
-     * Regression: the generated rows declare a max of 30-40 while shipping
-     * only ~10 explicit values, and the engine used to CLAMP past them — so
-     * every level from 11 up read the same load and the picker showed "level
-     * 11 to level 19, same weight". The ladder now continues from the last
-     * explicit value by the row's increment: the seam stays continuous and
-     * every rung to the declared max carries its own (heavier) load.
+     * Regression, and its SUPERSESSION: the generated rows declare a max of 30-40
+     * while shipping only ~10 explicit values, and the engine used to CLAMP past
+     * them, so every level from 11 up read the same load and the picker showed
+     * "level 11 to level 19, same weight". The ladder then continued from the
+     * last explicit value by the row's increment.
+     *
+     * It now walks ONE step from level 1 instead (owner 2026-10-13: *"And
+     * progressive increase makes absolute no sense, the increase of the weight
+     * should always be the same (add more levels since the max will be the same
+     * but the steps in between will be more)"*), so the authored sequence is no
+     * longer a path the ladder passes through: the bench's 60 kg now sits on
+     * level 17 rather than level 10, and every rung is exactly one 2.5 kg step
+     * above the one below it. What this test exists for is unchanged — no rung
+     * may repeat the load below it, and no rung may go flat.
      */
     @Test
-    fun levelsPastTheExplicitSequenceKeepClimbingInsteadOfRepeating() {
+    fun everyRungIsExactlyOneStepAboveTheOneBelowIt() {
         val be = bench()
-        val n = be.levelValues.size
-        assertTrue("this exercise must have the short-sequence shape", n in 2 until ProgressionEngine.maxLevel(be))
+        val step = ProgressionEngine.constantStepLadder(be)!!.second
+        assertEquals("the bench walks its own 2.5 kg", 2.5, step, 1e-9)
 
-        val last = be.levelValues.last()
-        val pastSeam = ProgressionEngine.valueAtLevel(be, n + 1)!!
-        assertTrue("level ${n + 1} must continue the ladder upward", pastSeam > last)
-
-        // Consecutive extrapolated levels must differ — no flat tail.
-        assertNotEquals(
-            ProgressionEngine.valueAtLevel(be, 11)!!,
-            ProgressionEngine.valueAtLevel(be, 12)!!
-        )
-
-        // The declared top of the ladder must be heavier than the last
-        // explicit rung, not a repeat of it.
+        // The declared max is still a rung the ladder reaches, and it is heavier
+        // than every authored load rather than a repeat of one.
         val top = ProgressionEngine.valueAtLevel(be, ProgressionEngine.maxLevel(be))!!
-        assertTrue("the top rung must be heavier than the last explicit value", top > last)
+        assertTrue("the top rung must be heavier than the last explicit value", top > be.levelValues.last())
 
-        // The seam itself is exact: level n still reads the n-th explicit value.
-        assertEquals(last, ProgressionEngine.valueAtLevel(be, n)!!, 0.0)
+        // No flat tail, and no surprise step: EVERY rung is one step above its
+        // neighbour, all the way to the ceiling (not just past the seam).
+        val effMax = ProgressionEngine.effectiveMaxLevel(be)
+        for (level in 2..effMax) {
+            assertEquals(
+                "bench level $level",
+                step,
+                ProgressionEngine.valueAtLevel(be, level)!! - ProgressionEngine.valueAtLevel(be, level - 1)!!,
+                1e-9
+            )
+        }
     }
 
     @Test
@@ -150,6 +169,33 @@ class LevelLadderTest {
         // A floor, not a cap: asking for 3 rows must still yield the whole
         // program rather than truncating it.
         assertEquals(max, ProgressionEngine.ladderRungs(be, listLength = 3).size)
+    }
+
+    /**
+     * A rep ladder keeps climbing above its own top rung too, and the picker
+     * shows the bigger number rather than repeating the ceiling.
+     */
+    @Test
+    fun aRepLadderKeepsClimbingPastItsTopRung() {
+        val crunches = entry("Crunches")
+        assertTrue(ProgressionEngine.isRepLadder(crunches))
+        val rungs = ProgressionEngine.repRungs(crunches)
+        val top = ProgressionEngine.repsAtLevel(crunches, rungs)
+        // Where the top rung lands is repCeilingFor's own business (the rungs
+        // step, so it need not land on the ceiling exactly - MasteryAndCeilingTest
+        // pins that); what this case is about is that it is not the end.
+        assertTrue(top >= ProgressionEngine.repCeilingFor(crunches) - ProgressionEngine.repStepFor(crunches))
+        assertTrue(
+            "a rung above the max asks for more reps",
+            ProgressionEngine.repsAtLevel(crunches, rungs + 1) > top
+        )
+        // The row the picker draws agrees with the engine's own climb.
+        val rungAbove = ProgressionEngine.ladderRungs(crunches)[rungs]
+        assertEquals(rungs + 1, rungAbove.level)
+        assertEquals(
+            ProgressionEngine.repsAtLevel(crunches, rungs + 1),
+            rungAbove.stageReps.max()
+        )
     }
 
     @Test
@@ -185,7 +231,7 @@ class LevelLadderTest {
         val rungs = ProgressionEngine.ladderRungs(pushup)
         assertEquals(ProgressionEngine.PICKER_LEVEL_LIMIT, rungs.size)
         val program = rungs.take(ProgressionEngine.effectiveMaxLevel(pushup))
-        assertTrue(program.none { it.beyondPlan })
+        assertTrue(program.last().isMax && program.dropLast(1).none { it.isMax })
         // A coach-reviewed bodyweight row is a REP LADDER, so every rung of its
         // program prescribes REPS and none of them names a movement. It used to
         // open on "Incline Push-Up" - the level was a rung of the variation

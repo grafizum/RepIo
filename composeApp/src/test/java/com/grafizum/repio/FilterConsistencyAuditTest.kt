@@ -154,7 +154,15 @@ class FilterConsistencyAuditTest {
         // A row that no such kit reaches is listed in the app and can never be
         // performed, which is the silent half of the same bug. Full gym is NOT
         // offered here (it grants everything, so it would satisfy this vacuously).
-        val home = ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS.toSet()
+        // The bench, dip bars and rings moved to the GYM grid section on the
+        // owner's 2026-10-13 ruling, but they are still tiles a user can tick, so
+        // a "real kit" still contains them; only their SECTION changed.
+        val home = ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS.toSet() +
+            setOf(
+                ExerciseEquipmentTags.BENCH,
+                ExerciseEquipmentTags.DIP_BARS,
+                ExerciseEquipmentTags.GYMNASTIC_RINGS,
+            )
         val realKits = families.flatMap { listOf(it.tags, it.tags + home) } + listOf(home)
         val orphans = ExerciseCatalog.ENTRIES
             .filterNot { entry -> realKits.any { ExerciseEquipmentTags.isAvailable(entry.name, it) } }

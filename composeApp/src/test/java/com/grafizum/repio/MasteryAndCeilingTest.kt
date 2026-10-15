@@ -33,10 +33,24 @@ class MasteryAndCeilingTest {
         for (lvl in 1..effMax) {
             assertTrue(ProgressionEngine.valueAtLevelWithCeiling(e, lvl)!! <= e.ceiling!!.load!!)
         }
-        // Below the explicit ladder's own top, the CSV values are unchanged
-        // (the bench ships 10 exact rungs: 20 -> 60 kg).
+        // Below the top the ladder is ONE step per rung from level 1 (owner
+        // 2026-10-13: "the increase of the weight should always be the same"), so
+        // the bench's authored 60 kg top - which used to sit on level 10, after
+        // steps of 2.5 kg four times, 5 kg four times and 10 kg - now sits on
+        // level 17 and every rung below it is 2.5 kg heavier than the last. The
+        // CSV sequence is no longer what the user climbs; the row's own step is.
         assertEquals(20.0, ProgressionEngine.valueAtLevelWithCeiling(e, 1)!!, 0.001)
-        assertEquals(60.0, ProgressionEngine.valueAtLevelWithCeiling(e, 10)!!, 0.001)
+        assertEquals(22.5, ProgressionEngine.valueAtLevelWithCeiling(e, 2)!!, 0.001)
+        assertEquals(60.0, ProgressionEngine.valueAtLevelWithCeiling(e, 17)!!, 0.001)
+        for (lvl in 2..17) {
+            assertEquals(
+                "bench rung $lvl must be exactly one 2.5 kg step above ${lvl - 1}",
+                2.5,
+                ProgressionEngine.valueAtLevelWithCeiling(e, lvl)!! -
+                    ProgressionEngine.valueAtLevelWithCeiling(e, lvl - 1)!!,
+                0.001
+            )
+        }
     }
 
     @Test
@@ -95,12 +109,22 @@ class MasteryAndCeilingTest {
         assertEquals(ProgressionEngine.MasteryReason.CEILING_REACHED, ProgressionEngine.masteryReason(e, state))
     }
 
+    /**
+     * The max is a MARKER, not a wall: from the top stage of the max rung the
+     * level-up goes PAST it rather than stopping (owner 2026-10-13: "add more
+     * levels after it ... past-max levels must be selectable").
+     */
     @Test
-    fun levelUpReturnsNullPastTheEffectiveMax() {
+    fun levelUpClimbsPastTheEffectiveMax() {
         val e = entry("Barbell Bench Press")
         val effMax = ProgressionEngine.effectiveMaxLevel(e)
         val top = ProgressionEngine.ProgressionState(effMax, ProgressionEngine.patternLength(e))
-        assertNull(ProgressionEngine.levelUp(e, top))
+        val up = ProgressionEngine.levelUp(e, top)
+        assertNotNull("the level-up at the max must not be blocked", up)
+        assertTrue(up!!.leveledUp)
+        assertEquals(effMax + 1, up.newState.level)
+        // ...and it is a real prescription: the rung above the max is heavier.
+        assertTrue(up.value!! > ProgressionEngine.valueAtLevelWithCeiling(e, effMax)!!)
     }
 
     @Test

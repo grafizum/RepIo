@@ -48,7 +48,9 @@ internal object ProgressionTables {
     val LADDER_dc3376: List<Double> = listOf(8.0, 9.0, 10.0, 11.0, 12.0)
     val LADDER_e19e9e: List<Double> = listOf(15.0, 30.0, 45.0, 60.0, 90.0, 120.0, 180.0, 240.0, 300.0, 420.0, 600.0)
     val LADDER_e1d8c9: List<Double> = listOf(10.0, 12.5, 15.0, 17.5, 20.0, 22.5, 25.0, 30.0, 35.0, 40.0)
+    val LADDER_e23168: List<Double> = listOf(10.0, 12.5, 15.0, 17.5, 20.0)
     val LADDER_e9e758: List<Double> = listOf(10.0, 12.0, 14.0, 16.0, 18.0, 20.0, 22.0, 24.0, 26.0, 28.0)
+    val LADDER_f45ef7: List<Double> = listOf(10.0, 12.5, 15.0)
     val LADDER_f4f3a7: List<Double> = listOf(100.0, 200.0, 300.0, 400.0, 600.0, 800.0, 1000.0, 1500.0, 2000.0, 3000.0)
     val LADDER_f67b92: List<Double> = listOf(15.0, 30.0, 45.0, 60.0)
 

@@ -23,8 +23,16 @@ class ChairBenchSplitTest {
 
     @Test
     fun chairAndBenchAreSeparateTagsOnSeparateTiles() {
+        // A chair is home furniture; a bench moved to the GYM section on the
+        // owner's 2026-10-13 ruling ("Put dip bars rings and bench inside the gym
+        // cathegory not home") - but the two remain SEPARATE tags on SEPARATE
+        // tiles, which is what this suite guards.
         assertTrue(ExerciseEquipmentTags.CHAIR in ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS)
-        assertTrue(ExerciseEquipmentTags.BENCH in ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS)
+        assertTrue(ExerciseEquipmentTags.BENCH in ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS)
+        assertFalse(
+            "the bench is no longer offered in the home section",
+            ExerciseEquipmentTags.BENCH in ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS,
+        )
         assertFalse(
             "the merged tag must not be grantable any more",
             ExerciseEquipmentTags.CHAIR_OR_BENCH in ExerciseEquipmentTags.ALL_TAGS
