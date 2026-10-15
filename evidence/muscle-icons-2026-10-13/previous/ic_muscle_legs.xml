@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MUSCLE GLYPH - LEGS. One pair of legs: waist, outer thighs, outer calves, the
+     two feet, the inner edges, and the crotch notch between them.
+
+     ONE PART, drawn alone, in the equipment set's lane: stroke only, 1.8 wide, round
+     caps and joins, nothing filled (owner, 2026-10-11: *"clean muscle group icons of
+     body parts, arm leg etc etc ... remake them to actually match with the icons you
+     drew for the equipments"*).
+
+     The feet are what stop this reading as a fence: two limbs of even width running
+     straight down are a gate, but tapering them from hip to ankle and putting a foot
+     out at the bottom makes the eye read a pair of legs. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M6.0,3.6 L18.0,3.6 C18.6,7.0 18.4,10.4 17.8,13.6 C17.3,16.2 17.3,18.2 17.4,19.6 L20.4,19.6 L20.4,21.8 L13.9,21.8 L14.2,11.4 C13.7,10.0 12.9,9.4 12.0,9.4 C11.1,9.4 10.3,10.0 9.8,11.4 L10.1,21.8 L3.6,21.8 L3.6,19.6 L6.6,19.6 C6.7,18.2 6.7,16.2 6.2,13.6 C5.6,10.4 5.4,7.0 6.0,3.6 Z" />
+</vector>

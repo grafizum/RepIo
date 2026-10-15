@@ -1,68 +1,39 @@
 <?xml version="1.0" encoding="utf-8"?>
-<!-- MUSCLE GLYPH - SHOULDERS. The head over the deltoid yoke: the top of the body, cut
-     off at the armpits.
+<!-- MUSCLE GLYPH - SHOULDERS. The owner's own drawing `schultern.png`
+     (512x512 line art, /home/matrix/Downloads/Muscles), vectorised by
+     evidence/muscle-icons-2026-10-13/trace_refs.py: the plate's ink is binarised,
+     the ink was THICKENED by 3px to reach the filter lane's weight, and each connected
+     region's contour is emitted as a closed filled path. Owner, 2026-10-13: the
+     previous glyphs were "not at all the same as the images", so nothing here is
+     redrawn - every curve is the ink's own outline, and the only decisions are
+     weight, fit and which specks to drop.
 
-     ONE PART, drawn alone, in the equipment set's lane: stroke only, 1.8 wide, round
-     caps and joins, nothing filled (owner, 2026-10-11: *"clean muscle group icons of
-     body parts, arm leg etc etc ... remake them to actually match with the icons you
-     drew for the equipments"*).
+     96 points over 5 contours, measuring
+     1.50 units of ink. Filled, not stroked: the fill IS the drawn
+     line, which is how the drawing's own weight and its round ends survive at all -
+     a centre-line trace has to invent both, and at twice the ink. The loops are
+     wound by the walk (ink on the right, so holes oppose outlines) and the fill type
+     is left at the default non-zero, which is what keeps a ring a band.
 
-     WHERE THE LINES GO, and why there are only two. The yoke on its own was a bell, so
-     each deltoid gets one short arc down its inside - the same move the rack makes with
-     its two pegs, a line that says what the outline cannot. There is no chest on it, no
-     spine, no arms: those belong to the glyphs next door, and the filter row draws all
-     six at once.
-
-     WIDE AND FLAT on purpose - see the note in [ic_muscle_chest]: at 22dp the shoulder
-     yoke is told from the chest's tall bust by silhouette alone. It is also centred in
-     its box rather than hung from the top - [MuscleGlyphFamilyTest] rasterises each
-     glyph and requires its ink to clear all four edges, which is what caught this one
-     sitting high in its box. -->
+     Regenerate with trace_refs.py in that same evidence directory. -->
 <vector xmlns:android="http://schemas.android.com/apk/res/android"
     android:width="24dp"
     android:height="24dp"
     android:viewportWidth="24"
     android:viewportHeight="24">
     <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" />
+        android:fillColor="#FF000000"
+        android:pathData="M15.71,3.05C15.76,3.02 15.85,3.06 15.88,3.09C15.92,3.12 15.93,1.97 15.94,3.23C15.95,4.50 15.96,9.37 15.94,10.67C15.91,11.98 15.83,11.01 15.78,11.07C15.73,11.13 15.67,11.08 15.64,11.06C15.60,11.03 15.59,12.22 15.58,10.91C15.57,9.61 15.56,4.54 15.58,3.23C15.60,1.92 15.66,3.07 15.71,3.05Z" />
     <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M12,8.9 V10.0" />
+        android:fillColor="#FF000000"
+        android:pathData="M16.98,4.32C17.05,4.29 17.09,4.28 17.16,4.31C17.23,4.33 17.34,4.35 17.41,4.45C17.48,4.56 17.37,4.01 17.60,4.94C17.83,5.86 18.59,9.13 18.78,10.00C18.98,10.88 18.80,10.13 18.78,10.20C18.77,10.26 18.75,10.33 18.70,10.38C18.64,10.44 18.53,10.52 18.46,10.54C18.39,10.57 18.35,10.58 18.28,10.55C18.20,10.53 18.10,10.51 18.03,10.41C17.95,10.30 18.07,10.85 17.84,9.92C17.61,8.99 16.85,5.73 16.65,4.85C16.45,3.98 16.64,4.72 16.65,4.66C16.67,4.60 16.69,4.53 16.74,4.47C16.80,4.42 16.91,4.34 16.98,4.32Z" />
     <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" />
+        android:fillColor="#FF000000"
+        android:pathData="M15.16,9.50C15.97,9.11 15.23,9.51 15.25,9.54C15.27,9.57 15.30,9.56 15.30,9.68C15.31,9.81 15.32,10.15 15.30,10.28C15.28,10.40 15.20,10.39 15.20,10.45C15.20,10.51 15.29,10.43 15.30,10.63C15.32,10.84 15.31,11.47 15.30,11.66C15.30,11.86 15.36,11.73 15.25,11.81C15.14,11.88 14.84,12.04 14.67,12.10C14.49,12.15 14.32,12.15 14.20,12.14C14.08,12.13 14.01,12.09 13.95,12.03C13.88,11.97 13.83,11.85 13.80,11.78C13.78,11.71 13.78,11.67 13.81,11.60C13.84,11.53 13.85,11.42 13.97,11.36C14.09,11.30 14.38,11.29 14.54,11.22C14.70,11.14 14.84,11.01 14.92,10.92C15.00,10.84 15.01,10.78 15.02,10.71C15.04,10.64 15.55,10.29 15.03,10.52C14.51,10.75 11.45,11.70 11.92,12.09C12.38,12.48 16.80,12.70 17.82,12.86C18.85,13.02 17.89,12.80 18.08,13.04C18.28,13.28 18.84,14.02 19.01,14.29C19.18,14.55 19.11,14.53 19.10,14.63C19.09,14.73 19.01,14.84 18.93,14.90C18.85,14.96 18.72,14.99 18.63,14.99C18.54,14.98 18.58,15.10 18.38,14.88C18.18,14.66 18.77,14.04 17.44,13.68C16.11,13.33 11.78,12.90 10.40,12.77C9.01,12.64 9.59,12.79 9.13,12.89C8.68,12.99 8.09,13.19 7.67,13.37C7.25,13.54 6.91,13.74 6.61,13.93C6.31,14.12 6.15,14.24 5.88,14.50C5.60,14.76 5.21,15.19 4.97,15.49C4.73,15.79 4.59,16.03 4.43,16.31C4.28,16.59 4.16,16.84 4.04,17.18C3.92,17.51 3.79,17.95 3.71,18.31C3.64,18.68 3.61,18.92 3.59,19.34C3.57,19.76 3.61,20.57 3.59,20.84C3.57,21.12 3.58,20.96 3.46,20.99C3.34,21.02 3.00,21.03 2.88,21.00C2.76,20.98 2.75,21.17 2.72,20.84C2.70,20.52 2.69,19.57 2.72,19.06C2.75,18.56 2.83,18.19 2.92,17.80C3.01,17.41 3.14,17.06 3.29,16.70C3.43,16.35 3.61,16.00 3.80,15.67C3.99,15.35 4.20,15.05 4.45,14.74C4.70,14.43 5.01,14.10 5.32,13.83C5.63,13.56 5.93,13.33 6.29,13.10C6.66,12.87 7.07,12.65 7.52,12.47C7.97,12.29 8.50,12.12 8.98,12.02C9.45,11.93 9.35,12.31 10.38,11.89C11.42,11.47 14.35,9.89 15.16,9.50Z" />
     <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:strokeLineJoin="round"
-        android:pathData="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" />
+        android:fillColor="#FF000000"
+        android:pathData="M21.17,13.10C21.22,13.11 21.29,13.06 21.32,13.25C21.34,13.44 21.39,13.99 21.31,14.26C21.23,14.54 20.95,14.78 20.83,14.90C20.72,15.02 20.69,14.98 20.61,14.99C20.53,14.99 20.43,14.98 20.36,14.92C20.28,14.87 20.18,14.74 20.14,14.66C20.11,14.58 20.00,14.69 20.14,14.45C20.29,14.21 20.84,13.44 21.02,13.22C21.19,13.00 21.12,13.10 21.17,13.10Z" />
     <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" />
-    <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" />
-    <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" />
-    <path
-        android:strokeColor="#FF000000"
-        android:strokeWidth="1.8"
-        android:strokeLineCap="round"
-        android:pathData="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" />
+        android:fillColor="#FF000000"
+        android:pathData="M9.06,18.56C9.14,18.54 9.20,18.54 9.28,18.56C9.35,18.59 9.27,18.34 9.51,18.72C9.76,19.10 10.56,20.47 10.74,20.85C10.92,21.23 10.70,20.98 10.59,21.00C10.48,21.03 10.21,21.01 10.08,21.00C9.95,20.99 9.89,21.01 9.82,20.95C9.74,20.89 9.67,20.67 9.63,20.66C9.59,20.66 9.60,20.87 9.57,20.92C9.53,20.98 9.56,20.99 9.44,21.00C9.33,21.01 9.01,21.02 8.90,21.00C8.78,20.98 8.77,21.22 8.75,20.87C8.72,20.52 8.72,19.27 8.74,18.91C8.75,18.55 8.79,18.76 8.84,18.70C8.90,18.64 8.99,18.58 9.06,18.56Z" />
 </vector>

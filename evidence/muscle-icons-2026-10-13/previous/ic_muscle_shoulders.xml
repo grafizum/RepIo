@@ -1,0 +1,68 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MUSCLE GLYPH - SHOULDERS. The head over the deltoid yoke: the top of the body, cut
+     off at the armpits.
+
+     ONE PART, drawn alone, in the equipment set's lane: stroke only, 1.8 wide, round
+     caps and joins, nothing filled (owner, 2026-10-11: *"clean muscle group icons of
+     body parts, arm leg etc etc ... remake them to actually match with the icons you
+     drew for the equipments"*).
+
+     WHERE THE LINES GO, and why there are only two. The yoke on its own was a bell, so
+     each deltoid gets one short arc down its inside - the same move the rack makes with
+     its two pegs, a line that says what the outline cannot. There is no chest on it, no
+     spine, no arms: those belong to the glyphs next door, and the filter row draws all
+     six at once.
+
+     WIDE AND FLAT on purpose - see the note in [ic_muscle_chest]: at 22dp the shoulder
+     yoke is told from the chest's tall bust by silhouette alone. It is also centred in
+     its box rather than hung from the top - [MuscleGlyphFamilyTest] rasterises each
+     glyph and requires its ink to clear all four edges, which is what caught this one
+     sitting high in its box. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M12,7.0 m-1.9,0 a1.9,1.9 0 1 0 3.8,0 a1.9,1.9 0 1 0 -3.8,0" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M12,8.9 V10.0" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M9.9,10.0 C7.4,10.3 5.6,11.5 4.9,13.7 C4.5,15.2 4.8,16.7 5.7,17.7" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M14.1,10.0 C16.6,10.3 18.4,11.5 19.1,13.7 C19.5,15.2 19.2,16.7 18.3,17.7" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M9.9,10.0 C10.6,10.3 11.3,10.4 12,10.4 C12.7,10.4 13.4,10.3 14.1,10.0" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M5.7,17.7 C8.9,18.8 15.1,18.8 18.3,17.7" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M7.9,11.8 C7.1,13.1 6.9,14.6 7.3,15.9" />
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M16.1,11.8 C16.9,13.1 17.1,14.6 16.7,15.9" />
+</vector>

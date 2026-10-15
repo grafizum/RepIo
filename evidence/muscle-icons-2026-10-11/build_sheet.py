@@ -4,21 +4,19 @@
 The icons are hand-written vector art, so the one thing worth checking is what
 they look like - and the only honest way to show that is to read the same
 `pathData` the app renders. Android vector path data IS SVG path data, so each
-`<path>` maps 1:1 and nothing is redrawn for the picture.
+`<path>` maps 1:1 and nothing is redrawn for the picture.Two rows of cards matter here:
 
-Two rows of cards matter here:
-
-* the EQUIPMENT strip first, because it is the style authority. The muscle glyphs
-  were redrawn (2026-10-11) to match it - one isolated body part each, stroke only,
-  1.8, round caps, nothing filled, the same 24dp box on the same 24x24 viewport -
-  so the page has to show both at once or "matching" is an assertion rather than
-  something the eye can check.
+* the EQUIPMENT strip first, because it is the style authority. The muscle glyphs were
+  redrawn (2026-10-11, refined 2026-10-12) to match it - one isolated body part each,
+  stroke only, 1.6 (owner: "slightly finer lines"), round caps, nothing filled, the same
+  24dp box on the same 24x24 viewport - and the second pass made the ARM the authority
+  for the rest: each glyph is a muscle outline of one part (one leg, one shoulder, one
+  pec, one lat, the abs), never a pair and never a torso diagram - so the page has to
+  show both at once or "matching" is an assertion rather than something the eye can check.
 * then one card per muscle group: 22dp as drawn, x4 to judge the drawing, on the
-  light surface and in the dark theme, with the filter row underneath.
-
-Colours come from the app's own palette (getMuscleGroupColor / muscleGroupTextColor
-in ui/components/WorkoutComponents.kt): the 600-step is the ink used on light
-surfaces, the light step is the ink used on dark ones.
+  light surface and in the dark theme, with the filter row underneath. Both columns use
+  the SAME ink - the theme primary (Warm Beige's #8C6239), because owner, 2026-10-12:
+  "all the same color the current theme primary color, like the equipment".
 
 Usage: python3 evidence/muscle-icons-2026-10-11/build_sheet.py
 """
@@ -45,14 +43,20 @@ EQUIPMENT = [
     ("Rings", "ic_eq_rings"),
 ]
 
-# group -> (drawable, light-ink (600 step), dark-ink (light step))
+# The ink BOTH filter rows wear now: the theme primary (Warm Beige's brown,
+# MaterialTheme.colorScheme.primary via equipmentGlyphTint). Owner, 2026-10-12:
+# "all the same color the current theme primary color, like the equipment".
+PRIM = "#8C6239"
+
+# group -> (drawable, ink on light, ink on dark) - same primary on both surfaces,
+# exactly as the app tints it.
 GROUPS = [
-    ("Chest", "ic_muscle_chest", "#DC2626", "#F87171"),
-    ("Back", "ic_muscle_back", "#2563EB", "#60A5FA"),
-    ("Legs", "ic_muscle_legs", "#059669", "#34D399"),
-    ("Shoulders", "ic_muscle_shoulders", "#DB2777", "#F472B6"),
-    ("Arms", "ic_muscle_arms", "#4F46E5", "#818CF8"),
-    ("Core", "ic_muscle_core", "#CA8A04", "#FACC15"),
+    ("Chest", "ic_muscle_chest", PRIM, PRIM),
+    ("Back", "ic_muscle_back", PRIM, PRIM),
+    ("Legs", "ic_muscle_legs", PRIM, PRIM),
+    ("Shoulders", "ic_muscle_shoulders", PRIM, PRIM),
+    ("Arms", "ic_muscle_arms", PRIM, PRIM),
+    ("Core", "ic_muscle_core", PRIM, PRIM),
 ]
 
 
@@ -106,8 +110,8 @@ def equipment_strip() -> str:
         f"""
       <div class="kit">
         <div class="cap">{name}</div>
-        {svg_for(drawable, "#2B2723", 22)}
-        {svg_for(drawable, "#2B2723", 88)}
+        {svg_for(drawable, PRIM, 22)}
+        {svg_for(drawable, PRIM, 88)}
       </div>"""
         for name, drawable in EQUIPMENT
     )
@@ -179,11 +183,13 @@ def main() -> int:
 <p class="intro">
   The six glyphs behind the muscle filter's collapsed row, read straight out of
   <code>composeApp/src/main/res/drawable/ic_muscle_*.xml</code> - the same path data the app
-  renders, tinted with the app's own per-group ink. Each is ONE body part drawn alone: an arm, a
-  pair of legs, a chest, a back, a core, a pair of shoulders. The strip at the top is the
-  equipment set they were redrawn to match. Left column is a light surface (Warm Beige), right
-  column the dark theme. The small one is the real 22dp size; the large one is there so you can
-  judge the drawing itself. The row under each card is how it will read in the filter.
+  renders, tinted with the THEME PRIMARY exactly like the equipment glyphs (one ink on both
+  surfaces, the same tint [equipmentGlyphTint] returns in the app). Each is ONE body part as a
+  muscle outline, in the reference arm's own style: an arm, one leg, one shoulder, one pec, one
+  lat, the abs. The strip at the top is the equipment set they were redrawn to match. Left
+  column is a light surface (Warm Beige), right column the dark theme. The small one is the
+  real 22dp size; the large one is there so you can judge the drawing itself. The row under
+  each card is how it will read in the filter.
 </p>
 {equipment_strip()}
 <div class="grid">

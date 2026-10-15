@@ -23,24 +23,35 @@ import com.grafizum.repio.data.WorkoutTemplates
  * use, so the icon, the colour and the badge can never disagree about which part a muscle belongs
  * to.
  *
- * WHAT THE SIX GLYPHS ARE: one body part each, drawn alone. An arm; a pair of legs; a chest; a back;
- * a core; a pair of shoulders. The first attempt drew all six as a single standing figure with the
+ * WHAT THE SIX GLYPHS ARE: one body part each, drawn alone. An arm; ONE leg; ONE shoulder; one
+ * pectoral; one lat; the abs. The first attempt drew all six as a single standing figure with the
  * chosen part marked on it, and the owner rejected it outright - *"absolutely not i want clean muscle
  * group icons of body parts, arm leg etc etc. not some wierd sht ... remake them to actually match
  * with the icons you drew for the equipments"*. So each `ic_muscle_*` drawable is drawn in the kit
- * icons' own lane - stroke only, 1.8 wide, round caps, nothing filled, the same 24dp box on the same
+ * icons' own lane - stroke only, 1.6 wide, round caps, nothing filled, the same 24dp box on the same
  * 24x24 viewport - and carries no body around it. [MuscleGlyphFamilyTest] holds the lane open: it
  * measures the equipment set's own stroke weights and requires all six to sit inside them.
  *
- * WHERE THE GLYPH IS DRAWN: as the LEADING ICON of the body-part chip that picks the group,
- * beside its name — the same place the equipment chips carry theirs ([EquipmentFilterRow]), so
- * the two filters are one control family. It is deliberately NOT drawn in the collapsed row's
- * value slot, which is where it went first: owner, 2026-10-12, on seeing that build on the
- * phone — *"the icons should be in the muscles group filters not in the fucking exercises
- * displaying"*. The collapsed row sits directly above the exercise list inside the picker, so a
- * lone body-part glyph there reads as a mark belonging to the rows underneath rather than as a
- * summary of the filter. The chip keeps its label as well, so the glyph says which part a second
- * time rather than being the only way to tell.
+ * THE ARM IS THE STYLE AUTHORITY for the other five. Owner, 2026-10-12, after the arm came out
+ * right: *"images for the rest of the body parts i want you to make them exactly in the same style
+ * as the arm, showing a kind of muscle outlines and a clear image of one leg one shoulder etc etc."*
+ * - so each sibling is a MUSCLE OUTLINE of one part (the quad-bulged leg, the delt-capped shoulder,
+ * the pec slab, the lat fan, the abs block), never a pair and never a front/back torso diagram.
+ * Same request, second half: *"slightly finer lines and all the same color the current theme primary
+ * color, like the equipment"* - hence stroke 1.6 and [equipmentGlyphTint] at the call site.
+ *
+ * WHERE THE GLYPH IS DRAWN, in two places, both inside the filter: as the LEADING ICON of the
+ * body-part chip that picks the group, beside its name — the same place the equipment chips carry
+ * theirs ([EquipmentFilterRow]) — and, since 2026-10-13, in the collapsed row's VALUE SLOT, which is
+ * where it went first, was removed on 2026-10-12 (*"the icons should be in the muscles group filters
+ * not in the fucking exercises displaying"*) and is now back by the owner's own instruction:
+ * *"instead of \"back\" in the replace card, it should show the icon like it does in the
+ * equipment"*. THE TWO INSTRUCTIONS ARE RECONCILED BY WHICH SURFACE THEY NAME: the 2026-10-12 note
+ * was about the exercise display (a glyph among the rows under the picker), this row is the muscle
+ * group FILTER, and the filter is where the icons were being asked for in the first place. The name
+ * still reaches both the eye and a screen reader — the chips keep their labels, and the value slot's
+ * glyph carries the group's translated name as its content description — so the glyph is never the
+ * only way to tell which part is filtering.
  *
  * NULL IS A REAL ANSWER, unlike the equipment side's generic `Category` fallback. The muscle row's
  * opening state is "Any" — every muscle — and no single body part draws that. The caller skips the
