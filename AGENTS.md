@@ -242,7 +242,14 @@ in it carries a hue.**
 color … a bit stronger just slightly so it has a nice contrast"*, and *"dont have the other
 color be pure black but instead very dark grey"*): the greys were lifted off pure black onto
 `#131313` canvas / `#1B1B1B` cards / `#252525` nested blocks, and the gold strengthened
-`#C3A366` -> `#D6B266`. The **outline rose with the surfaces** (`#3F3F3F` -> `#4A4A4A`) —
+`#C3A366` -> `#D6B266`. **Superseded 2026-10-14: the greys are no longer this scheme's own** —
+all five dark themes now read ONE neutral ladder from `Color.kt` (canvas `#0E0E0E`, `surface`
+`#141414`, general cards `#191919`, hero cards and the bottom bar `#1E1E1E`, pill `#282828` —
+the third pass, which rebased the whole ramp onto the beige theme's own measured steps), and a
+card reads as a front. See
+*Every dark theme reads ONE grey ladder* below; the gold is unchanged. **The scheme's SECOND
+gold is gone in the same pass**: `onPrimaryContainer` was a cream `#E9D9B8` and is now the
+accent itself, because the owner's note was *"instead of a creamy gold i want an accent gold"*. The **outline rose with the surfaces** (`#3F3F3F` -> `#4A4A4A`) —
 a rim tuned against a black canvas looks drawn but invisible once the cards are lifted, so
 the two move together or the borders quietly disappear. The sampled phone values are now the
 *provenance*, not the live spec: the departure is the owner's, and it is recorded in
@@ -303,6 +310,129 @@ masquerades as the first:
   `ln -s ~/.config/.android/avd ~/.android/avd` repairs both tools at once — and check
   the link landed at the *right* path, because `ln -s` into an existing directory
   creates `avd/avd` instead, which fails exactly like no link at all.
+
+## Every dark theme reads ONE grey ladder, and accent never tints the chrome (2026-10-14)
+
+Owner, 2026-10-13 (dashboard `task_1k6x0b4q3072712v0h496e2l`): *"i want the card to in the
+dark themes (develope theme included) to have the background color dark and the cards in the
+same dark grey palette but less dark so it sees as a front (instead of using the primary
+theme color for every card), and make sure the develope theme and the dark theme have the same
+grey shading palette applied."*
+
+The pass that answered it was mostly **subtraction of Material defaults nobody chose**, and
+that is the lesson worth keeping: two of the three biggest colour areas on the screen were not
+the palette's at all.
+
+- **`surfaceTint` is NOT a detail.** `Surface(color = surface, tonalElevation = n.dp)`
+  composites `surfaceTint` (= `primary` by default) into `surface` at
+  `(4.5·ln(n+1)+2)%`. On a gold accent at 3dp that made the **bottom navigation bar
+  `#2B2820` on every screen — 9.4% of the frame, sampled**, and a 6dp dialog `#302C22`. So
+  `withThemedContainers` sets `surfaceTint = onSurface` on dark schemes: elevation still
+  lifts, by the same amount, in the scheme's own neutral ink. **A dark theme's accent belongs
+  on the primary action, the current state and a focal number — never on chrome that is not a
+  state.**
+- **`outlineVariant` was set by nobody**, so `HorizontalDivider`/`Divider`/most card rims drew
+  Material's baseline `#49454F` (dark) / `#CAC4D0` (light) — a cool purple-grey belonging to
+  no theme here. Measured on the level guide: `#323035` (R 50, B 53) across 1.02% of the frame,
+  now `#3D3D3D` and 0.00%. Dark schemes take `DarkHairline`; light schemes collapse it onto
+  their own `outline`. **A colour the theme does not own is the thing that makes a UI read as
+  stock.**
+- **One ladder, in `Color.kt`, read by every dark scheme: `#0E0E0E` canvas / `#141414`
+  `surface` (sheets, chips, dialogs) / `#191919` general cards and wells (`surfaceVariant`) /
+  `#1B1B1B` the bottom bar (`DarkBarSurface`) / `#1E1E1E` the workout hero cards
+  (`surfaceContainerHigh`) / `#282828` pressed states and the tab pill
+  (`surfaceContainerHighest`) / `#4A4A4A` rim**, all neutral
+  (R=G=B). Before the 2026-10-13 pass Flame ran `#0D0D0F / #141416 / #1B1B1F` with a container
+  ramp *derived* from its own variant (`#26262A`), the developer scheme ran
+  `#131313 / #1B1B1B / #252525` with `#303030`, and it also carried two private container greys
+  (`#343434`, `#2F2F2F`). **Never spell out a grey inside a scheme — read the constant**, or the
+  next palette edit silently re-splits the ladders.
+- **THE BAR IS NOT THE CARD RUNG, and a card is a panel while the bar is chrome.** The hero
+  cards and the bottom bar shared `surfaceContainerHigh` and that was wrong in a way only the
+  device showed: both came back `#1E1E1E`, so the card the whole pass was about was the *same*
+  grey as the chrome around it, and the owner's next note was exactly that — *"make the card you
+  actually change slightly lighter?"*. The bar now wears `DarkBarSurface` (`#1B1B1B`, 1.121:1)
+  and the hero card keeps 1.158:1, so the card is 1.033:1 **above** the bar, still inside the
+  1.2:1 whisper ceiling that leaves room for nothing wider. `navBarFill` therefore takes
+  `isLightTheme`; `theDarkStepsAreTheLightThemesStepsMirrored` pins `bar > cards` and
+  the same test pins `hero > bar`. **This inverts one pair against beige on purpose** (beige's
+  card is a *smaller* step than its bar, so a strict mirror would put the dark card under the
+  dark bar). The owner is looking at a screen, not at the table, and he asked for the card up —
+  so the mirror is the rule, and a named inversion he asked for beats a silently tidy table.
+- **A STEP THAT ONLY EXISTS RELATIVE TO THE CARD MUST STAY VISIBLE AGAINST THE PAGE.** The nested
+  well — `workoutWellFill`, which fills the rep banner ("SET 1 OF 4", the rep count, the load
+  line), the description block and the locked-chip — was `surfaceContainerLowest`, i.e. the canvas
+  grey, because beige's well is 1.16:1 from its card and over the dark card that ratio lands
+  exactly on `#0E0E0E`. **Mirror-correct by ratio, and invisible on the screen**: a fill equal to
+  the background is a hole, not a recess, so the rep banner read as the page showing through the
+  card and the owner said *"make the rep card slightly lighter"*. It is `surfaceVariant`
+  (`#191919`, 1.098:1 from the canvas) now — the same rung every other card wears, one step under
+  the hero card. Two lessons worth keeping: a palette relationship can be satisfied and still be
+  unreviewable, so **assert against the PAGE as well as against the panel** (`theAccentOnThe…`
+  now checks both, and the missing page check is what let it ship); and beige's well is 1.297:1
+  from its canvas, so a full mirror would put the dark well at `#282828` — LIGHTER than the hero
+  card, a raised highlight rather than a recess. Neither extreme is right; the card rung is.
+- **THE DARK LADDER IS THE BEIGE THEME'S STEPS, MIRRORED — and that is the rule to edit by.**
+  The owner's third correction on 2026-10-14 (*"the grey of the bottom bar and the general
+  cards background color is the one you were supposed to make darker ... i want it to have the
+  same visuals as the light beige theme"*) named the two surfaces no earlier pass had touched,
+  because they are not cards at all: a Material card and the bottom bar are both `surface` plus
+  Material's tonal elevation tint, and that tint was `onSurface` — a near-white ink — so every
+  one of them composited to `#2C2C2C`, **1.42:1 from the canvas** where beige's widest neutral
+  step is 1.157:1. (`surfaceTint` is `DarkSurfaceHighest` now; it can lift a surface by a
+  whisper and never wash one light.) **A dark palette is not designed by eye, it is derived from
+  the light one**: measure beige's steps away from its canvas, then pick the grey that reproduces
+  each ratio above the dark canvas. Beige, measured: canvas `#FDFCFB`, chips/sheets `#F9F7F4`
+  (1.044), general cards `#F4F1ED` (1.099), workout card `#F4F0EB` (1.107), bar `#F0EBE5`
+  (1.157), pill `#E6DDD4` (1.309). Dark, derived: 1.048 / 1.098 / 1.121 / 1.158 / 1.309. The
+  proof that the mirror holds is that the two appearances then carry the SAME colour shares — on
+  My Workout the hero card is 25.6% beige against 25.6% dark and the bar 9.2% against 9.2%,
+  and on Home the bar 9.2% both, general cards 3.1% both, tab pill 1.5% both.
+  **Re-shoot the frames before believing a page**: the first version of
+  `evidence/dark-cards-2026-10-14` was itself built from a pre-fix capture and showed the
+  `#2C2C2C` bar it was supposed to be reporting as fixed, which is what the owner was reading
+  when he said the grey was still too light. `build_page.py` there now MEASURES the PNGs and
+  embeds them, so the prose cannot drift from the pictures.
+- **"Less dark so it sees as a front" is a number, and it is measured on the rung the cards
+  NAME.** Beige's card is its `surfaceVariant` (1.099:1); the dark theme's is the same token.
+  `theCanvasToCardStepReadsAsAFront` measured `surface` — the chip/sheet rung, 1.048:1 in BOTH
+  palettes — which is how the card grey drifted to **1.259:1**, above the band's 1.2:1 ceiling,
+  unnoticed for three passes. **When a test fails to catch something, fix its SUBJECT before its
+  numbers**, and prefer a case that pairs the two appearances (`…Mirrored` in
+  `DarkThemeContrastTest`) over one that pins a literal.
+- **A gold at 12% or 35% is not a gold.** Diluting the accent into a grey makes a tan `#675838`,
+  which is what "creamy gold" means when the owner says it. On a DARK scheme the accent is
+  drawn at full strength as a LINE and as WRITING, and a block that needs a fill takes the
+  INSET grey rung (`workoutWellFill` / `workoutWellRim` / `workoutCardRim` in
+  `WorkoutNowScreen.kt`); the light themes keep their tints. See also the developer scheme's
+  single gold — the cream `#E9D9B8` that used to write on its gold-ish containers is gone.
+  **Audit a wash by measuring the frame, not by reading the diff**: the ones that survived the
+  first sweep were found as exact colours in a capture (the selected-tab pill at `#3F3B31`,
+  1.5% of the frame, now `navIndicatorFill` in `MainActivity.kt`). A `primary.copy(alpha = …)`
+  over a dark grey is a value the palette does not contain, which is what makes it findable.
+- **Measure the accent, do not describe it.** `evidence/dark-theme-2026-10-14/accent_coverage.py`
+  counts the coloured share of a capture ("any-hue", channel spread >= 8/255). Home went
+  14.3% -> 4.8%, Analytics 13.7% -> 4.2%, Settings 14.1% -> 4.4%, and the level guide is
+  deliberately unchanged at 8.4% because the accent there marks rows and actions.
+- **TWO TASTE CALLS LEFT OPEN FOR THE OWNER, both measured, neither a bug.** (1) On the four
+  hued dark themes `primaryContainer` — every selected chip, day and option card — is a slab
+  of the theme's own dark hue (`#4E342E` on Flame), **8.0% of the welcome screen**; the
+  developer theme's is grey, which is why the same screen looks calmer there. (2) The accent is
+  also the *label* colour across the app (section eyebrows, option titles, badges): **8.5% of
+  the welcome screen is the accent**, about 5 points of it the full-width call-to-action. Both
+  are one edit from quieter and both are shown side by side in
+  `evidence/dark-theme-2026-10-14/index.html`.
+- **The guards are in `DarkThemeContrastTest`, and each was proven non-vacuous by sabotage:**
+  `everyDarkThemeSharesOneLadder` (compares every surface token across all five dark themes,
+  then checks the accents are still distinct), `theCanvasToCardStepReadsAsAFront`,
+  `noDarkGreyCarriesAHue`, `elevationLiftsInTheSchemesOwnNeutralInk`,
+  `dividersAreDrawnInTheSchemesOwnGrey`.
+- **Writing `app_settings.xml` wholesale wipes every other key.** That file also holds the
+  level-guide-seen flag and the launcher-alias bookkeeping, so a hand-patched `theme_option`
+  sends the next launch back to onboarding — and re-arms the notification-permission dialog,
+  which then covers the screen and looks like a rendering bug. Push to `/data/local/tmp` and
+  `run-as … cp` (a `sh -c 'cat > …'` redirect gets eaten by the outer `adb shell` and fails
+  with *Permission denied*), and read the key back before trusting it.
 
 ## Exercise localization — store canonical English, display local
 
@@ -970,6 +1100,77 @@ slots conditional on the pool having a compound. 622 tests / 0 failures; the APK
 re-installed on the SM-S906B via `adb install -r` and relaunched clean — but NOT
 watched on screen (pattern lock).
 
+## The exercise's MAX is a MARKER, not a wall (owner ruling 2026-10-13)
+
+Owner: *"Change eaxh ecercise max, instead show it differently signalising that
+thats the maximum but the user can go even further if he wants (show progession
+at that usual maximum level and everything like usual but simply dont force stop
+the user at max level and let him increase further)"*, and in the follow-up spec:
+keep every exercise's max as it is, **add more levels after it**, label the max
+rung with a small `max`, teach that label in the guide, and make the past-max
+levels **selectable**. Asked what a past-max level prescribes, the owner's answer
+was that BOTH keep climbing like usual.
+
+So the researched ceiling is where the *evidence* ends, not where the app stops:
+
+- `ProgressionEngine.clampLevel` bounds a stored level by
+  `PICKER_LEVEL_LIMIT` (500), **not** by `effectiveMaxLevel`.
+- `valueAtLevelWithCeiling` keeps climbing past the effective max by the row's own
+grid step, `repsAtLevel`/`prescribedReps` by its own rep step, and the generated
+pound ladder likewise. `LadderRung` carries a real prescription on every rung and
+flags `isMax` on the one the ceiling lands on — there is no `beyondPlan` rung any
+more.
+- `levelUp` no longer returns null at the max; `isMastered` is true **only on the
+max rung** (top stage done), so the mastery/evolution offer still fires exactly
+where the research ends, and the user who declines simply keeps climbing.
+- `WorkoutViewModel.progressionMaxLevel` is `maxOf(effectiveMaxLevel, the
+per-exercise extension grid)`, and the extension control is ALIVE again
+(`extendLevelList` writes the next `EXTENSION_CHUNK`, `canExtendLevelList` is true
+until `PICKER_LEVEL_LIMIT`) — both were neutered by the 2026-10-04 humane-ceiling
+pass. That grid is how "more levels after it" is reached.
+- The stored level's read clamp uses that same bound, or a level above the max is
+silently walked back down on every load.
+
+**The safety claim is deliberately narrowed, and this is the one thing to keep
+honest**: the load ceiling is asserted over levels `1..max` (which is what the app
+prescribes by default) and the marked rung *is* the ceiling. Above it the app no
+longer claims a human limit, because the owner asked for the climb to continue.
+`HumaneCeilingTest` says so in its header, and `LevelLadderTest`,
+`ProgressionEngineTest` and `MasteryAndCeilingTest` pin the new contract.
+
+## A trunk-less WEEK closes on the trunk (owner report 2026-10-13)
+
+Owner: *"when looking at the week the system created, i see no core exercises on
+any day at all. thats not balanced or is it?"* It was true and
+frequency-dependent: `enginePartsFor("full_body")` (1–3 day weeks) and
+`enginePartsFor("legs")` (the 6-day push/pull/legs ×2) declared no trunk muscle,
+while the 4-, 5- and 7-day splits reach one through `ENGINE_LOWER_PARTS` or the
+dedicated core day.
+
+`generateEngineProgram` now spends the day's **last slot that trains no MAJOR**
+(chest/back/legs — the same three the balance card gives a floor) as follows:
+
+1. On a week whose split has **no trunk day of its own**, that slot is a rotating
+trunk movement (`ENGINE_TRUNK_PARTS`: Abs → Obliques → Spinal Erectors), so the
+week always reaches the trunk.
+2. Otherwise it rotates through the parts `parts.drop(slots.size)` — the declared
+tail the round-robin never reached, which is why biceps/triceps trained on no day
+of a short week (`full_body` declares 8 parts, a quick session spends 5).
+
+Two traps, both paid for while building it:
+
+- **Do not give a week that already has a lower/core day a second source of trunk
+work.** It took a 7-day calisthenics week to 11 core rows and the balance card
+fired on the generator's own output; the ceiling is 10.
+- **Do not spend a slot that trains a major.** A five-slot day needs chest 1, back
+1 and legs 3, so it has no spare slot: a 1-day quick strength week scored legs 2
+and the card fired. The check is week-scoped (`weekHasATrunkDay`) and slot-scoped
+(`isMajorPart`), and it is what keeps `BalancedDefaultBuildTest` green.
+
+`EngineProgramTest` pins both the sweep (3–7 days × every goal × the standard and
+full windows) and the 6-day case; both were proven able to fail by forcing
+`claimTrunkSlot = false`.
+
 ## The balance card judges HEALTHY RANGES anchored on the generator, never zero-presence (2026-10-06)
 
 Owner: *"also it says unbalanced workout routine when the suer didnt filter any
@@ -1037,6 +1238,45 @@ chin-ups under both "Arms" and "Back". Precise groups keep those pool semantics
 Whatever a broad filter finds, the *stored* muscle group stays precise
 (`getMuscleGroupForExercise(name)`), because the label and the Analytics split read it.
 `ExerciseMuscleFilterTest` locks all of this down.
+
+## The six muscle glyphs ARE the owner's drawings, traced (2026-10-13)
+
+Owner, 2026-10-13, five days after the hand-drawn set shipped: *"your ... images drawn are not
+at all the same as the images that you are showing, remake the ... things based on the images"*.
+He was right: `ic_muscle_core` was a tapered block and `ic_muscle_chest` a shield - symbols
+ABOUT the parts, while his plates are anatomical line drawings OF them.
+
+So the six `ic_muscle_*.xml` are no longer composed by hand. They are the reference plates'
+INK, vectorised by `evidence/muscle-icons-2026-10-13/trace_refs.py`, which is the only source of
+truth: binarise the plate, thicken the ink to the filter lane's weight, walk each connected
+region's boundary (ink always on the right), simplify it, and emit it as a closed cubic.
+**Regenerate with that script; never hand-edit these six files.**
+
+Three decisions in it are load-bearing, and each cost a wrong attempt first:
+
+- **Filled contours, not stroked centre lines.** A centre-line trace has to INVENT the drawing's
+  weight and its round ends, and at twice the ink (the plates' own line measures 0.70-1.31 units
+  in the 24-box while the lane's weight is 1.6). At 22dp - the size the chip draws - a 1.6 stroke
+  in a 19-unit figure closes the abdomen grid's 2-unit gaps into a solid mass. Filling the ink's
+  own outline keeps the artist's geometry exactly, and the weight then measures 1.24-1.55 units,
+  INSIDE the equipment lane (1.2-2.4) without any adjustment.
+- **A boundary WALK, not a segment join.** Joining marching-squares segments by shared endpoints
+  puts a long diagonal chord across the figure at every crossing - four segment ends meet in one
+  place, and greedy joining picks a partner that is not the continuation. On the board that read
+  as a solid wedge through the arm and the abdomen.
+- **`schultern.png` is a framed diagram**, so its ruled box is stripped before tracing (a run of
+  ink that is straight for a third of the plate and no thicker than a drawn line). Traced
+  literally it is a filled block, not a shoulder. It is applied to that plate alone: the abdomen
+  plate's shoulder line is a long straight bar too, and there it IS the drawing.
+
+The reference plates are copied into `evidence/muscle-icons-2026-10-13/refs/`, the glyphs as they
+were before the trace are in `.../previous/`, and `build_board.py` writes a page that puts the
+drawing, the old glyph and the traced glyph side by side at 22dp and at 88px. `MuscleGlyphFamilyTest`
+keeps them honest: the ink weight is MEASURED off the raster (erode the ink until it is gone and
+halve the layers, which means the same thing for a filled contour as for a stroked path) and held
+inside the lane the kit's own stroke widths define; the 24dp box and viewport; six distinct parts;
+and that at 22dp the ink has not merged (its measured weight stays in the lane and it paints less
+than half the area inside its own extent).
 
 ## Adding an exercise in level mode PICKS it; custom mode still TYPES it (2026-10-11)
 
@@ -1437,6 +1677,30 @@ The SM-S906B is PIN-locked, which changes how on-device checks have to be done:
   `adb shell "am start -n … --es exercise 'Chin Tuck Hold'"`.
 - `tools/inspect_shot.py` summarises a screenshot when one IS obtainable
   (dominant colours, non-background share, coarse ASCII map).
+
+## The emulator is headless here, and its SDK is not the one `adb` comes from
+
+`adb` lives in `~/Android/Sdk/platform-tools/adb`, but that SDK has **no
+emulator package** — the emulator is in a second one, at
+`~/.local/share/android-sdk/emulator/emulator`, with the AVD `Pixel_7a`.
+A plain `emulator -avd Pixel_7a` dies with *"This application failed to start
+because no Qt platform plugin could be initialized"* (the available plugins are
+offscreen/linuxfb/minimal/xcb/vnc, and this display has no usable one), so start
+it headless:
+
+```
+ANDROID_SDK_ROOT=$HOME/.local/share/android-sdk \
+  $HOME/.local/share/android-sdk/emulator/emulator -avd Pixel_7a \
+  -no-window -no-audio -no-boot-anim -no-snapshot -gpu swiftshader_indirect
+```
+
+`-no-window` costs nothing for a device pass: `uiautomator dump`, `input tap`
+and `screencap` all work, and unlike the PIN-locked phone a capture here returns
+a real frame — `tools/inspect_shot.py` reads it, which is how an icon's colours
+can be compared at the same coordinates before and after a change. Boot takes
+about 90 s; poll `getprop sys.boot_completed` rather than sleeping blind. A cold
+boot parks a **"System UI isn't responding"** dialog in focus that silently eats
+taps — tap `Wait` on it before driving the app.
 
 ## A debug-source-set activity is the only preview route here
 
