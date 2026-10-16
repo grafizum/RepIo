@@ -4,6 +4,7 @@ import androidx.compose.foundation.clickable
 import androidx.compose.foundation.interaction.MutableInteractionSource
 import androidx.compose.foundation.layout.Arrangement
 import androidx.compose.foundation.layout.Column
+import androidx.compose.foundation.layout.PaddingValues
 import androidx.compose.foundation.layout.Row
 import androidx.compose.foundation.layout.Spacer
 import androidx.compose.foundation.layout.fillMaxWidth
@@ -16,6 +17,7 @@ import androidx.compose.foundation.lazy.items
 import androidx.compose.foundation.shape.RoundedCornerShape
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.filled.Close
+import androidx.compose.material.icons.filled.KeyboardArrowDown
 import androidx.compose.material3.Card
 import androidx.compose.material3.CardDefaults
 import androidx.compose.material3.Icon
@@ -23,6 +25,7 @@ import androidx.compose.material3.IconButton
 import androidx.compose.material3.MaterialTheme
 import androidx.compose.material3.OutlinedTextField
 import androidx.compose.material3.Text
+import androidx.compose.material3.TextButton
 import androidx.compose.runtime.Composable
 import androidx.compose.runtime.getValue
 import androidx.compose.runtime.mutableStateOf
@@ -155,7 +158,6 @@ fun ExerciseResultCard(
     isSelected: Boolean = false,
     onClick: () -> Unit
 ) {
-    val category = WorkoutTemplates.getEquipmentForExercise(name)
     // The precise muscle, not the broad part the filter works in: the badge is the
     // row's only written information, and "Front Deltoids" is worth more there than
     // "Shoulders".
@@ -179,16 +181,16 @@ fun ExerciseResultCard(
             modifier = Modifier.padding(horizontal = 14.dp, vertical = 12.dp),
             verticalAlignment = Alignment.CenterVertically
         ) {
-            if (category.isNotBlank()) {
-                // The label moves to the content description, where it costs no
-                // width — the same trade the collapsed equipment row makes.
-                EquipmentIconImage(
-                    icon = equipmentCategoryIcon(category),
-                    contentDescription = getString(WorkoutTemplates.equipmentLabelKey(category)),
-                    modifier = Modifier.size(26.dp)
-                )
-            }
-            Spacer(modifier = Modifier.width(12.dp))
+            // NO EQUIPMENT GLYPH ON THE ROW. Owner, 2026-10-16: *"There is still a big display of
+            // icons next to exercises fix that. Remove them."* - the second time he has ruled the
+            // same way (2026-10-13: *"the icons should be in the muscles group filters not in the
+            // fucking exercises displaying"*), and the first ruling only reached the muscle filter
+            // row, leaving a 26dp glyph leading every result under the picker.
+            //
+            // The kit is not lost to the reader: it is what the EQUIPMENT filter row above this
+            // list draws, per selected category, and it is in the accessible name of every row
+            // through the muscle badge below. What the row keeps is the movement's own two facts -
+            // which movement, and which part of the body it works.
             Text(
                 text = translateExerciseName(name),
                 style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
@@ -247,6 +249,16 @@ fun ExercisePickerBody(
     var selectedEquipment by remember(startingFilter) { mutableStateOf(startingFilter) }
     var selectedMuscleGroup by remember { mutableStateOf<String?>(null) }
     var searchQuery by remember { mutableStateOf("") }
+
+    // THE LIST FOLDS ITSELF AWAY ONCE SOMETHING IS PICKED. Owner, 2026-10-16: *"When selecting an
+    // exercise to add or replace, minimize the exercise scrolling window (and allow the user to
+    // reopen it if wanted)"*.
+    //
+    // Keyed on [selectedName] rather than set once, because that is the event: the host passes the
+    // name back in on the next composition, so the fold happens on the pick and un-folds by itself
+    // if the host clears the selection (a replaced row coming back, a form reset). A user who wants
+    // another look taps Show more, and picking again folds it once more.
+    var listOpen by remember(selectedName) { mutableStateOf(selectedName == null) }
 
     val pool = remember(equipmentCategories, grantedTags, selectedEquipment, selectedMuscleGroup, excludedName) {
         exercisePickerPool(
@@ -342,7 +354,41 @@ fun ExercisePickerBody(
         // a string lookup cannot happen inside it.
         val listDescription = getString("exercises_count", visible.size)
 
-        if (visible.isEmpty()) {
+        if (!listOpen) {
+            // The folded state says WHAT was picked, in the language the list was read in, and
+            // keeps the way back in one tap away - the same "Show more" vocabulary the two filter
+            // rows above use, so there is one word in this card for "there is more under here".
+            Row(
+                verticalAlignment = Alignment.CenterVertically,
+                horizontalArrangement = Arrangement.spacedBy(6.dp),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .semantics { testTag = "exercise_picker_collapsed" }
+            ) {
+                Text(
+                    text = selectedName?.let { translateExerciseName(it) } ?: "",
+                    style = MaterialTheme.typography.bodyLarge.copy(fontWeight = FontWeight.Bold),
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier.weight(1f, fill = false)
+                )
+                TextButton(
+                    onClick = { listOpen = true },
+                    contentPadding = PaddingValues(horizontal = 8.dp),
+                    modifier = Modifier.semantics { testTag = "exercise_picker_expand" }
+                ) {
+                    Text(
+                        text = getString("show_more"),
+                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold)
+                    )
+                    Icon(
+                        imageVector = Icons.Default.KeyboardArrowDown,
+                        contentDescription = null,
+                        modifier = Modifier.size(16.dp)
+                    )
+                }
+            }
+        } else if (visible.isEmpty()) {
             Text(
                 text = getString("no_exercises_for_filters"),
                 style = MaterialTheme.typography.bodySmall,

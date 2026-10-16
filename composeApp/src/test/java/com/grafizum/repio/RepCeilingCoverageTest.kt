@@ -142,10 +142,14 @@ class RepCeilingCoverageTest {
                     step >= 2,
                 )
             }
+            // THREE rungs is a real ladder since the owner's 2026-10-16 floor ruling: a hard
+            // variation whose whole range is the ramp - 4 -> 8 -> 12 - has exactly three, and each
+            // of them is a step of four reps. Four was the floor when level 1 was 8 reps and every
+            // ladder therefore had to climb above the ramp to reach its ceiling.
             val rungs = ProgressionEngine.repRungs(row)
             assertTrue(
                 "slug=${row.slug} climbs to $rungs rungs, too coarse or too long",
-                rungs in 4..12,
+                rungs in 3..12,
             )
             // And the top rung is the ceiling itself, never a step past it.
             assertEquals(

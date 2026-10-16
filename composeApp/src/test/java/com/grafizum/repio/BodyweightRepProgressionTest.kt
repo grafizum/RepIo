@@ -188,20 +188,23 @@ class BodyweightRepProgressionTest {
         // [12,12,12] - flat - because by then every set has caught up, so the
         // top stage is not where a distribution is visible. Asserting it there
         // would have been asserting against the shape the data actually has.
-        val atLevel5 = ProgressionEngine.prescribedReps(entry, 5, 5)!!
-        // Crunches is core from a floor of 8, and its ladder now steps by 5 -
-        // the Roman climb (4) plus one, so the level's band holds the whole
-        // stage climb and a level-up can never demote the reps. Level 5 asks
-        // 28 reps. The pattern's own stage-5 row [10,9,9] minus stage I's
-        // [8,8,8] is [2,1,1] - the extra reps walking forward onto the first
-        // set - so the sets read 30 / 29 / 29.
-        val levelReps = ProgressionEngine.repsAtLevel(entry, 5)
-        assertEquals(28, levelReps)
+        // RUNG 7 IS THE ONE TO READ, and the arithmetic is the ladder's own since the ramp landed:
+        // the rungs are 1 / 4 / 8 / 12 (the owner's 2026-10-16 floor ruling) and then one step of 5
+        // per level, so level 5 asks 17, level 6 asks 22 and level 7 asks 27. This case used to read
+        // level 5 as 28 reps, which was the same arithmetic with an 8-rep floor under it - the rung
+        // that asks 28 sits past the ladder's ceiling-free zone now, so the demonstration moved up.
+        // The pattern's own stage-5 row [10,9,9] minus stage I's [8,8,8] is [2,1,1] - the extra reps
+        // walking forward onto the first set - and the band (step - 1 = 4) holds the whole climb
+        // (4), so those deltas ride on top untouched: 29 / 28 / 28.
+        val level = 7
+        val atLevel5 = ProgressionEngine.prescribedReps(entry, level, 5)!!
+        val levelReps = ProgressionEngine.repsAtLevel(entry, level)
+        assertEquals(27, levelReps)
         // Every set is at least the level's own count: the stage adds work, it
         // never takes any away.
         assertTrue("stage 5 took reps away: $atLevel5", atLevel5.all { it >= levelReps })
         // And it is genuinely a DISTRIBUTION, not three identical numbers.
-        assertEquals(listOf(30, 29, 29), atLevel5)
+        assertEquals(listOf(29, 28, 28), atLevel5)
     }
 
     /**

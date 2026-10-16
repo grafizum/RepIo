@@ -200,11 +200,65 @@ object ProgressionEngine {
      */
     private const val MIN_SPAN_FOR_A_BIGGER_STEP = MIN_REPS_PER_STEP * 3
 
-    /** Reps at level 1 when the row declares no floor of its own. */
-    private const val DEFAULT_REP_FLOOR = 8
+    /**
+     * THE FIRST RUNGS OF EVERY REP LADDER - the owner's ruling of 2026-10-16.
+     *
+     * Owner, 2026-10-16: *"Rep floor: start at 1 (4 for the hard variations), climb 4 to 8, then
+     * 8-12"*.
+     *
+     * WHAT WAS WRONG, as a number: every rep ladder in the pool started at EIGHT. 430 rows carry
+     * `rep_min = 8` in the CSV and the rest fell back to a constant that was also 8 - and 8 is the
+     * BOTTOM OF THE HYPERTROPHY WINDOW, which is where a *working weight* lives, not where a
+     * bodyweight ladder begins. A beginner arriving at a push-up ladder was told to do 8 reps at
+     * level 1: for leverage work that is not a starting point, it is a target they may not reach,
+     * and the ladder had nowhere left to climb below it.
+     *
+     * So the ladder now starts at the bottom of the movement and WARMS UP INTO the window:
+     *
+     *   1 -> 4 -> 8 -> 12, then the row's own step
+     *
+     * and a HARD VARIATION starts at 4 rather than 1, because one rep of a handstand push-up or a
+     * one-arm row is not a prescription any more than eight were: the owner's own carve-out, and
+     * the reason this is a list rather than a formula (the first rung of a ramp is a decision).
+     *
+     * The ramp's top is 12 for both - the top of the hypertrophy window, which is the number the
+     * old floor was trying to express - so every ladder still arrives exactly where it used to
+     * start, and every rung above it is unchanged in KIND (the row's own step, [repStepFor]).
+     */
+    private val ORDINARY_REP_RAMP = listOf(1, 4, 8, 12)
+    private val HARD_VARIATION_REP_RAMP = listOf(4, 8, 12)
 
-    /** The rep count the ladder starts at: the row's own declared minimum. */
-    fun repFloorOf(entry: ProgressionEntry): Int = entry.repMin ?: DEFAULT_REP_FLOOR
+    /**
+     * The ceiling at or below which a movement is a HARD VARIATION for the ramp above.
+     *
+     * Read off the row's OWN authored ceiling in [RepCeilings], never its name: a movement whose
+     * ladder never leaves the hypertrophy window (12-15) is one whose difficulty is leverage rather
+     * than load - a handstand push-up, a pistol squat, a one-arm row - and those are exactly the
+     * rows where a single prescribed rep is meaningless. A row with room above 15 climbs like
+     * ordinary work, so it starts from one.
+     */
+    private const val HARD_VARIATION_CEILING = 15
+
+    fun isHardVariation(entry: ProgressionEntry): Boolean =
+        repCeilingFor(entry) <= HARD_VARIATION_CEILING
+
+    /** The ladder's opening rungs, warm-up included: see [ORDINARY_REP_RAMP]. */
+    fun repRamp(entry: ProgressionEntry): List<Int> =
+        if (isHardVariation(entry)) HARD_VARIATION_REP_RAMP else ORDINARY_REP_RAMP
+
+    /** The top of the ramp - where the stepped part of the ladder takes over. */
+    private fun repRampTop(entry: ProgressionEntry): Int = repRamp(entry).last()
+
+    /**
+     * The rep count the ladder STARTS at: the first rung of the ramp.
+     *
+     * The row's declared `rep_min` is deliberately not consulted here any more. It is 8 wherever it
+     * is set at all - the bottom of the hypertrophy window - so as a FLOOR it described the wrong
+     * end of a beginner's ladder, which is the whole finding above. Nothing else read it: the
+     * range-based rows ([prescribedReps]' non-ladder half) still walk `repMin` to `repMax`
+     * themselves, and are untouched by this.
+     */
+    fun repFloorOf(entry: ProgressionEntry): Int = repRamp(entry).first()
 
     /**
      * True when [entry] is core work, by the CATALOG's own primary muscle
@@ -253,7 +307,7 @@ object ProgressionEngine {
      * single rep is the defect that started this ("1 rep is basically
      * nothing"). So every rep ladder is built to roughly [REP_LADDER_RUNGS]
      * rungs and the step is whatever reaches the row's own ceiling in that
-     * many: 2 for an ordinary 8-to-25 span, 4 for core's 8-to-50. A ladder
+     * many: 2 for an ordinary 12-to-25 span, 4 for core's 12-to-50. A ladder
      * with no room for that rule - a skill row whose whole range is four reps
      * wide - steps by one rather than collapsing to three rungs. It is derived
      * from the row's own floor and its authored ceiling, never from its name.
@@ -310,6 +364,12 @@ object ProgressionEngine {
      * derived from the row's own floor, ceiling and pattern, never its name.
      */
     fun repStepFor(entry: ProgressionEntry): Int {
+        // MEASURED FROM THE FLOOR, and deliberately NOT from the top of the ramp: the ramp moved
+        // where the ladder STARTS, and the owner's 2026-10-16 ruling changes nothing about how far
+        // apart the rungs are above it. Measuring from the ramp's top instead would have silently
+        // re-cut every step in the pool (a 25-rep push-up's step fell from 5 to 3, and the "one
+        // level is 5 reps" rule with it), which is a different change than the one that was asked
+        // for. So the span stays as it was and only the rung VALUES below it changed.
         val span = (repCeilingFor(entry) - repFloorOf(entry)).coerceAtLeast(1)
         val spanStep = (span.toDouble() / REP_LADDER_RUNGS).roundToInt().coerceAtLeast(1)
         val spanBased = if (span >= MIN_SPAN_FOR_A_BIGGER_STEP) {
@@ -330,24 +390,32 @@ object ProgressionEngine {
      * and the supported range begins at the bottom of the hypertrophy window.
      */
     fun repsAtLevel(entry: ProgressionEntry, level: Int): Int {
-        val floor = repFloorOf(entry)
+        val ramp = repRamp(entry)
+        val floor = ramp.first()
         val top = repCeilingFor(entry)
-        val raw = floor + repStepFor(entry) * (level - 1)
+        // THE RAMP FIRST, verbatim: 1 / 4 / 8 / 12 (or 4 / 8 / 12 on a hard variation). These are
+        // the rungs the owner named, so they are written down rather than derived - a formula that
+        // happened to produce them would be one edit away from not doing so.
+        if (level <= ramp.size) return ramp[level - 1].coerceAtMost(top).coerceAtLeast(1)
+        val raw = ramp.last() + repStepFor(entry) * (level - ramp.size)
         // Past the top rung the climb continues: the max is a marker, not a wall
         // (owner 2026-10-13). Below it the top still lands inside the ceiling.
         return if (level <= repRungs(entry)) raw.coerceIn(floor, top) else raw.coerceAtLeast(top)
     }
 
-    /** How many rungs the ladder has. */
+    /** How many rungs the ladder has: the ramp's, then the stepped ones up to the ceiling. */
     fun repRungs(entry: ProgressionEntry): Int {
-        val span = (repCeilingFor(entry) - repFloorOf(entry)).coerceAtLeast(1)
+        val ramp = repRamp(entry)
+        val top = repCeilingFor(entry)
+        // A ladder whose ceiling is INSIDE the ramp (a handstand push-up tops out at 12) is just
+        // the part of the ramp that fits, and must not claim rungs above its own ceiling.
+        if (top <= ramp.last()) return ramp.count { it <= top }.coerceAtLeast(1)
         val step = repStepFor(entry)
-        // CEILING, not floor: a span of 7 with a step of 2 is four rungs by
-        // integer division, whose top rung is 14 of a declared 15 - so the
-        // ladder stopped one rep short of the ceiling it was built to reach,
-        // and the ceiling itself was therefore unreachable. Rounding up makes
-        // the last rung land on it, which repsAtLevel's coerceIn then holds.
-        return ((span + step - 1) / step) + 1
+        // CEILING, not floor: a remaining span of 7 with a step of 2 is four rungs by integer
+        // division, whose top rung is 14 of a declared 15 - so the ladder stopped one rep short of
+        // the ceiling it was built to reach, and the ceiling itself was therefore unreachable.
+        // Rounding up makes the last rung land on it, which repsAtLevel's coerceIn then holds.
+        return ramp.size + ((top - ramp.last() + step - 1) / step)
     }
 
     /**
@@ -360,11 +428,18 @@ object ProgressionEngine {
      * that the checkpoint had been passed before it was.
      */
     fun levelReachingReps(entry: ProgressionEntry, reps: Int): Int {
-        val above = reps - repFloorOf(entry)
-        if (above <= 0) return 1
-        val step = repStepFor(entry)
-        val level = (above + step - 1) / step + 1
-        return level.coerceIn(1, repRungs(entry))
+        // THE INVERSE IS READ OFF THE LADDER ITSELF now, one rung at a time, instead of being
+        // solved arithmetically. The arithmetic assumed the whole ladder was one arithmetic
+        // sequence stepping up from the floor, and with a RAMP at the bottom (1 -> 4 -> 8 -> 12,
+        // then the row's step) that is no longer true: the closed form answered level 4 for a
+        // checkpoint of 8 reps, which is a rung the ramp reaches at level 3. A ladder of at most a
+        // dozen rungs is cheaper to walk than to describe, and it cannot disagree with [repsAtLevel]
+        // because it asks it.
+        if (reps <= repsAtLevel(entry, 1)) return 1
+        for (level in 2..repRungs(entry)) {
+            if (repsAtLevel(entry, level) >= reps) return level
+        }
+        return repRungs(entry)
     }
 
     /**
@@ -532,7 +607,19 @@ object ProgressionEngine {
             // The ceiling caps the rungs inside the ladder; past the top rung the
             // climb continues, so the picker's rung above the max shows a bigger
             // number instead of repeating the ceiling (owner 2026-10-13).
-            val upper = if (level <= repRungs(entry)) top else Int.MAX_VALUE
+            //
+            // INSIDE THE LADDER THE BAND IS CAPPED BY THE NEXT RUNG, taken from the ladder itself
+            // rather than from the row's step. The stage climb rides on top of the level's target,
+            // so the two have to fit in the gap between this rung and the next - or a level-up
+            // DEMOTES the reps, which is the one thing this whole function promises not to do. That
+            // gap was always one step wide and the step-sized [band] above matched it by
+            // construction; the owner's 2026-10-16 ramp (1 -> 4 -> 8 -> 12) is NOT evenly stepped,
+            // so the gap is no longer the step and the band has to ask the ladder what it is. A
+            // back extension's level 2 opens on 4 reps, and its level 1 could reach 5 under the old
+            // band - a demotion the moment the user earned a level.
+            val upper = if (level <= repRungs(entry)) {
+                minOf(top, repsAtLevel(entry, level + 1) - 1).coerceAtLeast(target)
+            } else Int.MAX_VALUE
             return base.indices.map { i ->
                 val delta = base[i] - (floorRow.getOrNull(i) ?: base[i])
                 (target + (delta * scale).roundToInt()).coerceIn(floor, upper)
@@ -571,6 +658,53 @@ object ProgressionEngine {
      * the exercise is not progression-ready (the caller falls back to the
      * legacy equipment-based estimate).
      */
+    /**
+     * WHERE A REP LADDER STARTS: the ramp rung its difficulty names - Easy 4, Medium 8, Hard 12.
+     *
+     * A rep ladder's level IS its rep count, so "which level do you start on" and "how many reps do
+     * you start with" are one question - and the CSV answers it with a guessed ladder POSITION
+     * (Push-Up: easy 1 / medium 6 / hard 12; Crunches 1 / 3 / 6; Glute Bridge 1 / 2 / 2) whose rep
+     * targets are `[8,8,8]` at EVERY difficulty. That was harmless while level 1 WAS eight reps: any
+     * start level landed the user on the bottom of the hypertrophy window.
+     *
+     * It stopped being harmless on 2026-10-16, when the owner put a warm-up ramp under every rep
+     * ladder (*"Rep floor: start at 1 (4 for the hard variations), climb 4 to 8, then 8-12"*). Level
+     * 2 of the ramp is four reps and level 1 is ONE, so a row that starts on its CSV rung would hand
+     * a fresh user a 1-rep or 4-rep prescription on every bodyweight movement in their week - a
+     * worse mistake than the one the old "trust the level, not the reps" rule was avoiding.
+     *
+     * So the difficulty picks the RUNG, and the three rungs it picks are the ramp's own working
+     * rungs - the owner's own climb, read as a starting choice: 4 for Easy, 8 for Medium, 12 for
+     * Hard. MEDIUM IS UNCHANGED WORK for every user: it lands on 8 reps, exactly where these rows
+     * started before the ramp existed, because the ramp put rungs underneath the number that used to
+     * BE level 1. What moved is the level INDEX (1 -> 3 on a standard ladder), and that the two
+     * rungs below it now exist for a user who needs them.
+     *
+     * This used to apply to coach-reviewed rows only, on the reading that their CSV positions were
+     * the untrustworthy ones. The measurement above says otherwise: EVERY rep row's difficulty
+     * column is a guessed position over an identical `[8,8,8]`, so the rule is the ladder's, not the
+     * review flag's.
+     */
+    fun repLadderStartLevel(entry: ProgressionEntry, difficulty: Difficulty): Int {
+        val wanted = when (difficulty) {
+            Difficulty.EASY -> EASY_START_REPS
+            Difficulty.MEDIUM -> MEDIUM_START_REPS
+            Difficulty.HARD -> HARD_START_REPS
+        }
+        val ramp = repRamp(entry)
+        // The first rung that reaches the difficulty's own number. A hard variation's ramp is
+        // [4, 8, 12], so its Easy start is 4 and its Hard start is 12 - the same three numbers, one
+        // rung apart, which is why the ramp's last three rungs are the difficulty ladder.
+        val index = ramp.indexOfFirst { it >= wanted }
+
+        return (if (index >= 0) index + 1 else ramp.size).coerceAtLeast(1)
+    }
+
+    /** The reps each difficulty opens a bodyweight ramp on. See [repLadderStartLevel]. */
+    private const val EASY_START_REPS = 4
+    private const val MEDIUM_START_REPS = 8
+    private const val HARD_START_REPS = 12
+
     fun startingPrescription(exerciseName: String, difficulty: Difficulty): StartingPrescription? {
         val entry = entryFor(exerciseName) ?: return null
         if (!isProgressionReady(entry)) return null
@@ -584,13 +718,13 @@ object ProgressionEngine {
                 Prescription(entry.hardLevel, entry.hardValue, entry.hardStage, entry.hardReps)
         }
 
-        // Coach-reviewed rows (the bodyweight_variation family) start at Level
-        // 1: the CSV's Easy/Medium/Hard rungs there encode the guessed ladder
-        // position (Push-Up: 1 / 6 / 12), which would hand a fresh beginner the
-        // hardest variation. Level 1 IS the row's easiest rung, so it is the
-        // safe start for every difficulty — the difficulty still chooses the
-        // routine build, not the entry level here.
-        val startLevel = if (isCoachReviewed(entry)) 1 else (level ?: 1)
+        // A BODYWEIGHT REP LADDER starts on the RAMP, at the rung the difficulty names: Easy 4,
+        // Medium 8, Hard 12 - see [repLadderStartLevel] for the measurement that made its CSV rung
+        // the wrong answer. Every other method (load, stack, resistance, variation) keeps the CSV's
+        // own Easy/Medium/Hard level, where a level is a LOAD and the start is a real choice.
+        val startLevel = if (isRepLadder(entry) || isCoachReviewed(entry)) {
+            repLadderStartLevel(entry, difficulty)
+        } else (level ?: 1)
 
         // The reps MUST be read at the level this prescription actually starts
         // on. They used to be read at the CSV's own rung, which for a

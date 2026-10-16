@@ -52,29 +52,50 @@ class RepProgressionOfferTest {
     }
 
     /**
-     * The step is per-exercise and is NEVER one rep.
+     * EVERY LADDER STARTS ON THE RAMP, and is walkable from there.
      *
-     * Owner 2026-10-03: "make sure for the rep count being the level, that level
-     * 1 doesnt start at rep 1 since 1 rep is basically nothing, and then
-     * instead of 1 rep steps per level, adapt it to be 2 or 4 or whatever,
-     * adapt it for each exercise of that kind".
+     * TWO OWNER RULINGS ON THIS, and they disagree - which is why both are recorded here, because
+     * the older one is quoted in the KDoc of the rule it was about:
      *
-     * Two traps this pins, both of which were live:
-     *  - a floor of 1 rep. Every rep row declares repMin = 8 and a row that
-     *    declares none falls back to 8, so level 1 is never a single rep.
-     *  - a step of 1 rep, which integer division produced. The step is the
-     *    span divided by the rung count ROUNDED, and every ladder in the pool is
-     *    checked here rather than one exercise being checked twice.
+     *  - 2026-10-03: *"make sure for the rep count being the level, that level 1 doesnt start at rep
+     *    1 since 1 rep is basically nothing, and then instead of 1 rep steps per level, adapt it to
+     *    be 2 or 4 or whatever"*. That is where the flat 8-rep floor and the never-one-rep STEP came
+     *    from, and the step half of it still stands (see the span assertion below).
+     *  - 2026-10-16: *"Rep floor: start at 1 (4 for the hard variations), climb 4 to 8, then
+     *    8-12"*. This is the NEWER ruling and it replaces the floor half: every rep ladder now opens
+     *    on a fixed ramp - 1 -> 4 -> 8 -> 12, or 4 -> 8 -> 12 when the movement is a hard variation
+     *    whose own ceiling never leaves the hypertrophy window - and only the rungs ABOVE 12 follow
+     *    the row's step. The 8-rep floor was the bottom of the hypertrophy window standing in for
+     *    the bottom of a LADDER, so a beginner's push-up row began at a number a beginner may not
+     *    reach.
+     *
+     * What the older ruling was protecting is still protected: 12 is still on every ladder, one
+     * rep per step is still refused wherever the span has room for more, and the ramp's rungs are
+     * written down in the engine rather than derived, so an edit to the step arithmetic cannot move
+     * them.
      */
     @Test
-    fun noRepLadderStartsAtOneRepAndEveryLadderIsWalkable() {
+    fun everyRepLadderStartsOnTheRampAndIsWalkable() {
         var checked = 0
         for (entry in ExerciseProgression.ENTRIES) {
             if (!ProgressionEngine.isRepLadder(entry)) continue
             checked++
+            val ramp = ProgressionEngine.repRamp(entry)
+            assertEquals(
+                "${entry.id} does not open on the first rung of its ramp",
+                ramp.first(),
+                ProgressionEngine.repsAtLevel(entry, 1)
+            )
+            // The ramp itself, rung by rung - the numbers the owner named.
+            val expected = if (ProgressionEngine.isHardVariation(entry)) {
+                listOf(4, 8, 12)
+            } else {
+                listOf(1, 4, 8, 12)
+            }
+            assertEquals("${entry.id} does not climb 4 -> 8 -> 12", expected, ramp)
             assertTrue(
-                "${entry.id} starts at ${ProgressionEngine.repsAtLevel(entry, 1)} reps",
-                ProgressionEngine.repsAtLevel(entry, 1) >= 8
+                "${entry.id} starts above the ramp it is supposed to open on",
+                ProgressionEngine.repsAtLevel(entry, 1) <= 4
             )
             // "One rep is basically nothing" holds wherever the ladder has ROOM
             // for it. It cannot hold for a skill row whose authored ceiling is
@@ -90,8 +111,10 @@ class RepProgressionOfferTest {
             // And the ladder is a usable length: a rung is what the user sees.
             // Four is the floor a four-rep span can honestly produce; twelve is
             // the ceiling this ladder is built to.
+            // Three rungs is a legitimate ladder now: a hard variation whose own ceiling is the top
+            // of the ramp (a handstand push-up stops at 12) IS its ramp, 4 -> 8 -> 12.
             val rungs = ProgressionEngine.repRungs(entry)
-            assertTrue("${entry.id} has $rungs rungs, too coarse or too long", rungs in 4..12)
+            assertTrue("${entry.id} has $rungs rungs, too coarse or too long", rungs in 3..12)
         }
         assertTrue("expected the pool's rep rows to be checked, got $checked", checked > 100)
     }
@@ -132,11 +155,13 @@ class RepProgressionOfferTest {
             ProgressionEngine.repStepFor(planche) < ProgressionEngine.repStepFor(crunches)
         )
         assertTrue(ProgressionEngine.repStepFor(planche) >= 1)
-        // Every one of them stays short enough to read as a ladder.
+        // Every one of them stays short enough to read as a ladder. The floor is THREE now, not
+        // four: the planche's ceiling (12) is the top of the ramp itself, so its whole ladder is
+        // 4 -> 8 -> 12 and every one of those rungs is a real step of four reps.
         for (entry in listOf(crunches, pushup, planche)) {
             assertTrue(
                 "${entry.slug} has ${ProgressionEngine.repRungs(entry)} rungs",
-                ProgressionEngine.repRungs(entry) in 4..12
+                ProgressionEngine.repRungs(entry) in 3..12
             )
         }
     }
@@ -245,11 +270,16 @@ class RepProgressionOfferTest {
                 "${entry.id} is offered nothing at its own top level",
                 ProgressionEngine.isProgressionPending(entry, stateAt(top), null)
             )
-            // And the ladder starts at the row's own floor, which is the bottom
-            // of the supported range rather than a made-up number.
+            // And the ladder starts on the ramp's first rung, and climbs from there - see
+            // [everyRepLadderStartsOnTheRampAndIsWalkable] for why the floor is 1 (4 on a hard
+            // variation) rather than the 8 the old rule asked for.
             assertTrue(
-                "${entry.id} starts below the supported rep floor",
-                ProgressionEngine.repsAtLevel(entry, 1) >= 8
+                "${entry.id} starts above the ramp it is supposed to open on",
+                ProgressionEngine.repsAtLevel(entry, 1) == ProgressionEngine.repRamp(entry).first()
+            )
+            assertTrue(
+                "${entry.id} starts above the ramp it is supposed to open on",
+                ProgressionEngine.repsAtLevel(entry, 1) in listOf(1, 4)
             )
         }
         assertTrue("expected the pool's rep rows to be checked, got $checked", checked > 100)

@@ -533,6 +533,32 @@ fun exerciseSetsSummaryLabel(
 }
 
 /**
+ * THE SAME ONE SUMMARY LINE WITH THE LEVEL IN THE NUMBER'S PLACE: "3 sets × Level 6", or
+ * "3 sets × New" when no level has been chosen for this exercise yet.
+ *
+ * Owner, 2026-10-16: *"In the exervises edit tab i want to see levels of the exercise instead of
+ * the reps range (or show new if a level hasnt been yet selected because the exercise wasnt made
+ * yet)"*. The routine row printed the stored reps range ("3 sets × 10–14 reps") - the plan the
+ * level system then overrides - so the single line describing the exercise said nothing about
+ * what it is actually worked at.
+ *
+ * [level] MUST be the level the user has, and null means "none chosen yet":
+ * [com.grafizum.repio.ui.viewmodel.WorkoutViewModel.storedProgressionLevel] is that read, and
+ * [com.grafizum.repio.ui.viewmodel.WorkoutViewModel.progressionDisplayLevel] is the one that is
+ * NOT it - that answers with the level the setup difficulty would START at, which is a
+ * prescription for the session, not a choice, and printing it here is what made a row announce a
+ * level the user never picked.
+ */
+@Composable
+fun exerciseLevelSummaryLabel(
+    targetSets: Int,
+    level: Int?,
+): String {
+    val levelLabel = level?.let { getString("level_word_n", it) } ?: getString("level_new")
+    return getQuantityString("sets_x_level_pl", targetSets, targetSets, levelLabel)
+}
+
+/**
  * Short, localized label for a stored tempo cue ("explosive", "slow" or "" = none).
  * Kept tiny so it fits on the exercise info line next to sets/reps.
  */
@@ -1173,7 +1199,18 @@ fun ExpandableExerciseCard(
     dragHandleModifier: Modifier = Modifier,
     isExpanded: Boolean? = null,
     onExpandedChange: ((Boolean) -> Unit)? = null,
-    showActions: Boolean = true
+    showActions: Boolean = true,
+    /**
+     * Whether the level system prescribes this exercise at all. False keeps the row's reps range
+     * (custom mode, or a movement with no ladder).
+     */
+    levelManaged: Boolean = false,
+    /**
+     * The level the USER has, or null when none has been selected yet - which the row prints as
+     * "New" rather than as the level the setup difficulty would start at. Read it from
+     * [com.grafizum.repio.ui.viewmodel.WorkoutViewModel.storedProgressionLevel].
+     */
+    level: Int? = null
 ) {
     var internalExpanded by remember { mutableStateOf(false) }
     val expanded = isExpanded ?: internalExpanded
@@ -1282,16 +1319,29 @@ fun ExpandableExerciseCard(
                             Spacer(modifier = Modifier.height(4.dp))
                             Row(verticalAlignment = Alignment.CenterVertically) {
                                 Text(
-                                    // The unit comes from the EXERCISE, not from the routine
-                                    // string stored on the row - see
-                                    // [exerciseSetsSummaryLabel]. Jumping Jacks' row carries
-                                    // "8–12" from before the level system, so this line used
-                                    // to call a timed exercise a rep exercise.
-                                    text = exerciseSetsSummaryLabel(
-                                        exerciseName = exercise.name,
-                                        targetSets = exercise.targetSets,
-                                        storedTarget = exercise.targetReps,
-                                    ),
+                                    // THE LEVEL, NOT THE REPS RANGE, where the level system
+                                    // prescribes this exercise. Owner, 2026-10-16: "In the
+                                    // exervises edit tab i want to see levels of the exercise
+                                    // instead of the reps range (or show new if a level hasnt
+                                    // been yet selected because the exercise wasnt made yet)".
+                                    // The reps range described the plan the level system then
+                                    // overrides, so it was the one line on the row that said
+                                    // nothing about what the exercise is worked at.
+                                    //
+                                    // The fallback keeps the old line, whose unit comes from
+                                    // the EXERCISE and not from the routine string stored on
+                                    // the row - see [exerciseSetsSummaryLabel]. Jumping Jacks'
+                                    // row carries "8–12" from before the level system, so that
+                                    // line used to call a timed exercise a rep exercise.
+                                    text = if (levelManaged) {
+                                        exerciseLevelSummaryLabel(exercise.targetSets, level)
+                                    } else {
+                                        exerciseSetsSummaryLabel(
+                                            exerciseName = exercise.name,
+                                            targetSets = exercise.targetSets,
+                                            storedTarget = exercise.targetReps,
+                                        )
+                                    },
                                     style = MaterialTheme.typography.bodyMedium,
                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                 )
@@ -4736,6 +4786,27 @@ fun ExerciseEditDialog(
                 }
 
 
+                // WHAT WAS CHOSEN, ABOVE THE LEVELS. Owner, 2026-10-16: *"then under it where the
+                // level shows upon selecting an exercise, i want you to display the exervise name
+                // fully as a title above the levels so that the user still can see what he chose"*.
+                //
+                // The picker's list folds away as soon as a row is tapped (see [ExercisePickerBody]),
+                // so without this the level list - which is what the user is now editing - would be
+                // the only thing on screen with no statement of which movement it belongs to. TWO
+                // lines rather than one, and ellipsised rather than clipped: `translateExerciseName`
+                // can be long in German, and a title that cuts the movement's name in half is the
+                // problem this title exists to solve.
+                if (levelMode && name.isNotBlank()) {
+                    Text(
+                        text = translateExerciseName(name),
+                        style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                        color = MaterialTheme.colorScheme.onSurface,
+                        maxLines = 2,
+                        overflow = TextOverflow.Ellipsis,
+                        modifier = Modifier.semantics { testTag = "editor_level_exercise_title" }
+                    )
+                }
+
                 if (levelMode) {
                     LevelPickerCard(
                         options = levelData.options,
@@ -5627,6 +5698,28 @@ private fun MetricItem(
     }
 }
 
+/**
+ * The volume scale BOTH the bars and the trend line are drawn with: how tall a day's bar is, in px,
+ * for a week whose busiest day is worth [maxVolume].
+ *
+ * It exists as a function because it was the missing piece: the trend line used to carry a scale of
+ * its own (`0.4f - volume/max * 0.2f`, measured from the top) while the bars used `volume/max * 0.6f`
+ * measured from the bottom, so the line crossed over bars it disagreed with (owner, 2026-10-16: the
+ * line is *"badly designed"*). Two callers, one scale - [WeeklyOutputTrendTest] holds them together.
+ */
+internal fun weeklyBarHeight(volume: Double, maxVolume: Double, chartHeight: Float): Float {
+    if (maxVolume <= 0.0 || chartHeight <= 0f) return 0f
+    val share = (volume / maxVolume).coerceIn(0.0, 1.0)
+    return (share * chartHeight * WEEK_BAR_FILL).toFloat()
+}
+
+/** The px the volume scale fills of the chart's drawing height, leaving room above the tallest bar. */
+private const val WEEK_BAR_FILL = 0.6f
+
+/** The centre of day [index]'s bar: where its bar, its trend point and its dot all line up. */
+internal fun weeklyDayCenterX(index: Int, barWidth: Float, spacing: Float): Float =
+    spacing + (barWidth / 2f) + index * (barWidth + spacing)
+
 @Composable
 private fun WeeklyOutputChart(
     dailyData: Map<String, Double>,
@@ -5658,27 +5751,52 @@ private fun WeeklyOutputChart(
             val height = size.height - 24.dp.toPx()
             val barWidth = width / 12
             val spacing = (width - (barWidth * dayKeys.size)) / (dayKeys.size + 1)
-            
-            // Trend Line
-            val linePath = Path()
-            dayKeys.forEachIndexed { index, key ->
-                val x = spacing + (barWidth / 2) + index * (barWidth + spacing)
+
+            // TREND LINE - THE PROFILE OF THE WEEK, NOT A SQUIGGLE BESIDE IT.
+            //
+            // Owner, 2026-10-16: the line was *"badly designed"*, and the arithmetic says why: it
+            // was mapped into a band of its own - `height * 0.4f - volume/max * height * 0.2f`,
+            // i.e. always between 20% and 40% DOWN from the top of the chart - while the bars are
+            // drawn from the bottom and are `volume/max * height * 0.6f` tall. The two never met.
+            // A rest day's point (volume 0) sat at 40% of the height with its bar on the baseline,
+            // and the busiest day of the week put its point 20% down while its bar reached the
+            // top: so the line crossed over bars it disagreed with, and on a week with one session
+            // it read as a diagonal stripe through an empty chart.
+            //
+            // It is the same scale as the bars now, through [weeklyBarHeight]: at every day's
+            // centre, at the top of THAT day's bar. One scale, one rule, so the line cannot drift
+            // from the bars again - and the dots on it are what make the selected day read off the
+            // trend rather than only off the bar.
+            val dayTops = dayKeys.mapIndexed { index, key ->
+                val x = weeklyDayCenterX(index, barWidth, spacing)
                 val volume = dailyData[key] ?: 0.0
-                val y = height * 0.4f - (volume / maxVolume).toFloat() * height * 0.2f
-                if (index == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
+                androidx.compose.ui.geometry.Offset(x, height - weeklyBarHeight(volume, maxVolume, height))
             }
-            
+            val linePath = Path().apply {
+                dayTops.forEachIndexed { index, point ->
+                    if (index == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
+                }
+            }
             drawPath(
                 path = linePath,
-                color = primaryColor.copy(alpha = 0.2f),
+                color = primaryColor.copy(alpha = 0.55f),
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
             )
+            // A dot per day, at the same points the line passes through.
+            dayTops.forEachIndexed { index, point ->
+                val selected = dayKeys[index] == selectedKey
+                drawCircle(
+                    color = if (selected) primaryColor else primaryColor.copy(alpha = 0.55f),
+                    radius = (if (selected) 3.5.dp else 2.5.dp).toPx(),
+                    center = point
+                )
+            }
 
             // Bars
             dayKeys.forEachIndexed { index, key ->
                 val x = spacing + index * (barWidth + spacing)
                 val volume = dailyData[key] ?: 0.0
-                val barHeight = (volume / maxVolume).toFloat() * height * 0.6f
+                val barHeight = weeklyBarHeight(volume, maxVolume, height)
                 val cornerRadius = 4.dp.toPx()
                 val isSelected = key == selectedKey
                 
@@ -6146,6 +6264,30 @@ fun MuscleGroupFilterCollapsible(
                         .size(22.dp)
                         .weight(1f, fill = false)
                         .semantics { testTag = "muscle_filter_value" }
+                )
+                // THE CHOSEN MUSCLE, NAMED BESIDE ITS GLYPH. Owner, 2026-10-16: "if the user
+                // selects a certain muscle show that as a label next to the muscle group icon (on
+                // the right of the icon and left of the arrow, in between basically)".
+                //
+                // The 2026-10-13 change had put this word into the icon's content description
+                // instead of on the glass, to buy the row width at a large font scale. What that
+                // cost was the reading the owner actually makes: the glyph alone does not say
+                // which of the nineteen precise muscles is filtering, and "Any" has a word, so a
+                // chosen group looked like LESS information than no choice at all.
+                //
+                // `fill = false` keeps the glyph-label pair content-sized, so the Show more
+                // button still lands immediately after the text - the same closeness the owner
+                // asked for on 2026-10-13 - while the label's own maxLines/ellipsis means a long
+                // muscle name in a long language can never push that button off the row.
+                Text(
+                    text = translateMuscleGroup(selectedMuscleGroup),
+                    style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                    color = MaterialTheme.colorScheme.onSurfaceVariant,
+                    maxLines = 1,
+                    overflow = TextOverflow.Ellipsis,
+                    modifier = Modifier
+                        .weight(1f, fill = false)
+                        .semantics { testTag = "muscle_filter_value_label" }
                 )
             } else {
                 // ANY has no body part to draw, and a custom exercise's free-text group may have

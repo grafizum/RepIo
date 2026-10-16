@@ -71,6 +71,15 @@ data class WorkoutNowState(
     val restTimerSeconds: Int = 0,
     val isTimerActive: Boolean = false,
     val isExerciseTimerActive: Boolean = false,
+    /**
+     * True while the timed exercise's own clock is held.
+     *
+     * A PAUSED CLOCK IS NOT A RUNNING ONE and must not be read as one: the countdown is frozen at
+     * [restTimerSeconds], the stored end time is gone (so the alarm cannot fire and the background
+     * service cannot move anything), and the log button is live again - which is what makes "pause,
+     * then log" the way to finish early.
+     */
+    val isExerciseClockPaused: Boolean = false,
     val timerDayOfWeek: String? = null,
     val currentExerciseSeconds: Int = 30,
     val minExerciseSeconds: Int = 10,
@@ -796,6 +805,13 @@ class WorkoutViewModel(
         val now = currentTimeMillis()
         val remainingSecs = if (endTime > now) remainingRestSeconds(endTime, now) else 0
         val timerDay = prefs.getString("timer_day", null)
+        // A HELD CLOCK HAS NO DEADLINE, so it cannot be found by the arithmetic above - it is the
+        // stored "where the user stopped it" that has to bring it back, or a rebuild of this screen
+        // (process death, a rotation that outlives the view model, the app being killed while the
+        // clock was held) would silently start the user's set over. Its own flags say it was held
+        // rather than that it never ran.
+        val clockPaused = prefs.getBoolean("exercise_clock_paused", false) && remainingSecs <= 0
+        val pausedClockSeconds = prefs.getInt("exercise_clock_remaining", 0)
 
         return WorkoutNowState(
             selectedDayOfWeek = savedDay,
@@ -805,10 +821,11 @@ class WorkoutViewModel(
             currentReps = savedReps,
             currentExerciseSeconds = savedExSeconds,
             isWorkoutCompleted = savedIsCompleted,
-            restTimerSeconds = remainingSecs,
+            restTimerSeconds = if (remainingSecs > 0) remainingSecs else if (clockPaused) pausedClockSeconds else 0,
             isTimerActive = remainingSecs > 0,
-            isExerciseTimerActive = if (remainingSecs > 0) isExTimer else false,
-            timerDayOfWeek = if (remainingSecs > 0) timerDay else null,
+            isExerciseTimerActive = if (remainingSecs > 0) isExTimer else clockPaused,
+            isExerciseClockPaused = clockPaused,
+            timerDayOfWeek = if (remainingSecs > 0 || clockPaused) timerDay else null,
             totalSetsLoggedToday = savedTotalSetsLogged
         )
     }
@@ -1274,6 +1291,33 @@ class WorkoutViewModel(
     fun progressionDisplayLevel(exerciseName: String): Int? {
         val state = currentProgressionState(exerciseName) ?: return null
         return state.level
+    }
+
+    /**
+     * The level the USER has for this exercise, or null when none has been chosen yet.
+     *
+     * WHY THIS EXISTS BESIDE [progressionDisplayLevel]: that one also answers with the level the
+     * setup difficulty WOULD start the exercise at when nothing is stored, so every screen that
+     * printed it as "the level" showed a number the user never picked. Owner, 2026-10-16: *"It
+     * shows the setup default, not mine"* - and measured on his own device that day, 15 of the 23
+     * exercises he had actually trained carried no stored state at all, so each of them announced
+     * a level that would quietly move the moment he changed his setup difficulty.
+     *
+     * The difference is not cosmetic. A derived value is a PRESCRIPTION for the next session and
+     * has to stay one: a session still needs a rung to train at for an exercise nobody has
+     * levelled yet, which is why [progressionDisplayLevel] keeps its meaning. This read answers
+     * the other question - has the user actually chosen one - and it is the one a label wants.
+     * A caller that prints "New" for null is saying something true; a caller that prints a
+     * derived number as the user's own is not.
+     */
+    fun storedProgressionLevel(exerciseName: String): Int? {
+        if (!_levelSystemEnabled.value) return null
+        val entry = ProgressionEngine.entryFor(exerciseName) ?: return null
+        if (!ProgressionEngine.isProgressionReady(entry)) return null
+        val stored = ProgressionEngine.deserialize(prefs.getString(progressionKey(exerciseName), null))
+            ?: return null
+        // Same bound the writer uses - see [currentProgressionState].
+        return stored.level.coerceIn(1, progressionMaxLevel(exerciseName))
     }
 
     /**
@@ -2329,13 +2373,26 @@ class WorkoutViewModel(
             val isTimeBased = WorkoutTemplates.isExerciseTimeBased(currentExercise.name)
             if (!isTimeBased) {
                 prefs.putInt("cache_reps_${currentExercise.name}", currentState.currentReps)
+            } else {
+                prefs.putInt("cache_seconds_${currentExercise.name}", currentState.currentExerciseSeconds)
             }
-            
-            repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, currentState.currentReps)
+
+            // A TIMED EXERCISE'S SET IS LOGGED IN SECONDS, NOT IN REPS.
+            //
+            // The two numbers share one column - the history reads a timed row back as "15 s" - and
+            // the engine's own prescription for these exercises is a DURATION, so handing it the rep
+            // value would both store the wrong number and compare the wrong one against the stage's
+            // target. Before the clock was separated from the log button this could not come up:
+            // the timed path logged its own `seconds` at the moment the timer started. Now that the
+            // log button is the one that records the set (see [startExerciseClock]), it is this
+            // function that has to know which unit it is recording.
+            val loggedValue = if (isTimeBased) currentState.currentExerciseSeconds else currentState.currentReps
+
+            repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, loggedValue)
 
             // v5 progression: advance the level/stage state when the workout's
             // sets met the prescription. Never touches the logged row itself.
-            advanceProgressionIfNeeded(currentExercise, currentState.currentReps)
+            advanceProgressionIfNeeded(currentExercise, loggedValue)
 
             // A level-up changes an input of the overall level without changing the
             // logged history, and it lands in preferences after the set was
@@ -2484,22 +2541,15 @@ class WorkoutViewModel(
     private fun onRestTimerFinished() {
         if (prefs.getLong("timer_end_time_millis", 0L) > currentTimeMillis()) return
 
-        val state = _workoutNowState.value
-        if (state.isExerciseTimerActive) {
-            // A timed exercise: move the session on. advanceAfterTimer clears the finished
-            // timer and starts the next rest itself.
-            val timerDay = state.timerDayOfWeek ?: state.selectedDayOfWeek
-            val dayExercises = allRoutineExercises.value
-                .filter { it.dayOfWeek == timerDay }
-                .sortedBy { it.orderIndex }
-            if (dayExercises.isNotEmpty()) {
-                advanceAfterTimer(dayExercises)
-            } else {
-                stopTimer()
-            }
-        } else if (state.isTimerActive) {
-            stopTimer()
-        }
+        // A FINISHED CLOCK MOVES NOTHING ON BY ITSELF - neither a rest nor the timed exercise's own.
+        //
+        // The timed clock used to end the set for the user: the set was logged when the timer
+        // STARTED, and its expiry advanced to the next one. Owner, 2026-10-16: *"small
+        // start/stop/resume/restart by the clock, log button grey to themed"* - i.e. the clock is
+        // the WORK interval and the log button is what records the set, so a clock that ran out on
+        // its own must not consume a set. All this does is retire the countdown, which is exactly
+        // what re-enables (and re-themes) the log button underneath it.
+        if (_workoutNowState.value.isTimerActive) stopTimer()
     }
 
     /**
@@ -2517,85 +2567,81 @@ class WorkoutViewModel(
         prefs.putLong("timer_end_time_millis", 0L)
         prefs.putBoolean("is_exercise_timer", false)
         prefs.putBoolean("is_silent_timer", false)
+        prefs.putBoolean("exercise_clock_paused", false)
         prefs.remove("timer_day")
+        prefs.remove("exercise_clock_remaining")
         timerManager.cancelTimer()
-        _workoutNowState.update { it.copy(restTimerSeconds = 0, isTimerActive = false, isExerciseTimerActive = false, timerDayOfWeek = null) }
-    }
-
-    fun startExerciseTimerWithLog(exercises: List<RoutineExerciseEntity>, seconds: Int) {
-        if (exercises.isEmpty()) return
-        val currentState = _workoutNowState.value
-        val exerciseIndex = currentState.currentExerciseIndex.coerceIn(0, exercises.size - 1)
-        val currentExercise = exercises[exerciseIndex]
-        
-        // Save what the user performed to the per-exercise memory for next time
-        if (!WorkoutTemplates.isBodyweightExercise(currentExercise.name) || currentState.currentWeightKg > 0.0) {
-            prefs.putFloat("cache_weight_${currentExercise.name}", currentState.currentWeightKg.toFloat())
-        }
-        prefs.putInt("cache_seconds_${currentExercise.name}", seconds)
-
-        viewModelScope.launch {
-            repository.logSet(currentState.selectedDayOfWeek, currentExercise.name, currentExercise.muscleGroup, currentState.currentSetNumber, currentState.currentWeightKg, seconds)
-            
-            // Save current parameters back to template for next week
-            repository.saveExercise(currentExercise.copy(
-                targetWeightKg = currentState.currentWeightKg,
-                targetReps = "$seconds sec"
-            ))
-
-            _workoutNowState.update { it.copy(totalSetsLoggedToday = it.totalSetsLoggedToday + 1) }
-            startRestTimer(seconds, isExerciseTimer = true, silent = false)
-            saveWorkoutNowState(_workoutNowState.value)
+        _workoutNowState.update {
+            it.copy(
+                restTimerSeconds = 0,
+                isTimerActive = false,
+                isExerciseTimerActive = false,
+                isExerciseClockPaused = false,
+                timerDayOfWeek = null,
+            )
         }
     }
 
-    fun advanceAfterTimer(exercises: List<RoutineExerciseEntity>) {
-        if (exercises.isEmpty()) return
-        val timerDay = _workoutNowState.value.timerDayOfWeek ?: _workoutNowState.value.selectedDayOfWeek
-        stopTimer()
-        val viewedDay = _workoutNowState.value.selectedDayOfWeek
-        
-        // Advance the timer's own day progress (not the day the user happens to be viewing)
-        val progress = loadDayProgress(timerDay) ?: DaySessionProgress()
-        val exerciseIndex = progress.exerciseIndex.coerceIn(0, exercises.size - 1)
-        val currentExercise = exercises[exerciseIndex]
-        val nextSetNumber = progress.setNumber + 1
-        
-        var isTransition = false
-        val updated = if (nextSetNumber <= currentExercise.targetSets) {
-            progress.copy(setNumber = nextSetNumber)
-        } else {
-            val nextExerciseIndex = exerciseIndex + 1
-            if (nextExerciseIndex < exercises.size) {
-                isTransition = true
-                progress.copy(exerciseIndex = nextExerciseIndex, setNumber = 1)
-            } else {
-                progress.copy(completed = true)
-            }
-        }
-        prefs.putString(
-            "day_progress_$timerDay",
-            "${updated.exerciseIndex},${updated.setNumber},${updated.completed},${updated.totalSetsLogged},${startOfTodayMillis()}"
-        )
-        if (timerDay == viewedDay) {
-            _workoutNowState.update {
-                it.copy(
-                    currentExerciseIndex = updated.exerciseIndex,
-                    currentSetNumber = updated.setNumber,
-                    isWorkoutCompleted = updated.completed
-                )
-            }
-        }
-        
-        if (!updated.completed) {
-            if (isTransition) {
-                startRestTimer(currentExercise.transitionRestSeconds, day = timerDay)
-            } else {
-                startRestTimer(currentExercise.restSeconds, day = timerDay)
-            }
-        }
+    /**
+     * START THE CLOCK ON A TIMED EXERCISE'S WORK INTERVAL, WITHOUT LOGGING A SET.
+     *
+     * Owner, 2026-10-16: *"small start/stop/resume/restart by the clock, log button grey to
+     * themed"*. The clock and the log button were ONE control: the primary button read "START 45s
+     * TIMER & SAVE", logged the set the instant it was tapped and then counted the work interval,
+     * and while it ran the same button turned into a counter/skip. So the set was already recorded
+     * before the work was done, and the only way to "log" it was to have pressed the timer first.
+     *
+     * They are two things now - this starts the clock, the log button records the set - and the
+     * order the owner asked for is the order the screen shows: start, work, and the button goes
+     * from grey (running) to themed (the clock is idle or held) as the clock stops.
+     *
+     * The countdown is the app's own rest/deadline engine, deliberately: one stored end time, one
+     * alarm, one background service, one notification channel - so a work interval that outlives
+     * the screen behaves the same way a rest does, instead of being a second timer to keep honest.
+     * [isExerciseTimerActive] records that this deadline is the exercise's, [isExerciseClockPaused]
+     * that it is held.
+     */
+    fun startExerciseClock(seconds: Int) {
+        if (seconds <= 0) return
+        prefs.putBoolean("exercise_clock_paused", false)
+        prefs.remove("exercise_clock_remaining")
+        startRestTimer(seconds, isExerciseTimer = true, silent = false)
+        _workoutNowState.update { it.copy(isExerciseClockPaused = false) }
         saveWorkoutNowState(_workoutNowState.value)
     }
+
+    /**
+     * HOLD the clock where it is.
+     *
+     * The remaining seconds are stored, the deadline is cleared - so the alarm cannot fire and the
+     * service has nothing to report - and the state keeps the frozen countdown on screen. The log
+     * button comes back to life, which is the point: "pause, then log" is how a set that is already
+     * done gets recorded early.
+     */
+    fun pauseExerciseClock() {
+        val state = _workoutNowState.value
+        if (!state.isExerciseTimerActive || !state.isTimerActive) return
+        prefs.putInt("exercise_clock_remaining", state.restTimerSeconds)
+        prefs.putBoolean("exercise_clock_paused", true)
+        prefs.putLong("timer_end_time_millis", 0L)
+        prefs.putBoolean("is_exercise_timer", false)
+        timerManager.cancelTimer()
+        _workoutNowState.update { it.copy(isTimerActive = false, isExerciseClockPaused = true) }
+        saveWorkoutNowState(_workoutNowState.value)
+    }
+
+    /** Continue a held clock from the seconds it was held at. */
+    fun resumeExerciseClock() {
+        val remaining = prefs.getInt("exercise_clock_remaining", 0)
+        if (remaining <= 0) return
+        prefs.putBoolean("exercise_clock_paused", false)
+        startRestTimer(remaining, isExerciseTimer = true, silent = false)
+        _workoutNowState.update { it.copy(isExerciseClockPaused = false) }
+        saveWorkoutNowState(_workoutNowState.value)
+    }
+
+    /** Back to the full interval, running - the same clock, from the top. */
+    fun restartExerciseClock(seconds: Int) = startExerciseClock(seconds)
 
     fun deleteLoggedSet(id: Long) { viewModelScope.launch { repository.deleteLoggedSet(id) } }
     fun saveExercise(exercise: RoutineExerciseEntity) { viewModelScope.launch { repository.saveExercise(exercise) } }

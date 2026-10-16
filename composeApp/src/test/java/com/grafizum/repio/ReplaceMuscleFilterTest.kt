@@ -199,6 +199,10 @@ class ReplaceMuscleFilterTest {
         // and carries its translated name as the icon's description. The second assertion is the
         // one that fails if this ever goes back to being the word "Back" - a Text node has no
         // content description and a text payload, which is the exact opposite of both halves here.
+        //
+        // THE NAME IS NOW ALSO DRAWN, in its own node beside the glyph (owner, 2026-10-16), which
+        // is why that label carries a tag of its own: this slot is still the glyph, and only the
+        // glyph, so both readings coexist rather than one replacing the other.
         assertEquals(
             "the collapsed row's glyph does not name the muscle the list is filtered to",
             REPLACED_TOPIC, shownMuscle()
@@ -241,9 +245,17 @@ class ReplaceMuscleFilterTest {
         val density = composeTestRule.density.density
         fun box(tag: String) = chip(tag).fetchSemanticsNode().boundsInRoot
 
-        val value = box("muscle_filter_value")
+        // THE VALUE IS TWO NODES as of 2026-10-16: the glyph, and the chosen muscle NAMED beside
+        // it. Owner: *"show that as a label next to the muscle group icon (on the right of the
+        // icon and left of the arrow, in between basically)"*. So "right next to the value" is
+        // measured from the value's LAST element, which is now the label - and the distance from
+        // the glyph to that label is asserted below, because "on the right of the icon" is the
+        // other half of the same instruction.
+        val glyph = box("muscle_filter_value")
+        val label = box("muscle_filter_value_label")
         val muscleToggle = box("muscle_filter_toggle")
-        val muscleGap = (muscleToggle.left - value.right) / density
+        val muscleGap = (muscleToggle.left - label.right) / density
+        val glyphToLabel = (label.left - glyph.right) / density
 
         // The equipment row's own gap, from the kit glyph its filter opens on.
         val kitKey = WorkoutTemplates.getEquipmentForExercise(REPLACED)
@@ -261,6 +273,23 @@ class ReplaceMuscleFilterTest {
             "the muscle value and its toggle are ${"%.1f".format(muscleGap)}dp apart - the row " +
                 "has gone back to pushing the button to the far edge",
             muscleGap <= 12f
+        )
+        assertTrue(
+            "the muscle's name sits ${"%.1f".format(glyphToLabel)}dp from its glyph, so the label " +
+                "is not beside the icon it names",
+            glyphToLabel <= 12f
+        )
+
+        // ...and the label really says WHICH muscle, in words. A row that drew an empty text node
+        // beside the glyph would satisfy every distance above and tell the user nothing.
+        assertEquals(
+            "the collapsed row does not name the muscle it filters by, so the reading the owner " +
+                "asked for on 2026-10-16 is gone again",
+            REPLACED_TOPIC,
+            chip("muscle_filter_value_label").fetchSemanticsNode()
+                .config.getOrNull(SemanticsProperties.Text)
+                ?.joinToString("") { it.text }
+                .orEmpty()
         )
     }
 

@@ -126,9 +126,38 @@ object ExerciseEquipmentTags {
      */
     val GYM_EQUIPMENT_TAGS = listOf(
         DUMBBELLS_ONLY, BARBELL_AND_RACK, BARBELL_AND_FLOOR,
-        KETTLEBELL_ONLY, CABLE_MACHINE, MACHINE_OTHER,
+        KETTLEBELL_ONLY,
         // Moved out of HOME_EQUIPMENT_TAGS by the owner's 2026-10-13 ruling.
         BENCH, DIP_BARS, GYMNASTIC_RINGS,
+    )
+
+    /**
+     * The MACHINE ticks, drawn as their own group under the Gym tiles.
+     *
+     * Owner, 2026-10-16: *"per-machine ticks under the Machine group, cables folded in"*.
+     * ONE TILE USED TO STAND FOR NINE MACHINES. The Gym grid drew a single "Gym machines
+     * (press, leg press, pulldown…)" tile whose tick granted all eight stations plus
+     * [MACHINE_OTHER], so a user with a leg press and nothing else had exactly two answers: take
+     * the whole rack of machines they do not own, or take no machine at all - and the exercises
+     * the stations gate are ~45 rows either way. The tags were never the problem (they already
+     * gate different movements); the CONTROL was, which is the same shape as the eight stations
+     * behind one tile that the owner reported twice before.
+     *
+     * CABLES ARE FOLDED IN, not left standing beside the group: a cable stack IS a machine, so
+     * "do you have this?" is asked in one place instead of two, and [CABLE_MACHINE] sits first in
+     * the list because it is the machine most home-and-gym setups have. [MACHINE_OTHER] closes the
+     * list because it is the honest "a machine the list does not name" answer, not a piece of kit.
+     *
+     * A tick here is SINGLE-TAG, unlike the tiles above it - see [applyMachineTick] for why, and
+     * note that the older family semantics still hold for everything already stored: [tagsCoveredByTile]
+     * and [tagsGrantedByTicking] keep the whole family together so a persisted "Machines" selection
+     * from the old grid still reads, and still removes, as the nine machines it granted.
+     */
+    val MACHINE_EQUIPMENT_TAGS = listOf(
+        CABLE_MACHINE,
+        LEG_PRESS_MACHINE, LAT_PULLDOWN_MACHINE, SMITH_MACHINE,
+        LEG_EXTENSION_MACHINE, LEG_CURL_MACHINE, CHEST_PRESS_MACHINE, SEATED_ROW_MACHINE,
+        MACHINE_OTHER,
     )
 
     // ---------- PRESETS ----------
@@ -596,7 +625,32 @@ object ExerciseEquipmentTags {
     )
 
     /** Every tag the equipment tile grid can render, in grid order. */
-    val SELECTABLE_TAGS: List<String> = HOME_EQUIPMENT_TAGS + GYM_EQUIPMENT_TAGS
+    val SELECTABLE_TAGS: List<String> =
+        HOME_EQUIPMENT_TAGS + GYM_EQUIPMENT_TAGS + MACHINE_EQUIPMENT_TAGS
+
+    /**
+     * The selection after ONE tap on a machine tick.
+     *
+     * The tile grid's semantics are per FAMILY: tick "Machines" grants all nine (an old-grid
+     * selection), untick removes all nine. Both halves were built to fix the other's bug - the
+     * family grant so the ~45 station-gated rows were reachable, the family removal so a machine
+     * the user never meant to grant could be taken away - and the owner's ruling replaces the
+     * question rather than either answer: he now names the machines he owns, one tick each.
+     *
+     * So a tick here means exactly ONE tag, in both directions: unticking the leg press leaves the
+     * Smith machine alone, and ticking it grants the leg press and nothing beside it. The state
+     * model is the grid's own ([PRESET_CUSTOM, fineTag, …]) so this writes what every other tile
+     * writes, and a tick while a preset is active carries that preset's tags into Custom first -
+     * the same move [FirstTimeSetupScreen]'s tile toggle makes, for the same reason (a preset is a
+     * starting point, not a lock).
+     */
+    fun applyMachineTick(selection: List<String>, tag: String): List<String> {
+        val activePreset = selection.firstOrNull { isPreset(it) && it != PRESET_CUSTOM }
+        val base = (if (activePreset != null) presetTags(activePreset) else allowedTagsFor(selection))
+            .toMutableSet()
+        if (!base.remove(tag)) base.add(tag)
+        return listOf(PRESET_CUSTOM) + base.sortedBy { ALL_TAGS.indexOf(it) }
+    }
 
     /**
      * Everything a tile stands for, tile included.

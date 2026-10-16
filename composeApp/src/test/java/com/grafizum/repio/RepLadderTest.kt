@@ -72,11 +72,34 @@ class RepLadderTest {
 
     /** And the concrete case the owner named, so a regression cannot hide in the general case. */
     @Test
-    fun crunchesStartsAtLevelOneWithLevelOnesOwnReps() {
+    fun crunchesStartsOnTheRampRungItsDifficultyNames() {
         val p = ProgressionEngine.startingPrescription("Crunches", ProgressionEngine.Difficulty.MEDIUM)!!
-        assertEquals(1, p.level)
-        assertEquals(ProgressionEngine.prescribedReps(crunches, 1, 1), p.reps)
+        // The RAMP, not level 1: see ProgressionEngine.coachReviewedStartLevel. The reps are the
+        // honest constant here and are unchanged from before the ramp - a MEDIUM user still opens on
+        // 8, which is what these rows have always prescribed; the ramp put three rungs underneath
+        // that number, so the LEVEL moved while the WORK did not.
+        assertEquals(3, p.level)
+        assertEquals(ProgressionEngine.prescribedReps(crunches, p.level, 1), p.reps)
         assertEquals(8, p.reps.max())
+        // And the whole point of the ramp: the ladder has somewhere to climb from.
+        assertEquals(1, ProgressionEngine.repsAtLevel(crunches, 1))
+        assertTrue(
+            "a fresh user must be able to progress DOWN the ramp as well as up it",
+            ProgressionEngine.repsAtLevel(crunches, 1) < ProgressionEngine.repsAtLevel(crunches, 2)
+        )
+    }
+
+    /** The three difficulties open on three different rungs of the same ramp. */
+    @Test
+    fun theDifficultiesOpenOnDifferentRungsOfTheRamp() {
+        val easy = ProgressionEngine.startingPrescription("Crunches", ProgressionEngine.Difficulty.EASY)!!
+        val medium = ProgressionEngine.startingPrescription("Crunches", ProgressionEngine.Difficulty.MEDIUM)!!
+        val hard = ProgressionEngine.startingPrescription("Crunches", ProgressionEngine.Difficulty.HARD)!!
+        assertEquals(4, easy.reps.max())
+        assertEquals(8, medium.reps.max())
+        assertEquals(12, hard.reps.max())
+        assertTrue("the three starts must climb", easy.level < medium.level)
+        assertTrue("the three starts must climb", medium.level < hard.level)
     }
 
     /**
@@ -128,8 +151,16 @@ class RepLadderTest {
         assertTrue("a rep ladder must not step by a single rep", step >= 2)
         val maxLevel = ProgressionEngine.effectiveMaxLevel(crunches)
         val rungs = ProgressionEngine.repRungs(crunches)
+        val ramp = ProgressionEngine.repRamp(crunches)
         for (level in 1..maxLevel) {
-            val expected = (floor + step * (level - 1)).coerceIn(floor, top)
+            // THE OPENING RUNGS ARE THE RAMP, not a step: the owner's 2026-10-16 floor ruling makes
+            // the first rungs 1 / 4 / 8 / 12, and those are four reps apart by design. Every rung
+            // ABOVE the ramp still walks one step at a time, which is the rule this case exists for.
+            val expected = if (level <= ramp.size) {
+                ramp[level - 1]
+            } else {
+                (ramp.last() + step * (level - ramp.size)).coerceIn(ramp.last(), top)
+            }
             assertEquals(
                 "level $level should ask $expected reps",
                 expected,
@@ -141,11 +172,11 @@ class RepLadderTest {
                 ProgressionEngine.prescribedReps(crunches, level, 1)!!.first()
             )
             // Every rung but the last is an exact step - the clamp belongs to
-            // the top of the ladder and nowhere else.
-            if (level < rungs) {
+            // the top of the ladder and nowhere else. Above the ramp, where the step rule lives.
+            if (level < rungs && level > ramp.size) {
                 assertEquals(
                     "level $level of $rungs should be an unclamped step",
-                    floor + step * (level - 1),
+                    ramp.last() + step * (level - ramp.size),
                     ProgressionEngine.repsAtLevel(crunches, level)
                 )
             }
@@ -156,8 +187,15 @@ class RepLadderTest {
             top,
             ProgressionEngine.repsAtLevel(crunches, rungs)
         )
-        // And level 1 is never a single rep.
-        assertTrue(ProgressionEngine.repsAtLevel(crunches, 1) >= 8)
+        // AND LEVEL 1 IS ONE REP, which is the owner's 2026-10-16 floor ruling and the direct
+        // reversal of the 2026-10-03 one this case used to hold ("level 1 doesnt start at rep 1
+        // since 1 rep is basically nothing" - quoted in full in RepProgressionOfferTest). The ramp
+        // is what replaced it: 1 -> 4 -> 8 -> 12, so the ladder still passes through 8 and 12 on the
+        // way up, and the rungs above 12 still step by the row's own step.
+        assertEquals(1, ProgressionEngine.repsAtLevel(crunches, 1))
+        assertEquals(4, ProgressionEngine.repsAtLevel(crunches, 2))
+        assertEquals(8, ProgressionEngine.repsAtLevel(crunches, 3))
+        assertEquals(12, ProgressionEngine.repsAtLevel(crunches, 4))
     }
 
     /** Every rep-progressed row's reps rise monotonically, not just Crunches. */

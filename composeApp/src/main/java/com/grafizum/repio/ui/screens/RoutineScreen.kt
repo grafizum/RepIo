@@ -796,6 +796,19 @@ fun WorkoutScreen(
                                 onSaveVideoUrl = { newUrl ->
                                     viewModel.saveExercise(exercise.copy(videoUrl = newUrl))
                                 },
+                                // THE LEVEL THIS ROW IS WORKED AT. Owner, 2026-10-16: the row
+                                // showed the reps range instead, which is the plan the level
+                                // system then overrides.
+                                //
+                                // The level is read from the STORED state and nothing else:
+                                // [WorkoutViewModel.storedProgressionLevel] answers null for an
+                                // exercise that has never been levelled, and the row then says
+                                // "New". That is deliberate - the derived value the system uses
+                                // to prescribe a first session is not a choice the user made, and
+                                // printing it as one is the "it shows the setup default, not
+                                // mine" report.
+                                levelManaged = viewModel.isExerciseLevelManaged(exercise.name),
+                                level = viewModel.storedProgressionLevel(exercise.name),
                                 modifier = (if (isDragging) {
                                     Modifier.graphicsLayer {
                                         translationY = dragOffsetY

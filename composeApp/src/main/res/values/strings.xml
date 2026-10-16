@@ -117,6 +117,18 @@
         <item quantity="one">%1$d set × %2$s</item>
         <item quantity="other">%1$d sets × %2$s</item>
     </plurals>
+    <!-- The routine row's planned exercise: the SETS still lead, and what follows is the LEVEL
+         instead of the reps range. Owner, 2026-10-16: "In the exervises edit tab i want to see
+         levels of the exercise instead of the reps range". A level the user has not chosen yet is
+         not a number - see [level_new] - so the two cannot be confused. -->
+    <plurals name="sets_x_level_pl" tools:ignore="UnusedResources">
+        <item quantity="one">%1$d set × %2$s</item>
+        <item quantity="other">%1$d sets × %2$s</item>
+    </plurals>
+    <!-- No level selected yet for this exercise. The row says this instead of printing the level
+         the setup difficulty WOULD start it at, which the owner read as "it shows the setup
+         default, not mine" (2026-10-16). -->
+    <string name="level_new">New</string>
     <string name="target_time">Target Time</string>
 
     <string name="app_settings">App Settings</string>
@@ -312,6 +324,9 @@
     <string name="rest_timer">SET REST</string>
     <string name="intensity_label">Difficulty</string>
     <string name="rest_timer_label">Rest Time</string>
+    <string name="exercise_timer_label">TIMED SET</string>
+    <string name="pause_timer">Pause</string>
+    <string name="resume_timer">Resume</string>
     <string name="exercise_transition_label">NEXT EXERCISE IN</string>
     <string name="seconds_remaining">%1$ds remaining</string>
     <string name="next_up">NEXT UP</string>
@@ -667,6 +682,10 @@
     <string name="equipment_tag_kettlebell">Kettlebell</string>
     <string name="equipment_tag_cable">Cables</string>
     <string name="equipment_tag_machines">Machines</string>
+    <!-- The MACHINE group's own "a machine the list does not name" tile. It cannot keep reading
+         "Machines": the group it now sits in is already titled that, so the caption named the
+         section it is inside instead of the kit it stands for. -->
+    <string name="equipment_tag_other_machine">Other machine</string>
     <!-- Selectorized stations. They are not selectable tiles (only "Machines"
          is), but a full-gym kit stores every one of them, so they each need a
          readable label wherever a stored tag is shown back to the user. -->

@@ -61,18 +61,27 @@ class LevelGuideStageDisplayTest {
      * The guide's illustrative pair, against the engine.
      *
      * Glute Bridge is the representative row: it carries the standard three-set pattern
-     * (8/8/8 climbing to 12/12/12) that every example in the guide quotes, and it is
-     * rep-progressed at level 1 exactly as the pattern reads.
+     * (8/8/8 climbing to 12/12/12) that every example in the guide quotes.
+     *
+     * READ AT THE RUNG A MEDIUM USER STARTS ON, not at level 1. The guide teaches the stage mechanic
+     * with the numbers a user actually sees, and since the owner's 2026-10-16 rep-floor ruling the
+     * bodyweight ladders open on a warm-up ramp (1/4/8/12) - so level 1 IS one rep per set now, and
+     * a guide built on it would teach "I 1/1/1 -> IV 1/1/1". The MEDIUM start is the same eight reps
+     * this card has always shown (the ramp put three rungs underneath the number that used to be
+     * level 1), so the card's pixels do not move; only the rung it is derived from does.
      */
     @Test
     fun theExamplesRowsAreTheEnginesOwnFirstTwoRoundedStages() {
         val entry = ProgressionEngine.entryFor("Glute Bridge")!!
+        val level = ProgressionEngine.startingPrescription(
+            "Glute Bridge", ProgressionEngine.Difficulty.MEDIUM
+        )!!.level
         val stages = ProgressionEngine.patternLength(entry)
         val all = (1..stages).map { stage ->
             EditorLevelStage(
                 stage = stage,
                 roman = ProgressionEngine.stageName(stage),
-                reps = ProgressionEngine.prescribedReps(entry, 1, stage).orEmpty()
+                reps = ProgressionEngine.prescribedReps(entry, level, stage).orEmpty()
             )
         }
         val shown = roundedStages(all)
@@ -89,7 +98,7 @@ class LevelGuideStageDisplayTest {
         )
         // The raw neighbours really are mixed - otherwise this test would be pinning a
         // distinction that does not exist.
-        val rawSecond = ProgressionEngine.prescribedReps(entry, 1, 2).orEmpty()
+        val rawSecond = ProgressionEngine.prescribedReps(entry, level, 2).orEmpty()
         assertEquals(
             "stage II is a mixed row (${rawSecond.joinToString("/")}), which is why it is not shown",
             2,

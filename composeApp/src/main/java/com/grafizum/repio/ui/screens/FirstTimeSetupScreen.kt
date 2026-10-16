@@ -1678,6 +1678,27 @@ private fun EquipmentFilterBlock(
             isChecked = { tag -> presetGranted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tag) } },
             onToggle = { tag -> toggleTag(tag) }
         )
+
+        // ---- THE MACHINES GROUP ----
+        // Owner, 2026-10-16: *"per-machine ticks under the Machine group, cables folded in"*.
+        //
+        // Nine machines, nine ticks. The single "Gym machines (press, leg press, pulldown…)" tile
+        // above is gone, so "do you have this?" is asked about the machine the user actually has -
+        // and the cable stack, which IS a machine, is asked here rather than in a second group of
+        // its own beside this one.
+        //
+        // A tick is EXACTLY its own tag, unlike every tile above it: those are families (tick
+        // "Machines" used to grant all nine, untick removed all nine), which is how one control
+        // came to mean "I have every machine" or "I have none". Here a tick grants that machine
+        // and an untick takes that machine, leaving the rest of the kit alone.
+        EquipmentTileSection(
+            title = getString("equipment_tag_machines"),
+            tags = ExerciseEquipmentTags.MACHINE_EQUIPMENT_TAGS,
+            isChecked = { tag -> tag in presetGranted },
+            onToggle = { tag ->
+                onEquipmentChange(ExerciseEquipmentTags.applyMachineTick(selectedEquipment, tag))
+            }
+        )
     }
 }
 

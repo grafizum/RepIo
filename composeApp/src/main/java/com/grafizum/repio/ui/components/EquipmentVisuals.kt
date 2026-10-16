@@ -152,7 +152,9 @@ fun equipmentTagShortLabelKey(tag: String): String = when (tag) {
     ExerciseEquipmentTags.BARBELL_AND_FLOOR -> "equipment_tag_barbell"
     ExerciseEquipmentTags.KETTLEBELL_ONLY -> "equipment_tag_kettlebell"
     ExerciseEquipmentTags.CABLE_MACHINE -> "equipment_tag_cable"
-    ExerciseEquipmentTags.MACHINE_OTHER -> "equipment_tag_machines"
+    // NOT "equipment_tag_machines": that is the group's own title now, and a tile captioned with
+    // the heading it sits under names the section instead of the kit.
+    ExerciseEquipmentTags.MACHINE_OTHER -> "equipment_tag_other_machine"
     // Selectorized stations: not selectable tiles of their own, but a full-gym
     // kit stores all eight, and a stored tag shown back to the user as the
     // generic "Equipment" chip told the owner nothing about the seven machines

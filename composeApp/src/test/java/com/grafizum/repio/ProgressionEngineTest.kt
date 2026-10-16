@@ -235,21 +235,44 @@ class ProgressionEngineTest {
     // --- Data-error contract ---------------------------------------------------
 
     @Test
-    fun coachReviewRowsParticipateButStartAtLevelOne() {
+    fun coachReviewRowsParticipateAndStartOnTheRamp() {
         // The v5 CSV flags the push-up variation ladder for coach review — its
         // note says only that the ladder ORDERING is heuristic. The owner asked
         // why push-ups had no levels at all, so these rows now participate;
-        // only the CSV's guessed Easy/Medium/Hard start rungs are distrusted:
-        // every difficulty starts at Level 1 (the easiest variation).
+        // only the CSV's guessed Easy/Medium/Hard start rungs are distrusted.
+        //
+        // What replaced "every difficulty starts at Level 1": the RAMP RUNG the difficulty names
+        // (Easy 4, Medium 8, Hard 12). Level 1 was the safe answer while level 1 WAS eight reps;
+        // since the owner's 2026-10-16 floor ruling it is ONE rep, so that rule would have handed
+        // every beginner a one-rep prescription on every bodyweight movement. See
+        // [ProgressionEngine.coachReviewedStartLevel].
         val entry = entry("Push-Up")
         assertTrue(entry.requiresCoachReview)
         assertTrue(ProgressionEngine.isProgressionReady(entry))
         assertTrue(ProgressionEngine.isCoachReviewed(entry))
 
-        for (difficulty in ProgressionEngine.Difficulty.entries) {
+        val opensOn = ProgressionEngine.Difficulty.entries.associateWith { difficulty ->
             val rx = ProgressionEngine.startingPrescription("Push-Up", difficulty)
             assertNotNull(rx)
-            assertEquals("a coach-reviewed row must start at level 1", 1, rx!!.level)
+            rx!!.reps.max()
+        }
+        assertEquals(
+            "the three difficulties must open on the ramp's own three working rungs",
+            mapOf(
+                ProgressionEngine.Difficulty.EASY to 4,
+                ProgressionEngine.Difficulty.MEDIUM to 8,
+                ProgressionEngine.Difficulty.HARD to 12,
+            ),
+            opensOn
+        )
+        // ...and none of them lands on the ramp's warm-up rung, which is what a fresh user would have
+        // been given by the old rule.
+        for (difficulty in ProgressionEngine.Difficulty.entries) {
+            val rx = ProgressionEngine.startingPrescription("Push-Up", difficulty)!!
+            assertTrue(
+                "$difficulty starts on ${rx.reps}, which is the ramp's warm-up rather than work",
+                rx.reps.max() > ProgressionEngine.repsAtLevel(entry, 1)
+            )
         }
 
         // And the ladder itself climbs like any other exercise's.

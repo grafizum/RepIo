@@ -495,7 +495,17 @@ fun WorkoutNowScreen(
 
                                     if (targetDay == today) {
                                         Button(
-                                            onClick = { viewModel.resetWorkoutSession() },
+                                            // ASK FIRST. This button is the one tap that DELETES
+                                            // today's log ([WorkoutViewModel.resetWorkoutSession]
+                                            // calls repository.deleteTodayLogs), and it used to do
+                                            // it on the spot - the in-session restart beside the
+                                            // progress row has opened the confirmation since it
+                                            // was added, so a finished workout was the easier
+                                            // one to wipe by accident. Owner, 2026-10-16: "Ask for
+                                            // confirmation if the user wants to restart the
+                                            // workout". The dialog's confirm button is now the
+                                            // only caller of the reset on this screen.
+                                            onClick = { showRestartDialog = true },
                                             colors = workoutActionButtonColors(),
                                             shape = RoundedCornerShape(16.dp),
                                             modifier = Modifier.fillMaxWidth()
@@ -701,6 +711,14 @@ fun WorkoutNowScreen(
                             val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
                             val isExTimer = workoutState.isExerciseTimerActive
                             val isTimerForThisDay = isTimerActive && targetDay == workoutState.timerDayOfWeek
+                            // The timed exercise's own clock, in its two live states: RUNNING
+                            // (deadline stored, alarm armed) and HELD (frozen by the user - see
+                            // [WorkoutViewModel.pauseExerciseClock]). The idle state is not here:
+                            // it is the else-branch below, and it is why the start control can sit
+                            // in the same place as the countdown it starts.
+                            val clockRunning = isExTimer && isTimerForThisDay
+                            val clockHeld = workoutState.isExerciseClockPaused &&
+                                targetDay == workoutState.timerDayOfWeek
 
                             if (isTimerForThisDay && !isExTimer) {
                                 // Running Rest Timer Card (Only for Rest)
@@ -813,6 +831,107 @@ fun WorkoutNowScreen(
                                                 Icon(
                                                     imageVector = Icons.Default.SkipNext,
                                                     contentDescription = "Skip Timer",
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+                                    }
+                                }
+                            } else if (targetDay == today && isTimeBased) {
+                                // THE TIMED EXERCISE'S OWN CLOCK - START, HOLD, RESUME, RESTART.
+                                //
+                                // Owner, 2026-10-16: *"small start/stop/resume/restart by the
+                                // clock, log button grey to themed"*. Until now this card existed
+                                // only for RESTS. The exercise's own interval was started by the
+                                // big bottom button - "START 45s TIMER &amp; SAVE", which logged the
+                                // set on the tap - and while it ran that same button turned into a
+                                // counter/skip, so the set was on record before the work was done,
+                                // the clock had no controls of its own, and the one button in the
+                                // column meant two different things depending on the clock.
+                                //
+                                // It lives here now, under the exercise card, where the user
+                                // watches the seconds: one control that starts, holds and resumes
+                                // (its icon says which), and one that puts the clock back to the
+                                // full interval. Nothing about logging happens on this card - that
+                                // is the bottom button's whole job again.
+                                val clockSeconds = if (clockRunning || clockHeld) {
+                                    workoutState.restTimerSeconds
+                                } else {
+                                    workoutState.currentExerciseSeconds
+                                }
+                                Card(
+                                    shape = RoundedCornerShape(20.dp),
+                                    colors = CardDefaults.cardColors(
+                                        containerColor = MaterialTheme.colorScheme.surfaceVariant,
+                                        contentColor = MaterialTheme.colorScheme.primary
+                                    ),
+                                    border = BorderStroke(1.dp, workoutCardRim(MaterialTheme.colorScheme, LocalLightTheme.current)),
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Row(
+                                        verticalAlignment = Alignment.CenterVertically,
+                                        horizontalArrangement = Arrangement.SpaceBetween,
+                                        modifier = Modifier.padding(16.dp)
+                                    ) {
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            Icon(
+                                                imageVector = Icons.Default.Timer,
+                                                contentDescription = null,
+                                                tint = MaterialTheme.colorScheme.primary
+                                            )
+                                            Spacer(modifier = Modifier.width(8.dp))
+                                            Column {
+                                                Text(
+                                                    text = getString("exercise_timer_label"),
+                                                    style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.8f)
+                                                )
+                                                Text(
+                                                    text = "${clockSeconds}s",
+                                                    style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
+                                                    color = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                        }
+
+                                        Row(verticalAlignment = Alignment.CenterVertically) {
+                                            // ONE CONTROL, THREE STATES: play starts an idle clock,
+                                            // pause holds a running one, play resumes a held one -
+                                            // the icon and its spoken name are the whole difference.
+                                            IconButton(
+                                                onClick = {
+                                                    when {
+                                                        clockRunning -> viewModel.pauseExerciseClock()
+                                                        clockHeld -> viewModel.resumeExerciseClock()
+                                                        else -> viewModel.startExerciseClock(
+                                                            workoutState.currentExerciseSeconds
+                                                        )
+                                                    }
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = if (clockRunning) Icons.Default.Pause else Icons.Default.PlayArrow,
+                                                    contentDescription = when {
+                                                        clockRunning -> getString("pause_timer")
+                                                        clockHeld -> getString("resume_timer")
+                                                        else -> getString("start")
+                                                    },
+                                                    tint = MaterialTheme.colorScheme.primary
+                                                )
+                                            }
+                                            // RESTART is its own button at every state: the clock is
+                                            // the interval the user is about to hold, so "from the
+                                            // top" cannot be hidden behind a long press.
+                                            IconButton(
+                                                onClick = {
+                                                    viewModel.restartExerciseClock(
+                                                        workoutState.currentExerciseSeconds
+                                                    )
+                                                }
+                                            ) {
+                                                Icon(
+                                                    imageVector = Icons.Default.Refresh,
+                                                    contentDescription = getString("restart"),
                                                     tint = MaterialTheme.colorScheme.primary
                                                 )
                                             }
@@ -1088,65 +1207,44 @@ fun WorkoutNowScreen(
                         // PRIMARY ACTION (PINNED AT BOTTOM)
                         val isSelectedDayToday = targetDay == today
                         val isTimerActive = workoutState.isTimerActive && workoutState.restTimerSeconds > 0
-                        val isExTimerRunning = isTimerActive && workoutState.isExerciseTimerActive && targetDay == workoutState.timerDayOfWeek
-                        
+                        val isClockRunning = isTimerActive && workoutState.isExerciseTimerActive &&
+                            targetDay == workoutState.timerDayOfWeek
+
                         if (isSelectedDayToday) {
                             Spacer(modifier = Modifier.height(16.dp))
-                            if (isExTimerRunning) {
-                                // COUNTER / SKIP BUTTON (Full Width)
-                                Button(
-                                    onClick = { viewModel.advanceAfterTimer(dayExercises) },
-                                    colors = workoutActionButtonColors(),
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = null,
-                                    modifier = Modifier.fillMaxWidth().height(52.dp)
+                            // THE LOG BUTTON: GREY WHILE THE CLOCK RUNS, THEMED WHEN IT STOPS.
+                            //
+                            // Owner, 2026-10-16: *"log button grey to themed"*. It used to be
+                            // whatever the clock needed: "START 45s TIMER &amp; SAVE" while the clock
+                            // was idle (and it LOGGED the set on that tap), then a counter/skip
+                            // while it ran. So the big button in the column changed meaning with
+                            // the clock, and on a timed exercise the set was recorded before the
+                            // work was done. It says one thing now - log the set - and its state
+                            // says the other: held back (grey, disabled) for exactly as long as the
+                            // work interval is running, and themed the moment the clock stops or
+                            // the user holds it.
+                            //
+                            // Both kinds of exercise log through the SAME call, which is what makes
+                            // a timed set record its seconds rather than a rep count - see
+                            // [WorkoutViewModel.logCurrentSetAndAdvance].
+                            Button(
+                                onClick = { viewModel.logCurrentSetAndAdvance(dayExercises) },
+                                enabled = logSetEnabled(clockRunning = isClockRunning),
+                                colors = workoutActionButtonColors(),
+                                shape = RoundedCornerShape(20.dp),
+                                border = null,
+                                modifier = Modifier.fillMaxWidth().height(52.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.Center
                                 ) {
-                                    Row(verticalAlignment = Alignment.CenterVertically) {
-                                        Icon(imageVector = Icons.Default.Timer, contentDescription = null, modifier = Modifier.size(20.dp))
-                                        Spacer(modifier = Modifier.width(10.dp))
-                                        Text(
-                                            text = "${workoutState.restTimerSeconds}s",
-                                            style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.ExtraBold)
-                                        )
-                                        Spacer(modifier = Modifier.width(8.dp))
-                                        Text(
-                                            text = "(${getString("skip")})",
-                                            style = MaterialTheme.typography.labelSmall
-                                        )
-                                    }
-                                }
-                            } else {
-                                Button(
-                                    onClick = { 
-                                        if (isTimeBased) {
-                                            viewModel.startExerciseTimerWithLog(dayExercises, workoutState.currentExerciseSeconds)
-                                        } else {
-                                            viewModel.logCurrentSetAndAdvance(dayExercises) 
-                                        }
-                                    },
-                                    colors = workoutActionButtonColors(),
-                                    shape = RoundedCornerShape(20.dp),
-                                    border = null,
-                                    modifier = Modifier.fillMaxWidth().height(52.dp)
-                                ) {
-                                    Row(
-                                        verticalAlignment = Alignment.CenterVertically,
-                                        horizontalArrangement = Arrangement.Center
-                                    ) {
-                                        val icon = if (isTimeBased) Icons.Default.Timer else Icons.Default.CheckCircle
-                                        val text = if (isTimeBased) {
-                                            getString("start_timer_x_and_log", workoutState.currentExerciseSeconds)
-                                        } else {
-                                            getString("log_set_x_next", workoutState.currentSetNumber)
-                                        }
-
-                                        Icon(imageVector = icon, contentDescription = null, modifier = Modifier.size(22.dp))
-                                        Spacer(modifier = Modifier.width(window.headerIconSpacing / 2))
-                                        Text(
-                                            text = text,
-                                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
-                                        )
-                                    }
+                                    Icon(imageVector = Icons.Default.CheckCircle, contentDescription = null, modifier = Modifier.size(22.dp))
+                                    Spacer(modifier = Modifier.width(window.headerIconSpacing / 2))
+                                    Text(
+                                        text = getString("log_set_x_next", workoutState.currentSetNumber),
+                                        style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.ExtraBold)
+                                    )
                                 }
                             }
                         } else {
@@ -2149,7 +2247,19 @@ private const val ACTION_LABEL_MIN_CONTRAST = 4.5f
  * solid slab got there: seven independent `ButtonDefaults.buttonColors(primary, onPrimary)` blocks
  * cannot be softened together, and a new button added tomorrow would inherit the glare by default.
  * One door, and the appearance flags are read from the composition the way the theme provides them.
+ *//**
+ * WHETHER THE LOG BUTTON IS LIVE, from the one input that decides it: is the timed exercise's work
+ * clock running?
+ *
+ * Owner, 2026-10-16: *"log button grey to themed"*. It is a named function rather than an inline
+ * `!isClockRunning` because it IS the contract of the timed-exercise flow, and a contract worth
+ * pinning: the set cannot be logged while the clock that measures it is still counting, and the
+ * button has to be back the moment the clock stops - INCLUDING a clock the user held, since
+ * "pause, then log" is how a set finished early gets recorded. Every other state of the screen -
+ * a rest timer, an idle clock, a rep-based exercise, any day that is not today - enables it.
  */
+internal fun logSetEnabled(clockRunning: Boolean): Boolean = !clockRunning
+
 @Composable
 internal fun workoutActionButtonColors(): ButtonColors = ButtonDefaults.buttonColors(
     containerColor = workoutActionFill(

@@ -109,6 +109,11 @@
         <item quantity="one">%1$d Satz × %2$s</item>
         <item quantity="other">%1$d Sätze × %2$s</item>
     </plurals>
+    <plurals name="sets_x_level_pl">
+        <item quantity="one">%1$d Satz × %2$s</item>
+        <item quantity="other">%1$d Sätze × %2$s</item>
+    </plurals>
+    <string name="level_new">Neu</string>
     <string name="target_time">Zielzeit</string>
 
     <string name="app_settings">App-Einstellungen</string>
@@ -297,6 +302,9 @@
     <string name="rest_timer">PAUSE</string>
     <string name="intensity_label">Schwierigkeit</string>
     <string name="rest_timer_label">Pausenzeit</string>
+    <string name="exercise_timer_label">ZEITSATZ</string>
+    <string name="pause_timer">Pausieren</string>
+    <string name="resume_timer">Fortsetzen</string>
     <string name="exercise_transition_label">NÄCHSTE ÜBUNG IN</string>
     <string name="seconds_remaining">%1$ds verbleibend</string>
     <string name="next_up">NÄCHSTE ÜBUNG</string>
@@ -649,6 +657,7 @@
     <string name="equipment_tag_kettlebell">Kettlebell</string>
     <string name="equipment_tag_cable">Kabel</string>
     <string name="equipment_tag_machines">Maschinen</string>
+    <string name="equipment_tag_other_machine">Andere Maschine</string>
     <string name="equipment_tag_leg_press">Beinpresse</string>
     <string name="equipment_tag_lat_pulldown">Latzugmaschine</string>
     <string name="equipment_tag_smith">Smith-Maschine</string>
