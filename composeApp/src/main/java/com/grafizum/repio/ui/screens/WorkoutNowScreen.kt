@@ -2830,26 +2830,34 @@ internal fun LevelPrescriptionCard(
                                         maxLines = 1
                                     )
                                     if (cardBody != LevelCardBody.BANNER_DURATION) {
+                                        // ONE RUN OF WORDS: "12 reps each arm".
+                                        //
+                                        // WHOSE reps they are is part of the SAME
+                                        // label as the unit - a one-arm row's 8 means
+                                        // 8 per arm, and the banner is the surface
+                                        // read mid-set (owner, 2026-10-13: "define
+                                        // that its 8 reps on each arm"). It used to be
+                                        // a second Text one type step smaller, so the
+                                        // trio read as three different labels and
+                                        // "each arm" sat on its own baseline
+                                        // (owner, 2026-10-31: "The '12 reps each arm'
+                                        // is not the same alignment / size / label
+                                        // style"). Joining it to the unit makes the
+                                        // words one style by construction, so no
+                                        // future edit can split them again.
+                                        val perSide = WorkoutTemplates
+                                            .perSideLabelKey(exerciseName)
+                                            ?.let { " " + getString(it) }
+                                            .orEmpty()
                                         Text(
-                                            text = " " + getString(ProgressionEngine.repUnitKeyFor(exerciseName)),
+                                            text = " " +
+                                                getString(ProgressionEngine.repUnitKeyFor(exerciseName)) +
+                                                perSide,
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
                                             modifier = Modifier.padding(bottom = 3.dp)
                                         )
-                                        // WHOSE reps they are: a one-arm row's 8
-                                        // means 8 per arm, and the banner is the
-                                        // surface read mid-set (owner, 2026-10-13:
-                                        // "define that its 8 reps on each arm").
-                                        WorkoutTemplates.perSideLabelKey(exerciseName)?.let { key ->
-                                            Text(
-                                                text = " " + getString(key),
-                                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                                maxLines = 1,
-                                                modifier = Modifier.padding(bottom = 6.dp)
-                                            )
-                                        }
                                     }
                                 }
                             }

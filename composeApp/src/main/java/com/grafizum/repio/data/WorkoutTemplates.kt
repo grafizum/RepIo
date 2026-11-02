@@ -2117,34 +2117,43 @@ object WorkoutTemplates {
                     val eligible = pool.filter { isBeginnerBuildEligible(it) }
                     if (eligible.isNotEmpty()) pool = eligible
                 }
-                // Rank: pinned (included) exercises first, then the slot's role
-                // — compound leads slots 1-2, isolation closes the last two —
-                // with popularity order as the stable tiebreaker underneath.
-                val ranked = pool.sortedWith(
-                    compareBy(
-                        // 1. The user's own picks lead.
-                        { name: String -> if (name.lowercase() in includedKeys) 0 else 1 },
-                        // 2. The slot's role: compound leads slots 1-2, isolation
-                        // closes the last two.
-                        { name: String ->
-                            val compound = ExerciseCatalog.entryFor(name)?.level == "compound"
-                            when {
-                                slotIndex < 2 -> if (compound) 0 else 1
-                                slots.size > 2 && slotIndex >= slots.size - 2 -> if (compound) 1 else 0
-                                else -> 0
-                            }
-                        },
-                        // 3. WHICH GEAR THE CANDIDATE USES, so a kit that has both a
-                        // bell and a floor gets the bell for this job (see
-                        // [equipmentEffectivenessRank]).
-                        { name: String -> equipmentEffectivenessRank(name) }
-                        // 4. Popularity order is the input order, which the stable
-                        // sort keeps as the last word.
-                    )
+                // THE PICK, in one place: [ExerciseEffectiveness.bestUnused] ranks
+                // the gated pool for THIS slot (the user's own picks, then the
+                // slot's role, then compound-before-isolation, then the gear
+                // ladder, then popularity) and returns the best movement the week
+                // has not used yet. Owner, 2026-10-22: the selection must not be
+                // random, must be ordered from most to least effective, must honour
+                // the kit the user has, and must not repeat.
+                //
+                // Inside [bestUnused] the order of preference is: unused this week
+                // AND today, then unused today (a kit that owns two lat movements
+                // and a week with four lat slots cannot avoid a repeat, and an
+                // untrained part would be the worse answer), then nothing at all.
+                // Anything already placed on THIS day is passed in so one session
+                // can never carry the same movement twice.
+                val usedToday = routineExercises
+                    .filter { it.dayOfWeek == dayName }
+                    .map { it.name }
+                    .toSet()
+                val pick = ExerciseEffectiveness.bestUnused(
+                    names = pool,
+                    slotIndex = slotIndex,
+                    slotCount = slots.size,
+                    usedThisWeek = usedThisWeek,
+                    usedToday = usedToday,
+                    preferred = includedKeys
                 )
-                val pick = ranked.firstOrNull { it !in usedThisWeek } ?: ranked.firstOrNull()
                 if (pick == null) {
-                    unsatisfied.add("$part ($dayName): no exercise left in the gated pool")
+                    // ONLY AN EMPTY POOL IS A FILTER HOLE. A part that this day
+                    // already trained can run out of movements when the session
+                    // repeats it across more slots than the kit can fill (a
+                    // bodyweight-only pull day on the long window), and that is
+                    // the repetition rule doing its job, not a kit the app cannot
+                    // serve - so it is skipped quietly instead of being reported
+                    // as a part with nothing available.
+                    if (pool.isEmpty()) {
+                        unsatisfied.add("$part ($dayName): no exercise left in the gated pool")
+                    }
                     return@forEachIndexed
                 }
                 usedThisWeek.add(pick)
@@ -2546,9 +2555,12 @@ object WorkoutTemplates {
         val allForGroup = exercisesForMuscleGroup(muscleGroup)
         val filtered = if (equipment == EQUIPMENT_ALL) allForGroup
                        else allForGroup.filter { getEquipmentForExercise(it) == equipment }
-        // Popularity order: the staples a program would actually use come
-        // before the obscure variations of the same kit + muscle.
-        return ExercisePopularity.sortedByPopularity(filtered.distinct())
+        // THE EFFECTIVENESS ORDER, not popularity alone: compound before
+        // isolation, then the loading ceiling of the kit, then popularity.
+        // See [ExerciseEffectiveness.rankedForMuscle] - it is the same list the
+        // generator draws its picks from, so the picker's first row is the
+        // movement a build would actually choose.
+        return ExerciseEffectiveness.rankedForMuscle(filtered.distinct())
     }
 
     /**
@@ -2578,7 +2590,7 @@ object WorkoutTemplates {
      * groups (used when the muscle group filter is set to "Any").
      */
     fun getAllExercisesForEquipment(equipment: String): List<String> {
-        return ExercisePopularity.sortedByPopularity(
+        return ExerciseEffectiveness.rankedForMuscle(
             getAllExerciseNames()
                 .filter { equipment == EQUIPMENT_ALL || getEquipmentForExercise(it) == equipment }
         )
@@ -2614,28 +2626,13 @@ object WorkoutTemplates {
      * out - a bodyweight-only kit scores every row the same and its week is
      * unchanged) while the most effective rows lead.
      *
-     * It is deliberately a TIE-BREAKER, not the first key. Compound-before-
-     * isolation still leads a session and stays the reason a slot exists; this
-     * only decides between two equally good candidates, which is precisely the
+     * The ladder itself lives in [ExerciseEffectiveness.gearTier] - one table for
+     * every caller - and stays a TIE-BREAKER below the slot's role and the
+     * compound rule rather than the first key: compound-before-isolation still
+     * leads a session and stays the reason a slot exists, while this decides the
      * dumbbell-vs-bodyweight choice the owner was looking at.
      */
-    fun equipmentEffectivenessRank(name: String): Int = when (getEquipmentForExercise(name)) {
-        EQUIPMENT_BARBELL -> 0
-        EQUIPMENT_DUMBBELL -> 1
-        EQUIPMENT_KETTLEBELL -> 2
-        EQUIPMENT_MACHINE -> 3
-        EQUIPMENT_CABLE -> 4
-        EQUIPMENT_BANDS -> 5
-        EQUIPMENT_BODYWEIGHT -> 6
-        // "Other" is the pool's GRAB-BAG: it holds the stretches, the poses and
-        // the ab-wheel/sled odds and ends, so it is not a loading tier at all and
-        // it must never win a slot ahead of a real movement. Measured before this
-        // line was last: a bodyweight-only kit came out 35 Other / 7 Bodyweight,
-        // i.e. a week of stretching in place of push-ups.
-        EQUIPMENT_OTHER -> 7
-        // Outside the pool (custom rows): a known movement always outranks it.
-        else -> 8
-    }
+    fun equipmentEffectivenessRank(name: String): Int = ExerciseEffectiveness.gearTierFor(name)
 
     fun getAlternativeExercises(currentExerciseName: String, muscleGroup: String, equipment: String = EQUIPMENT_ALL): List<String> {
         return getExercisesForEquipment(equipment, muscleGroup)
@@ -2744,12 +2741,11 @@ object WorkoutTemplates {
             else -> bodyPart
         }
         val resolved = aliasPart.lowercase().trim()
-        // Popularity order: common staples before obscure variations, so the
-        // generator's "pick from the head of the pool" and every picker that
-        // lists a part's movements surface the movements programs actually
-        // use. Stable sorts downstream (on-part, compound-first) keep this
-        // order as their tiebreaker.
-        return ExercisePopularity.sortedByPopularity(ExerciseCatalog.NAMES.filter { name ->
+        // The EFFECTIVENESS order (see [ExerciseEffectiveness]): the movements a
+        // programme would reach for first are the head of the list, and the
+        // generator's pick IS that head. Stable sorts downstream keep this order
+        // as their tiebreaker.
+        return ExerciseEffectiveness.rankedForMuscle(ExerciseCatalog.NAMES.filter { name ->
             val muscle = ExerciseCatalog.muscleFor(name)
             muscle.equals(aliasPart, ignoreCase = true) ||
                 (muscle.isNotEmpty() && getTopicForMuscle(muscle).lowercase() == resolved)

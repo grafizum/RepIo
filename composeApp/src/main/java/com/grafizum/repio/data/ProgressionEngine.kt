@@ -793,10 +793,27 @@ object ProgressionEngine {
         // reported as "switching level reduces the reps". Read them together or
         // the pair is a lie.
         //
+        // WHICH STAGE A FRESH PRESCRIPTION OPENS ON.
+        //
+        // A REP LADDER opens on stage I, and it has to: its level IS its rep count, so the
+        // rung's number is the whole prescription and the Roman stage only spreads it across
+        // the sets. The CSV's start stage is a guessed position (medium is stage II and hard
+        // stage III on 74 rows), and pairing that stage with the ramp's rung produced a number
+        // the level list never shows for the same level - measured 2026-11-02: Ball Pike level
+        // 2 opened the add form on 9 / 9 / 9 while its level-list row read 8 / 8 / 8, and 73
+        // rows disagreed the same way. That is the owner's report (dashboard,
+        // task_2r6p1p3j2e405v701f2c186y: "If the exercise has 2 or 4 reps then it should show
+        // the same amount in the level list"): one level, two numbers, one of them invented by
+        // the stage.
+        //
+        // Every other method keeps the CSV's stage: on a LOAD row a stage is a documented part
+        // of the ladder (a post-jump reset can genuinely restart mid-pattern), not a rep count.
+        val startStage = if (isRepLadder(entry)) 1 else stage.coerceAtLeast(1)
+
         // The CSV pairs each start stage with target reps; when they disagree
         // (a data error), prefer the stage's own pattern row so the UI can
         // never display a mismatched pair.
-        val stageReps = prescribedReps(entry, startLevel, stage) ?: reps
+        val stageReps = prescribedReps(entry, startLevel, startStage) ?: reps
 
         // A DURATION ROW HAS NO REP PATTERN, and demanding one refused its whole
         // prescription — which is how every timed exercise ended up looking like
@@ -827,7 +844,7 @@ object ProgressionEngine {
             value = startValue,
             unit = entry.unit,
             reps = stageReps,
-            stage = stage.coerceAtLeast(1),
+            stage = startStage,
             // A duration row's set count is its routine row's, not its rep
             // pattern's: `stageReps` is empty there and 0 sets would be a
             // promise the card cannot keep. One set is the floor that says

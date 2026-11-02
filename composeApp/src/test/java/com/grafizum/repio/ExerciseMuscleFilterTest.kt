@@ -1,6 +1,6 @@
 package com.grafizum.repio
 
-import com.grafizum.repio.data.ExercisePopularity
+import com.grafizum.repio.data.ExerciseEffectiveness
 import com.grafizum.repio.data.WorkoutTemplates
 import org.junit.Assert.assertEquals
 import org.junit.Assert.assertTrue
@@ -44,8 +44,9 @@ class ExerciseMuscleFilterTest {
     fun aBodyPartIsExactlyTheExercisesWhosePrimaryMuscleIsInIt() {
         WorkoutTemplates.getBroadMuscleGroups().forEach { part ->
             // Same MEMBERSHIP as the primary-muscle definition; the order is
-            // the shared popularity ranking, not alphabetical.
-            val expected = ExercisePopularity.sortedByPopularity(
+            // the shared EFFECTIVENESS ranking ([ExerciseEffectiveness]), not
+            // alphabetical and not per-surface.
+            val expected = ExerciseEffectiveness.rankedForMuscle(
                 WorkoutTemplates.getAllExerciseNames()
                     .filter { WorkoutTemplates.getTopicForMuscle(WorkoutTemplates.getMuscleGroupForExercise(it)) == part }
             )
@@ -78,12 +79,12 @@ class ExerciseMuscleFilterTest {
         // The badge beside an exercise comes from its own body part, so the filter
         // has to agree with it: nothing the app labels "Legs" may be unreachable by
         // filtering "Legs". Checked per equipment category, so the muscle filter
-        // and the equipment filter stay independent. Order is the popularity
+        // and the equipment filter stay independent. Order is the effectiveness
         // ranking both surfaces share.
         WorkoutTemplates.allEquipmentCategories.forEach { category ->
             val categoryPool = WorkoutTemplates.getAllExercisesForEquipment(category)
             WorkoutTemplates.getBroadMuscleGroups().forEach { part ->
-                val expected = ExercisePopularity.sortedByPopularity(
+                val expected = ExerciseEffectiveness.rankedForMuscle(
                     categoryPool.filter {
                         WorkoutTemplates.getTopicForMuscle(
                             WorkoutTemplates.getMuscleGroupForExercise(it)

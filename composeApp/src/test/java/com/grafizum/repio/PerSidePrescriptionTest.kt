@@ -2,10 +2,12 @@ package com.grafizum.repio
 
 import androidx.compose.ui.test.junit4.createComposeRule
 import com.grafizum.repio.data.ExerciseCatalog
+import java.io.File
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.exerciseSetsSummaryLabel
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import org.junit.Assert.assertEquals
+import org.junit.Assert.assertFalse
 import org.junit.Assert.assertNull
 import org.junit.Assert.assertTrue
 import org.junit.Rule
@@ -116,6 +118,33 @@ class PerSidePrescriptionTest {
     }
 
     // ---------------------------------------------------------------- the surface
+
+    /**
+     * THE BANNER WRITES THE UNIT AND THE NOTE AS ONE LABEL.
+     *
+     * Owner, 2026-10-31 (dashboard task_6a5w1h175j1q0l0j1t18352w): *"The '12 reps each arm' is
+     * not the same alignment / size / label style."* It was two Text runs: `" reps"` at
+     * titleMedium and `" each arm"` one type step below at labelMedium, so the phrase arrived in
+     * three sizes and the qualifier sat on its own baseline. They are one Text now, which makes
+     * the sizes and the baseline agree by construction - this pins that shape, because the split
+     * is invisible to every data assertion above (the words are the same either way).
+     */
+    @Test
+    fun theBannerWritesTheUnitAndThePerSideNoteAsOneLabel() {
+        val code = File("src/main/java/com/grafizum/repio/ui/screens/WorkoutNowScreen.kt")
+            .readText()
+            .replace(Regex("/\\*[\\s\\S]*?\\*/"), "")
+            .replace(Regex("//[^\\n]*"), "")
+            .replace(Regex("\\s+"), "")
+        assertTrue(
+            "the banner must append the per-side words to the unit label itself",
+            code.contains("getString(ProgressionEngine.repUnitKeyFor(exerciseName))+perSide")
+        )
+        assertFalse(
+            "the per-side note is back on its own Text, which is the size/baseline mismatch",
+            code.contains("text=\" \"+getString(key)")
+        )
+    }
 
     @Test
     fun theSummaryLineWearsThePerSideNote() {

@@ -535,6 +535,18 @@ private fun LevelRowContent(
                         prescriptionDisplayText(row.prescribed)
                     row.repProgressed && row.stageReps.isNotEmpty() ->
                         row.stageReps.joinToString(" / ") + " " + getString(row.repUnitKey)
+                    // A LOADED RUNG CARRIES ITS REPS TOO. The load alone is half of what a
+                    // weight level asks for: a clean's rung is "20 kg" AND "2 / 1 / 1 reps",
+                    // and printing only the plates left the row's own rep pattern
+                    // unreachable from the screen that exists to say what a rung costs
+                    // (owner, 2026-10-31: "If the exercise has 2 or 4 reps then it should
+                    // show the same amount in the level list"). Same one source as the card -
+                    // [com.grafizum.repio.data.ProgressionEngine.prescribedReps] - so the two
+                    // surfaces cannot describe one rung two ways.
+                    row.prescribed?.kind == com.grafizum.repio.data.ProgressionEngine.ValueKind.LOAD &&
+                        row.stageReps.isNotEmpty() ->
+                        prescriptionDisplayText(row.prescribed) + " · " +
+                            row.stageReps.joinToString(" / ") + " " + getString(row.repUnitKey)
                     row.prescribed != null -> prescriptionDisplayText(row.prescribed)
                     else -> ""
                 },
