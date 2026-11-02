@@ -916,7 +916,13 @@ fun WorkoutScreen(
                 viewModel.setExerciseStateFromEditor(levelName, level, stage)
             },
             onOpenLevelLadder = { levelName -> editorLevelLadder = levelName },
+            // Leaving through Cancel puts the level, the stage and the lock back
+            // to what the pass opened on — see [WorkoutViewModel.cancelExerciseEditPass].
+            onCancel = { levelName -> viewModel.cancelExerciseEditPass(levelName) },
             onSave = { updatedExercise ->
+                // Saved: the pass's level writes stand and there is nothing for
+                // Cancel to undo.
+                viewModel.commitExerciseEditPass(updatedExercise.name)
                 viewModel.saveExercise(updatedExercise)
                 showAddDialog = false
                 editingExercise = null

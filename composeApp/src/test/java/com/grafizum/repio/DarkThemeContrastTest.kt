@@ -10,7 +10,6 @@ import com.grafizum.repio.ui.screens.workoutCardFill
 import com.grafizum.repio.ui.screens.workoutCardRim
 import com.grafizum.repio.ui.screens.workoutWellFill
 import com.grafizum.repio.ui.screens.workoutWellRim
-import com.grafizum.repio.ui.theme.DarkBarSurface
 import com.grafizum.repio.ui.theme.isDarkThemeUsedFor
 import com.grafizum.repio.ui.theme.resolveColorScheme
 import com.grafizum.repio.ui.theme.withThemedContainers
@@ -478,6 +477,14 @@ class DarkThemeContrastTest {
         val light = resolveColorScheme("BEIGE", isDark = false).withThemedContainers(false)
         val lightSurface = ratio(light.surface, light.background)
         val lightCards = ratio(light.surfaceVariant, light.background)
+        // Beige's bar is the step the dark bar no longer takes: DARKER than its canvas, so the
+        // strip between the content and the tabs is the brightest thing there rather than a line.
+        //
+        // 1.044:1 MEASURED, not the 1.157:1 the raw tokens suggest - `withThemedContainers`
+        // collapses `surfaceContainerHigh` onto `surface` on a light scheme (see navBarFill), so
+        // what renders is surface-over-background. Quoting the un-collapsed number here is how a
+        // threshold gets written that the real rendering cannot meet.
+        val lightBar = ratio(navBarFill(light, isLightTheme = true), light.background)
         val tolerance = 0.05
 
         // The light hero card is a TRANSLUCENT tint, so it has to be composited over the canvas
@@ -516,19 +523,29 @@ class DarkThemeContrastTest {
                     "beige's is ${"%.3f".format(lightHero)}:1",
                 lightHero, hero, 0.08,
             )
-            // THE BAR'S ROLE, which is a token-comparable statement: in beige the bottom bar is the
-            // widest neutral step that theme takes (1.157:1, over its cards' 1.099:1). The dark bar
-            // has to play the same part and still be a whisper - the shape the owner rejected was
-            // 1.42:1, three times beige's widest step - while NOT being a wash of a lighter grey.
-            assertTrue(
-                "$option's bottom bar is ${"%.3f".format(bar)}:1 from its canvas - the owner " +
-                    "called that grey too light",
-                bar < 1.2,
+            // THE BAR IS THE CANVAS, so the only assertion left is the one that keeps it there.
+            //
+            // It used to be a rung of its own - 1.121:1 over the canvas, asserted to sit between
+            // the cards and the widest neutral step - and that rung is what the owner reported on
+            // 2026-10-17 as *"a black line between the content of the day and the bottom tab
+            // switches"*. Measured on the phone, the strip between the last card (#191919) and the
+            // bar (#1B1B1B) was 42px of #0E0E0E CANVAS: nothing drawn there, but the darkest thing
+            // on the screen at that boundary, because on a dark scheme the canvas is the floor and
+            // a bar above it leaves the gap as the deepest band.
+            //
+            // The light theme keeps its step (beige's bar is DARKER than its canvas, so the same
+            // gap is the brightest thing there) - asserted below, because that asymmetry is the
+            // whole reason this defect only ever appeared on dark.
+            assertEquals(
+                "$option's bottom bar is ${"%.3f".format(bar)}:1 from its canvas - it must BE the " +
+                    "canvas, or the strip between the content and the tabs reads as a line again",
+                1.0, bar, 0.001,
             )
             assertTrue(
-                "$option's bottom bar (${"%.3f".format(bar)}:1) is not the widest neutral step " +
-                    "of its scheme, which is the part the bar plays in the light theme",
-                bar > cards,
+                "$option's bottom bar shares the canvas while beige's is a real step (" +
+                    "${"%.3f".format(lightBar)}:1, DARKER than its canvas) - the two themes must " +
+                    "answer the same question differently on purpose, and this is what says so",
+                lightBar > 1.02,
             )
             // THE OWNER'S SECOND HALF: the hero card is the lighter of the two card rungs. Asserted
             // as the relationship, because that is what the light theme has and what he described.
@@ -577,8 +594,8 @@ class DarkThemeContrastTest {
                 "surfaceVariant" to s.surfaceVariant,
                 "containerHigh" to s.surfaceContainerHigh,
                 "containerHighest" to s.surfaceContainerHighest,
-                // The bar is a rung of its own outside the Material ramp, so it has to be named.
-                "bottomBar" to DarkBarSurface,
+                // The bar is no longer a rung of its own - it IS the canvas (see navBarFill),
+                // which is already asserted above as a neutral.
                 "outline" to s.outline,
                 "outlineVariant" to s.outlineVariant,
             ).forEach { (name, colour) -> assertNeutral("$option's $name", colour) }

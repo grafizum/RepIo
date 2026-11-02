@@ -80,6 +80,8 @@ import androidx.compose.ui.Modifier
 import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.grafizum.repio.util.getString
+import com.grafizum.repio.util.openUrl
+import com.grafizum.repio.util.AppLinks
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.platform.LocalFocusManager
@@ -973,6 +975,48 @@ fun SettingsScreen(
                                 style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.ExtraBold)
                             )
                         }
+                    }
+                }
+            }
+
+            // LEGAL — the privacy policy has to be reachable from inside the app,
+            // not only from the Play Console field (Play User Data policy asks for
+            // both). It opens in the browser rather than in a WebView so the reader
+            // can see the real address before deciding to read it.
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                border = BorderStroke(
+                    width = 1.dp,
+                    color = MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.5f)
+                ),
+                modifier = Modifier
+                    .fillMaxWidth()
+                    .clickable { openUrl(AppLinks.PRIVACY_POLICY) }
+                    .semantics { testTag = "settings_privacy_button" }
+            ) {
+                Row(
+                    verticalAlignment = Alignment.CenterVertically,
+                    modifier = Modifier.padding(16.dp)
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Lock,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Column(modifier = Modifier.weight(1f)) {
+                        Text(
+                            text = getString("privacy_policy_title"),
+                            style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
+                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                        )
+                        Text(
+                            text = getString("privacy_policy_desc"),
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.7f)
+                        )
                     }
                 }
             }

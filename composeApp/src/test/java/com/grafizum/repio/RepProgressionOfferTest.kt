@@ -79,6 +79,11 @@ class RepProgressionOfferTest {
         var checked = 0
         for (entry in ExerciseProgression.ENTRIES) {
             if (!ProgressionEngine.isRepLadder(entry)) continue
+            // A STEP LADDER is rep-progressed but its rung is a count of STEPS, authored flat
+            // from a floor to a ceiling (ProgressionEngine's STEP_LADDERS) - a walk does not
+            // warm up from one pace to four. Its own contract is asserted in
+            // StepCountedLadderTest; everything below is about REPS.
+            if (ProgressionEngine.countsInSteps(entry)) continue
             checked++
             val ramp = ProgressionEngine.repRamp(entry)
             assertEquals(
@@ -259,6 +264,9 @@ class RepProgressionOfferTest {
         var checked = 0
         for (entry in ExerciseProgression.ENTRIES) {
             if (!ProgressionEngine.isRepLadder(entry)) continue
+            // Step-counted rows are excluded for the same reason as above: their rung numbers
+            // are steps, so "starts on the ramp's first rung (1 or 4)" is not their rule.
+            if (ProgressionEngine.countsInSteps(entry)) continue
             checked++
             val top = ProgressionEngine.effectiveMaxLevel(entry)
             val firstCheckpoint = ProgressionEngine.REP_CHECKPOINTS.first()

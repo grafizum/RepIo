@@ -153,6 +153,8 @@
     <string name="recreate">Recreate</string>
     <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_policy_desc">How RepIo handles your data</string>
     <string name="open_support">Open Support</string>
     <string name="open">Open</string>
     <string name="done">Done</string>
@@ -315,6 +317,7 @@
     <string name="recap_volume_lb">%1$s lb</string>
     <string name="recap_duration_format">%1$d min</string>
     <string name="recap_split_title">Where the work went</string>
+    <string name="home_exercises_finished">Finished for today</string>
     <plurals name="workout_completed_text" tools:ignore="UnusedResources">
         <item quantity="one">You saved %1$d total set for %2$s!</item>
         <item quantity="other">You saved %1$d total sets for %2$s!</item>
@@ -436,6 +439,9 @@
     <string name="muscle_group">Muscle Group</string>
     <string name="sets">Sets</string>
     <string name="reps">Reps</string>
+    <!-- The counter for exercises whose work IS a count of steps (Heel-to-Toe Walk, Bear Crawl).
+         See ProgressionEngine.countsInSteps and the STEP_LADDERS table. -->
+    <string name="steps">Steps</string>
     <string name="per_side_arm">each arm</string>
     <string name="per_side_leg">each leg</string>
     <string name="per_side_side">each side</string>

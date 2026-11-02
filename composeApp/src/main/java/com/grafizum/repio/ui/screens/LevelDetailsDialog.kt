@@ -97,9 +97,10 @@ fun LevelDetailsDialog(
      * Without it the rungs would refuse every tap on a committed exercise, and
      * the editor's "change the level" would be a door to a list that cannot be
      * used — the "greyed field swallows the tap" failure this project has paid
-     * for twice. The lock is cleared by the writer
-     * ([WorkoutViewModel.setExerciseLevelFromEditor]) rather than here, so
-     * opening the picker and changing nothing still leaves the exercise locked.
+     * for twice. The writer ([WorkoutViewModel.setExerciseLevelFromEditor]) skips
+     * the lock GATE for exactly that reason, and it does not CLEAR the pin either,
+     * so an exercise the user locked stays locked through an edit
+     * (owner, 2026-10-31: never auto unlock).
      */
     fromEditorEditPass: Boolean = false
 ) {
@@ -533,7 +534,7 @@ private fun LevelRowContent(
                     row.prescribed?.kind == com.grafizum.repio.data.ProgressionEngine.ValueKind.DURATION ->
                         prescriptionDisplayText(row.prescribed)
                     row.repProgressed && row.stageReps.isNotEmpty() ->
-                        row.stageReps.joinToString(" / ") + " " + getString("reps")
+                        row.stageReps.joinToString(" / ") + " " + getString(row.repUnitKey)
                     row.prescribed != null -> prescriptionDisplayText(row.prescribed)
                     else -> ""
                 },

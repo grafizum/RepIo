@@ -57,7 +57,9 @@ class RepCeilingCoverageTest {
      */
     @Test
     fun everyAuthoredCeilingSitsInsideTheHonestBand() {
-        for (row in repLadders) {
+        // The band is a REP band (12..50 reps), so the step-counted rows are not in it: their
+        // ceiling is a number of STEPS and is authored in ProgressionEngine's step ladders.
+        for (row in repLadders.filter { !ProgressionEngine.countsInSteps(it) }) {
             val top = ProgressionEngine.repCeilingFor(row)
             assertTrue(
                 "slug=${row.slug} has a ceiling of $top, outside 12..50",

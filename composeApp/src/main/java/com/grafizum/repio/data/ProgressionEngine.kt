@@ -242,6 +242,50 @@ object ProgressionEngine {
     fun isHardVariation(entry: ProgressionEntry): Boolean =
         repCeilingFor(entry) <= HARD_VARIATION_CEILING
 
+    // ------------------------------------------------------------------
+    // Step-counted ladders
+    //
+    // Owner, 2026-10-24 (dashboard task_5u1n4l5m063l3m203045583y): "Some exercises like heel
+    // to toes walk have reps instead of steps."
+    //
+    // A walked drill is not counted in reps. What one rep of a heel-to-toe walk covers depends
+    // on the room, and "12 reps" of it describes nothing a user can execute or count; the
+    // balance drill is written and coached in STEPS. So these rows carry their OWN ladder, in the
+    // same authored spirit as [RepCeilings]: a floor, a ceiling and a step, and the rungs are
+    // linear because a step is a step (unlike a rep ladder, which warms up through
+    // [ORDINARY_REP_RAMP] to reach the first real prescription).
+    //
+    // Only the rows whose work IS that count belong here. A walking lunge and a step-up are
+    // prescribed per leg in reps and are NOT step counts; a row moves into this table when its
+    // own movement is measured that way, never because its name says "walk".
+    private data class StepLadder(val first: Int, val last: Int, val step: Int)
+
+    private val STEP_LADDERS: Map<String, StepLadder> = mapOf(
+        // 10 steps is the short end of a balance drill; 100 is past the point where the walking
+        // stops being the practice. 10 a rung gives a ten-rung ladder that lands on 100 exactly.
+        "heel_to_toe_walk" to StepLadder(first = 10, last = 100, step = 10),
+        // A crawl travels in strides of a few paces: 5 is one short pass, 50 a long one.
+        "bear_crawl" to StepLadder(first = 5, last = 50, step = 5),
+    )
+
+    private fun stepLadder(entry: ProgressionEntry): StepLadder? = STEP_LADDERS[entry.slug]
+
+    /**
+     * True when [entry]'s repeated work is counted in STEPS rather than reps.
+     *
+     * The display layer asks this through [repUnitKeyFor] so a walked drill says "10 / 10 / 10
+     * steps" and never "Reps" - the word is a property of the exercise, and it is read here
+     * rather than from a name so a rename cannot re-word a prescription.
+     */
+    fun countsInSteps(entry: ProgressionEntry): Boolean = stepLadder(entry) != null
+
+    /** The string key for how [entry]'s repeated work is counted: "steps" or "reps". */
+    fun repUnitKey(entry: ProgressionEntry): String = if (countsInSteps(entry)) "steps" else "reps"
+
+    /** [repUnitKey] for a name, defaulting to reps for anything outside the pool. */
+    fun repUnitKeyFor(exerciseName: String): String =
+        entryFor(exerciseName)?.let { repUnitKey(it) } ?: "reps"
+
     /** The ladder's opening rungs, warm-up included: see [ORDINARY_REP_RAMP]. */
     fun repRamp(entry: ProgressionEntry): List<Int> =
         if (isHardVariation(entry)) HARD_VARIATION_REP_RAMP else ORDINARY_REP_RAMP
@@ -258,7 +302,7 @@ object ProgressionEngine {
      * range-based rows ([prescribedReps]' non-ladder half) still walk `repMin` to `repMax`
      * themselves, and are untouched by this.
      */
-    fun repFloorOf(entry: ProgressionEntry): Int = repRamp(entry).first()
+    fun repFloorOf(entry: ProgressionEntry): Int = stepLadder(entry)?.first ?: repRamp(entry).first()
 
     /**
      * True when [entry] is core work, by the CATALOG's own primary muscle
@@ -288,7 +332,8 @@ object ProgressionEngine {
      * fails the build rather than letting one ship silently.
      */
     fun repCeilingFor(entry: ProgressionEntry): Int =
-        RepCeilings.forSlug(entry.slug)
+        stepLadder(entry)?.last
+            ?: RepCeilings.forSlug(entry.slug)
             ?: if (isCoreRepRow(entry)) CORE_REP_CEILING else STANDARD_REP_CEILING
 
     /**
@@ -297,7 +342,7 @@ object ProgressionEngine {
      * would silently get the flat cap.
      */
     fun hasAuthoredRepCeiling(entry: ProgressionEntry): Boolean =
-        RepCeilings.forSlug(entry.slug) != null
+        RepCeilings.forSlug(entry.slug) != null || countsInSteps(entry)
 
     /**
      * How many reps one level adds, which is not one for every row either.
@@ -364,6 +409,9 @@ object ProgressionEngine {
      * derived from the row's own floor, ceiling and pattern, never its name.
      */
     fun repStepFor(entry: ProgressionEntry): Int {
+        // A STEP LADDER's rung is its own authored number and nothing else: a walk climbs by
+        // steps, not by a rep step rescaled through a Roman pattern.
+        stepLadder(entry)?.let { return it.step }
         // MEASURED FROM THE FLOOR, and deliberately NOT from the top of the ramp: the ramp moved
         // where the ladder STARTS, and the owner's 2026-10-16 ruling changes nothing about how far
         // apart the rungs are above it. Measuring from the ramp's top instead would have silently
@@ -390,6 +438,15 @@ object ProgressionEngine {
      * and the supported range begins at the bottom of the hypertrophy window.
      */
     fun repsAtLevel(entry: ProgressionEntry, level: Int): Int {
+        // STEPS FIRST: a walked drill's rung is floor + step x (level - 1), with no ramp and no
+        // Roman climb doing the arithmetic. Past the top rung the count keeps climbing, the same
+        // rule the rep ladders follow - the max is a marker, not a wall.
+        stepLadder(entry)?.let { ladder ->
+            val raw = ladder.first + ladder.step * (level - 1)
+            val rungs = (ladder.last - ladder.first) / ladder.step + 1
+            return if (level <= rungs) raw.coerceIn(ladder.first, ladder.last)
+            else raw.coerceAtLeast(ladder.first)
+        }
         val ramp = repRamp(entry)
         val floor = ramp.first()
         val top = repCeilingFor(entry)
@@ -405,6 +462,7 @@ object ProgressionEngine {
 
     /** How many rungs the ladder has: the ramp's, then the stepped ones up to the ceiling. */
     fun repRungs(entry: ProgressionEntry): Int {
+        stepLadder(entry)?.let { return (it.last - it.first) / it.step + 1 }
         val ramp = repRamp(entry)
         val top = repCeilingFor(entry)
         // A ladder whose ceiling is INSIDE the ramp (a handstand push-up tops out at 12) is just
@@ -1557,8 +1615,72 @@ object ProgressionEngine {
         else MasteryReason.LADDER_COMPLETE
     }
 
-    /** The exercise's branches, empty when none were curated. */
-    fun branchesFor(entry: ProgressionEntry): List<ProgressionBranch> = entry.branches
+    /**
+     * The exercise's branches, empty when none were curated — or when none of
+     * the curated ones is the SAME MOVEMENT.
+     *
+     * Owner, 2026-10-17: "When doing cross body crunch to max level, it offers
+     * standing side bend which is a completely different movement plane. Why tf
+     * is this given as progression if its more of a regression. Fix this for all
+     * exercises, i cant have progression exercises be shown that arent even
+     * progressing the exercise before."
+     *
+     * The CSV's coach-curated branches are the app's offer, and a branch can
+     * name a neighbouring exercise rather than a harder version of the same
+     * one — Cross-Body Crunch (a bodyweight strength rotation) was offered
+     * Standing Side Bend (a mobility stretch) with the note claiming it "keeps
+     * the same movement", which is exactly the lie the owner is pointing at.
+     *
+     * So an offer must survive [isSameMovement]. An exercise with no surviving
+     * branch is not offered at all: [WorkoutNowScreen] already reads an empty
+     * branch list as a ceiling card, which is the honest picture when there is
+     * no harder version of this movement to hand.
+     */
+    fun branchesFor(entry: ProgressionEntry): List<ProgressionBranch> =
+        entry.branches.filter { isSameMovement(entry, entryFor(it.entry)) }
+
+    /**
+     * Whether [target] is the same movement as [source] closely enough to be
+     * called its PROGRESSION rather than a different exercise.
+     *
+     * Two facts decide it, both from the catalog both exercises are already in:
+     *
+     *  - the TRAINING FAMILY of [ExerciseCatalogEntry.type]. A strength ladder
+     *    ends where a strength ladder ends, not in a stretch or a cardio row —
+     *    this is the half that catches the reported case, since Cross-Body
+     *    Crunch is `strength_bodyweight` and Standing Side Bend is
+     *    `mobility_stretching` while both are filed under Obliques.
+     *  - the PRIMARY MUSCLE. "Progression" means the same thing the exercise
+     *    was doing, done harder; a branch onto a different muscle is a new
+     *    exercise, which is what the evolution picker is for rather than the
+     *    level ladder's end.
+     *
+     * An exercise the catalog does not carry is neither filtered nor judged:
+     * returning true keeps the curated offer rather than deleting it on a
+     * lookup miss.
+     */
+    fun isSameMovement(source: ProgressionEntry, target: ProgressionEntry?): Boolean {
+        if (target == null) return false
+        val from = ExerciseCatalog.entryForId(source.id) ?: return true
+        val to = ExerciseCatalog.entryForId(target.id) ?: return true
+        if (trainingFamily(from.type) != trainingFamily(to.type)) return false
+        return from.muscle.equals(to.muscle, ignoreCase = true)
+    }
+
+    /**
+     * The coarse class a training type belongs to, for [isSameMovement].
+     *
+     * `strength_weighted_or_machine` and `strength_bodyweight` are one family:
+     * a barbell ladder ending in its bodyweight variation is still the same
+     * movement. Public so the rule can be pinned on its own.
+     */
+    fun trainingFamily(type: String): String = when {
+        type.startsWith("strength") -> "strength"
+        type.startsWith("cardio") -> "cardio"
+        type.startsWith("mobility") -> "mobility"
+        type.startsWith("isometric") -> "hold"
+        else -> type
+    }
 
     // ------------------------------------------------------------------
     // The evolution offer: "what it was" and "what it can become"
@@ -1656,7 +1778,10 @@ object ProgressionEngine {
      * is skipped when a longer one exists.
      */
     fun preferredBranch(entry: ProgressionEntry): ProgressionBranch? {
-        val branches = entry.branches
+        // Filtered, not raw: the caption beside the level pill quotes this
+        // target, so an off-movement branch here is the same false promise the
+        // owner reported — see [branchesFor].
+        val branches = branchesFor(entry)
         if (branches.isEmpty()) return null
         val sourceMax = effectiveMaxLevel(entry)
         val longer = branches.filter { candidate ->

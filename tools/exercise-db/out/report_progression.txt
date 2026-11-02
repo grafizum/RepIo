@@ -5,7 +5,7 @@ descriptions merged (old)   : 210
 descriptions hand-written   : 391
 rows with branches          : 338
 rows with ceiling           : 478
-  by match tier             : alias=35, hand=391, normalized=4, override=86, slug=85
+  by match tier             : alias=33, hand=391, normalized=4, override=89, slug=84
 entries without description : 0
 display names generalized   : 220
 beginner_build_eligible     : 370

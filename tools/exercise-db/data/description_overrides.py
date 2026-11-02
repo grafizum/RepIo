@@ -434,6 +434,26 @@ OVERRIDES: dict[str, str] = {
         "off the floor, and curl the pelvis upward so the knees come toward the face. Pause, "
         "then lower the feet back down without letting the lower back arch off the floor."
     ),
+    "barbell_preacher_curl": (
+        "A biceps curl taken on a preacher pad, which fixes the upper arm in place so the "
+        "biceps work with no shoulder swing at all. Set the armpits on the pad, take an "
+        "underhand grip on the bar, and let the arms straighten fully before curling back up. "
+        "Squeeze at the top and lower slowly; the pad's angle makes the first inch of the rep "
+        "the hardest part."
+    ),
+    "machine_calf_raise": (
+        "A standing calf raise on a machine: the heels drive up against a shoulder or hip pad "
+        "with the balls of the feet on the platform. Let the heels sink below the platform for "
+        "a full stretch, then rise all the way to the top and hold. The standing position loads "
+        "the gastrocnemius, which is the half of the calf a seated raise cannot reach."
+    ),
+    "dumbbell_romanian_deadlift": (
+        "A hip hinge with a dumbbell in each hand and only a soft knee bend, loading the "
+        "hamstrings through the hip rather than the spine. Stand tall, soften the knees, and "
+        "push the hips behind you while the bells slide down the front of the legs. Stop when "
+        "the hamstrings run out of stretch and drive the hips forward to stand; the back stays "
+        "long the whole way, which is what separates it from a stiff-legged pull."
+    ),
     "reverse_grip_bent_over_row": (
         "A bent-over row taken with an overhand grip, the hands turned the other way from the "
         "usual pull. Hinge forward with a braced spine, let the bar hang, and pull it to the "

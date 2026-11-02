@@ -90,7 +90,6 @@ import androidx.lifecycle.repeatOnLifecycle
 import androidx.navigation.NavGraph.Companion.findStartDestination
 import androidx.navigation.compose.rememberNavController
 import com.grafizum.repio.ui.screens.*
-import com.grafizum.repio.ui.theme.DarkBarSurface
 import com.grafizum.repio.ui.theme.LocalLightTheme
 import com.grafizum.repio.ui.theme.WorkoutTrackerTheme
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -161,20 +160,39 @@ internal fun navIndicatorFill(scheme: ColorScheme, isLightTheme: Boolean): Color
  * dark scheme's `surfaceTint`).
  *
  * ON A LIGHT SCHEME it is `surfaceContainerHigh`, which `withThemedContainers` collapses onto the
- * scheme's own `surface` - the bar is a step off the canvas and that is all it needs to be.
+ * scheme's own `surface` - the bar is a step off the canvas and that is all it needs to be. That
+ * step MEASURES 1.044:1 through the collapse; the raw tokens read 1.157:1, which is the number
+ * to quote only if the collapse is forgotten - it is what a threshold gets written against that
+ * the rendering then cannot meet.
  *
- * ON A DARK SCHEME it is [DarkBarSurface] (#1B1B1B, 1.121:1), NOT the card rung it used to share.
- * Sharing `surfaceContainerHigh` with the workout hero cards meant the card the whole pass was
- * about was the SAME grey as the bar around it, and the owner's next correction was exactly that:
- * *"make the card you actually change slightly lighter?"*. Measured on the device, both came back
- * #1E1E1E. The bar is chrome and the card is a panel, so the chrome sits one notch down and the
- * panel is the lightest thing on a dark screen.
+ * ON A DARK SCHEME it is THE CANVAS ITSELF, not a rung of its own.
  *
- * The pill inside it ([navIndicatorFill]) is one rung higher again (1.168:1 over this bar), which
- * is close to the beige theme's own pill-to-bar step, 1.132:1.
+ * It used to be a token of its own - DarkBarSurface, #1B1B1B, 1.121:1 over the canvas - a
+ * deliberate step, chosen
+ * on 2026-10-14 so the bar would not share the hero cards' grey. That step is exactly what the
+ * owner reported on 2026-10-17: *"there is a black line between the content of the day and the
+ * bottom tab switches, remove it thats not professional."*
+ *
+ * MEASURED ON THE PHONE (SM-S906B, My Workout tab, x=540): the last card ends at #191919 (lum
+ * 25), then 42px of CANVAS at #0E0E0E (lum 14), then the bar at #1B1B1B (lum 27). Nothing is
+ * drawn in that strip - it is the page background showing between the content and the bar - but
+ * it is the darkest thing on the screen at that boundary, so the eye reads it as a line rather
+ * than as space.
+ *
+ * THE ASYMMETRY IS THE WHOLE STORY, and it is why the light theme never had this report. In
+ * beige the bar is DARKER than the canvas (1.157:1), so the same strip is the BRIGHTEST thing
+ * there and reads as breathing room. On dark the canvas is the deepest tone the palette owns, so
+ * a bar one notch ABOVE it leaves the strip as the darkest band. There is no value the bar can
+ * take that is both a step below the canvas and not below the palette's floor - so the step is
+ * the defect, not its size.
+ *
+ * The bar therefore matches the canvas exactly and the tabs float on the page, with the sliding
+ * pill ([navIndicatorFill]) and the accent icons carrying the affordance. That is also the
+ * direction the owner's own 2026-10-14 correction was already heading - the bar was rejected at
+ * 1.42:1 for being too light, and this is the same move taken all the way.
  */
 internal fun navBarFill(scheme: ColorScheme, isLightTheme: Boolean): Color =
-    if (isLightTheme) scheme.surfaceContainerHigh else DarkBarSurface
+    if (isLightTheme) scheme.surfaceContainerHigh else scheme.background
 
 sealed class Screen(val route: String, val title: String) {
     object Home : Screen("home", "Home") { override val icon = Icons.Default.Home }
@@ -746,9 +764,13 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
         // the flag is collected. Reading it as a value left the walkthrough on
         // screen forever, because nothing else changed after the tap.
         val showLevelGuide by viewModel.shouldShowLevelGuide.collectAsState()
+        // Collected, not read once: the splash has to recompose the moment the plan is
+        // actually on screen. Owner, 2026-10-27: load in as soon as it is ready, with a
+        // 0.2 s floor and no fixed wait - see AppSplashScreen.
+        val startupReady by viewModel.startupReady.collectAsState()
 
         if (showAppSplash) {
-            AppSplashScreen(onComplete = { showAppSplash = false })
+            AppSplashScreen(ready = startupReady, onComplete = { showAppSplash = false })
         } else if (showLevelGuide) {
             // One-time level-guide gate, shown once per install and before the
             // welcome setup: it announces the level system, then dismissing it
@@ -814,7 +836,12 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
             Scaffold(
                 bottomBar = {
                     Surface(
-                        tonalElevation = 3.dp,
+                        // ZERO, and it has to be: the bar now IS the canvas on a dark scheme, and
+                        // a tonal lift on top of it would re-derive a lighter grey - putting the
+                        // very seam this pass removes right back. It also makes the rendered bar
+                        // the value [navBarFill] returns, so what DarkThemeContrastTest measures
+                        // is what the phone draws.
+                        tonalElevation = 0.dp,
                         color = navBarFill(MaterialTheme.colorScheme, LocalLightTheme.current),
                         modifier = Modifier.fillMaxWidth()
                     ) {

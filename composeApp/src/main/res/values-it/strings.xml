@@ -143,6 +143,8 @@
     <string name="recreate">Ricrea</string>
     <string name="support_requests">Richieste di Supporto</string>
     <string name="submit_feedback">Invia feedback o segnala problemi</string>
+    <string name="privacy_policy_title">Informativa sulla privacy</string>
+    <string name="privacy_policy_desc">Come RepIo gestisce i tuoi dati</string>
     <string name="open_support">Apri Supporto</string>
     <string name="open">Apri</string>
     <string name="done">Fatto</string>
@@ -298,6 +300,7 @@
     <string name="recap_volume_lb">%1$s lb</string>
     <string name="recap_duration_format">%1$d min</string>
     <string name="recap_split_title">Dove è andato il lavoro</string>
+    <string name="home_exercises_finished">Completato oggi</string>
     <plurals name="workout_completed_text">
         <item quantity="one">Hai salvato %1$d serie totale per il %2$s!</item>
         <item quantity="many">Hai salvato %1$d serie totali per il %2$s!</item>
@@ -419,6 +422,7 @@
     <string name="muscle_group">Gruppo Muscolare</string>
     <string name="sets">Serie</string>
     <string name="reps">Ripetizioni</string>
+    <string name="steps">Passi</string>
     <string name="per_side_arm">per braccio</string>
     <string name="per_side_leg">per gamba</string>
     <string name="per_side_side">per lato</string>

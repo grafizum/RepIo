@@ -195,35 +195,44 @@ class LevelStageDropdownTest {
     private fun rect(tag: String) = composeTestRule.onNodeWithTag(tag).fetchSemanticsNode().boundsInRoot
 
     /**
-     * A revealed row IS the same box as the rows above it - size included, not just edges.
+     * A revealed row is a SMALLER box, set further right - the owner's "in between" cue
+     * applied to the box itself.
      *
      * OWNER, 2026-10-14: *"the smaller in between roman numbers ... keep their edges /
      * borders the same shape as the big one ... dont minimize anything on selection and
-     * make sure the left starting position of the box is the same as the bigger box"*.
+     * make sure the left starting position of the box is the same as the bigger box"* —
+     * and then, having seen it built that way, 2026-10-17: *"The smaller roman levels
+     * inbetween the big once need to have smaller boxes shifted more to the right (like i
+     * already asked once)"*. THE NEWER RULING WINS, and this case is the reversal: what
+     * stands is the SHAPE (same 8dp corner, same border, same height - see
+     * [selectingARevealedRowDoesNotResizeItsBox]), what changed is the geometry.
      *
-     * Measured, not asserted by eye, and measured in all three directions a box has: the
-     * same left edge, the same right edge AND the same height.
-     *
-     * The rest of that ruling was REVERSED later the same day - see
-     * [theInBetweenNumeralsAreSmallerAndSetFurtherRight] - but the BOX half of it stands,
-     * which is what this test is: the numeral inside the row recedes, the row does not.
-     *
-     * The height is the one that was wrong: a shown row stands 48dp for its 32dp arrow
-     * target plus 8dp of padding
-     * twice, so the rows a dropdown revealed - which carry nothing - came out 32dp, a
-     * thinner box under a thicker one. See [LevelPickerCard]'s `stageRowHeight`, which is
-     * now a MINIMUM on every row for exactly that reason.
+     * Measured, not asserted by eye, in all three directions a box has: the right edge
+     * stays on the big rows' line, the left edge moves right, and the height is untouched.
+     * The right edge is the one that stays because the row still ends where every other row
+     * ends - it is the LEFT edge that says "in between".
      */
     @Test
-    fun aRevealedRowIsTheSameBoxAsAShownOne() {
+    fun aRevealedRowIsASmallerBoxSetFurtherRight() {
         render(level = 1)
         val shown = rect("editor_level_stage_IV")
         composeTestRule.onNodeWithTag("editor_stage_dropdown_I").performClick()
         val revealed = rect("editor_level_stage_II")
+        val density = composeTestRule.density.density
 
-        assertEquals("same left edge", shown.left, revealed.left, 0.5f)
         assertEquals("same right edge", shown.right, revealed.right, 0.5f)
         assertEquals("same height", shown.height, revealed.height, 0.5f)
+        val indentDp = (revealed.left - shown.left) / density
+        assertTrue(
+            "the in-between box starts " + indentDp +
+                "dp right of the big row's - that is level with it, not in between",
+            indentDp >= 8f
+        )
+        assertTrue(
+            "the in-between box is " + (shown.width - revealed.width) +
+                "px narrower than the big row's - it has to be visibly the smaller box",
+            revealed.width < shown.width - 8f * density
+        )
     }
 
     /**
@@ -234,9 +243,10 @@ class LevelStageDropdownTest {
      * sure that they are slightly more to the right positioned so i can see that they are
      * treated as in between roman numbers."*
      *
-     * That reverses the NUMERAL half of the ruling the test above pins — the box half still
-     * stands — so both halves are measured here rather than asserted in the abstract: the
-     * numeral of a revealed row lays out SHORTER than the numeral of a big row, and starts
+     * That reverses the NUMERAL half of the ruling the test above pins — see
+     * [aRevealedRowIsASmallerBoxSetFurtherRight] for the box half, which the owner reversed
+     * on 2026-10-17 — so both halves are measured here rather than asserted in the abstract:
+     * the numeral of a revealed row lays out SHORTER than the numeral of a big row, and starts
      * further right.
      *
      * Read out of the UNMERGED tree on purpose. A row is a clickable Surface, so it merges
@@ -282,12 +292,18 @@ class LevelStageDropdownTest {
         assertTrue(
             "the in-between numeral starts " + stepDp +
                 "dp right of the big row's - that is a column of its own, not an in-between step",
-            stepDp <= 24f
+            stepDp <= 32f
         )
 
-        // WHAT MOVED WAS THE NUMERAL: the two boxes still start at the same left edge, and the
-        // numeral is still inside its own row.
-        assertEquals("same left edge", bigRow.left, inBetweenRow.left, 0.5f)
+        // WHAT MOVED WAS THE BOX (owner, 2026-10-17, see
+        // [aRevealedRowIsASmallerBoxSetFurtherRight]): the numeral now sits further right
+        // partly because its own row does. The row is still a real row - the numeral is
+        // inside it, not past its edge.
+        assertTrue(
+            "the in-between row starts " + (inBetweenRow.left - bigRow.left) +
+                "px left of the big row's - it must be set further right",
+            inBetweenRow.left > bigRow.left
+        )
         assertTrue(
             "the in-between numeral ran past its own row's right edge",
             inBetweenNumeral.right < inBetweenRow.right

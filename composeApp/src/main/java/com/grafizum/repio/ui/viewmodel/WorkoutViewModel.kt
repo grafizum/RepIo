@@ -105,11 +105,6 @@ data class WorkoutNowState(
     val evolutionTrees: List<EvolutionTreeItem> = emptyList(),
 
     /**
-     * The graphical recap of the session that just finished, or null while a
-     * session is still running. See [WorkoutRecap].
-     */
-    val workoutRecap: WorkoutRecap? = null,
-    /**
      * Bumped whenever [evolutionOffers] is recomputed, so the screen can seed
      * its queue once per change instead of on every recomposition.
      */
@@ -140,7 +135,84 @@ data class WorkoutRecap(
     val durationSeconds: Long,
     /** Muscle -> sets trained, most-trained first. Drives the distribution bar. */
     val setsByMuscle: Map<String, Int>,
+    /**
+     * One row per exercise trained, in the order it was first logged — the
+     * "what was actually done" list beside the abstract tiles.
+     */
+    val exerciseRows: List<RecapExerciseRow> = emptyList(),
 )
+
+/**
+ * One exercise in the recap's list: everything the row prints, straight from
+ * the logged sets of the day.
+ */
+data class RecapExerciseRow(
+    val exerciseName: String,
+    val sets: Int,
+    /** Logged reps per set, in the order the sets were logged. */
+    val reps: List<Int>,
+    /**
+     * The distinct positive loads used (first-logged order); empty for a
+     * bodyweight/timed exercise, which has no honest kilogram figure to show.
+     */
+    val weightsKg: List<Double>,
+)
+
+/**
+ * The recap for everything logged on the current calendar day.
+ *
+ * Pure and top-level, so it is testable without an Android ViewModel (see
+ * TodaysRecapFromLogTest) — one input, one answer, no prefs and no clock.
+ * Returns null when nothing was trained today, which is the card's whole
+ * visibility rule on both surfaces: no sets, no card.
+ */
+fun todaysRecapFromLog(
+    sets: List<LoggedSetEntity>,
+    startOfToday: Long,
+): WorkoutRecap? {
+    val today = sets
+        .filter { it.timestamp >= startOfToday }
+        .sortedWith(compareBy({ it.timestamp }, { it.setNumber }))
+    if (today.isEmpty()) return null
+
+    // First-logged order for the exercise list: the order the session happened.
+    val byExercise = linkedMapOf<String, MutableList<LoggedSetEntity>>()
+    today.forEach { set ->
+        byExercise.getOrPut(set.exerciseName) { mutableListOf() }.add(set)
+    }
+
+    // Counts SETS ACTUALLY LOGGED per muscle, from the same muscleGroup field
+    // the cards' badges carry, so the split cannot disagree with the rest of the app.
+    val byMuscle = linkedMapOf<String, Int>()
+    today.forEach { set ->
+        val muscle = set.muscleGroup.ifBlank { "Other" }
+        byMuscle[muscle] = (byMuscle[muscle] ?: 0) + 1
+    }
+
+    return WorkoutRecap(
+        exercises = byExercise.size,
+        sets = today.size,
+        // Null rather than 0.0: a bodyweight or timed session has no honest
+        // volume figure, and "0 kg" reads as "you did nothing".
+        volumeKg = today.sumOf { it.weightKg * it.reps }.takeIf { it > 0.0 },
+        // Span of the logged sets, not a session clock — a restart cannot know
+        // how long the user sat between sets, and guessing would lie either way.
+        // Timestamps are millis; the field is SECONDS (TodaysRecapFromLogTest
+        // caught the missing /1000 that would print a 3-minute session as 3000).
+        durationSeconds = ((today.last().timestamp - today.first().timestamp) / 1000L).coerceAtLeast(0L),
+        setsByMuscle = byMuscle.entries
+            .sortedByDescending { it.value }
+            .associate { it.key to it.value },
+        exerciseRows = byExercise.map { (name, rows) ->
+            RecapExerciseRow(
+                exerciseName = name,
+                sets = rows.size,
+                reps = rows.map { it.reps },
+                weightsKg = rows.map { it.weightKg }.filter { it > 0.0 }.distinct(),
+            )
+        },
+    )
+}
 
 /**
  * One card on the post-workout Mastery & Branch section: an exercise that hit
@@ -220,6 +292,13 @@ class WorkoutViewModel(
     val allLoggedSets: StateFlow<List<LoggedSetEntity>>
 
     /**
+     * The day's recap, derived straight from today's logged sets so it survives
+     * a process restart and can never disagree with the history. Null when
+     * nothing has been trained today. See [todaysRecapFromLog].
+     */
+    val todayRecap: StateFlow<WorkoutRecap?>
+
+    /**
      * The cached overall level for the home stat. Derived from the logged
      * history and the per-exercise levels — see [recomputeOverallLevel] — so the
      * UI only ever reads it, never recomputes it.
@@ -228,6 +307,26 @@ class WorkoutViewModel(
 
     /** The newest history seen from the database; the recompute reads this. */
     private var latestLoggedSets: List<LoggedSetEntity> = emptyList()
+
+    /**
+     * True once the app's own data is on screen: the default plan has been seeded
+     * and the routine has emitted its stored rows.
+     *
+     * Owner, 2026-10-27 (dashboard task_4u2y69342j5q6i50422r464m): *"Dont load up
+     * the app so slowly, dont force the user to stay on the loading screen for so
+     * long, if the app loaded faster then load in faster but also not instantly
+     * minimum loading time is 0.2s, if it needs longer to load then of course let
+     * it load"*. So the splash is a GATE ON THIS FLAG, not a fixed timer: it can
+     * only end when the data is there, and the 0.2 s floor lives in the splash
+     * itself ([com.grafizum.repio.ui.screens.AppSplashScreen]).
+     *
+     * Readiness is the SEED *AND* THE FIRST EMISSION, in that order. The DAO flow
+     * emits the empty table before the seeded plan lands on a fresh install, so
+     * "first emission" alone would open the app on an empty day for a frame - the
+     * same jolt the fixed timer was hiding.
+     */
+    private val _startupReady = MutableStateFlow(false)
+    val startupReady: StateFlow<Boolean> = _startupReady.asStateFlow()
 
     private val prefs = getPlatformSettings("app_settings")
     private val timerManager = getTimerManager()
@@ -544,6 +643,10 @@ class WorkoutViewModel(
             emptyList()
         )
 
+        todayRecap = repository.allLoggedSets
+            .map { sets -> todaysRecapFromLog(sets, startOfTodayMillis()) }
+            .stateIn(viewModelScope, SharingStarted.WhileSubscribed(5000), null)
+
         userStats = repository.userStats.stateIn(
             viewModelScope,
             SharingStarted.WhileSubscribed(5000),
@@ -564,6 +667,10 @@ class WorkoutViewModel(
 
         viewModelScope.launch {
             repository.ensureDataSeeded()
+            // The plan is in the database - now wait for the routine flow to report it,
+            // then let the splash go. See [startupReady].
+            repository.allRoutineExercises.first()
+            _startupReady.value = true
         }
 
         // Pre-load exercise database in background to prevent lag during search
@@ -1184,6 +1291,12 @@ class WorkoutViewModel(
             return
         }
 
+        // THE FALLBACK FOR A SESSION NEVER FINISHED: a level-up held by a day the
+        // user walked away from is applied here rather than being held forever.
+        // See [applyPendingLevelUps] - nothing can be lost by forgetting to press
+        // finish; it can only be late.
+        applyPendingLevelUps()
+
         // Save the progress of the day we are leaving
         saveDayProgress(currentState.selectedDayOfWeek, currentState)
 
@@ -1362,6 +1475,9 @@ class WorkoutViewModel(
     private fun applyExerciseLevel(exerciseName: String, level: Int) {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return
         if (!ProgressionEngine.isProgressionReady(entry)) return
+        // A manual jump is a SELECTION, not a completion: whatever the exercise
+        // had actually finished stops counting (see [markProgressionEarned]).
+        clearProgressionEarned(exerciseName)
         // The ceiling is the exercise's OWN humane end - see [progressionMaxLevel].
         // It used to be the extension grid (>= 50, growable to 500), which meant a
         // jump to a level past any humanly possible load was a valid selection and
@@ -1389,18 +1505,23 @@ class WorkoutViewModel(
      * editor through it would mean the control silently does nothing on every
      * exercise the user has ever committed - the "greyed field swallows the tap"
      * failure this project has now paid for twice (the level fields, the level
-     * pill). Opening an edit pass from the editor therefore UNLOCKS the exercise
-     * and writes the level in the same call, so the two cannot disagree.
+     * pill). So the editor's write skips the gate and applies the chosen rung.
      *
-     * The unlock is a Room write and therefore asynchronous, which is why the
-     * level write goes first and does not wait for it: the value the user chose
-     * has to be visible on the next frame, and the lock catches up a moment
-     * later. Level 1 is a real level, so no clamping of the user's choice - only
+     * IT NO LONGER UNLOCKS THE EXERCISE. It used to, on the reasoning that an
+     * edit pass is the user's own hand and a committed pin should not outlive it;
+     * the owner reversed that on 2026-10-31 (dashboard task_0d4343336a522u55252f4v23):
+     * *"Never auto unlock an exercise, if the user locked it, it stays locked until
+     * he unlocks it"*. Dropping the pin also has a cost the editor's write never
+     * needed to pay: the lock is what stops the day-end level-up, so an edit that
+     * silently cleared it changed what the NEXT session would do. The pin is
+     * cleared in exactly one place now - the card's own lock control.
+     *
+     * Level 1 is a real level, so no clamping of the user's choice - only
      * [progressionMaxLevel]'s humane ceiling applies, inside [applyExerciseLevel].
      */
     fun setExerciseLevelFromEditor(exerciseName: String, level: Int) {
+        rememberEditPassOrigin(exerciseName)
         applyExerciseLevel(exerciseName, level)
-        setExerciseLocked(exerciseName, false)
     }
 
     /**
@@ -1414,14 +1535,22 @@ class WorkoutViewModel(
      * stage to I ([applyExerciseLevel] does exactly that), which for the user who
      * just tapped "III" would look like the tap failed.
      *
-     * Same edit-pass contract as the level-only writer: it clears the locked pin,
-     * because a committed exercise is the case the editor exists to fix. The level
-     * is clamped to the exercise's own humane ceiling and the stage to that level's
-     * pattern length, so neither can be written out of range.
+     * Same edit-pass contract as the level-only writer, INCLUDING the lock: it does
+     * not clear the pin either (owner, 2026-10-31: "Never auto unlock an exercise, if
+     * the user locked it, it stays locked until he unlocks it"). The chosen stage is
+     * still written, so the control answers the tap; what survives is the user's own
+     * "stay on this level". The level is clamped to the exercise's own humane ceiling
+     * and the stage to that level's pattern length, so neither can be written out of
+     * range.
      */
     fun setExerciseStateFromEditor(exerciseName: String, level: Int, stage: Int) {
         val entry = ProgressionEngine.entryFor(exerciseName) ?: return
         if (!ProgressionEngine.isProgressionReady(entry)) return
+        // The first editor write of this pass owns the snapshot Cancel restores.
+        rememberEditPassOrigin(exerciseName)
+        // Picking a Roman numeral is a selection like any other — see
+        // [applyExerciseLevel] for why the earned marker goes with it.
+        clearProgressionEarned(exerciseName)
         val levelRung = level.coerceIn(1, progressionMaxLevel(exerciseName))
         val stageRung = stage.coerceIn(1, ProgressionEngine.patternLength(entry).coerceAtLeast(1))
         prefs.putString(
@@ -1435,7 +1564,6 @@ class WorkoutViewModel(
         // logged history, so the cached value has to be refreshed by hand - the same
         // reason [applyExerciseLevel] does it.
         refreshOverallLevel()
-        setExerciseLocked(exerciseName, false)
     }
 
     /**
@@ -1501,6 +1629,7 @@ class WorkoutViewModel(
         val lastStage = ProgressionEngine.patternLength(entry).coerceAtLeast(1)
         val next = (state.stage + delta).coerceIn(1, lastStage)
         if (next == state.stage) return
+        clearProgressionEarned(exerciseName)
         prefs.putString(progressionKey(exerciseName), ProgressionEngine.serialize(ProgressionEngine.ProgressionState(state.level, next)))
         refreshProgressionDisplayNow(exerciseName)
     }
@@ -1569,7 +1698,13 @@ class WorkoutViewModel(
          * ladder's variation ("Bicycle Crunch" for "Crunches") is the
          * substitution, not the work — the owner asked to see reps there.
          */
-        val repProgressed: Boolean = false
+        val repProgressed: Boolean = false,
+        /**
+         * How this exercise's repeated work is counted - "reps" or "steps" - so the
+         * picker's word comes from the exercise rather than from every row assuming
+         * reps. See [ProgressionEngine.countsInSteps].
+         */
+        val repUnitKey: String = "reps"
     )
 
     /**
@@ -1599,7 +1734,8 @@ class WorkoutViewModel(
                 isCurrent = level == current,
                 isBeyondPlan = false,
                 isMax = level == max,
-                repProgressed = ProgressionEngine.isRepProgressed(entry)
+                repProgressed = ProgressionEngine.isRepProgressed(entry),
+                repUnitKey = ProgressionEngine.repUnitKey(entry)
             )
         }
     }
@@ -1751,6 +1887,194 @@ class WorkoutViewModel(
 
     private fun progressionKey(exerciseName: String) = "progression_state_$exerciseName"
 
+    // ------------------------------------------------------------------
+    // DONE versus SELECTED.
+    //
+    // Owner, 2026-10-17: "Remove the 'progression available' label if the user
+    // only selected the level for progression and didnt do it yet". The label is
+    // keyed off [ProgressionEngine.isProgressionPending], which reads the STORED
+    // level/stage — and a stored state is written two different ways: by the
+    // engine after a stage's every set met its target, and by the picker when a
+    // user points at a rung. The second is a CHOICE; the offer is about work.
+    //
+    // So the exact state the engine advanced through is written down beside the
+    // state itself, and every manual write clears it. "Progression available"
+    // then means "you are standing on a rung you have actually finished", which
+    // is the only reading where the caption cannot promise an offer the user has
+    // not earned.
+    //
+    // HONEST CONSEQUENCE: a state stored by an OLDER build has no marker, so the
+    // label is absent for it until the user completes a session at that rung.
+    // Deliberate — the alternative keeps the defect for exactly the users who
+    // were already bitten by it, and the marker is rebuilt by one logged set.
+    // ------------------------------------------------------------------
+
+    /** The exact (level, stage) the user has actually COMPLETED, or null. */
+    private fun progressionEarnedKey(exerciseName: String) =
+        "progression_earned_state_$exerciseName"
+
+    private fun earnedProgressionState(exerciseName: String): ProgressionEngine.ProgressionState? =
+        ProgressionEngine.deserialize(prefs.getString(progressionEarnedKey(exerciseName), null))
+
+    /**
+     * Test handle: the raw stored state, or null when nothing was ever written.
+     * Internal rather than public because the distinction Cancel depends on —
+     * "a state exists" versus "the state reads the same as an unset one" — is
+     * invisible through [currentProgressionState], which always has an answer.
+     */
+    internal fun storedProgressionRawForTest(exerciseName: String): String? =
+        prefs.getString(progressionKey(exerciseName), null)
+
+    /** The engine completed [state]: this rung was done, not merely chosen. */
+    internal fun markProgressionEarned(
+        exerciseName: String,
+        state: ProgressionEngine.ProgressionState
+    ) {
+        prefs.putString(progressionEarnedKey(exerciseName), ProgressionEngine.serialize(state))
+    }
+
+    /**
+     * The user moved the level by hand, so nothing about it counts as done yet.
+     * Every selector goes through here — see the note above.
+     *
+     * It also drops a HELD level-up: the engine was holding a move to a rung the
+     * user has just walked away from by picking another one, and applying it
+     * afterwards would undo the tap.
+     */
+    private fun clearProgressionEarned(exerciseName: String) {
+        prefs.remove(progressionEarnedKey(exerciseName))
+        prefs.remove(pendingLevelUpKey(exerciseName))
+    }
+
+    // ------------------------------------------------------------------
+    // THE LEVEL-UP IS HELD UNTIL THE DAY ENDS.
+    //
+    // Owner, 2026-10-17: *"I want every exercise to only level up once the day
+    // ends. Then check what exercises the user did that are marked done and
+    // check if they are locked. If they are marked done and not locked then
+    // level up that exercise (if of course system level is turned on)"* - and,
+    // asked when the day ends: on FINISHING the workout, with a fallback.
+    //
+    // So a completed stage no longer writes the next rung. It writes it HERE,
+    // beside the state, and the level the card shows does not move until the
+    // session is finished - which is what makes "you are on level 5" mean
+    // "you have finished level 5" rather than "you are half way through it".
+    //
+    // THE FALLBACK IS THE HALF THAT KEEPS THE FEATURE HONEST: a user who
+    // walks away without ever pressing finish would otherwise hold a level-up
+    // forever, so [applyPendingLevelUps] runs again when a day's session is
+    // opened ([selectDayForWorkoutNow]). Nothing can be lost by forgetting to
+    // finish; it can only be late.
+    // ------------------------------------------------------------------
+
+    private fun pendingLevelUpKey(exerciseName: String) = "pending_level_up_$exerciseName"
+
+    /**
+     * Test handle: hold a level-up exactly as [advanceProgressionIfNeeded] does
+     * when a stage's every set met its target, so the DAY-END rule can be tested
+     * without driving a whole workout session through the card.
+     */
+    internal fun holdLevelUpForTest(
+        exerciseName: String,
+        state: ProgressionEngine.ProgressionState
+    ) {
+        prefs.putString(pendingLevelUpKey(exerciseName), ProgressionEngine.serialize(state))
+    }
+
+    /**
+     * Applies every held level-up, for exercises that are DONE and NOT LOCKED,
+     * with the level system on - the owner's three conditions, in his order.
+     *
+     * "Done" is the pending marker itself: it only exists where a stage's every
+     * set met its target. "Not locked" is the exercise's own pin
+     * (`routine_exercises.locked`), which is also what [advanceProgressionIfNeeded]
+     * refuses to move.
+     */
+    fun applyPendingLevelUps() {
+        if (!_levelSystemEnabled.value) return
+        val names = allRoutineExercises.value
+            .filterNot { it.locked }
+            .distinctBy { it.name }
+        names.forEach { exercise ->
+            val raw = prefs.getString(pendingLevelUpKey(exercise.name), null) ?: return@forEach
+            val next = ProgressionEngine.deserialize(raw) ?: return@forEach
+            prefs.putString(
+                progressionKey(exercise.name),
+                ProgressionEngine.serialize(next)
+            )
+            prefs.remove(pendingLevelUpKey(exercise.name))
+            refreshProgressionDisplayNow(exercise.name)
+        }
+        refreshOverallLevel()
+    }
+
+    // ------------------------------------------------------------------
+    // WHAT AN EDIT PASS STARTED FROM, so Cancel can put it back.
+    //
+    // Owner, 2026-10-17: "Cancel button in the level selection doesnt actually
+    // cancel." It did not, because the editor's level rows WRITE on the tap
+    // (the owner's own 2026-10-08 ruling — "when he selects it directly apply
+    // it"), so by the time Cancel was pressed the level, the stage and the
+    // unlock had long been persisted and Cancel only closed the dialog.
+    //
+    // The dialog stays immediate — one tap still moves the card behind it —
+    // and Cancel means "undo what this pass changed": the state an edit pass
+    // first touched is snapshotted once per exercise, restored on Cancel and
+    // dropped on Save. Keyed by name, because the ADD form's name changes as
+    // the user picks, and each name is its own history.
+    // ------------------------------------------------------------------
+
+    /** name -> the (level, stage, locked) the edit pass opened on. */
+    private val editPassOrigin =
+        mutableMapOf<String, ProgressionOrigin?>()
+
+    /** The three facts an edit pass may change. */
+    data class ProgressionOrigin(
+        val state: ProgressionEngine.ProgressionState?,
+        val locked: Boolean,
+        val hadStoredState: Boolean
+    )
+
+    /** Snapshot BEFORE the first editor write of this pass; later taps keep the original. */
+    private fun rememberEditPassOrigin(exerciseName: String) {
+        if (editPassOrigin.containsKey(exerciseName)) return
+        val storedRaw = prefs.getString(progressionKey(exerciseName), null)
+        editPassOrigin[exerciseName] = ProgressionOrigin(
+            state = ProgressionEngine.deserialize(storedRaw),
+            locked = isExerciseLockedNow(exerciseName),
+            hadStoredState = storedRaw != null
+        )
+    }
+
+    /**
+     * Save: the pass's writes stand, so there is nothing left for Cancel to undo.
+     */
+    fun commitExerciseEditPass(exerciseName: String) {
+        editPassOrigin.remove(exerciseName)
+    }
+
+    /**
+     * Cancel: put the level, the stage, the earned marker and the lock back to
+     * what they were when this edit pass first wrote. Nothing to restore (the
+     * user opened the editor and changed nothing) means nothing happens.
+     */
+    fun cancelExerciseEditPass(exerciseName: String) {
+        val origin = editPassOrigin.remove(exerciseName) ?: return
+        val key = progressionKey(exerciseName)
+        if (origin.hadStoredState && origin.state != null) {
+            prefs.putString(key, ProgressionEngine.serialize(origin.state))
+        } else {
+            // The exercise had never been set: the tap CREATED a stored state,
+            // and cancelling has to take it away again rather than leave a
+            // level the user never chose behind the card.
+            prefs.remove(key)
+            prefs.remove(progressionEarnedKey(exerciseName))
+        }
+        setExerciseLocked(exerciseName, origin.locked)
+        refreshProgressionDisplayNow(exerciseName)
+        refreshOverallLevel()
+    }
+
     /** Prefs key for the extension grid an exercise's level list has grown to. */
     private fun extensionKey(exerciseName: String) = "level_extension_$exerciseName"
 
@@ -1895,8 +2219,15 @@ class WorkoutViewModel(
         // The stage is complete once every set of its pattern row was met.
         if (completed >= stageReps.size) {
             stageSetProgress[name] = 0
+            // THIS rung was genuinely done — the marker "progression available"
+            // reads, and the one a manual selection clears. Written for the state
+            // the user was ON, because that is what they just finished; a level-up
+            // moves the state on top of it and the next rung is not earned yet.
+            markProgressionEarned(name, state)
             val next = ProgressionEngine.levelUp(entry, state) ?: return
-            prefs.putString(progressionKey(name), ProgressionEngine.serialize(next.newState))
+            // HELD, NOT WRITTEN — the level the card shows stays put until the day
+            // ends. See [applyPendingLevelUps] for the ruling and the fallback.
+            prefs.putString(pendingLevelUpKey(name), ProgressionEngine.serialize(next.newState))
         }
     }
 
@@ -1947,60 +2278,22 @@ class WorkoutViewModel(
     private fun masteryReviewedKey(name: String) = "mastery_reviewed_$name"
 
     // ------------------------------------------------------------------
-    // The session recap accumulator.
+    // The day's recap.
     //
-    // Deliberately in-memory and deliberately cleared on reset rather than read
-    // back out of the log table: the recap describes THE SESSION the user just
-    // did, and the log table also holds yesterday's sets for the same exercise
-    // and cannot say which of them belong to this run.
+    // Built from the LOG, not accumulated in memory. The owner's ask (2026-10-17):
+    // the completed workout must PERMANENTLY keep showing what was done and which
+    // muscle groups were trained today — and an in-memory accumulator dies with the
+    // process that filled it, so the card vanished on a restart while the completed
+    // flag survived. The log table is the only place that outlives the process. The
+    // old recap also counted PLANNED target sets per muscle (every exercise of the
+    // day, done or not); the split now counts the sets actually logged, so the card
+    // cannot claim volume the user never did.
+    //
+    // FILTERED BY CALENDAR DAY (same rule as loadDayProgress): yesterday's sets
+    // cannot make today's card lie. shortcut: a recap across midnight refreshes on
+    // the next logged set rather than by wall clock — <when to upgrade> if the
+    // owner ever keeps the app open across a day flip and expects the card to clear.
     // ------------------------------------------------------------------
-
-    /** When the first set of the current session was logged; 0 = not started. */
-    private var recapStartedAt: Long = 0L
-
-    /** Distinct exercise names trained this session. */
-    private val recapExercises = linkedSetOf<String>()
-
-    /** Total load volume this session, in the exercises' own units. */
-    private var recapVolumeKg: Double = 0.0
-
-    private fun clearRecap() {
-        recapStartedAt = 0L
-        recapExercises.clear()
-        recapVolumeKg = 0.0
-    }
-
-    /**
-     * The recap for the finished session.
-     *
-     * [setsLogged] is passed in rather than derived, because the caller's state
-     * update is what increments it and reading the pre-update value would be
-     * off by exactly the final set — the one set the recap exists to report.
-     *
-     * The muscle split counts SETS per muscle from the routine's own
-     * `muscleGroup`, so it cannot disagree with the rest of the app: the same
-     * field drives the badges on the cards.
-     */
-    private fun buildRecap(setsLogged: Int, exercises: List<RoutineExerciseEntity>): WorkoutRecap {
-        val byMuscle = linkedMapOf<String, Int>()
-        exercises.forEach { ex ->
-            val muscle = ex.muscleGroup.ifBlank { "Other" }
-            byMuscle[muscle] = (byMuscle[muscle] ?: 0) + ex.targetSets
-        }
-        val duration = if (recapStartedAt == 0L) 0L
-        else ((System.currentTimeMillis() - recapStartedAt) / 1000L).coerceAtLeast(0L)
-        return WorkoutRecap(
-            exercises = recapExercises.size,
-            sets = setsLogged,
-            // Null rather than 0.0: a bodyweight or timed session has no honest
-            // volume figure, and "0 kg" reads as "you did nothing".
-            volumeKg = recapVolumeKg.takeIf { it > 0.0 },
-            durationSeconds = duration,
-            setsByMuscle = byMuscle.entries
-                .sortedByDescending { it.value }
-                .associate { it.key to it.value },
-        )
-    }
 
     /** Workouts a reviewed card stays quiet before re-offering itself. */
     private val MASTERY_REVIEW_COOLDOWN = 5
@@ -2144,6 +2437,12 @@ class WorkoutViewModel(
     fun isProgressionAvailable(name: String): Boolean {
         val entry = ProgressionEngine.entryFor(name) ?: return false
         val state = currentProgressionState(name) ?: return false
+        // THE LABEL IS ABOUT WORK. A level the user merely POINTED AT in the
+        // picker satisfies the engine's mastery rule — that rule reads the stored
+        // state — so "progression available" used to appear over a rung the user
+        // had never trained. See [progressionEarnedKey] for the ruling; a rung
+        // with no marker is one this build has not seen finished.
+        if (earnedProgressionState(name) != state) return false
         val declinedAt = declinedRepCheckpoint(name)
         // A rep ladder's decline re-arms at the next checkpoint, so it is
         // remembered as a REP COUNT and handed to the engine, which owns the
@@ -2202,6 +2501,38 @@ class WorkoutViewModel(
     fun acceptEvolution(sourceName: String, targetName: String) {
         reopenEvolution(sourceName)
         acceptBranch(sourceName, targetName)
+        // ACCEPTING CHANGES THE EXERCISE, NOT ONLY ITS LEVEL.
+        //
+        // Owner, 2026-10-17: "(if progressing it will automatically change that
+        // current exercise with the progressed one as well as all the other same
+        // exercises on the week (if there are other days showing that same
+        // exercise))". [acceptBranch] only wrote the TARGET's progression state,
+        // so the card kept naming the exercise the user had just outgrown and the
+        // offer came back next session against a row that no longer matched.
+        replaceExerciseEverywhere(sourceName, targetName)
+    }
+
+    /**
+     * Rewrites every routine row named [sourceName] to [targetName] — all days,
+     * not just the one on screen.
+     *
+     * A day that already carries the target is left alone rather than given a
+     * second copy of it: the two rows would fight over one progression state and
+     * one set of cached values, which is a worse outcome than that day keeping
+     * the movement it already had.
+     */
+    private fun replaceExerciseEverywhere(sourceName: String, targetName: String) {
+        val rows = allRoutineExercises.value.filter { it.name == sourceName }
+        if (rows.isEmpty()) return
+        val muscle = ExerciseCatalog.entryFor(targetName)?.muscle ?: rows.first().muscleGroup
+        viewModelScope.launch {
+            rows.groupBy { it.dayOfWeek }.forEach { (_, dayRows) ->
+                if (dayRows.any { it.name == targetName }) return@forEach
+                dayRows.forEach { row ->
+                    repository.saveExercise(row.copy(name = targetName, muscleGroup = muscle))
+                }
+            }
+        }
     }
 
     /**
@@ -2409,19 +2740,12 @@ class WorkoutViewModel(
 
             val nextSetNumber = currentState.currentSetNumber + 1
 
-            // Recap accumulation. Every number the finished-session card shows
-            // comes from a set the user really logged, so nothing here can
-            // disagree with the history on the analytics screen.
-            if (recapStartedAt == 0L) recapStartedAt = System.currentTimeMillis()
-            recapExercises.add(currentExercise.name)
-            recapVolumeKg += currentState.currentWeightKg * currentState.currentReps
-            
+
             var isTransition = false
-            // Non-null only on the completing set; holds the cards so the
-            // completion branch below can hand them to applyMasteryCards without
-            // recomputing them (computeMasteredExercises reads prefs, and the
-            // workout counter it depends on has just been bumped).
-            var masteryCards: List<MasteryCardData>? = null
+            // Set when the last set of the last exercise is logged, so the day's
+            // level-ups can be applied AFTER the state has moved rather than from
+            // inside the update lambda - see [applyPendingLevelUps].
+            var workoutFinished = false
             _workoutNowState.update { state ->
                 if (nextSetNumber <= currentExercise.targetSets) {
                     state.copy(currentSetNumber = nextSetNumber, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
@@ -2431,28 +2755,35 @@ class WorkoutViewModel(
                         isTransition = true
                         state.copy(currentExerciseIndex = nextExerciseIndex, currentSetNumber = 1, totalSetsLoggedToday = state.totalSetsLoggedToday + 1)
                     } else {
-                        // Workout complete: count it (streaks, mastery cooldowns)
-                        // and gather the mastery cards the spec's hub shows after
-                        // the summary.
+                        // Workout complete: count it (streaks, mastery cooldowns).
+                        // The mastery cards are computed AFTER the held level-ups are
+                        // applied, below - they read the stored levels, so computing
+                        // them here would describe the pre-level-up exercise and offer
+                        // a branch it has just climbed off.
                         prefs.putInt("completed_workout_count", prefs.getInt("completed_workout_count", 0) + 1)
-                        val cards = computeMasteredExercises(exercises)
-                        masteryCards = cards
+                        workoutFinished = true
                         state.copy(
                             isWorkoutCompleted = true,
                             totalSetsLoggedToday = state.totalSetsLoggedToday + 1,
                             restTimerSeconds = 0,
                             isTimerActive = false,
-                            masteredExercises = cards,
-                            workoutRecap = buildRecap(state.totalSetsLoggedToday + 1, exercises)
+                            masteredExercises = emptyList()
                         )
                     }
                 }
             }
-            // The popup queue is its own state field, so writing only the cards
-            // above left it stale (empty on a first completion) and the offer
-            // never opened for an exercise that maxed out on the final set.
-            // Publish the cards AND their trees in one pass.
-            masteryCards?.let { applyMasteryCards(it) }
+            // THE DAY ENDS HERE (owner, 2026-10-17): every held level-up is applied for
+            // the exercises that are done and not locked, and only THEN are the mastery
+            // cards computed - so the offer the summary makes is the offer the NEW level
+            // makes. The popup queue is its own state field, so publishing the cards
+            // through [applyMasteryCards] is what keeps a first completion from leaving
+            // it stale and the offer unopened.
+            if (workoutFinished) {
+                applyPendingLevelUps()
+                val cards = computeMasteredExercises(exercises)
+                applyMasteryCards(cards)
+                _workoutNowState.update { it.copy(masteredExercises = cards) }
+            }
             val updatedState = _workoutNowState.value
             if (!updatedState.isWorkoutCompleted) {
                 if (isTransition) {
@@ -2470,8 +2801,7 @@ class WorkoutViewModel(
         viewModelScope.launch {
             repository.deleteTodayLogs()
         }
-        clearRecap()
-        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0, workoutRecap = null) }
+        _workoutNowState.update { it.copy(currentExerciseIndex = 0, currentSetNumber = 1, isWorkoutCompleted = false, totalSetsLoggedToday = 0, isTimerActive = false, restTimerSeconds = 0) }
         saveDayProgress(_workoutNowState.value.selectedDayOfWeek, _workoutNowState.value)
         saveWorkoutNowState(_workoutNowState.value)
     }
@@ -2654,7 +2984,36 @@ class WorkoutViewModel(
         replacements: List<RoutineExerciseEntity>
     ) {
         viewModelScope.launch {
+            // THE LEVEL FOLLOWS THE WORK, NOT THE NAME.
+            //
+            // Owner, 2026-10-17: "When replacing an exercise i feel like the new
+            // exercise doesnt already start from the level that was once selected
+            // to do that exercise." The progression state is keyed by exercise
+            // NAME, so swapping a row for another movement handed the user a
+            // blank ladder for the new name — their level was still there, just
+            // no longer on the exercise in front of them.
+            //
+            // Only when the target has NO state of its own: a movement the user
+            // has already trained keeps the level they earned on it, because
+            // overwriting that would delete data the app did not create here.
+            val carried = currentProgressionState(original.name)
             repository.replaceExercise(original, previousNames, replacements)
+            if (carried != null) {
+                replacements
+                    .filter { it.name != original.name }
+                    .filter { prefs.getString(progressionKey(it.name), null) == null }
+                    .forEach { replacement ->
+                        prefs.putString(
+                            progressionKey(replacement.name),
+                            ProgressionEngine.serialize(carried)
+                        )
+                        // The level was SELECTED here rather than trained on the
+                        // new movement, so it is not "done" — see
+                        // [progressionEarnedKey].
+                        clearProgressionEarned(replacement.name)
+                        refreshProgressionDisplayNow(replacement.name)
+                    }
+            }
         }
     }
 

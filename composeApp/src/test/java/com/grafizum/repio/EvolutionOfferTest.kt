@@ -177,11 +177,20 @@ class EvolutionOfferTest {
     @Test
     fun thePreferredBranchIsNeverShorterThanTheSourceWhenOneIsNot() {
         ExerciseProgression.ENTRIES
-            .filter { it.branches.size > 1 && ProgressionEngine.preferredBranch(it) != null }
+            // Offerable branches only: [ProgressionEngine.branchesFor] is what the
+            // app offers, and an off-movement branch that is longer is not a
+            // branch the user can be given (owner, 2026-10-17 — see
+            // SameMovementProgressionTest). Measuring the longest branch over the
+            // raw list would make this test demand a target the engine must not
+            // offer.
+            .filter { entry ->
+                val offerable = ProgressionEngine.branchesFor(entry)
+                offerable.size > 1 && ProgressionEngine.preferredBranch(entry) != null
+            }
             .forEach { entry ->
                 val preferred = ProgressionEngine.preferredBranch(entry)!!
                 val sourceMax = ProgressionEngine.effectiveMaxLevel(entry)
-                val longest = entry.branches
+                val longest = ProgressionEngine.branchesFor(entry)
                     .mapNotNull { ProgressionEngine.entryFor(it.entry) }
                     .maxOf { ProgressionEngine.effectiveMaxLevel(it) }
                 if (longest < sourceMax) return@forEach
@@ -201,9 +210,13 @@ class EvolutionOfferTest {
     fun thePreferredBranchPrefersAdvancedWhenOneIsEligible() {
         var checked = 0
         ExerciseProgression.ENTRIES.forEach { entry ->
-            if (entry.branches.none { it.tag == "advanced" }) return@forEach
+            // Offerable branches only, for the same reason as the test above:
+            // an "advanced" branch the app would not offer cannot be the one
+            // preferredBranch is asked to choose.
+            val offerable = ProgressionEngine.branchesFor(entry)
+            if (offerable.none { it.tag == "advanced" }) return@forEach
             val sourceMax = ProgressionEngine.effectiveMaxLevel(entry)
-            val advancedIsEligible = entry.branches.any { branch ->
+            val advancedIsEligible = offerable.any { branch ->
                 branch.tag == "advanced" &&
                     ProgressionEngine.entryFor(branch.entry)
                         ?.let { ProgressionEngine.effectiveMaxLevel(it) >= sourceMax } == true

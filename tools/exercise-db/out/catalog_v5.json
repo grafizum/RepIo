@@ -606,9 +606,9 @@
   "equipment": "Barbell",
   "type": "strength_weighted_or_machine",
   "level": "isolation",
-  "description": "The reverse-grip barbell curl is a variation on the biceps curl where the palms face downward. The switch from an underhand to an overhand grip brings the forearm and brachialis muscles more into the exercise. If it is uncomfortable to the wrists, try performing it on the angles of an EZ-curl bar.",
+  "description": "A biceps curl taken on a preacher pad, which fixes the upper arm in place so the biceps work with no shoulder swing at all. Set the armpits on the pad, take an underhand grip on the bar, and let the arms straighten fully before curling back up. Squeeze at the top and lower slowly; the pad's angle makes the first inch of the rep the hardest part.",
   "in_old_pool": false,
-  "matchedVia": "alias"
+  "matchedVia": "override"
  },
  {
   "id": "barbell-pullover",
@@ -2842,9 +2842,9 @@
   "equipment": "Dumbbell",
   "type": "strength_weighted_or_machine",
   "level": "compound",
-  "description": "The dumbbell stiff-legged deadlift targets the hamstrings, glutes, low and upper back, as well as the core. The purpose of the stiff-legged, as opposed to Romanian deadlift with slightly bent knees, is to engage the hamstrings and low back to an even greater degree.",
+  "description": "A hip hinge with a dumbbell in each hand and only a soft knee bend, loading the hamstrings through the hip rather than the spine. Stand tall, soften the knees, and push the hips behind you while the bells slide down the front of the legs. Stop when the hamstrings run out of stretch and drive the hips forward to stand; the back stays long the whole way, which is what separates it from a stiff-legged pull.",
   "in_old_pool": true,
-  "matchedVia": "slug"
+  "matchedVia": "override"
  },
  {
   "id": "dumbbell-shoulder-press",
@@ -4623,9 +4623,9 @@
   "equipment": "Machine",
   "type": "strength_weighted_or_machine",
   "level": "isolation",
-  "description": "The machine seated calf raise is an exercise targeting the calf muscles of the lower leg, particularly the soleus muscle. It is usually performed for moderate to high reps, such as 8-12 reps per set, and occasionally for very high burnout-focused sets of 50-100 total reps.",
+  "description": "A standing calf raise on a machine: the heels drive up against a shoulder or hip pad with the balls of the feet on the platform. Let the heels sink below the platform for a full stretch, then rise all the way to the top and hold. The standing position loads the gastrocnemius, which is the half of the calf a seated raise cannot reach.",
   "in_old_pool": false,
-  "matchedVia": "alias"
+  "matchedVia": "override"
  },
  {
   "id": "machine-chest-fly",

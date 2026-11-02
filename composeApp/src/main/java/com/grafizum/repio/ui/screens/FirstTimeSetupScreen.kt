@@ -56,6 +56,7 @@ import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.DefaultData
 import com.grafizum.repio.data.ExerciseEquipmentTags
 import com.grafizum.repio.data.ExerciseLocalization
+import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
@@ -2962,9 +2963,13 @@ fun AddExerciseDialog(
                 // reps / weight boxes used to, exactly as in the routine editor -
                 // otherwise an exercise added during setup shows the custom input
                 // boxes while the level system runs underneath it (owner, 2026-10-09).
-                if (levelMode) {
+                // A KNOWN LEVEL IS NOT A QUESTION (owner, 2026-10-31): an exercise the user has
+                // already trained is added at its stored level, and the caption above says which
+                // one. See the same gate in [ExerciseEditDialog].
+                if (levelMode && !(pickerMode && levelData.levelKnown)) {
                     LevelPickerCard(
                         options = levelData.options,
+                        repUnitKey = ProgressionEngine.repUnitKeyFor(name),
                         pageRange = levelData.pageRange,
                         totalLevels = levelData.maxLevel,
                         onPreviousPage = levelData.previousPageStart
@@ -3010,6 +3015,7 @@ fun AddExerciseDialog(
                         onToggle = { newValue ->
                             isTimeBased = newValue
                         },
+                        unitKey = ProgressionEngine.repUnitKeyFor(name),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -3089,7 +3095,7 @@ fun AddExerciseDialog(
                             RepsRangeField(
                                 value = targetRepsValue,
                                 onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
-                                label = getString("reps"),
+                                label = getString(ProgressionEngine.repUnitKeyFor(name)),
                                 isError = repsError,
                                 modifier = Modifier.weight(1f).fillMaxHeight(),
                                 supportingText = if (repsHasRangeError) {

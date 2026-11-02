@@ -122,9 +122,15 @@ val EmeraldLight = Color(0xFFA7F3D0)
 val DarkBackground = Color(0xFF0E0E0E) // canvas — deepest tone, owns the stage
 val DarkSurface = Color(0xFF141414) // first layer above the canvas: sheets, dialogs, chips
 val DarkSurfaceVariant = Color(0xFF191919) // second layer: THE GENERAL CARDS, nested wells
-val DarkBarSurface = Color(0xFF1B1B1B) // the bottom bar: chrome, one notch UNDER the hero cards
 val DarkSurfaceHigh = Color(0xFF1E1E1E) // third layer: THE WORKOUT HERO CARDS - the front panel
 val DarkSurfaceHighest = Color(0xFF282828) // fourth layer: pressed/dragged states, the tab pill
+
+// NO DarkBarSurface ANY MORE. The bottom bar took its own rung (#1B1B1B, one notch under the
+// hero cards) on 2026-10-14, and that rung was reported as "a black line between the content of
+// the day and the bottom tab switches" on 2026-10-17. On a dark scheme the canvas is the
+// deepest tone the palette owns, so a bar ABOVE it leaves the background strip between the last
+// card and the bar as the darkest band on the screen - see navBarFill, which now returns the
+// canvas itself.
 
 /**
  * The WEAKER rim: dividers, list separators, the hairline around a nested block.

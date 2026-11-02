@@ -531,7 +531,29 @@ private fun MiniLadder(level: Int, maxLevel: Int, accent: Color) {
  * padding. Measured above it, `left` is the trunk's edge, the arm end falls
  * short of the spine and the line is drawn backwards - visible only on a
  * render, because every number involved is still a plausible number.
+ *
+ * And a rect that is EMPTY is not a card at all. MEASURED on the Pixel_7a
+ * emulator, 2026-10-16, with the popup opened for Push-Up: the fourth branch
+ * card, sitting just outside the dialog's scroll viewport, reported a rect
+ * whose centre was at **y = 504 - the scroll container's own top, 749px ABOVE
+ * the trunk it branches from**. The spine used to take its far end from
+ * `arms.last()` without asking whether that arm was ever drawn, so it was
+ * drawn from the trunk's bottom edge (y = 1232) UP to that phantom row: a
+ * stray grey stripe crossing the whole trunk card and the dialog's subtitle,
+ * stopping at the trunk while the three real arms below hung off nothing.
+ * Every number was plausible and nothing failed - which is why the rule is now
+ * structural rather than a hope that every card reports a rectangle: a row
+ * counts only if its rect has area, only if its arm lands past the spine, and
+ * only if it sits BELOW the drop. No empty rect, no phantom arm, and the spine
+ * therefore ends on the last arm that is genuinely drawn.
  */
+/**
+ * One row's arm, after the gates: WHICH card it belongs to (its colour is
+ * indexed by this), where it leaves the spine, and where it ends inside its
+ * card.
+ */
+private class ArmRow(val row: Int, val y: Float, val endX: Float)
+
 @Composable
 private fun TreeElbows(
     sourceRect: Rect?,
@@ -561,38 +583,51 @@ private fun TreeElbows(
         val spineX = spineInset.toPx()
         val thickness = 2.dp.toPx()
         val dropTop = sx.bottom - origin.y
+        // THE THREE GATES, in the order the failure they exist for arrives:
+        //  - a rect with no area is a row that has not been laid out (see the
+        //    doc above for the measured one), so it has no arm to draw;
+        //  - an arm ending at or behind the spine points AWAY from its card -
+        //    the render of a measurement taken above the card's inset padding;
+        //  - an arm at or above the drop would be a child drawn over its parent,
+        //    which no layout of this dialog can produce.
         // Pair each card's arm height with its OWN left edge: looking the edge
         // up by index into a list of heights silently reuses the FIRST card's
         // edge whenever two cards share a y, which is exactly the misplaced
         // line this whole rewrite exists to remove.
-        val arms = rowRects.map {
-            it.center.y - origin.y to (it.left - origin.x + armInset.toPx())
-        }
-        // An arm that ends at or behind the spine points AWAY from the card it
-        // belongs to - the render a measurement taken above the card's inset
-        // padding produces. There is no right way to draw that, so draw nothing
-        // rather than draw it backwards.
-        if (arms.none { it.second > spineX }) return@Canvas
+        val arms = rowRects.withIndex()
+            .filter { (_, rect) -> !rect.isEmpty }
+            .map { (index, rect) ->
+                ArmRow(
+                    row = index,
+                    y = rect.center.y - origin.y,
+                    endX = rect.left - origin.x + armInset.toPx(),
+                )
+            }
+            .filter { it.endX > spineX && it.y > dropTop }
+        if (arms.isEmpty()) return@Canvas
 
         // The drop: one stroke, out of the trunk's bottom edge, down to the
-        // last arm.
+        // last arm that is genuinely drawn - never to a row that reported no
+        // rectangle, which is what turned this stroke into a line running back
+        // UP the dialog.
         drawLine(
             color = spineColor,
             start = Offset(spineX, dropTop),
-            end = Offset(spineX, arms.last().first),
+            end = Offset(spineX, arms.maxOf { it.y }),
             strokeWidth = thickness,
             cap = StrokeCap.Butt,
         )
         // Then right into each progression, all from the same x. Each arm takes
         // its own row's colour, so a deeper card is reached by a line of the
-        // colour it lights in rather than by one shared grey.
-        arms.forEachIndexed { index, arm ->
-            val (armY, armEnd) = arm
-            if (armEnd <= spineX) return@forEachIndexed
+        // colour it lights in rather than by one shared grey. The ROW is kept
+        // with the arm rather than inferred from the list position, because the
+        // gates above can drop rows and a shifted index would dress arm three in
+        // arm two's colour.
+        arms.forEach { arm ->
             drawLine(
-                color = armColors.getOrElse(index) { spineColor },
-                start = Offset(spineX, armY),
-                end = Offset(armEnd, armY),
+                color = armColors.getOrElse(arm.row) { spineColor },
+                start = Offset(spineX, arm.y),
+                end = Offset(arm.endX, arm.y),
                 strokeWidth = thickness,
                 cap = StrokeCap.Butt,
             )

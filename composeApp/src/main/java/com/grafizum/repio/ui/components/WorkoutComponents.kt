@@ -2358,7 +2358,13 @@ fun getUpperCategoryKey(muscleGroup: String): String {
 fun RepsTimeToggle(
     isTimeBased: Boolean,
     onToggle: (Boolean) -> Unit,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * How this exercise's repeated work is counted - "reps" or "steps" - so a walked drill is
+     * not offered a "Reps" tab. Read from the exercise itself through
+     * [ProgressionEngine.repUnitKeyFor]; see [ProgressionEngine.countsInSteps].
+     */
+    unitKey: String = "reps"
 ) {
     val isDeveloper = LocalDeveloperSkin.current
     val density = LocalDensity.current
@@ -2437,7 +2443,7 @@ fun RepsTimeToggle(
                 contentAlignment = Alignment.Center
             ) {
                 Text(
-                    text = getString("reps"),
+                    text = getString(unitKey),
                     style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                     color = repsColor
                 )
@@ -3553,6 +3559,18 @@ data class EditorLevelData(
     val previousPageStart: Int? = null,
     /** The level the NEXT page of rungs starts at, or null on the last page. */
     val nextPageStart: Int? = null,
+    /**
+     * True when the USER has actually chosen a rung for this exercise before
+     * (a stored progression state), rather than the level being the one the system
+     * would start it at.
+     *
+     * Owner, 2026-10-31 (dashboard task_5d5q2t5k0z3n3g1v3714160r): *"When an exercise
+     * is being added manually and has been done already once (the level is know) then
+     * dont ask which level but simply added based on precious level"*. So the ADD
+     * form uses this to skip the level QUESTION while still printing the answer it is
+     * going to use - a picker nobody needs to answer is a step, not a choice.
+     */
+    val levelKnown: Boolean = false
 ) {
     /** The rungs [options] covers, e.g. 1..15. */
     val pageRange: IntRange?
@@ -3643,9 +3661,9 @@ data class EditorLevelStage(
  *
  *  - the ROW is the choice. Tapping one level selects it, immediately - one tap,
  *    not select-then-confirm - and the host writes it through the same
- *    `setExerciseLevelFromEditor` path the ladder uses (which also clears a
- *    committed lock, so a locked exercise is editable here rather than through a
- *    screen that refuses every tap).
+ *    `setExerciseLevelFromEditor` path the ladder uses, which skips the
+ *    locked-exercise gate so a pinned exercise is still editable here. It does
+ *    NOT clear the pin (owner, 2026-10-31: never auto unlock).
  *  - the SELECTED row EXPANDS to its Roman stages. That is the owner's "the
  *    level expands and the roman number is displayed": the numerals answer "what
  *    am I actually doing at this level", which is the whole reason a level is
@@ -3694,7 +3712,13 @@ internal fun LevelPickerCard(
     totalLevels: Int = 0,
     onPreviousPage: (() -> Unit)? = null,
     onNextPage: (() -> Unit)? = null,
-    modifier: Modifier = Modifier
+    modifier: Modifier = Modifier,
+    /**
+     * The word beside each stage's numbers: "reps" for nearly every row, "steps" for the ones
+     * whose work is a step count ([ProgressionEngine.countsInSteps]). Passed in because the
+     * options carry numbers, not the exercise they belong to.
+     */
+    repUnitKey: String = "reps"
 ) {
     // Every gap inside this card separates text from text or from an icon, so
     // none of them is a fixed dp - see [WindowSize.inlineGap]. Measured on the
@@ -3724,14 +3748,20 @@ internal fun LevelPickerCard(
     // make sure that they are slightly more to the right positioned so i can see that they
     // are treated as in between roman numbers."*
     //
-    // That reverses the NUMERAL half of the ruling above: a revealed row is no longer the
-    // big row's twin from edge to edge. The BOX still is - same left and right edge, same
-    // height, same 8dp corner - because the row is a real choice and a list that staggers
-    // sideways under the thumb is the defect [stageRowHeight] exists to prevent. What
-    // recedes is the numeral the owner is naming: one type step down from the big rows'
-    // `labelLarge` to `labelMedium`, and this far right, on top of the row's own 10dp
-    // padding - so II sits INBOARD of I and IV rather than beside them at their own rank.
-    val revealedNumeralIndent = 12.dp
+    // Then, 2026-10-17, having seen it: the BOX itself has to be the smaller thing -
+    // *"The smaller roman levels inbetween the big once need to have smaller boxes shifted
+    // more to the right (like i already asked once)"*. So the box is no longer the big row's
+    // twin from edge to edge: it STARTS [revealedRowIndent] further right and keeps the big
+    // rows' right edge, which makes it both narrower and shifted right in one move. The
+    // SHAPE the earlier ruling asked for is untouched - same 8dp corner, same 1dp border,
+    // same height - so the row still reads as the same KIND of row, just ranked below.
+    // Keeping the right edge rather than centring the box is deliberate: the row ends where
+    // every other row ends, and it is the LEFT edge that says "in between".
+    val revealedRowIndent = 20.dp
+    // ...and the numeral's own step inboard, now that the box carries most of the cue. Kept
+    // smaller than it was (12dp) because the two indents stack - at 12 the numeral sat 32dp
+    // in from the card's edge and the reps beside it lost the room the ellipsis then ate.
+    val revealedNumeralIndent = 6.dp
     // WHICH STAGE'S DROPDOWN IS OPEN, at most one (see [EditorStageGroup]). Keyed on
     // the selected level, so picking another rung cannot leave a dropdown standing
     // open under a level the user has left.
@@ -4088,7 +4118,7 @@ internal fun LevelPickerCard(
                                             Spacer(modifier = Modifier.width(inlineGap))
                                             Text(
                                                 text = if (stage.reps.isEmpty()) ""
-                                                       else stage.reps.joinToString(" / ") + " " + getString("reps"),
+                                                       else stage.reps.joinToString(" / ") + " " + getString(repUnitKey),
                                                 style = MaterialTheme.typography.bodySmall,
                                                 color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                 // One line, always: the reps take
@@ -4160,13 +4190,13 @@ internal fun LevelPickerCard(
                                     }
                                     // THE CLIMB THE ROUNDING HID, opened: the stages
                                     // between this row and the next, drawn and tappable
-                                    // exactly like the rows above them - the same box, the
-                                    // same 8dp corner, the same left and right edges, the
-                                    // same height and the same behaviour when picked, so a
-                                    // revealed stage is not a lesser KIND of row (see
-                                    // [stageRowHeight]). Its NUMERAL is not the big row's
-                                    // though - smaller and set inboard, which is the
-                                    // owner's "in between" cue (see
+                                    // exactly like the rows above them - the same 8dp
+                                    // corner, the same border, the same height and the
+                                    // same behaviour when picked - but in a SMALLER BOX
+                                    // set further right, which is the owner's "in
+                                    // between" cue in full (see [revealedRowIndent] for
+                                    // why the right edge is the one that stays put).
+                                    // Its numeral is one type step down as well (see
                                     // [revealedNumeralIndent]).
                                     if (opened) {
                                         openedRows.forEach { hidden ->
@@ -4189,7 +4219,15 @@ internal fun LevelPickerCard(
                                                     if (hiddenSelected) MaterialTheme.colorScheme.primary
                                                     else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.35f)
                                                 ),
+                                                // PADDING BEFORE FILL: the box starts
+                                                // [revealedRowIndent] in and then fills what
+                                                // is LEFT, so it is narrower and further right
+                                                // in one modifier - the right edge stays on
+                                                // the big rows' line. Reversing the two would
+                                                // fill first and then push, which draws the
+                                                // same box in the same place.
                                                 modifier = Modifier
+                                                    .padding(start = revealedRowIndent)
                                                     .fillMaxWidth()
                                                     .semantics {
                                                         testTag = "editor_level_stage_${hidden.roman}"
@@ -4225,7 +4263,7 @@ internal fun LevelPickerCard(
                                                     Spacer(modifier = Modifier.width(inlineGap))
                                                     Text(
                                                         text = if (hidden.reps.isEmpty()) ""
-                                                               else hidden.reps.joinToString(" / ") + " " + getString("reps"),
+                                                               else hidden.reps.joinToString(" / ") + " " + getString(repUnitKey),
                                                         style = MaterialTheme.typography.bodySmall,
                                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                                         modifier = Modifier.weight(1f),
@@ -4306,6 +4344,17 @@ fun ExerciseEditDialog(
     onLevelChange: ((String, Int) -> Unit)? = null,
     /** Opens the full level ladder for the named exercise. */
     onOpenLevelLadder: ((String) -> Unit)? = null,
+    /**
+     * The user left WITHOUT saving, with the exercise's name.
+     *
+     * The editor's level rows write on the tap (the owner's 2026-10-08 ruling,
+     * kept), so Cancel has to be told which pass it is cancelling — the host
+     * puts the level, the stage and the lock back to what they were when the
+     * editor opened. Without it, "Cancel button in the level selection doesnt
+     * actually cancel" — the level was already persisted and Cancel only
+     * closed the window (owner, 2026-10-17).
+     */
+    onCancel: ((String) -> Unit)? = null,
     /**
      * The equipment the user said they have, as coarse categories. The
      * recommendation filters START on it — an unrestricted-feeling "all
@@ -4518,8 +4567,16 @@ fun ExerciseEditDialog(
         selectedLevel != null &&
         onLevelChange != null
 
+    // LEAVING WITHOUT SAVING UNDOES THIS PASS. The level rows already wrote on
+    // the tap, so both dismiss paths carry the name of the exercise whose pass
+    // is being cancelled — see [onCancel].
+    val cancelEditPass: () -> Unit = {
+        onCancel?.invoke(levelName)
+        onDismiss()
+    }
+
     AppDialog(
-        onDismissRequest = onDismiss,
+        onDismissRequest = cancelEditPass,
         title = if (exercise == null) getString("add_exercise") else getString("edit_exercise"),
         // With the keyboard open on small phones (e.g. Pixel) the form used to
         // clip its bottom fields; the shell pads for the keyboard and scrolls the
@@ -4561,13 +4618,19 @@ fun ExerciseEditDialog(
                 // Whatever the user typed or picked, the row is stored under the canonical
                 // pool name when it is a pool exercise: that keeps the equipment table, the
                 // muscle table and previously logged sets all pointing at the same exercise.
-                onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = loadInputToKg(name, targetWeightValue, weightUnit) ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: ""))
+                onSave(RoutineExerciseEntity(id = exercise?.id ?: 0L, dayOfWeek = dayOfWeek, name = ExerciseLocalization.canonicalFor(name) ?: name, muscleGroup = muscleGroup, targetSets = targetSetsStr.toIntOrNull() ?: 3, targetReps = finalReps, targetIntensity = targetIntensityStr, targetWeightKg = loadInputToKg(name, targetWeightValue, weightUnit) ?: 0.0, restSeconds = restSecondsStr.toIntOrNull() ?: 60, videoUrl = videoUrl, orderIndex = exercise?.orderIndex ?: 99, tempo = exercise?.tempo ?: "",
+                    // THE ROW'S LOCK SURVIVES A SAVE. This entity is written with REPLACE, so
+                    // leaving `locked` at its default wrote a false over the user's own pin every
+                    // time the editor saved - the exact "auto unlock" the owner ruled out on
+                    // 2026-10-31 (task_0d4343336a522u55252f4v23). A brand-new row has nothing to
+                    // preserve and starts unlocked.
+                    locked = exercise?.locked ?: false))
             }
         },
         dismissLabel = getString("cancel"),
         onDismiss = {
             focusManager.clearFocus()
-            onDismiss()
+            cancelEditPass()
         }
     ) {
             Column(
@@ -4807,9 +4870,14 @@ fun ExerciseEditDialog(
                     )
                 }
 
-                if (levelMode) {
+                // A KNOWN LEVEL IS NOT A QUESTION (owner, 2026-10-31). Adding an exercise the
+                // user has already trained drops the picker: the row is added at its stored
+                // level, which the caption above already states. The picker still appears for a
+                // brand-new movement, where nothing is known and the choice is real.
+                if (levelMode && !(pickerMode && levelData.levelKnown)) {
                     LevelPickerCard(
                         options = levelData.options,
+                        repUnitKey = ProgressionEngine.repUnitKeyFor(name),
                         // THE NEXT FIFTEEN ARE A SECOND SCREEN, not a scroll: the
                         // buttons move the whole block, and they only exist where
                         // there is a block to move to.
@@ -4897,6 +4965,7 @@ fun ExerciseEditDialog(
                         onToggle = { newValue ->
                             if (!inputsLocked) isTimeBased = newValue
                         },
+                        unitKey = ProgressionEngine.repUnitKeyFor(name),
                         modifier = Modifier.fillMaxWidth()
                     )
 
@@ -4998,7 +5067,7 @@ fun ExerciseEditDialog(
                                     targetRepsValue = newValue
                                     repsManuallyEdited = true
                                 },
-                                label = getString("reps"),
+                                label = getString(ProgressionEngine.repUnitKeyFor(name)),
                                 isError = repsError,
                                 enabled = !inputsLocked,
                                 onLockedTap = lockedFieldNotice,
@@ -5698,28 +5767,6 @@ private fun MetricItem(
     }
 }
 
-/**
- * The volume scale BOTH the bars and the trend line are drawn with: how tall a day's bar is, in px,
- * for a week whose busiest day is worth [maxVolume].
- *
- * It exists as a function because it was the missing piece: the trend line used to carry a scale of
- * its own (`0.4f - volume/max * 0.2f`, measured from the top) while the bars used `volume/max * 0.6f`
- * measured from the bottom, so the line crossed over bars it disagreed with (owner, 2026-10-16: the
- * line is *"badly designed"*). Two callers, one scale - [WeeklyOutputTrendTest] holds them together.
- */
-internal fun weeklyBarHeight(volume: Double, maxVolume: Double, chartHeight: Float): Float {
-    if (maxVolume <= 0.0 || chartHeight <= 0f) return 0f
-    val share = (volume / maxVolume).coerceIn(0.0, 1.0)
-    return (share * chartHeight * WEEK_BAR_FILL).toFloat()
-}
-
-/** The px the volume scale fills of the chart's drawing height, leaving room above the tallest bar. */
-private const val WEEK_BAR_FILL = 0.6f
-
-/** The centre of day [index]'s bar: where its bar, its trend point and its dot all line up. */
-internal fun weeklyDayCenterX(index: Int, barWidth: Float, spacing: Float): Float =
-    spacing + (barWidth / 2f) + index * (barWidth + spacing)
-
 @Composable
 private fun WeeklyOutputChart(
     dailyData: Map<String, Double>,
@@ -5752,51 +5799,25 @@ private fun WeeklyOutputChart(
             val barWidth = width / 12
             val spacing = (width - (barWidth * dayKeys.size)) / (dayKeys.size + 1)
 
-            // TREND LINE - THE PROFILE OF THE WEEK, NOT A SQUIGGLE BESIDE IT.
-            //
-            // Owner, 2026-10-16: the line was *"badly designed"*, and the arithmetic says why: it
-            // was mapped into a band of its own - `height * 0.4f - volume/max * height * 0.2f`,
-            // i.e. always between 20% and 40% DOWN from the top of the chart - while the bars are
-            // drawn from the bottom and are `volume/max * height * 0.6f` tall. The two never met.
-            // A rest day's point (volume 0) sat at 40% of the height with its bar on the baseline,
-            // and the busiest day of the week put its point 20% down while its bar reached the
-            // top: so the line crossed over bars it disagreed with, and on a week with one session
-            // it read as a diagonal stripe through an empty chart.
-            //
-            // It is the same scale as the bars now, through [weeklyBarHeight]: at every day's
-            // centre, at the top of THAT day's bar. One scale, one rule, so the line cannot drift
-            // from the bars again - and the dots on it are what make the selected day read off the
-            // trend rather than only off the bar.
-            val dayTops = dayKeys.mapIndexed { index, key ->
-                val x = weeklyDayCenterX(index, barWidth, spacing)
+            // Trend Line
+            val linePath = Path()
+            dayKeys.forEachIndexed { index, key ->
+                val x = spacing + (barWidth / 2) + index * (barWidth + spacing)
                 val volume = dailyData[key] ?: 0.0
-                androidx.compose.ui.geometry.Offset(x, height - weeklyBarHeight(volume, maxVolume, height))
-            }
-            val linePath = Path().apply {
-                dayTops.forEachIndexed { index, point ->
-                    if (index == 0) moveTo(point.x, point.y) else lineTo(point.x, point.y)
-                }
+                val y = height * 0.4f - (volume / maxVolume).toFloat() * height * 0.2f
+                if (index == 0) linePath.moveTo(x, y) else linePath.lineTo(x, y)
             }
             drawPath(
                 path = linePath,
-                color = primaryColor.copy(alpha = 0.55f),
+                color = primaryColor.copy(alpha = 0.2f),
                 style = Stroke(width = 2.dp.toPx(), cap = StrokeCap.Round)
             )
-            // A dot per day, at the same points the line passes through.
-            dayTops.forEachIndexed { index, point ->
-                val selected = dayKeys[index] == selectedKey
-                drawCircle(
-                    color = if (selected) primaryColor else primaryColor.copy(alpha = 0.55f),
-                    radius = (if (selected) 3.5.dp else 2.5.dp).toPx(),
-                    center = point
-                )
-            }
 
             // Bars
             dayKeys.forEachIndexed { index, key ->
                 val x = spacing + index * (barWidth + spacing)
                 val volume = dailyData[key] ?: 0.0
-                val barHeight = weeklyBarHeight(volume, maxVolume, height)
+                val barHeight = (volume / maxVolume).toFloat() * height * 0.6f
                 val cornerRadius = 4.dp.toPx()
                 val isSelected = key == selectedKey
                 

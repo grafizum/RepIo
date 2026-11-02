@@ -31,6 +31,7 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.automirrored.filled.ArrowForward
 import androidx.compose.material.icons.filled.*
+import androidx.compose.material3.IconButton
 import androidx.compose.material3.*
 import androidx.compose.runtime.*
 import androidx.compose.ui.Alignment
@@ -83,6 +84,7 @@ import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 import com.grafizum.repio.ui.components.ThemedToast
 import com.grafizum.repio.ui.components.MuscleGroupBadge
+import com.grafizum.repio.ui.components.WorkoutRecapCard
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.viewmodel.MasteryCardData
 import com.grafizum.repio.ui.viewmodel.WorkoutNowState
@@ -111,6 +113,7 @@ fun WorkoutNowScreen(
     isActive: Boolean = true
 ) {
     val workoutState by viewModel.workoutNowState.collectAsState()
+    val todayRecap by viewModel.todayRecap.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
@@ -484,10 +487,10 @@ fun WorkoutNowScreen(
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         textAlign = TextAlign.Center
                                     )
-                                    // The graphical recap. Everything the user
-                                    // just did, read off the sets they logged -
-                                    // see WorkoutRecap.
-                                    workoutState.workoutRecap?.let { recap ->
+                                    // The graphical recap of the DAY, rebuilt
+                                    // from today's logged sets so it is still here
+                                    // after a restart - see WorkoutRecapCard.
+                                    todayRecap?.let { recap ->
                                         Spacer(modifier = Modifier.height(window.sectionSpacing))
                                         WorkoutRecapCard(recap = recap)
                                     }
@@ -1199,7 +1202,32 @@ fun WorkoutNowScreen(
                                 ),
                                 progressionTarget = viewModel.pendingProgressionTarget(
                                     currentExercise.name
-                                )?.let { translateExerciseName(it) }
+                                )?.let { translateExerciseName(it) },
+                                // THE ARROW UP'S DOOR (owner, 2026-10-17): the same
+                                // tree the post-workout card opens, rebuilt from the
+                                // exercise in front of the user. It is handed over
+                                // unconditionally because the card only draws it
+                                // beside a PENDING offer, which is the same
+                                // condition the caption above it is drawn under —
+                                // a second gate here would be a second source of
+                                // truth for one decision.
+                                onOpenProgression = {
+                                    val card = viewModel.masteryCardFor(currentExercise.name)
+                                    if (card != null) {
+                                        val offers = viewModel.evolutionOffersFor(card)
+                                        if (offers.isNotEmpty()) {
+                                            // Appended, never assigned: this is the
+                                            // way back into an offer the user declined,
+                                            // and a decision already waiting in the
+                                            // queue must not be thrown away by it.
+                                            evolutionQueue = (evolutionQueue +
+                                                com.grafizum.repio.ui.viewmodel.EvolutionTreeItem(
+                                                    card,
+                                                    offers
+                                                )).distinctBy { it.card.exerciseName }
+                                        }
+                                    }
+                                }
                             )
 
                         }
@@ -1378,7 +1406,13 @@ fun WorkoutNowScreen(
             },
             onOpenLevelLadder = { levelName -> editorLevelLadder = levelName },
             onDismiss = { editingExercise = null },
+            // Leaving through Cancel puts the level, the stage and the lock back
+            // to what the pass opened on — see [WorkoutViewModel.cancelExerciseEditPass].
+            onCancel = { levelName -> viewModel.cancelExerciseEditPass(levelName) },
             onSave = { updated ->
+                // Saved: the pass's level writes stand and there is nothing for
+                // Cancel to undo.
+                viewModel.commitExerciseEditPass(updated.name)
                 viewModel.saveExercise(updated)
                 editingExercise = null
             }
@@ -1632,6 +1666,9 @@ fun editorLevelData(
             (range.first - EDITOR_LEVEL_PAGE).coerceAtLeast(1)
         } else null,
         nextPageStart = if (range.last < maxLevel) range.last + 1 else null,
+        // Has the user actually picked a rung for this exercise before? The ADD form uses
+        // it to skip the question (owner, 2026-10-31).
+        levelKnown = viewModel.storedProgressionLevel(exerciseName) != null,
     )
 }
 
@@ -2308,7 +2345,18 @@ internal fun LevelPrescriptionCard(
      */
     onToggleLock: () -> Unit,
     progressionAvailable: Boolean,
-    progressionTarget: String?
+    progressionTarget: String?,
+    /**
+     * Opens the progression offer for this exercise, so the user can progress
+     * NOW rather than only at the end of the workout.
+     *
+     * Owner, 2026-10-17: "When an exercise showed a progress window i want you to
+     * display an arrow up button next to the level so if the user presses it, it
+     * opens up the progression screen again and the user can directly choose to
+     * progress now". Null when there is nothing to open — an arrow that cannot
+     * lead anywhere is the dead control this project has already paid for.
+     */
+    onOpenProgression: (() -> Unit)? = null
 ) {
     val window = LocalWindowSize.current
     val inSystem = level != null && stage != null
@@ -2525,6 +2573,27 @@ internal fun LevelPrescriptionCard(
                                     StageDots(total = lastStage, current = stage)
                                 }
                             }
+                        )
+                    }
+                }
+
+                // THE ARROW UP (owner, 2026-10-17, quoted above): the offer's way
+                // back in from the live card. It sits BESIDE the level box rather
+                // than in the caption line above, because the caption is a label and
+                // this is a control — and beside the level it reads as "this level
+                // can go up", which is the whole sentence the owner asked for.
+                if (progressionAvailable && onOpenProgression != null) {
+                    IconButton(
+                        onClick = onOpenProgression,
+                        modifier = Modifier
+                            .size(36.dp)
+                            .semantics { testTag = "progression_arrow_up" }
+                    ) {
+                        Icon(
+                            imageVector = Icons.Default.ArrowUpward,
+                            contentDescription = getString("progression_available"),
+                            tint = MaterialTheme.colorScheme.primary,
+                            modifier = Modifier.size(20.dp)
                         )
                     }
                 }
@@ -2762,7 +2831,7 @@ internal fun LevelPrescriptionCard(
                                     )
                                     if (cardBody != LevelCardBody.BANNER_DURATION) {
                                         Text(
-                                            text = " " + getString("reps"),
+                                            text = " " + getString(ProgressionEngine.repUnitKeyFor(exerciseName)),
                                             style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
                                             color = MaterialTheme.colorScheme.onSurfaceVariant,
                                             maxLines = 1,
@@ -2835,7 +2904,7 @@ internal fun LevelPrescriptionCard(
                                     // it would mix two units on one card, which is
                                     // the thing a plank must never do.
                                     Text(
-                                        text = repTargets.joinToString(" / ") + " " + getString("reps"),
+                                        text = repTargets.joinToString(" / ") + " " + getString(ProgressionEngine.repUnitKeyFor(exerciseName)),
                                         style = MaterialTheme.typography.labelSmall,
                                         color = MaterialTheme.colorScheme.onSurfaceVariant,
                                         maxLines = 1,
@@ -2905,151 +2974,6 @@ internal fun LevelPrescriptionCard(
             // than restyled: a second copy of a value is not a design, and the
             // "(fresh)" debug hint that shared the line was only ever a developer
             // convenience.
-        }
-    }
-}
-
-/**
- * What the session just achieved, graphically.
- *
- * The owner's ask: "instead of having the 'workout completed' screen simply put
- * like that, add graphical information of a quick recap for what was made
- * today". A trophy and a set count is not a recap.
- *
- * Three deliberate choices:
- *
- *  - **Volume is omitted, not zeroed.** A bodyweight or timed-only session has
- *    no honest tonnage, and a "0 kg" tile would read as "you did nothing" for a
- *    session that did three sets of chin-ups. The tile is simply absent, and the
- *    remaining tiles stay in the same order rather than closing the gap - a
- *    shifting row of tiles is harder to read than a stable one.
- *  - **The split bar uses the app's own muscle colours.** `getMuscleGroupColor`
- *    is the same function the legend, the cards and the analytics screen use, so
- *    a muscle cannot be one colour here and another there.
- *  - **The bar is sets, not load.** Sets are the unit every exercise shares -
- *    a pin count and a minute of planking are both "a set" - so the segments
- *    are comparable in a way kilograms are not.
- */
-@Composable
-private fun WorkoutRecapCard(recap: com.grafizum.repio.ui.viewmodel.WorkoutRecap) {
-    val durationMinutes = (recap.durationSeconds / 60).toInt()
-    // Tonnage follows the unit too, but WITHOUT the grid: it is a sum of many
-    // sets, not a load anyone sets on a bar, so it converts and rounds whole.
-    val volumeUnit = LocalWeightUnit.current
-    val volumeText = recap.volumeKg?.let { kg ->
-        val shown = volumeUnit.fromKg(kg)
-        val clean = if (shown % 1.0 == 0.0) shown.toInt().toString() else String.format("%.1f", shown)
-        getString(
-            if (volumeUnit == WeightUnit.KG) "recap_volume_kg" else "recap_volume_lb",
-            clean
-        )
-    }
-    val tiles = buildList {
-        add(getString("recap_exercises") to recap.exercises.toString())
-        add(getString("recap_sets") to recap.sets.toString())
-        if (volumeText != null) add(getString("recap_volume") to volumeText)
-        if (durationMinutes > 0) add(getString("recap_duration") to getString("recap_duration_format", durationMinutes))
-    }
-    val totalSets = recap.setsByMuscle.values.sum().coerceAtLeast(1)
-
-    Surface(
-        shape = RoundedCornerShape(18.dp),
-        color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-        border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.18f)),
-        modifier = Modifier.fillMaxWidth()
-    ) {
-        Column(
-            verticalArrangement = Arrangement.spacedBy(12.dp),
-            modifier = Modifier.padding(14.dp)
-        ) {
-            Text(
-                text = getString("recap_title"),
-                style = MaterialTheme.typography.labelSmall.copy(
-                    fontWeight = FontWeight.ExtraBold,
-                    letterSpacing = 1.sp
-                ),
-                color = MaterialTheme.colorScheme.primary
-            )
-            Row(horizontalArrangement = Arrangement.spacedBy(8.dp)) {
-                tiles.forEach { (label, value) ->
-                    Column(
-                        horizontalAlignment = Alignment.CenterHorizontally,
-                        modifier = Modifier.weight(1f)
-                    ) {
-                        Text(
-                            text = value,
-                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.ExtraBold),
-                            color = MaterialTheme.colorScheme.onSurface,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                        Text(
-                            text = label,
-                            style = MaterialTheme.typography.labelSmall,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            maxLines = 1,
-                            overflow = TextOverflow.Ellipsis
-                        )
-                    }
-                }
-            }
-            if (recap.setsByMuscle.isNotEmpty()) {
-                Text(
-                    text = getString("recap_split_title"),
-                    style = MaterialTheme.typography.labelSmall,
-                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                )
-                // The distribution bar. Proportional widths from ONE total, so
-                // the segments always sum to the full width and a muscle can
-                // never be drawn wider than the bar it shares.
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(2.dp),
-                    modifier = Modifier
-                        .fillMaxWidth()
-                        .height(10.dp)
-                        .clip(RoundedCornerShape(5.dp))
-                ) {
-                    recap.setsByMuscle.forEach { (muscle, sets) ->
-                        Box(
-                            modifier = Modifier
-                                .weight(sets.toFloat() / totalSets.toFloat())
-                                .fillMaxHeight()
-                                .background(getMuscleGroupColor(muscle))
-                        )
-                    }
-                }
-                // The legend, so the colours mean something. Sorted like the bar,
-                // so reading down the list matches reading across it.
-                Column(verticalArrangement = Arrangement.spacedBy(4.dp)) {
-                    recap.setsByMuscle.entries.forEach { (muscle, sets) ->
-                        Row(
-                            verticalAlignment = Alignment.CenterVertically,
-                            horizontalArrangement = Arrangement.spacedBy(6.dp)
-                        ) {
-                            Box(
-                                modifier = Modifier
-                                    .size(8.dp)
-                                    .clip(CircleShape)
-                                    .background(getMuscleGroupColor(muscle))
-                            )
-                            Text(
-                                text = muscle,
-                                style = MaterialTheme.typography.labelSmall,
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1,
-                                overflow = TextOverflow.Ellipsis,
-                                modifier = Modifier.weight(1f, fill = false)
-                            )
-                            Text(
-                                text = sets.toString(),
-                                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
-                                color = MaterialTheme.colorScheme.onSurfaceVariant,
-                                maxLines = 1
-                            )
-                        }
-                    }
-                }
-            }
         }
     }
 }

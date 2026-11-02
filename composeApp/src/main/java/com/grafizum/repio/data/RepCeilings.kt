@@ -1,9 +1,14 @@
 package com.grafizum.repio.data
 
 /**
- * The highest honest rep count for each of the 123 bodyweight rep ladders in
+ * The highest honest rep count for each of the 121 bodyweight REP ladders in
  * the pool, authored per exercise (116 as of 2026-10-04, plus the last seven
  * manual-review rows the owner asked to be fixed on 2026-10-06).
+ *
+ * The two rows whose work is counted in STEPS - Heel-to-Toe Walk and Bear Crawl
+ * - are deliberately NOT here: their ladder is a step count, not a rep count,
+ * and it is authored in [ProgressionEngine]'s STEP_LADDERS so one exercise
+ * cannot carry two different maxima.
  *
  * ## Why this is a table and not a rule
  *
@@ -85,7 +90,14 @@ internal object RepCeilings {
     "wide_grip_push_ups" to 25,   // Wide Grip Push Ups
     "close_grip_push_ups" to 20,   // Close Grip Push Ups
     "decline_push_up" to 20,   // Decline Push-Up
-    "diamond_push_ups" to 20,   // Diamond Push Ups
+    // Diamond Push Ups: 20 was below what the movement is actually capable of, and the owner
+    // said so in the plainest terms (2026-10-26, dashboard task_4s6x0u624o110j3l3y3z6g4q:
+    // "Diamond pushups max rep is 20, how tf is this the max a human can do??! Makes 0 sense").
+    // Basis: strengthlevel.com's own rep standards put the AVERAGE diamond set at 23 reps, so
+    // 20 was a ceiling under the median; the Guinness record for diamond push-ups in one minute
+    // is 122 (Hong Zhongtao, 2025), i.e. speed work, not a set. 40 is ~1.7x the average and a
+    // third of what a record holder can do in the same time, which is where a top rung belongs.
+    "diamond_push_ups" to 40,   // Diamond Push Ups
     "ring_dips" to 20,   // Ring Dips
     "archer_push_ups" to 15,   // Archer Push Ups
     "clap_push_ups" to 15,   // Clap Push-Ups
@@ -128,11 +140,11 @@ internal object RepCeilings {
     "trx_pistol_squat" to 20,   // TRX Pistol Squat
     "cossack_squat" to 15,   // Cossack Squat
 
-    // --- Glutes (11) ---
+    // --- Glutes (10) ---
+    // (Heel-to-Toe Walk is a STEPS ladder and lives in ProgressionEngine's STEP_LADDERS - a walked drill is counted in steps, not reps.)
     // The lightest family in the pool. A glute bridge or a clamshell is written 30-50 by every program that uses it, so these are the rows where the top checkpoint is genuinely reachable.
     "glute_bridge" to 50,   // Glute Bridge
     "clamshells" to 40,   // Clamshells
-    "heel_to_toe_walk" to 40,   // Heel-to-Toe Walk
     "stability_ball_hip_bridge" to 40,   // Hip Bridge (Ball)
     "reverse_tabletop_hip_pulses" to 40,   // Reverse Tabletop Hip Pulses
     "side_lying_hip_abduction" to 40,   // Side-Lying Hip Abduction
@@ -142,9 +154,9 @@ internal object RepCeilings {
     "pilates_side_bend" to 30,   // Pilates Side Bend
     "side_plank_with_leg_lift" to 30,   // Side Plank with Leg Lift
 
-    // --- Front Deltoids (5) ---
+    // --- Front Deltoids (4) ---
     // A press ladder under body weight. Handstand push-ups are the hardest pressing movement a person can do unaided and stop at 12; a pike press is a normal 20.
-    "bear_crawl" to 20,   // Bear Crawl
+    // (Bear Crawl is a STEPS ladder and lives in ProgressionEngine's STEP_LADDERS - its work is counted in steps, not reps.)
     "bodyweight_overhead_press" to 20,   // Bodyweight Overhead Press
     "pike_push_ups" to 20,   // Pike Push Ups
     "downward_dog_to_upward_dog" to 15,   // Downward Dog to Upward Dog
