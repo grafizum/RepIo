@@ -2322,20 +2322,41 @@ object WorkoutTemplates {
 
     /**
      * Rest between sets, decided by the training goal alone (plus whether the
-     * movement is a heavy compound). ACSM/NSCA-style: long rest for maximal
-     * strength and power, short rest for endurance and conditioning work.
+     * movement is a heavy compound).
+     *
+     * REBUILT 2026-11-10 FROM THE LITERATURE, not from habit. The owner's card:
+     * "The rest time inbetween sets needs to be readapted based on true
+     * scientific results as to what is best." Four findings decide the numbers:
+     *
+     * - STRENGTH, multi-joint: 3-5 min. Willardson (2006, JSCR) and de Salles
+     *   (2009, Sports Med) both put 3-5 min between sets of loads under 90 % 1RM
+     *   as the interval that produces the largest strength gains, because it
+     *   keeps the load and the volume intact.
+     * - STRENGTH, single-joint: 2 min is enough. The same reviews note that
+     *   smaller movements recover faster, and a 3RM study on a machine fly found
+     *   2 min sufficient where a bench press needed 3-5 min. This used to be
+     *   90 s, which is below every strength protocol in the literature.
+     * - HYPERTROPHY: 90 s. The 2024 Bayesian meta-analysis (Frontiers in Sports
+     *   and Active Living) finds a small benefit to resting MORE than 60 s and no
+     *   measurable further gain past 90 s, so 90 s is the top of the supported
+     *   band - the old "30-60 s for growth hormone" advice is superseded.
+     * - CALISTHENICS: 90 s. This is strength and skill work in a bodyweight
+     *   package, so it needs a strength interval; the old 45 s was the shortest
+     *   prescription in the app and the opposite of what skill practice needs.
+     *
+     * ENDURANCE stays 45 s (reviews put muscular-endurance work at 30-60 s) and
+     * GENERAL stays 60 s (ACSM's general-fitness band), both already correct.
      */
     fun getGoalRestSeconds(rawGoal: String, exerciseName: String = ""): Int {
         val goal = canonicalGoal(rawGoal)
         val isCompound = if (exerciseName.isNotEmpty()) isHeavyCompound(exerciseName) else true
         return when(goal) {
-            // Maximal strength needs the ATP-CP window: long rest on the big
-            // rocks, a working pause for accessories.
-            "goal_strength" -> if (isCompound) 240 else 90
-            // Metabolic-stress work rests just long enough to keep the load.
+            // 3-5 min on the big lifts, 2 min on single-joint accessories.
+            "goal_strength" -> if (isCompound) 240 else 120
+            // +60 s beats -60 s, and nothing past 90 s adds hypertrophy.
             "goal_bodybuilding" -> 90
-            // Skill work stays fresh; short rests keep the nervous system crisp.
-            "goal_calisthenics" -> 45
+            // Strength/skill work in a bodyweight package: a strength interval.
+            "goal_calisthenics" -> 90
             // Conditioning: short rests, the clock is part of the stimulus.
             "goal_endurance" -> 45
             // Health/fitness: moderate rests, no scheme extremes.

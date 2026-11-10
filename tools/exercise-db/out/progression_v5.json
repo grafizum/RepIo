@@ -2819,6 +2819,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / loaded hip-extension 2.00xBW (the bridge is the thrust's floor variant)",
   "branches": [
    {
     "entry": "Banded Hip Thrust",
@@ -2834,7 +2835,7 @@
   "ceiling": {
    "load": 160.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / loaded hip-extension 2.00xBW (the bridge is the thrust's floor variant)"
   }
  },
  {
@@ -2887,6 +2888,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / single-leg 1.25xBW (advanced single-leg standard)",
   "branches": [
    {
     "entry": "Walking Lunge",
@@ -2900,9 +2902,9 @@
    }
   ],
   "ceiling": {
-   "load": 140.0,
-   "femaleLoad": 90.0,
-   "basis": "single-stance loading caps safe barbell position"
+   "load": 100.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / single-leg 1.25xBW (advanced single-leg standard)"
   }
  },
  {
@@ -3222,6 +3224,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / single-leg 1.25xBW (reverse stance; same single-leg standard)",
   "branches": [
    {
     "entry": "Kettlebell Reverse Lunge",
@@ -3234,7 +3237,7 @@
   "ceiling": {
    "load": 100.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / single-leg 1.25xBW (reverse stance; same single-leg standard)"
   }
  },
  {
@@ -3247,7 +3250,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -3287,6 +3290,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / barbell row 1.00xBW intermediate (row is derived at 0.75x the bench standard)",
   "branches": [
    {
     "entry": "Pendlay Row",
@@ -3309,9 +3313,9 @@
    }
   ],
   "ceiling": {
-   "load": 140.0,
-   "femaleLoad": 90.0,
-   "basis": "elite bent-over rows track ~55-60% of the elite deadlift"
+   "load": 80.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / barbell row 1.00xBW intermediate (row is derived at 0.75x the bench standard)"
   }
  },
  {
@@ -4527,6 +4531,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced bench 1.25xBW (strength-standard tables: 0.5/0.75/1.0/1.5x)",
   "branches": [
    {
     "entry": "Incline Barbell Bench Press",
@@ -4560,9 +4565,9 @@
    }
   ],
   "ceiling": {
-   "load": 180.0,
-   "femaleLoad": 100.0,
-   "basis": "Strength Level elite raw standards"
+   "load": 100.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced bench 1.25xBW (strength-standard tables: 0.5/0.75/1.0/1.5x)"
   }
  },
  {
@@ -4615,6 +4620,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / row 1.00xBW intermediate (chest-supported row standard)",
   "branches": [
    {
     "entry": "Dumbbell Bench Pull",
@@ -4631,7 +4637,7 @@
   "ceiling": {
    "load": 80.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / row 1.00xBW intermediate (chest-supported row standard)"
   }
  },
  {
@@ -4816,6 +4822,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand row 0.40xBW (per-hand row standard)",
   "branches": [
    {
     "entry": "Single-Arm Dumbbell Row",
@@ -4832,7 +4839,7 @@
   "ceiling": {
    "load": 32.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand row 0.40xBW (per-hand row standard)"
   }
  },
  {
@@ -5875,6 +5882,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand single-leg 0.35xBW (single-leg dumbbell standard)",
   "branches": [
    {
     "entry": "Bulgarian Split Squat (Kettlebell)",
@@ -5894,7 +5902,7 @@
   "ceiling": {
    "load": 28.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand single-leg 0.35xBW (single-leg dumbbell standard)"
   }
  },
  {
@@ -8130,7 +8138,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 100.0,
+  "maxValue": 90.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -8170,6 +8178,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / close-grip bench ~90% of the flat-bench ceiling (bench standard 1.25xBW)",
   "branches": [
    {
     "entry": "Close-Grip EZ-Bar Bench Press",
@@ -8182,9 +8191,9 @@
    }
   ],
   "ceiling": {
-   "load": 100.0,
+   "load": 90.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / close-grip bench ~90% of the flat-bench ceiling (bench standard 1.25xBW)"
   }
  },
  {
@@ -9531,6 +9540,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand advanced press 0.45xBW (dumbbell compound standard)",
   "branches": [
    {
     "entry": "Incline Dumbbell Press",
@@ -9565,9 +9575,9 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
-   "femaleLoad": 35.0,
-   "basis": "elite DB bench ~120 kg total, ~60 kg/hand"
+   "load": 36.0,
+   "femaleLoad": null,
+   "basis": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand advanced press 0.45xBW (dumbbell compound standard)"
   }
  },
  {
@@ -10742,6 +10752,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced deadlift 2.25xBW (strength-standard tables: 1.0/1.5/1.75/2.25x)",
   "branches": [
    {
     "entry": "Stiff Leg Deadlift",
@@ -10766,9 +10777,9 @@
    }
   ],
   "ceiling": {
-   "load": 250.0,
-   "femaleLoad": 160.0,
-   "basis": "Strength Level elite raw standards"
+   "load": 180.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced deadlift 2.25xBW (strength-standard tables: 1.0/1.5/1.75/2.25x)"
   }
  },
  {
@@ -13926,6 +13937,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand compound 0.45xBW (loaded per hand)",
   "branches": [
    {
     "entry": "EZ-Bar Romanian Deadlift",
@@ -13941,7 +13953,7 @@
   "ceiling": {
    "load": 36.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand compound 0.45xBW (loaded per hand)"
   }
  },
  {
@@ -13954,7 +13966,7 @@
   "increment": 2.0,
   "maxLevel": 30,
   "minValue": 4.0,
-  "maxValue": 36.0,
+  "maxValue": 28.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -13994,6 +14006,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand press 0.35xBW (a hand holds well under what a bar takes)",
   "branches": [
    {
     "entry": "Barbell Overhead Press",
@@ -14036,9 +14049,9 @@
    }
   ],
   "ceiling": {
-   "load": 45.0,
-   "femaleLoad": 25.0,
-   "basis": "elite seated DB press ~90 kg total"
+   "load": 28.0,
+   "femaleLoad": null,
+   "basis": "dumbbell rack - lightest pair 2 kg/hand; ladder opens at 4 kg/hand with 2 kg steps / per-hand press 0.35xBW (a hand holds well under what a bar takes)"
   }
  },
  {
@@ -15284,7 +15297,7 @@
   "increment": 2.5,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 180.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -15324,6 +15337,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare EZ-curl bar ~10 kg (4 ft bar 6.8 kg / standard EZ bar 10 kg) / RDL 1.75xBW on the EZ bar (hinge standard; not the deadlift 2.25x)",
   "branches": [
    {
     "entry": "Romanian Deadlift",
@@ -15336,9 +15350,9 @@
    }
   ],
   "ceiling": {
-   "load": 180.0,
+   "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare EZ-curl bar ~10 kg (4 ft bar 6.8 kg / standard EZ bar 10 kg) / RDL 1.75xBW on the EZ bar (hinge standard; not the deadlift 2.25x)"
   }
  },
  {
@@ -16095,6 +16109,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / front squat within 1.75xBW (squat standard advanced rung)",
   "branches": [
    {
     "entry": "Overhead Squat",
@@ -16116,9 +16131,9 @@
    }
   ],
   "ceiling": {
-   "load": 180.0,
-   "femaleLoad": 115.0,
-   "basis": "typically ~80% of the elite back squat"
+   "load": 140.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / front squat within 1.75xBW (squat standard advanced rung)"
   }
  },
  {
@@ -16515,6 +16530,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand compound 0.45xBW (the goblet hold is a front-loaded squat)",
   "branches": [
    {
     "entry": "Barbell Back Squat",
@@ -16549,9 +16565,9 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
-   "femaleLoad": 40.0,
-   "basis": "hold position fails before the legs do past ~2 plates"
+   "load": 36.0,
+   "femaleLoad": null,
+   "basis": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand compound 0.45xBW (the goblet hold is a front-loaded squat)"
   }
  },
  {
@@ -16604,6 +16620,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / good-morning 1.00xBW (hinge accessory standard; below the deadlift)",
   "branches": [
    {
     "entry": "Jefferson Curl",
@@ -16618,7 +16635,7 @@
   "ceiling": {
    "load": 80.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / good-morning 1.00xBW (hinge accessory standard; below the deadlift)"
   }
  },
  {
@@ -17435,7 +17452,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -17475,11 +17492,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / squat standard advanced rung 1.75xBW applied to the elevation variant",
   "branches": [],
   "ceiling": {
-   "load": 60.0,
+   "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / squat standard advanced rung 1.75xBW applied to the elevation variant"
   }
  },
  {
@@ -18023,11 +18041,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / loaded hip-extension 2.00xBW (hip-thrust standard advanced rung)",
   "branches": [],
   "ceiling": {
    "load": 160.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / loaded hip-extension 2.00xBW (hip-thrust standard advanced rung)"
   }
  },
  {
@@ -18276,7 +18295,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 100.0,
+  "maxValue": 90.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -18316,11 +18335,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / incline bench ~90% of the flat-bench ceiling (bench standard 1.25xBW)",
   "branches": [],
   "ceiling": {
-   "load": 100.0,
+   "load": 90.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / incline bench ~90% of the flat-bench ceiling (bench standard 1.25xBW)"
   }
  },
  {
@@ -19427,6 +19447,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand compound 0.45xBW (bell deadlift standard)",
   "branches": [
    {
     "entry": "Dumbbell Deadlift",
@@ -19464,7 +19485,7 @@
   "ceiling": {
    "load": 36.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand compound 0.45xBW (bell deadlift standard)"
   }
  },
  {
@@ -21113,6 +21134,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand ballistic hinge 0.45xBW (swing standard)",
   "branches": [
    {
     "entry": "Romanian Deadlift",
@@ -21138,7 +21160,7 @@
   "ceiling": {
    "load": 36.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "lightest cast bell 4 kg; ladder opens at 6 kg with 2 kg steps / per-hand ballistic hinge 0.45xBW (swing standard)"
   }
  },
  {
@@ -21874,6 +21896,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)",
   "branches": [
    {
     "entry": "Close Grip Lat Pulldown",
@@ -21889,7 +21912,7 @@
   "ceiling": {
    "load": 12.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)"
   }
  },
  {
@@ -22123,6 +22146,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)",
   "branches": [
    {
     "entry": "Hack Squat",
@@ -22137,7 +22161,7 @@
   "ceiling": {
    "load": 12.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)"
   }
  },
  {
@@ -23703,6 +23727,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced overhead press 0.70xBW (press standards: 0.35/0.55/0.75/0.9x)",
   "branches": [
    {
     "entry": "Push Press",
@@ -23726,9 +23751,9 @@
    }
   ],
   "ceiling": {
-   "load": 80.0,
-   "femaleLoad": 50.0,
-   "basis": "Strength Level elite strict-press standards"
+   "load": 55.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced overhead press 0.70xBW (press standards: 0.35/0.55/0.75/0.9x)"
   }
  },
  {
@@ -25105,7 +25130,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 120.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -25145,6 +25170,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / pause squat ~85-90% of the squat ceiling (1.75xBW; the paused hold is lighter)",
   "branches": [
    {
     "entry": "Front Squat",
@@ -25158,9 +25184,9 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 120.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / pause squat ~85-90% of the squat ceiling (1.75xBW; the paused hold is lighter)"
   }
  },
  {
@@ -25457,11 +25483,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / barbell row 1.00xBW intermediate (same standard; dead-stop from the floor)",
   "branches": [],
   "ceiling": {
    "load": 80.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / barbell row 1.00xBW intermediate (same standard; dead-stop from the floor)"
   }
  },
  {
@@ -28782,7 +28809,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 180.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -28822,6 +28849,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / RDL 1.75xBW - the hinge-standard ceiling; below the conventional deadlift 2.25x",
   "branches": [
    {
     "entry": "Barbell Deadlift",
@@ -28834,9 +28862,9 @@
    }
   ],
   "ceiling": {
-   "load": 200.0,
-   "femaleLoad": 130.0,
-   "basis": "RDLs live below competition pulls; ~80% of the elite deadlift"
+   "load": 140.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / RDL 1.75xBW - the hinge-standard ceiling; below the conventional deadlift 2.25x"
   }
  },
  {
@@ -29302,6 +29330,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / seated overhead press 0.70xBW (press standard advanced rung)",
   "branches": [
    {
     "entry": "Dumbbell Shoulder Press",
@@ -29317,7 +29346,7 @@
   "ceiling": {
    "load": 55.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / seated overhead press 0.70xBW (press standard advanced rung)"
   }
  },
  {
@@ -29370,11 +29399,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)",
   "branches": [],
   "ceiling": {
    "load": 12.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "lightest pin position on a selectorized stack / stack top at 12 pin steps (stack_step unit - not kilograms)"
   }
  },
  {
@@ -32285,7 +32315,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 180.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32325,11 +32355,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "counterbalanced Smith bar 10 kg in this database / RDL 1.75xBW (hinge standard; not the deadlift 2.25x)",
   "branches": [],
   "ceiling": {
-   "load": 180.0,
+   "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "counterbalanced Smith bar 10 kg in this database / RDL 1.75xBW (hinge standard; not the deadlift 2.25x)"
   }
  },
  {
@@ -32570,7 +32601,7 @@
   "increment": 5.0,
   "maxLevel": 30,
   "minValue": 10.0,
-  "maxValue": 140.0,
+  "maxValue": 100.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -32610,11 +32641,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "counterbalanced Smith bar 10 kg in this database / single-leg 1.25xBW (a split squat is single-leg; not a bilateral squat 1.75x)",
   "branches": [],
   "ceiling": {
-   "load": 140.0,
+   "load": 100.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "counterbalanced Smith bar 10 kg in this database / single-leg 1.25xBW (a split squat is single-leg; not a bilateral squat 1.75x)"
   }
  },
  {
@@ -32667,11 +32699,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "counterbalanced Smith bar 10 kg in this database / advanced squat 1.75xBW (strength-standard tables: 0.75/1.25/1.5/1.75x)",
   "branches": [],
   "ceiling": {
    "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "counterbalanced Smith bar 10 kg in this database / advanced squat 1.75xBW (strength-standard tables: 0.75/1.25/1.5/1.75x)"
   }
  },
  {
@@ -33197,6 +33230,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced squat 1.75xBW (strength-standard tables: 0.75/1.25/1.5/1.75x)",
   "branches": [
    {
     "entry": "Front Squat",
@@ -33221,9 +33255,9 @@
    }
   ],
   "ceiling": {
-   "load": 220.0,
-   "femaleLoad": 145.0,
-   "basis": "Strength Level elite raw standards (~93 kg male / ~63 kg female)"
+   "load": 140.0,
+   "femaleLoad": null,
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / advanced squat 1.75xBW (strength-standard tables: 0.75/1.25/1.5/1.75x)"
   }
  },
  {
@@ -34183,7 +34217,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 180.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34223,6 +34257,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / stiff-leg/RDL 1.75xBW (hinge standard; below the conventional deadlift 2.25x)",
   "branches": [
    {
     "entry": "Sumo Deadlift",
@@ -34237,9 +34272,9 @@
    }
   ],
   "ceiling": {
-   "load": 180.0,
+   "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / stiff-leg/RDL 1.75xBW (hinge standard; below the conventional deadlift 2.25x)"
   }
  },
  {
@@ -34623,6 +34658,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / deadlift stance standard 2.25xBW (sumo is a deadlift not a squat)",
   "branches": [
    {
     "entry": "Hex Bar Deadlift",
@@ -34638,7 +34674,7 @@
   "ceiling": {
    "load": 180.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / deadlift stance standard 2.25xBW (sumo is a deadlift not a squat)"
   }
  },
  {
@@ -34651,7 +34687,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 180.0,
+  "maxValue": 140.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -34691,6 +34727,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / squat standard advanced rung 1.75xBW (a wide stance is not a deadlift)",
   "branches": [
    {
     "entry": "Barbell Back Squat",
@@ -34714,9 +34751,9 @@
    }
   ],
   "ceiling": {
-   "load": 180.0,
+   "load": 140.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / squat standard advanced rung 1.75xBW (a wide stance is not a deadlift)"
   }
  },
  {
@@ -35046,7 +35083,7 @@
   "increment": 2.5,
   "maxLevel": 40,
   "minValue": 20.0,
-  "maxValue": 60.0,
+  "maxValue": 80.0,
   "step": null,
   "repMin": 8,
   "repMax": 12,
@@ -35086,6 +35123,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": true,
   "validationStatus": "valid",
+  "minmaxSource": "bare Olympic bar 20 kg (IWF standard men's bar) / row 1.00xBW intermediate (T-bar is a supported row; same standard)",
   "branches": [
    {
     "entry": "One Arm Kettlebell Row",
@@ -35107,9 +35145,9 @@
    }
   ],
   "ceiling": {
-   "load": 60.0,
+   "load": 80.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "bare Olympic bar 20 kg (IWF standard men's bar) / row 1.00xBW intermediate (T-bar is a supported row; same standard)"
   }
  },
  {
@@ -37386,6 +37424,7 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": false,
   "validationStatus": "valid_but_review_recommended",
+  "minmaxSource": "smallest plate 1.25 kg per side = 2.5 kg added / advanced weighted calisthenics ~+40% BW added",
   "branches": [
    {
     "entry": "Ring Dips",
@@ -37398,7 +37437,7 @@
   "ceiling": {
    "load": 35.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "smallest plate 1.25 kg per side = 2.5 kg added / advanced weighted calisthenics ~+40% BW added"
   }
  },
  {
@@ -37451,11 +37490,12 @@
   "includeInMobilityV1": false,
   "beginnerBuildEligible": false,
   "validationStatus": "valid_but_review_recommended",
+  "minmaxSource": "smallest plate 1.25 kg per side = 2.5 kg added / advanced weighted calisthenics ~+40% BW added",
   "branches": [],
   "ceiling": {
    "load": 35.0,
    "femaleLoad": null,
-   "basis": "v5 progression database maximum progression value"
+   "basis": "smallest plate 1.25 kg per side = 2.5 kg added / advanced weighted calisthenics ~+40% BW added"
   }
  },
  {

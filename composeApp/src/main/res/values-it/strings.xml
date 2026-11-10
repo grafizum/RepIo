@@ -141,11 +141,9 @@
     <string name="recreate_workout">Ricrea allenamento</string>
     <string name="recreate_workout_desc">Riapri la schermata di setup per scegliere una nuova routine o creare uno split personalizzato.</string>
     <string name="recreate">Ricrea</string>
-    <string name="support_requests">Richieste di Supporto</string>
     <string name="submit_feedback">Invia feedback o segnala problemi</string>
     <string name="privacy_policy_title">Informativa sulla privacy</string>
     <string name="privacy_policy_desc">Come RepIo gestisce i tuoi dati</string>
-    <string name="open_support">Apri Supporto</string>
     <string name="open">Apri</string>
     <string name="done">Fatto</string>
     <string name="confirm_timer_change_title">Conferma Modifica Timer</string>
@@ -153,20 +151,11 @@
     <string name="timer_override_warning">Attenzione: questo sovrascriverà anche i timer per tutti gli esercizi nel tuo allenamento attuale!</string>
 
     <string name="support">Supporto</string>
+    <string name="support_email_subject">Supporto RepIo (v%1$s)</string>
     <string name="today">Oggi</string>
     <string name="skip">Salta</string>
     <string name="skip_timer">Salta Timer</string>
-    <string name="contact_us">Contattaci</string>
     <string name="send_feedback">Inviaci le tue domande o feedback</string>
-    <string name="subject">Oggetto</string>
-    <string name="message">Messaggio</string>
-    <string name="send_ticket">Invia Ticket</string>
-    <string name="ticket_sent_success">Ticket inviato con successo!</string>
-    <string name="please_fill_fields">Compila entrambi i campi</string>
-    <string name="daily_limit_reached">Limite giornaliero raggiunto. Riprova domani.</string>
-    <string name="please_wait_cooldown">Attendi %1$d min prima di inviare un altro ticket.</string>
-    <string name="internet_unavailable">Internet non disponibile o Server irraggiungibile. Controlla la tua connessione.</string>
-    <string name="server_unreachable">Server non raggiungibile. Riprova più tardi.</string>
     <string name="quick_faq">FAQ rapide</string>
 
     <string name="analytics_reports">Analisi</string>
@@ -993,4 +982,5 @@
     <string name="session_lower">Basso</string>
     <string name="session_arms_core">Braccia e core</string>
     <string name="session_weak_point">Punti deboli</string>
+    <string name="form_demo_description">Dimostrazione del movimento</string>
 </resources>

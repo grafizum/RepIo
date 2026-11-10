@@ -209,40 +209,39 @@ These are separate from the testing gate, and the same help page warns that
    project content — none of which RepIo has. Pointing the Play Console field at it
    would be a policy/data mismatch of exactly the kind Play flags.
 
-   The policy is now written, published and wired up: `site/privacy/index.html`
-   holds the page, the Cloudflare Worker `repio-legal` serves it at
-   `https://repio-legal.matrix-gian.workers.dev/privacy` (verified: 200,
-   `text/html`, byte-identical to the file), and the app links to it from Settings
-   through `AppLinks.PRIVACY_POLICY`. It covers
-   workout history and settings stored on the device only, support tickets sent to
-   Firebase Firestore (subject, message, device model, app version, timestamp) with
-   no account and no advertising identifier, App Check / Play Integrity protecting
-   that one endpoint, no ads, no analytics profile, and deletion by uninstalling or
-   by email.
+   The policy is written, published and wired up: `site/privacy/index.html` holds
+   the page, Cloudflare serves it at **`https://repio.grafizum.com/privacy`**
+   (verified 5 November 2026: 200, `text/html`, byte-identical to the file, no
+   Cloudflare Access in front of it), and the app links to it from Settings through
+   `AppLinks.PRIVACY_POLICY`. It covers
+   workout history and settings stored on the device only, the fact that the app
+   transmits nothing (the support button opens the user's own mail app), no account
+   and no advertising identifier, no ads, no analytics profile, and deletion of
+   everything by uninstalling.
 
-   Paste that URL into the Play Console field. The branded host
-   `repio.grafizum.com` is attached to the same Worker but does not resolve yet —
-   the Cloudflare zone in this project's account does not publish new records.
-   See [privacy-policy-deploy-prompt.md](privacy-policy-deploy-prompt.md) for the
-   evidence and the remaining step.
+   Paste **`https://repio.grafizum.com/privacy`** into the Play Console field. The
+   branded host resolves and serves the Worker, so the earlier warning that it does
+   not resolve is obsolete. Firebase Hosting still serves the 10 August 2026 copy at
+   `https://repio-8b15b.web.app/`; it is superseded, not contradictory, and can stay
+   as a mirror. `/terms` and `/legal-notice` are authored in `site/` and answer 200
+   only after the Worker is redeployed — see
+   [privacy-policy-deploy-prompt.md](privacy-policy-deploy-prompt.md).
 
 2. **Health apps declaration not evidenced.**
    A workout tracker is "Activity and fitness" in the Health apps declaration. It
    is mandatory in App content, including on testing tracks. If it is unanswered,
    production stays blocked no matter what the test looks like.
 
-3. **Data safety does not match the code.**
-   `SupportManager` writes `subject`, `message`, `device_model`, `app_version` and
-   a server timestamp to Firestore. That is data leaving the device: declare
-   "User-generated content → Other" (or the closest available category), collected,
-   not shared, encrypted in transit. Declaring "no data collected" while this path
-   exists is a mismatch Google can see.
+3. **Data safety is now a one-word answer.** The Firestore write is gone, so the
+   truthful answer is "No, my app does not collect or share user data". Evidence: no
+   network client in `src/main`, no Firebase dependency, no analytics SDK, and the
+   support button emits a `mailto:` intent that the user finishes in their own mail
+   app. Nothing in the app talks to a server of ours.
 
-4. **Unused Firebase SDKs inflate that surface.**
-   `libs.firebase.ai` and `libs.firebase.auth` are declared in
-   `composeApp/build.gradle.kts` but nothing in `src/main` uses them. Remove both,
-   and confirm `firebase-firestore` + App Check are the only Firebase pieces that
-   ship.
+4. **Firebase is gone entirely.** The `google-services` plugin, `google-services.json`
+   and every `firebase-*` dependency were removed together with the support form, so
+   the unused `firebase-ai` / `firebase-auth` libraries went with them and there is
+   no App Check dance left to justify in review.
 
 5. **`SCHEDULE_EXACT_ALARM` in the manifest.**
    It is not the restricted `USE_EXACT_ALARM`, and `TimerManager` already degrades

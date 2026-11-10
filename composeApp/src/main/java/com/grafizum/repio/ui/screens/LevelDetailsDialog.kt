@@ -55,6 +55,7 @@ import androidx.compose.ui.unit.dp
 import androidx.compose.ui.window.Dialog
 import androidx.compose.ui.window.DialogProperties
 import com.grafizum.repio.data.ProgressionEngine
+import com.grafizum.repio.ui.components.ExerciseFormDemo
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -216,6 +217,21 @@ fun LevelDetailsDialog(
                     ),
                     style = MaterialTheme.typography.bodySmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant
+                )
+
+                // THE MOVEMENT ITSELF, NOT ONLY ITS NUMBERS.
+                //
+                // The ladder answers "how much" and "how many"; it cannot answer
+                // "what does this look like", which is the question a beginner
+                // actually has when a rung's name is one they have never performed.
+                // The demo sits above the ladder for the same reason the auto-advance
+                // block does: it is about the whole exercise, and the ladder below it
+                // is a scroller. It is inert - it is a picture, not a control.
+                ExerciseFormDemo(
+                    exerciseName = exerciseName,
+                    modifier = Modifier
+                        .fillMaxWidth()
+                        .height(132.dp)
                 )
 
                 // THE ONE THING THE LADDER CANNOT SAY BY BEING A LADDER: that it walks

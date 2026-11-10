@@ -51,9 +51,16 @@ class ParameterizeReplacementTest {
             intensity = "Hard"
         )
         // Planks are time-based: reps must become a seconds value, not "1–5",
-        // and rest comes from the *goal* (bodybuilding = 90s), not the old barbell row.
+        // and rest comes from the *goal*'s own table, not the old barbell row.
+        //
+        // 120 rather than 90 since the 2026-11-10 rebuild of that table: a plank
+        // is not a heavy compound, so a strength plan rests it like an accessory,
+        // and the literature puts even single-joint work at 2 min (3-5 min for
+        // the multi-joint lifts). The point of this case is that the OLD row's 240
+        // is not carried over; the exact number is the goal's business.
         assertTrue(replacement.targetReps.contains("sec"))
-        assertEquals(90, replacement.restSeconds)
+        assertEquals(120, replacement.restSeconds)
+        assertNotEquals(240, replacement.restSeconds)
         assertEquals(0L, replacement.id)
         assertEquals("Planks", replacement.name)
         assertEquals("Abs", replacement.muscleGroup)

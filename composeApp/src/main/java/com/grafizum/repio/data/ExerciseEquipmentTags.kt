@@ -263,6 +263,44 @@ object ExerciseEquipmentTags {
         // Dumbbell family - the category/gate disagreement this class is about.
         "decline bench press" to req(s(BENCH, DUMBBELLS_ONLY)),
         "dumbbell bench press" to req(s(BENCH, DUMBBELLS_ONLY)),
+        // THE HINGED FACE PULL BRACES THE TORSO, AND THAT SUPPORT IS THE BENCH.
+        //
+        // Owner report with a photo of a dumbbell face pull (2026-11-10): "The
+        // exercise needs a bench. Make sure this is implemented for every exercise
+        // and not just some exercises." The photo is the standard setup - chest
+        // braced on the end of a bench, one knee up on it, the working arm hanging
+        // free - and that is what the movement is written around: brace the torso
+        // and only the rear delts and rotators move. A standing hinge is possible,
+        // but then the lower back and the balance limit the load long before the
+        // rear delts do, which is why this row asks for the bench and not the
+        // floor. The general rule is in the Dumbbell branch below; this row is the
+        // one the owner pointed at, named here so the report and the fix sit
+        // together.
+        "dumbbell face pull" to req(s(BENCH, DUMBBELLS_ONLY)),
+        // THE INSTRUCTIONS ARE EVIDENCE TOO, NOT JUST THE NAME.
+        //
+        // This is the owner's card in its own words: "Change the equipment needed
+        // for an exercise not only based on the name". These three were found by
+        // reading the method text after the face-pull report; none of them says
+        // "bench" in its name, and every one of them is performed on one:
+        //
+        //  - Dumbbell Fly: "Lying on the bench, bring the dumbbells together...".
+        //    The floor fly is a different, shorter movement, so a kit with no
+        //    furniture was being offered the bench version of the fly.
+        //  - Concentration Curl: "Sit on a bench, lean forward...". A kitchen chair
+        //    seats it just as well, so it asks for the softer furniture tier and a
+        //    home kit keeps it.
+        //  - Lying Tricep Extension: "...performed lying on either a bench or the
+        //    floor." Its own text offers both, so both are alternatives here; the
+        //    floor tag comes with owning dumbbells, so nothing is taken away.
+        //
+        // Deliberately NOT gated, and why: Dumbbell Pullover ("lying on a bench,
+        // lower the arms toward the floor") and Single-Arm Dumbbell Row ("braced on
+        // a bench or a thigh") both name a no-bench setup in the same breath, so
+        // requiring a bench would remove work the user can actually do.
+        "dumbbell fly" to req(s(BENCH, DUMBBELLS_ONLY)),
+        "concentration curl" to chairOrBenchWith(DUMBBELLS_ONLY),
+        "lying tricep extension" to req(s(BENCH, DUMBBELLS_ONLY), s(DUMBBELLS_AND_FLOOR)),
         "dumbbell floor press" to req(s(DUMBBELLS_AND_FLOOR)),
         "goblet squat" to req(s(DUMBBELLS_ONLY)),
         "bench dips" to chairOrBench(),
@@ -488,9 +526,52 @@ object ExerciseEquipmentTags {
                     gateName.contains("incline") || gateName.contains("decline") ||
                     gateName.contains("chest-supported")
                 ) return req(s(BENCH, DUMBBELLS_ONLY))
+                // SUPPORTED WORK: THE PAD UNDER THE TORSO, AND THE SEAT UNDER IT.
+                //
+                // The owner's 2026-11-10 card (a photo of a dumbbell face pull
+                // braced on a bench) is about a whole class, not one row: wherever
+                // the setup puts the body's weight on a piece of furniture, the
+                // furniture is part of the exercise. Two shapes of it were reaching
+                // a dumbbells-only kit:
+                //
+                //  - a face pull, whose torso braces on the bench end, and a spider
+                //    curl, whose upper arms hang off an incline pad so the shoulders
+                //    cannot take the work. Both demand the pad itself, so they ask for
+                //    BENCH - the same tier their EZ-bar sibling "Spider Curl (EZ-Bar)"
+                //    has asked for since 2026-10-17, which is how the pair drifted
+                //    apart: the barbell version needed a bench and the dumbbell one
+                //    did not, for the same movement.
+                //
+                //  - the seated family, where a kitchen chair really is enough. Those
+                //    ask for the softer tier on purpose ([chairOrBenchWith]), so a
+                //    home kit with a chair keeps them and only a kit with no furniture
+                //    at all loses them.
+                //
+                // BenchMovementGateTest sweeps this: any dumbbell row in the pool
+                // whose name says it is supported or seated is checked against a
+                // chair-only and a bench kit, so a future row cannot slip through.
+                if (gateName.contains("face pull") || gateName.contains("spider"))
+                    return req(s(BENCH, DUMBBELLS_ONLY))
+                if (gateName.contains("seated")) return chairOrBenchWith(DUMBBELLS_ONLY)
                 if (n in DUMBBELL_FLOOR_SET || gateName.contains("floor") ||
                     gateName.contains("pullover"))
                     return req(s(DUMBBELLS_AND_FLOOR))
+                // THE METHOD TEXT IS EVIDENCE, NOT JUST THE NAME.
+                //
+                // The owner's card asked for this directly: not only the name. A
+                // row whose own instructions put the lifter on a bench is bench-
+                // gated even when no keyword in its name says so, which is how
+                // "Dumbbell Fly" was reaching a kit with no furniture at all. The
+                // floor check above runs FIRST on purpose - a pullover or a lying
+                // extension that names the floor keeps the floor - and the second
+                // condition skips rows whose text offers a no-bench option in the
+                // same breath ("braced on a bench or a thigh"), because gating
+                // those would take away work the user can really do.
+                val method = entry.description.lowercase()
+                val benchByMethod =
+                    listOf("on the bench", "on a bench").any { method.contains(it) } &&
+                        listOf("or a thigh", "or the floor").none { method.contains(it) }
+                if (benchByMethod) return req(s(BENCH, DUMBBELLS_ONLY))
                 return req(s(DUMBBELLS_ONLY))
             }
             "Kettlebell" -> {

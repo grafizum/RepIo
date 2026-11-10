@@ -81,6 +81,7 @@ import androidx.compose.ui.draw.clip
 import androidx.compose.ui.graphics.Color
 import com.grafizum.repio.util.getString
 import com.grafizum.repio.util.openUrl
+import com.grafizum.repio.util.openSupportEmail
 import com.grafizum.repio.util.AppLinks
 import androidx.compose.ui.semantics.semantics
 import androidx.compose.ui.semantics.testTag
@@ -140,7 +141,6 @@ fun SettingsScreen(
     val weightUnit by viewModel.weightUnit.collectAsState()
     // val context = LocalContext.current
     var expandedLanguage by remember { mutableStateOf(false) }
-    var showSupportCard by remember { mutableStateOf(false) }
     var showFAQ by remember { mutableStateOf(false) }
     var showLevelGuide by remember { mutableStateOf(false) }
     // The Overall Level explainer, in the same Instructions category as the
@@ -164,15 +164,6 @@ fun SettingsScreen(
         }
     }
 
-    LaunchedEffect(showSupportCard) {
-        if (showSupportCard) {
-            // Smoothly follow the expansion animation in real-time
-            repeat(60) {
-                scrollState.scrollTo(scrollState.maxValue)
-                delay(20) 
-            }
-        }
-    }
 
     // LEVEL SYSTEM TOGGLE CONFIRMATIONS — one dialog per direction. Disabling
     // warns the prescriptions disappear; enabling warns every level will be
@@ -837,7 +828,6 @@ fun SettingsScreen(
                         showLevelGuide = !showLevelGuide
                         if (showLevelGuide) {
                             showFAQ = false
-                            showSupportCard = false
                             showOverallLevelGuide = false
                             showRankGuide = false
                         }
@@ -856,7 +846,6 @@ fun SettingsScreen(
                         showOverallLevelGuide = !showOverallLevelGuide
                         if (showOverallLevelGuide) {
                             showFAQ = false
-                            showSupportCard = false
                             showLevelGuide = false
                             showRankGuide = false
                         }
@@ -880,7 +869,6 @@ fun SettingsScreen(
                         showRankGuide = !showRankGuide
                         if (showRankGuide) {
                             showFAQ = false
-                            showSupportCard = false
                             showLevelGuide = false
                             showOverallLevelGuide = false
                         }
@@ -906,7 +894,6 @@ fun SettingsScreen(
                     onToggle = {
                         showFAQ = !showFAQ
                         if (showFAQ) {
-                            showSupportCard = false
                             showLevelGuide = false
                             showOverallLevelGuide = false
                             showRankGuide = false
@@ -917,7 +904,9 @@ fun SettingsScreen(
                 }
             }
 
-            // CUSTOMER SUPPORT SECTION
+            // CUSTOMER SUPPORT — the app sends nothing itself: this opens the
+            // user's own mail app with the address and subject already filled in.
+            // There is no form, no ticket and no server-side copy of the message.
             Card(
                 shape = RoundedCornerShape(16.dp),
                 colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
@@ -927,11 +916,8 @@ fun SettingsScreen(
                 ),
                 modifier = Modifier
                     .fillMaxWidth()
-                    .clickable { 
-                        showSupportCard = true 
-                        showFAQ = false
-                        showLevelGuide = false
-                    }
+                    .clickable { openSupportEmail() }
+                    .semantics { testTag = "settings_support_button" }
             ) {
                 Column(modifier = Modifier.padding(16.dp)) {
                     Row(
@@ -941,7 +927,7 @@ fun SettingsScreen(
                     ) {
                         Column(modifier = Modifier.weight(1f)) {
                             Text(
-                                text = getString("support_requests"),
+                                text = getString("support"),
                                 style = MaterialTheme.typography.titleSmall.copy(fontWeight = FontWeight.Bold),
                                 color = MaterialTheme.colorScheme.onSurfaceVariant
                             )
@@ -953,19 +939,13 @@ fun SettingsScreen(
                         }
 
                         Button(
-                            onClick = { 
-                                showSupportCard = true 
-                                showFAQ = false
-                                showLevelGuide = false
-                            },
+                            onClick = { openSupportEmail() },
                             shape = RoundedCornerShape(10.dp),
                             contentPadding = PaddingValues(horizontal = 12.dp, vertical = 4.dp),
-                            modifier = Modifier
-                                .height(36.dp)
-                                .semantics { testTag = "settings_support_button" }
+                            modifier = Modifier.height(36.dp)
                         ) {
                             Icon(
-                                imageVector = Icons.AutoMirrored.Filled.Chat,
+                                imageVector = Icons.Default.Email,
                                 contentDescription = null,
                                 modifier = Modifier.size(16.dp)
                             )
@@ -1025,137 +1005,6 @@ fun SettingsScreen(
                 modifier = Modifier
                     .height(if (showFAQ) 16.dp else 0.dp)
             )
-        }
-    }
-
-    if (showSupportCard) {
-        ModalBottomSheet(
-            onDismissRequest = { showSupportCard = false },
-            sheetState = rememberModalBottomSheetState(skipPartiallyExpanded = true)
-        ) {
-            Column(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .padding(20.dp)
-            ) {
-                Text(
-                    text = getString("support_requests"),
-                    style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold)
-                )
-                Spacer(modifier = Modifier.height(16.dp))
-                SupportTicketForm(viewModel)
-                Spacer(modifier = Modifier.height(32.dp))
-            }
-        }
-    }
-}
-
-@Composable
-private fun SupportTicketForm(viewModel: WorkoutViewModel) {
-    val supportUiState by viewModel.supportUiState.collectAsState()
-    var subject by remember { mutableStateOf("") }
-    var message by remember { mutableStateOf("") }
-
-    // Reset fields on success
-    LaunchedEffect(supportUiState.success) {
-        if (supportUiState.success) {
-            subject = ""
-            message = ""
-        }
-    }
-
-    Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        Row(
-            verticalAlignment = Alignment.CenterVertically,
-            modifier = Modifier.fillMaxWidth()
-        ) {
-            Icon(
-                imageVector = Icons.Default.Email,
-                contentDescription = null,
-                tint = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.size(18.dp)
-            )
-            Spacer(modifier = Modifier.width(8.dp))
-            Text(
-                text = getString("contact_us"),
-                style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
-                color = MaterialTheme.colorScheme.onSurface
-            )
-        }
-
-        OutlinedTextField(
-            value = subject,
-            onValueChange = { 
-                subject = it
-                viewModel.clearSupportStatus()
-            },
-            label = { Text(getString("subject"), style = MaterialTheme.typography.bodySmall) },
-            singleLine = true,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !supportUiState.isSubmitting
-        )
-
-        OutlinedTextField(
-            value = message,
-            onValueChange = { 
-                message = it
-                viewModel.clearSupportStatus()
-            },
-            label = { Text(getString("message"), style = MaterialTheme.typography.bodySmall) },
-            minLines = 3,
-            maxLines = 5,
-            modifier = Modifier.fillMaxWidth(),
-            enabled = !supportUiState.isSubmitting
-        )
-
-        if (supportUiState.error != null) {
-            Column {
-                Text(
-                    text = if (supportUiState.error == "please_wait_cooldown") {
-                        getString(supportUiState.error!!, supportUiState.cooldownMessage)
-                    } else {
-                        getString(supportUiState.error!!)
-                    },
-                    style = MaterialTheme.typography.bodySmall,
-                    color = MaterialTheme.colorScheme.error
-                )
-                supportUiState.errorDetail?.let { detail ->
-                    Text(
-                        text = detail,
-                        style = MaterialTheme.typography.labelSmall,
-                        color = MaterialTheme.colorScheme.error.copy(alpha = 0.7f)
-                    )
-                }
-            }
-        }
-
-        if (supportUiState.success) {
-            Text(
-                text = getString("ticket_sent_success"),
-                style = MaterialTheme.typography.bodySmall,
-                color = Color(0xFF4CAF50) // Green
-            )
-        }
-
-        Button(
-            onClick = {
-                viewModel.sendSupportTicket(subject, message)
-            },
-            enabled = !supportUiState.isSubmitting && !supportUiState.isCooldownActive,
-            shape = RoundedCornerShape(10.dp),
-            modifier = Modifier.fillMaxWidth().height(42.dp)
-        ) {
-            if (supportUiState.isSubmitting) {
-                CircularProgressIndicator(
-                    modifier = Modifier.size(20.dp),
-                    color = MaterialTheme.colorScheme.onPrimary,
-                    strokeWidth = 2.dp
-                )
-            } else {
-                Icon(imageVector = Icons.AutoMirrored.Filled.Send, contentDescription = null, modifier = Modifier.size(16.dp))
-                Spacer(modifier = Modifier.width(6.dp))
-                Text(getString("send_ticket"), style = MaterialTheme.typography.labelLarge)
-            }
         }
     }
 }

@@ -91,6 +91,27 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.deleteLoggedSet(id)
     }
 
+    /**
+     * Removes the sets logged TODAY for [exerciseName] and answers how many went.
+     *
+     * A SWAP MEANS A DIFFERENT EXERCISE. Owner, 2026-11-03: *"When swapping
+     * exercises position last second while still being on that exercise, then
+     * reset the exercise no matter how many sets were made (since the new
+     * exercise is a different one when swapping)."* The log is keyed by exercise
+     * NAME, so the movement that was swapped away kept its sets: put it back and
+     * it returned already finished, which is the state the owner was looking at.
+     *
+     * Only the current day is touched. Yesterday's work is history and stays; the
+     * reset is about the session in hand, not about forgetting training.
+     */
+    suspend fun clearTodaysLoggedSets(exerciseName: String): Int {
+        val startedToday = startOfTodayMillis()
+        val todays = dao.getLoggedSetsForExercise(exerciseName).first()
+            .filter { it.timestamp >= startedToday }
+        todays.forEach { dao.deleteLoggedSet(it.id) }
+        return todays.size
+    }
+
     /** Persists the computed overall level; there is only ever one row. */
     suspend fun saveUserStats(stats: UserStatsEntity) {
         dao.upsertUserStats(stats)

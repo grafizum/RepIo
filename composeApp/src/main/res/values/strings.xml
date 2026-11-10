@@ -151,11 +151,9 @@
     <string name="recreate_workout">Recreate workout</string>
     <string name="recreate_workout_desc">Re-open the setup screen to choose a new routine or build a custom split.</string>
     <string name="recreate">Recreate</string>
-    <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
     <string name="privacy_policy_title">Privacy policy</string>
     <string name="privacy_policy_desc">How RepIo handles your data</string>
-    <string name="open_support">Open Support</string>
     <string name="open">Open</string>
     <string name="done">Done</string>
     <string name="confirm_timer_change_title">Confirm Timer Change</string>
@@ -163,20 +161,11 @@
     <string name="timer_override_warning">Warning: This will also override the timers for all exercises in your currently created workout!</string>
 
     <string name="support">Support</string>
+    <string name="support_email_subject">RepIo support (v%1$s)</string>
     <string name="today">Today</string>
     <string name="skip">Skip</string>
     <string name="skip_timer">Skip Timer</string>
-    <string name="contact_us">Contact Us</string>
     <string name="send_feedback">Send us your questions or feedback</string>
-    <string name="subject">Subject</string>
-    <string name="message">Message</string>
-    <string name="send_ticket">Send Ticket</string>
-    <string name="ticket_sent_success">Ticket sent successfully!</string>
-    <string name="please_fill_fields">Please fill in both fields</string>
-    <string name="daily_limit_reached">Daily limit reached. Please try again tomorrow.</string>
-    <string name="please_wait_cooldown">Please wait %1$d min before sending another ticket.</string>
-    <string name="internet_unavailable">Internet unavailable or Server unreachable. Please check your connection.</string>
-    <string name="server_unreachable">Server unreachable. Please try again later.</string>
     <string name="quick_faq">Quick FAQ</string>
 
     <string name="analytics_reports">Analytics</string>
@@ -1022,4 +1011,5 @@
     <string name="session_lower">Lower</string>
     <string name="session_arms_core">Arms &amp; core</string>
     <string name="session_weak_point">Weak points</string>
+    <string name="form_demo_description">Movement demo</string>
 </resources>

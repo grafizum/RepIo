@@ -136,11 +136,9 @@
     <string name="recreate_workout">Workout neu erstellen</string>
     <string name="recreate_workout_desc">Öffne den Setup-Bildschirm erneut, um eine neue Routine zu wählen oder einen eigenen Split zu erstellen.</string>
     <string name="recreate">Erneuern</string>
-    <string name="support_requests">Support-Anfragen</string>
     <string name="submit_feedback">Feedback senden oder Probleme melden</string>
     <string name="privacy_policy_title">Datenschutzerklärung</string>
     <string name="privacy_policy_desc">Wie RepIo mit deinen Daten umgeht</string>
-    <string name="open_support">Support öffnen</string>
     <string name="open">Öffnen</string>
     <string name="done">Fertig</string>
     <string name="confirm_timer_change_title">Timer-Änderung bestätigen</string>
@@ -148,20 +146,11 @@
     <string name="timer_override_warning">Warnung: Dies wird auch die Timer für alle Übungen in deinem aktuell erstellten Workout überschreiben!</string>
 
     <string name="support">Unterstützung</string>
+    <string name="support_email_subject">RepIo Support (v%1$s)</string>
     <string name="today">Heute</string>
     <string name="skip">Überspringen</string>
     <string name="skip_timer">Timer überspringen</string>
-    <string name="contact_us">Kontaktiere uns</string>
     <string name="send_feedback">Sende uns deine Fragen oder Feedback</string>
-    <string name="subject">Betreff</string>
-    <string name="message">Nachricht</string>
-    <string name="send_ticket">Ticket senden</string>
-    <string name="ticket_sent_success">Ticket erfolgreich gesendet!</string>
-    <string name="please_fill_fields">Bitte fülle beide Felder aus</string>
-    <string name="daily_limit_reached">Tägliches Limit erreicht. Bitte versuche es morgen erneut.</string>
-    <string name="please_wait_cooldown">Bitte warte %1$d Min, bevor du ein weiteres Ticket sendest.</string>
-    <string name="internet_unavailable">Internet nicht verfügbar oder Server nicht erreichbar. Bitte prüfe deine Verbindung.</string>
-    <string name="server_unreachable">Server nicht erreichbar. Bitte versuche es später erneut.</string>
     <string name="quick_faq">Häufige Fragen</string>
 
     <string name="analytics_reports">Analyse</string>
@@ -983,4 +972,5 @@
     <string name="session_lower">Unten</string>
     <string name="session_arms_core">Arme &amp; Core</string>
     <string name="session_weak_point">Schwachstellen</string>
+    <string name="form_demo_description">Bewegungsdemo</string>
 </resources>

@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
@@ -507,7 +508,24 @@ fun HomeScreen(
                                 .fillMaxWidth()
                                 .padding(horizontal = 4.dp)
                                 .drawBehind {
-                                    val centerX = 18.dp.toPx()
+                                    // THE SPINE HAS TO MIRROR WITH THE ROW.
+                                    //
+                                    // `drawBehind` works in PHYSICAL pixels - it has no start and
+                                    // no end, so a flat `18.dp.toPx()` is always the LEFT edge.
+                                    // The row's children do mirror: under an RTL configuration the
+                                    // 36dp dot box becomes the rightmost child and the titles align
+                                    // to the right. The line stayed on the left while the rest of
+                                    // the row moved right, which is the Home screen in the owner's
+                                    // Arabic screenshot: the timeline walked down the wrong side of
+                                    // every exercise. Measure the same 18dp from the row's real
+                                    // start instead, so the line sits through the centre of the dot
+                                    // box in either direction.
+                                    val startInset = 18.dp.toPx()
+                                    val centerX = if (layoutDirection == LayoutDirection.Rtl) {
+                                        size.width - startInset
+                                    } else {
+                                        startInset
+                                    }
                                     val dotCenterY = 12.dp.toPx() // Align with Title text center (Box height 24 / 2)
                                 
                                     // Calculate gap based on symbol size

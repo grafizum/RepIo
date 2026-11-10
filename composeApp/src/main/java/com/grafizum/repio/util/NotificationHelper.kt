@@ -123,6 +123,25 @@ object NotificationHelper {
         }
     }
 
+    /**
+     * Clears a rest / timed-exercise alert that is still sitting in the tray.
+     *
+     * The alert is only ever POSTED while the app is in the background (in the
+     * foreground the same moment vibrates and the in-app banner says it), so by
+     * the time the app is open the tray entry describes something already over.
+     * Owner, 2026-11-03: *"Have repio message be dismissed when opening the app
+     * or when the app is open once it gave the popup notification."*
+     */
+    fun cancelRestTimerNotification(context: Context) {
+        try {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(NOTIFICATION_ID)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     fun cancelUpdateNotification(context: Context) {
         try {
             val notificationManager =

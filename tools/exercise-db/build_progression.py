@@ -35,6 +35,7 @@ from __future__ import annotations
 
 import generalize  # noqa: F401  (name generalization, see generalize.py)
 import ladder_backfill  # curated ladders for the rows the CSV declined to guess
+import level_minmax  # Tier A sourced minimums/maximums (data/level_minmax_sources.csv)
 
 import csv
 import json
@@ -796,6 +797,16 @@ def main() -> int:
         if prog["isSimpleAppReady"] and prog["validationStatus"] == "valid":
             stats["app_ready"] += 1
 
+    # --- Tier A: sourced minimums and maximums --------------------------
+    # One row per primary lift, BOTH numbers and BOTH sources. An empty source,
+    # an unknown name or a unit mismatch comes back as a problem and fails the
+    # build - that gate, not a comment, is what keeps uncited numbers out.
+    # Applied after the main loop so it overrides both the CSV's family
+    # heuristics and the gap-fill ladders, and before the ceiling block below so
+    # the emitted HumanCeiling carries the citation.
+    problems.extend(level_minmax.apply(
+        {e["sourceName"]: p for e, p in zip(catalog, progression)}))
+
     stats["valid_json_rows"] = sum(1 for p in progression if p["levelValueSequence"] or p["method"])
 
     # ------------------------------------------------------------------
@@ -864,7 +875,17 @@ def main() -> int:
 
         # --- human ceiling ---
         ov = CEILING_OVERRIDES.get(slug)
-        if ov is not None:
+        if prog.get("minmaxSource"):
+            # Tier A authored BOTH ends of this ladder, with a citation each.
+            # The curated elite mark below is a second cap on the same lift, and
+            # two caps is the contradiction that made these numbers unreadable
+            # once already, so the sourced top wins for the rows it covers.
+            prog["ceiling"] = {
+                "load": prog.get("maxValue"),
+                "femaleLoad": None,
+                "basis": prog["minmaxSource"],
+            }
+        elif ov is not None:
             prog["ceiling"] = {
                 "load": ov.get("load"),
                 "femaleLoad": ov.get("female_load"),
@@ -878,7 +899,7 @@ def main() -> int:
             prog["ceiling"] = {
                 "load": prog["maxValue"],
                 "femaleLoad": None,
-                "basis": (
+                "basis": prog.get("minmaxSource") or (
                     "curated ladder top (ladder_backfill.py)"
                     if prog.get("valueSource") == "curated_ladder"
                     else "v5 progression database maximum progression value"

@@ -4,7 +4,6 @@ import com.grafizum.repio.util.NotificationHelper
 import com.grafizum.repio.util.getPlatformSettings
 import com.grafizum.repio.util.AppEventBus
 import com.grafizum.repio.util.getTimerManager
-import com.grafizum.repio.util.getSupportManager
 import com.grafizum.repio.util.applyAppIconChange
 import com.grafizum.repio.util.getTodayDayOfWeek
 import com.grafizum.repio.util.remainingRestSeconds
@@ -250,15 +249,6 @@ data class EvolutionTreeItem(
 /** Which confirmation dialog the Settings level-system toggle is asking for. */
 enum class LevelSystemConfirmation { NONE, DISABLE, ENABLE }
 
-data class SupportUiState(
-    val isSubmitting: Boolean = false,
-    val cooldownMessage: String = "",
-    val isCooldownActive: Boolean = false,
-    val error: String? = null,
-    val errorDetail: String? = null,
-    val success: Boolean = false
-)
-
 data class WorkoutSubTabRequest(
     val tab: Int,
     val timestamp: Long = System.currentTimeMillis()
@@ -330,7 +320,6 @@ class WorkoutViewModel(
 
     private val prefs = getPlatformSettings("app_settings")
     private val timerManager = getTimerManager()
-    private val supportManager = getSupportManager()
 
     private val _keepScreenOn = MutableStateFlow(prefs.getBoolean("keep_screen_on", false))
     val keepScreenOn: StateFlow<Boolean> = _keepScreenOn.asStateFlow()
@@ -594,9 +583,6 @@ class WorkoutViewModel(
         prefs.putBoolean("has_seen_level_guide_v6", true)
         _shouldShowLevelGuide.value = false
     }
-
-    private val _supportUiState = MutableStateFlow(SupportUiState())
-    val supportUiState: StateFlow<SupportUiState> = _supportUiState.asStateFlow()
 
     // Hoisted UI states to prevent "rescrolling" on recomposition
     val workoutNowScrollState = ScrollState(0)
@@ -2998,6 +2984,26 @@ class WorkoutViewModel(
             // overwriting that would delete data the app did not create here.
             val carried = currentProgressionState(original.name)
             repository.replaceExercise(original, previousNames, replacements)
+
+            // A SWAPPED-OUT EXERCISE STARTS OVER.
+            //
+            // Owner, 2026-11-03: "When swapping exercises position last second
+            // while still being on that exercise, then reset the exercise no
+            // matter how many sets were made (since the new exercise is a
+            // different one when swapping)." The sets were logged against the
+            // OLD name, so a swap looked reset on screen but the work was still
+            // in the log - swap back and the exercise came back finished. Now the
+            // movement that left has its sets for TODAY removed, which is the
+            // reset he asked for, and the incoming one starts clean.
+            //
+            // An EMPTY replacement list is the dialog's "restore the original",
+            // not a swap, so nothing is cleared: the user is undoing, not leaving.
+            if (replacements.isNotEmpty()) {
+                (listOf(original.name) + previousNames)
+                    .distinct()
+                    .filter { name -> replacements.none { it.name == name } }
+                    .forEach { departed -> repository.clearTodaysLoggedSets(departed) }
+            }
             if (carried != null) {
                 replacements
                     .filter { it.name != original.name }
@@ -3061,61 +3067,6 @@ class WorkoutViewModel(
             // substitution chains every other path uses.
             repository.resetRoutineToDefault(loadSetupEquipment())
         }
-    }
-
-    fun sendSupportTicket(subject: String, message: String) {
-        if (subject.isBlank() || message.isBlank()) {
-            _supportUiState.update { it.copy(error = "please_fill_fields") }
-            return
-        }
-
-        val currentTime = currentTimeMillis()
-        val lastSubmitTime = prefs.getLong("last_support_submit_time", 0L)
-        val lastResetDay = prefs.getLong("last_support_reset_day", 0L)
-        val dailyCount = prefs.getInt("daily_support_ticket_count", 0)
-
-        val isNewDay = (currentTime / (24 * 60 * 60 * 1000L)) != (lastResetDay / (24 * 60 * 60 * 1000L))
-        val effectiveDailyCount = if (isNewDay) 0 else dailyCount
-
-        val maxDailyTickets = 5
-        val shortCooldownMillis = 10 * 60 * 1000L
-
-        if (effectiveDailyCount >= maxDailyTickets) {
-            _supportUiState.update { it.copy(error = "daily_limit_reached", isCooldownActive = true) }
-            return
-        }
-
-        if (effectiveDailyCount >= 2 && (currentTime - lastSubmitTime < shortCooldownMillis)) {
-            val remaining = ((shortCooldownMillis - (currentTime - lastSubmitTime)) / 60000) + 1
-            _supportUiState.update { it.copy(error = "please_wait_cooldown", cooldownMessage = remaining.toString(), isCooldownActive = true) }
-            return
-        }
-
-        viewModelScope.launch {
-            _supportUiState.update { it.copy(isSubmitting = true, error = null, success = false) }
-            val result = supportManager.sendTicket(subject, message)
-            if (result.isSuccess) {
-                val now = currentTimeMillis()
-                val newCount = if (isNewDay) 1 else effectiveDailyCount + 1
-                prefs.putLong("last_support_submit_time", now)
-                prefs.putInt("daily_support_ticket_count", newCount)
-                prefs.putLong("last_support_reset_day", now)
-
-                _supportUiState.update { it.copy(isSubmitting = false, success = true) }
-            } else {
-                _supportUiState.update { 
-                    it.copy(
-                        isSubmitting = false, 
-                        error = "internet_unavailable",
-                        errorDetail = result.exceptionOrNull()?.message
-                    ) 
-                }
-            }
-        }
-    }
-
-    fun clearSupportStatus() {
-        _supportUiState.update { it.copy(error = null, errorDetail = null, success = false, isCooldownActive = false) }
     }
 
     private fun parseRepsRange(targetReps: String): Pair<Int, Int> {

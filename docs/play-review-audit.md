@@ -25,7 +25,7 @@ reviewer's device (see §6), which would explain the email if it happened.
 | Minimum API | `minSdk = 24` | PASS (Play rejects bundles below 24 since Sep 2026) |
 | Release is signed with the upload key | Gradle throws if a release build is requested without a keystore | PASS |
 | R8 / resource shrinking safe | `isMinifyEnabled`, `isShrinkResources`, `proguard-rules.pro` keeps `R$string`/`R$plurals` for the `getString("key")` reflection path | PASS |
-| App Check provider in release | `PlayIntegrityAppCheckProviderFactory` when `!BuildConfig.DEBUG`; debug provider only in debug | PASS |
+| Firebase / App Check | Removed with the support form: no `google-services` plugin, no `google-services.json`, no `firebase-*` dependency, and nothing initialised at startup. | PASS |
 | Cleartext traffic | No `usesCleartextTraffic`, no network security config override | PASS (blocked by default) |
 | Debuggable release | Not set anywhere | PASS |
 | Backup | `allowBackup=false`, extraction rules present | PASS |
@@ -54,9 +54,7 @@ Declarations that live in Play Console, not in code (see §6).
 
 **What leaves the device.** Two paths only:
 
-1. **Support tickets** — `SupportManager` writes `subject`, `message`,
-   `device_model`, `app_version`, `timestamp` to Firestore. Behind App Check
-   (Play Integrity in release).
+1. **Support tickets** — **removed.** The in-app form and `SupportManager` are gone, along with Firestore, App Check and the `google-services` plugin. Settings now offers a button that opens the user's mail app addressed to `repio@grafizum.com`, so the app transmits nothing and there is no ticket data to declare.
 2. **Play Core update check** — `AppUpdateChecker`, flexible and dismissible.
 
 Everything else — workout history, plan, levels, settings — is Room/SQLite plus
@@ -69,8 +67,8 @@ Everything else — workout history, plan, levels, settings — is Room/SQLite p
 | No ad SDK | PASS — no ads/analytics/crashlytics dependency in the build |
 | No analytics profile, no advertising ID | PASS |
 | No accounts | PASS — nothing to delete, no account-deletion requirement |
-| Data safety must declare the support form | **FAIL** — declaring "no data collected" while this path exists is a mismatch |
-| Privacy policy | **PASS** — `site/privacy/index.html` is live at `https://repio-legal.matrix-gian.workers.dev/privacy` (HTTP 200, `text/html`, byte-identical to the repo file) and linked from Settings via `AppLinks.PRIVACY_POLICY`. `grafizum.com/privacy` remains unusable: it scopes itself to the dashboard, not this app. |
+| Data safety | PASS — the app transmits nothing, so "No data collected" is now the accurate answer; the only support path is a `mailto:` intent finished in the user's own mail app. |
+| Privacy policy | **PASS** — `site/privacy/index.html` is linked from Settings via `AppLinks.PRIVACY_POLICY` and served at **`https://repio.grafizum.com/privacy`** (HTTP 200, `text/html`, no login, no scripts). It was rewritten on 5 November 2026 to state that the app transmits nothing and the support button only opens the user's mail app; that revision is still waiting on a Worker redeploy. The 10 August Firebase Hosting copy at `https://repio-8b15b.web.app/` is superseded. `grafizum.com/privacy` remains unusable: it scopes itself to the dashboard, not this app. `/terms` and `/legal-notice` are authored in `site/` but return 404 until the redeploy. |
 | Medical claims | PASS — no "medical", "doctor", "diagnose", "injury", "therapy" strings in the app's copy |
 
 ## 4. Content and functionality

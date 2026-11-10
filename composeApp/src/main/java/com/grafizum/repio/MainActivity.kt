@@ -400,6 +400,16 @@ fun MainAppStructure(viewModel: WorkoutViewModel) {
     // clears any waiting nudge and re-arms/removes the alarm with the setting.
     LaunchedEffect(motivationalNudges) {
         com.grafizum.repio.util.MotivationNudger.onAppOpened(context)
+        // A MESSAGE THE TRAY IS HOLDING HAS ALREADY BEEN DELIVERED.
+        //
+        // Owner, 2026-11-03: "Have repio message be dismissed when opening the
+        // app or when the app is open once it gave the popup notification." The
+        // rest/timed-exercise alert and the update notice are both things the
+        // app has already said out loud by now - the rest banner is on this very
+        // screen and the update has its own card - so opening the app clears
+        // them instead of leaving them to be dismissed by hand.
+        com.grafizum.repio.util.NotificationHelper.cancelRestTimerNotification(context)
+        com.grafizum.repio.util.NotificationHelper.cancelUpdateNotification(context)
     }
     var showExitConfirmation by remember { mutableStateOf(false) }
     var showInAppRestNotification by remember { mutableStateOf(false) }

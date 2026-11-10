@@ -9,7 +9,6 @@ plugins {
     alias(libs.plugins.google.devtools.ksp)
     alias(libs.plugins.roborazzi)
     alias(libs.plugins.secrets)
-    alias(libs.plugins.google.services)
 }
 
 // Configuration for Play Store release naming
@@ -160,9 +159,6 @@ android {
             // `context.packageName` - the launcher icon aliases (IconSwitchHelper),
             // the app-details deep links (AppUpdateChecker) and resource lookup
             // (Resources.kt) - so the id change is transparent to all of them.
-            // google-services.json carries a matching `com.grafizum.repio.debug`
-            // client, because the google-services plugin fails the build outright
-            // when the application id has no entry.
             applicationIdSuffix = ".debug"
         }
     }
@@ -193,7 +189,6 @@ base {
 secrets {
     propertiesFileName = ".env"
     defaultPropertiesFileName = ".env.example"
-    ignoreList.add("FIREBASE_APPCHECK_DEBUG_TOKEN")
     // Build-time only: read by the root `bumpVersion` task to report to the Grafizum
     // dashboard. Ignored here so the token is never baked into BuildConfig / the APK.
     // Only add these to .env, never to .env.example: an active key with an empty
@@ -279,16 +274,6 @@ dependencies {
     // Moshi
     "ksp"(libs.moshi.kotlin.codegen)
     
-    // Firebase
-    val firebaseBom = platform(libs.firebase.bom)
-    implementation(firebaseBom)
-    implementation(libs.firebase.ai)
-    implementation(libs.firebase.firestore)
-    implementation(libs.firebase.appcheck.recaptcha)
-    implementation(libs.firebase.appcheck.playintegrity)
-    implementation(libs.firebase.appcheck.debug)
-    implementation(libs.firebase.auth)
-
     debugImplementation(libs.androidx.compose.ui.tooling)
     debugImplementation(libs.androidx.compose.ui.test.manifest)
 
