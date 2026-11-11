@@ -1250,8 +1250,54 @@ object ProgressionEngine {
         else -> ValueKind.LOAD
     }
 
+    /**
+     * Movements held in ONE hand or with ONE bell, where "each" is simply untrue.
+     *
+     * Owner, 2026-11-11 (board task_240k4p5w583755053t162c4b): *"For some exercises
+     * (each) on weights makes no sense when its only one weight."* The word was never
+     * typed by hand - it followed the row's unit (`kg_per_dumbbell` -> [LoadUnit.KG_EACH]
+     * -> "25 kg each") - and a per-hand unit is only honest for a movement that really
+     * holds a bell in each hand.
+     *
+     * AUTHORED, never read off the name. The project's rule is that a movement's
+     * properties come from data, because a rename must not re-word a prescription, and
+     * "Pullover" or "Svend Press" say nothing about how many bells are in it. This is
+     * the list of rows whose implement count is one; every other `kg_per_dumbbell` row
+     * keeps "each" because it genuinely uses a pair (bench press, fly, row, curl...).
+     *
+     * It changes the WORDING only. No load, rung, level or overall level moves: the
+     * numbers still come from the row's own ladder, and [LoadUnit.KG] prints the same
+     * weight without the suffix.
+     */
+    private val SINGLE_IMPLEMENT_SLUGS: Set<String> = setOf(
+        "dumbbell_pullover",                                 // Dumbbell Pullover
+        "dumbbell_svend_press",                              // Dumbbell Svend Press
+        "single_dumbbell_svend_press",                       // Single Dumbbell Svend Press
+        "concentration_curl",                                // Concentration Curl
+        "dumbbell_side_bend",                                // Dumbbell Side Bend
+        "dumbbell_windmill",                                 // Dumbbell Windmill
+        "one_arm_dumbbell_push_press",                       // One-Arm Dumbbell Push Press
+        "one_arm_dumbbell_swing",                            // One-Arm Dumbbell Swing
+        "single_arm_dumbbell_row",                           // Single-Arm Dumbbell Row
+        "single_arm_hammer_curl",                            // Single-Arm Hammer Curl
+        "single_arm_chest_supported_dumbbell_row",           // Single-Arm Chest-Supported Dumbbell Row
+        "single_arm_dumbbell_overhead_tricep_extension",     // Single-Arm Dumbbell Overhead Tricep Extension
+        "one_arm_single_leg_dumbbell_romanian_deadlift",     // One-Arm Single-Leg Dumbbell RDL
+        "dumbbell_pistol_squat",                             // Dumbbell Pistol Squat
+        "jefferson_curl",                                    // Jefferson Curl
+        "cross_body_hammer_curl",                            // Cross Body Hammer Curl
+        "dumbbell_tricep_kickback",                          // Dumbbell Tricep Kickback
+
+    )
+
+    /** True when [entry] is performed with one implement, so its load is not "each". */
+    fun isSingleImplement(entry: ProgressionEntry): Boolean =
+        entry.slug.replace('-', '_') in SINGLE_IMPLEMENT_SLUGS
+
     private fun loadUnitOf(entry: ProgressionEntry): LoadUnit = when (entry.unit) {
-        "kg_per_dumbbell" -> LoadUnit.KG_EACH
+        // A per-hand unit on a ONE-bell movement reads "25 kg each" beside a single
+        // bell, so those rows answer with the plain kilogram unit instead.
+        "kg_per_dumbbell" -> if (isSingleImplement(entry)) LoadUnit.KG else LoadUnit.KG_EACH
         "stack_step" -> LoadUnit.STACK_STEP
         "resistance_step" -> LoadUnit.RESISTANCE_STEP
         else -> LoadUnit.KG
