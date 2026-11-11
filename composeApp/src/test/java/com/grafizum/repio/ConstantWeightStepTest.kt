@@ -26,7 +26,8 @@ import kotlin.math.roundToInt
  * Measured across the whole pool, that is now one rule: every LOAD row walks a single
  * step from its own starting load to its researched ceiling. The ceiling - the max -
  * is unchanged, and the number of levels it takes to reach it grows (the bench: 58
- * rungs as the CSV authored them, 65 at a constant 2.5 kg).
+ * rungs as the CSV authored them, and now 33 at a constant 2.5 kg up to its SOURCED
+ * 100 kg top - the old curated 180 kg elite mark was displaced by the sourced table).
  *
  * The last-rung case is pinned separately and honestly: the ceiling is snapped to
  * exactly, so if the throw from the base is not a whole number of steps the FINAL rung
@@ -108,15 +109,18 @@ class ConstantWeightStepTest {
      * ten authored rungs.
      */
     @Test
-    fun theBenchWalksItsOwnIncrementAllTheWayToTheEliteCeiling() {
+    fun theBenchWalksItsOwnIncrementAllTheWayToItsSourcedTop() {
         val bench = ProgressionEngine.entryFor("Barbell Bench Press")!!
         val (base, step) = ProgressionEngine.constantStepLadder(bench)!!
         assertEquals(20.0, base, 1e-9)
         assertEquals("the bench's own barbell increment", 2.5, step, 1e-9)
 
         val top = ProgressionEngine.effectiveMaxLevel(bench)
-        assertEquals("the elite ceiling is the last rung", 180.0, value(bench, top), 1e-9)
-        assertEquals("(180 - 20) / 2.5 + 1 rungs", 65, top)
+        // The researched top for this lifter is 100 kg (advanced bench, 1.25x an 80 kg
+        // bodyweight). The old 180 kg elite mark is listed as displaced in
+        // docs/level-system-phase2-level-rebuild.md and comes back in a line if wanted.
+        assertEquals("the sourced top is the last rung", 100.0, value(bench, top), 1e-9)
+        assertEquals("(100 - 20) / 2.5 + 1 rungs", 33, top)
         // More levels for the same max, exactly as asked: the CSV authored ten
         // values and the old engine stretched those to 58 growing rungs.
         assertTrue("the ladder must be longer than the authored list", top > bench.levelValues.size)

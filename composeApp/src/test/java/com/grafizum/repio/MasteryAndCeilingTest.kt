@@ -23,10 +23,15 @@ class MasteryAndCeilingTest {
     // --- Ceiling-aware ladders ----------------------------------------------
 
     @Test
-    fun benchLadderIsStretchedToTheEliteCeiling() {
+    fun benchLadderEndsOnItsSourcedTop() {
         val e = entry("Barbell Bench Press")
         val effMax = ProgressionEngine.effectiveMaxLevel(e)
-        assertTrue("bench effective max ($effMax) must exceed the declared ladder", effMax > 40)
+        // The last rung is the SOURCED top now - advanced bench at 1.25x an 80 kg
+        // lifter is 100 kg - not the curated elite mark of 180 kg it used to stretch
+        // to. So the ladder is 33 rungs of 2.5 kg from the bare bar, where it used to
+        // be 65. Every displaced elite mark is listed in
+        // docs/level-system-phase2-level-rebuild.md so one can be restored in a line.
+        assertEquals("bench rungs at a constant 2.5 kg from 20 to 100", 33, effMax)
         // The ceiling load lands exactly on the effective max.
         assertEquals(e.ceiling!!.load!!, ProgressionEngine.valueAtLevelWithCeiling(e, effMax)!!, 0.001)
         // ... and never anywhere else.
@@ -198,22 +203,31 @@ class MasteryAndCeilingTest {
         assertEquals(
             1, ProgressionEngine.branchStartLevel(source, ProgressionEngine.ProgressionState(1, 1), target),
         )
-        // Clamped at the TOP - but not at the target's own maximum. Bench and
-        // Front Squat are both 80-level ladders, and the plain relative-depth
-        // mapping returns targetMax for a finished exercise, which would hand
-        // over a ladder that is already complete: the swap would be over
-        // before it began and the evolution popup would draw two identical
-        // bars. An equal-length target has no more headroom to give, so it is
-        // capped partway down instead. EvolutionOfferTest sweeps every branch
-        // for this; this case pins the numbers.
+        // Clamped at the TOP, and WHICH arm of the rule applies is a fact about the
+        // two ladders' lengths - so this asks the data instead of assuming:
+        //
+        //  - an EQUAL-length target has no headroom to give a finished user, so the
+        //    mapping is capped partway down (the swap would otherwise be over before
+        //    it began, and the popup would draw two identical bars);
+        //  - a LONGER target takes the plain relative depth and lands on its top,
+        //    which is the point of a longer ladder. That arm has its own sweep in
+        //    [aLongerTargetStillTakesThePlainRelativeDepth].
+        //
+        // This used to hard-code "Bench and Front Squat are both 80-level ladders".
+        // They are not any more: the sourced tops (2026-11-10) put the bench on 33
+        // rungs and the front squat on 49, which is the longer-target case.
         val atTop = ProgressionEngine.branchStartLevel(
             source, ProgressionEngine.ProgressionState(sourceMax, 1), target,
         )
-        assertTrue(
-            "a finished source landed on $atTop of $targetMax, which is the target's own cap",
-            atTop < targetMax,
-        )
-        assertEquals((targetMax * 0.6).roundToInt(), atTop)
+        if (targetMax > sourceMax) {
+            assertEquals("a longer target must give the whole ladder", targetMax, atTop)
+        } else {
+            assertTrue(
+                "a finished source landed on $atTop of $targetMax, which is the target's own cap",
+                atTop < targetMax,
+            )
+            assertEquals((targetMax * 0.6).roundToInt(), atTop)
+        }
     }
 
     @Test

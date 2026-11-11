@@ -21,7 +21,7 @@ import org.junit.Test/**
  *
  * Since the human-ceiling work the picker's "program" is the ceiling-aware
  * ladder: the bench's 40 declared levels stretch to 80 so the researched
- * elite ceiling (180 kg) lands on the final rung — see MasteryAndCeilingTest.
+ * sourced top (the bench's 100 kg) lands on the final rung — see MasteryAndCeilingTest.
  */
 class LevelLadderTest {
 
