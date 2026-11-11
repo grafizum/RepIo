@@ -1646,11 +1646,24 @@ object ProgressionEngine {
         // 2026-10-13: the max is a marker, not the end), so the mastery card
         // fires once where the researched evidence ends, and the user who
         // ignores it carries on training the same movement.
-        if (state.level != effMax) return false
-        // On the max rung: mastered only when there is genuinely no further
-        // stage — i.e. the user completed the top stage, not when they merely
-        // arrived at it.
-        return state.stage >= patternLength(entry)
+        // AT OR PAST the max rung, not only exactly on it.
+        //
+        // The equality was a hole the day the researched tops moved: a lift whose
+        // top DROPPED (Romanian deadlift 180 -> 140 kg, sumo squat 180 -> 140,
+        // dumbbell shoulder press 36 -> 28 per hand) left anyone already training
+        // above the new top sitting on a level the engine no longer called "the
+        // end", so the progression offer could never fire for them again — the
+        // owner's "it was added on the earlier version, I don't know why it hasn't
+        // been added today".
+        //
+        // Owner, 2026-11-11: "when an exercise has reached a certain level, then a
+        // progression should be asked". Past the top the ladder still climbs (2026-10-13:
+        // the max is a marker, not a wall), but the OFFER is due there all the same.
+        if (state.level < effMax) return false
+        // ON the max rung the top stage still has to be finished: arriving is not
+        // mastering. Above it there is no stage left to finish.
+        if (state.level == effMax) return state.stage >= patternLength(entry)
+        return true
     }
 
     /** Why [entry] is mastered at [state]; [MasteryReason] or null if not mastered. */
