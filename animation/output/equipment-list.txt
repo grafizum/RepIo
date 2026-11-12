@@ -1,0 +1,63 @@
+Dumbbell [81]: Arnold Press, Bent-Over Dumbbell Row, Bilateral Dumbbell Wrist Curl, Bulgarian Split Squat, Chest Supported Dumbbell Shrug, Chest-Supported Dumbbell Row, Close-Grip Dumbbell Bench Press, Concentration Curl …
+Barbell + plates [66]: Barbell Ab Rollout, Barbell Back Squat, Barbell Bench Press, Barbell Calf Raise, Barbell Curl, Barbell Deadlift, Barbell Front Raise, Barbell Glute Bridge …
+EZ curl bar [20]: Bent-Arm EZ-Bar Pullover, Bent-Over EZ-Bar Row, Close-Grip EZ-Bar Bench Press, Close-Grip EZ-Bar Curl, Decline EZ-Bar Bench Press, EZ Bar Pullover, EZ-Bar Bench Press, EZ-Bar Curl …
+Hex / trap bar [1]: Hex Bar Deadlift
+Weight plate (handheld) [8]: Deficit Deadlift, Deficit Push Ups, Heel-Elevated Squat, Plate Pinch, Plate Pullover, Svend Press, Weighted Dips, Weighted Pull-Up
+Kettlebell [60]: Bulgarian Split Squat (Kettlebell), Chest-Supported Kettlebell Row, Close-Grip Floor Press (Kettlebell), Double Kettlebell Bicep Curl, Double Kettlebell Clean, Double Kettlebell Clean and Press, Double Kettlebell Dead Clean, Double Kettlebell Dead Split Snatch …
+Medicine ball [1]: Medicine Ball Slam
+Stability / exercise ball [7]: Ball Pike, Hip Bridge (Ball), Knee Tuck (Ball), Leg Curl (Ball), Push-Up (Hands on Ball) (Ball), Stability Ball Push-Up, Wall Squat (Ball)
+Ab wheel [1]: Ab Wheel Rollout
+Flat bench [70]: Barbell Bench Press, Barbell Hip Thrust, Barbell Pullover, Bench Adductor Stretch, Bench Ankle Stretch, Bench Bulgarian Split Stretch, Bench Calf Stretch, Bench Chest Stretch …
+Adjustable bench (incline/decline) [26]: Chest-Supported Dumbbell Row, Chest-Supported Kettlebell Row, Chest-Supported Smith Machine Row, Close-Grip Incline Bench Press, Decline Barbell Bench Press, Decline Bench Press, Decline Bench Press (Smith Machine), Decline Dumbbell Fly …
+Decline sit-up bench [1]: Decline Crunch
+Preacher bench [6]: Barbell Preacher Curl, Machine Preacher Curl, Preacher Curl, Preacher Hammer Curl, Spider Curl, Spider Curl (EZ-Bar)
+Squat / power rack [28]: Barbell Back Squat, Barbell Bench Press, Barbell Calf Raise, Barbell Lunge, Barbell Overhead Press, Barbell Shrug, Behind the Back Barbell Shrug, Behind the Neck Press …
+Landmine pivot [3]: Landmine Press, One-Arm Landmine Press, T-Bar Row
+Plyo box [5]: Bodyweight Calf Raise, Box Jump, Box Squat, Single Leg Calf Raise, Step Ups
+Cable station (adjustable pulley) [26]: Cable Bent-Over Row, Cable Chest Press, Cable Crunch, Cable Curl, Cable External Rotation, Cable Face Pull, Cable Fly, Cable Front Raise …
+Lat pulldown machine [6]: Behind-the-Neck Lat Pulldown, Close Grip Lat Pulldown, Lat Pulldown, One-Arm Lat Pulldown, Reverse Grip Lat Pulldown, V-Bar Lat Pulldown
+Seated cable row station [2]: Seated Cable Row, Wide Grip Seated Cable Row
+Cable attachments (straight bar / V-bar / rope / D-handle / ankle strap) [32]: Behind-the-Neck Lat Pulldown, Cable Bent-Over Row, Cable Chest Press, Cable Crunch, Cable Curl, Cable External Rotation, Cable Face Pull, Cable Fly …
+Smith machine [19]: Bench Press (Smith Machine), Bent Over Row (Smith Machine), Bulgarian Split Squat (Smith Machine), Calf Raise (Smith Machine), Chest-Supported Smith Machine Row, Decline Bench Press (Smith Machine), Front Squat (Smith Machine), Good Morning (Smith Machine) …
+Leg press (45°) [5]: Close-Stance Leg Press, High-Foot Leg Press, Leg Press, Single Leg Press, Wide-Stance Leg Press
+Horizontal leg press [1]: Horizontal Leg Press
+Hack squat machine [2]: Hack Squat, Hack Squat Calf Raise
+Leg extension machine [2]: Leg Extension, Single Leg Extension
+Lying leg curl machine [2]: Lying Leg Curl, Single Leg Lying Leg Curl
+Seated leg curl machine [1]: Seated Leg Curl
+Hip adduction/abduction machine [2]: Hip Adduction, Machine Hip Abduction
+Chest press machine [1]: Machine Chest Press
+Pec deck / chest fly machine [2]: Machine Chest Fly, Pec Deck
+Shoulder press machine [2]: Machine Shoulder Press, Single-Arm Machine Shoulder Press
+Biceps curl machine [3]: Machine Bicep Curl, Machine Preacher Curl, Preacher Hammer Curl
+Triceps extension machine [1]: Machine Triceps Extension
+Calf raise machines (standing / seated / donkey) [6]: Donkey Calf Raise, Hack Squat Calf Raise, Machine Calf Raise, Plate-Loaded Donkey Calf Raise, Seated Calf Raise, Standing Calf Raise
+Assisted pull-up / dip machine [2]: Assisted Pull Ups, Machine Assisted Dips
+Back extension bench (45° / roman chair) [1]: Back Extension
+Machine back extension [1]: Machine Back Extension
+Ab crunch machine [1]: Machine Seated Crunch
+Plate-loaded machines (glute drive / lateral raise / shrug) [4]: Plate-Loaded Glute Drive, Plate-Loaded Lateral Raise, Plate-Loaded Shrug, Single-Arm Plate-Loaded Lateral Raise
+Captain's chair (knee-raise station) [2]: Captain's Chair Knee Raise, Captain's Chair Leg Raise
+Sled [1]: Sled Row
+Pull-up bar [22]: Archer Pull Ups, Assisted Pull Ups (Band), Back Lever, Behind-the-Neck Pull-Up, Chin-Ups, Close-Grip Pull-Ups, Dead Hang, Front Lever …
+Dip bars / parallel bars [5]: Chest Dips, L Sit, Planche, Straight Bar Dips, Weighted Dips
+Gymnastic rings [7]: Ring Dead Hang, Ring Dips, Ring Face Pull, Ring Muscle-Up, Ring Push-Up, Ring Row, Rings Inverted Row
+Suspension trainer (TRX) [12]: TRX Bicep Curl, TRX Chest Press, TRX Face Pull, TRX Hamstring Curl, TRX Lunge, TRX Pistol Squat, TRX Plank, TRX Row …
+Climbing rope [1]: Rope Climb
+Vertical pole (human flag) [1]: Human Flag
+Resistance band (long loop) [28]: Assisted Pull Ups (Band), Band Pull Apart, Banded Adductor Stretch, Banded Ankle Stretch, Banded Calf Stretch, Banded Chest Stretch, Banded Clamshell, Banded Figure-4 Stretch …
+Mini band (short loop) [7]: Banded Clamshell, Banded Fire Hydrant, Banded Glute Bridge, Banded Lateral Walk, Banded Squat, Banded Sumo Walk, Seated Hip Abduction (Band)
+Wall [6]: Doorway Chest Stretch, Legs-Up-the-Wall Pose, Wall Push Ups, Wall Sit, Wall Squat (Ball), Weighted Wall Crunch
+Battle ropes [2]: Battle Rope Double Slam, Battle Ropes
+Jump rope [1]: Jump Rope
+Wrist roller [1]: Wrist Roller
+Yoga mat [149]: Banded Adductor Stretch, Banded Ankle Stretch, Banded Calf Stretch, Banded Chest Stretch, Banded Clamshell, Banded Figure-4 Stretch, Banded Glute Bridge, Banded Hamstring Stretch …
+Air bike [1]: Air Bike
+Elliptical trainer [1]: Elliptical Trainer
+Treadmill [2]: Incline Treadmill Walk, Treadmill Running
+Stair climber [1]: Stair Climber
+Stationary bike [1]: Stationary Bike
+Rowing machine [1]: Rowing Machine
+Dip belt [2]: Weighted Dips, Weighted Pull-Up
+
+NO EQUIPMENT [54]: Archer Push Ups, Bear Crawl, Bodyweight Good Morning, Bodyweight Lateral Raise, Bodyweight Overhead Press, Bodyweight Reverse Lunge, Bodyweight Squat, Burpees, Chin Tuck Hold, Clap Push-Ups, Close Grip Push Ups, Cossack Squat, Crescent Lunge, Diamond Push Ups, Half-Kneeling Hip Flexor Rock, Handstand Push Ups, Heel-to-Toe Walk, High Knees, Isometric Neck Lateral Flexion, Jump Squat, Jumping Jacks, Knee Push Ups, Low Lunge, Lunge, Mountain Climbers, Pike Push Ups, Pistol Squat, Plyo Lunge, Plyo Push-Up, Pseudo Planche Push Ups, Push-Up, Revolved Crescent Lunge, Running, Seated Forward Fold, Seated Spinal Twist, Side Lunge, Side Lying Hip Adduction, Side-Lying Hip Abduction, Side-Lying Hip Abduction Hold, Side-Lying Hip Adduction Hold, Split Squat, Standing Forward Fold, Standing Forward Fold to Half Lift, Standing Side Bend, Standing Side Bend Flow, Standing Split, Supine Spinal Twist, Supported Shoulderstand, Thread the Needle, Thread the Needle Flow, Walking, Walking Lunge, Wide Grip Push Ups, Wide-Legged Forward Fold

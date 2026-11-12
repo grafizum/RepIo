@@ -1,0 +1,5 @@
+frames: 60
+mean step between neighbours: 0.780
+max step: 1.350
+seam (last -> first): 0.000
+seam within normal step range: True

@@ -1,0 +1,4810 @@
+[
+{
+"id": "ab-wheel-rollout",
+"name": "Ab Wheel Rollout",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "air-bike",
+"name": "Air Bike",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "archer-pull-ups",
+"name": "Archer Pull Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "archer-push-ups",
+"name": "Archer Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "arnold-press",
+"name": "Arnold Press",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "assisted-pull-ups",
+"name": "Assisted Pull Ups",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "band-assisted-pull-ups",
+"name": "Assisted Pull Ups (Band)",
+"muscle": "Lats",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "back-extension",
+"name": "Back Extension",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "back-lever",
+"name": "Back Lever",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "ball-pike",
+"name": "Ball Pike",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "band-pull-apart",
+"name": "Band Pull Apart",
+"muscle": "Rear Deltoids",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "banded-adductor-stretch",
+"name": "Banded Adductor Stretch",
+"muscle": "Hip Adductors",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-ankle-stretch",
+"name": "Banded Ankle Stretch",
+"muscle": "Calves",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-calf-stretch",
+"name": "Banded Calf Stretch",
+"muscle": "Calves",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-chest-stretch",
+"name": "Banded Chest Stretch",
+"muscle": "Pectorals",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-clamshell",
+"name": "Banded Clamshell",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "banded-figure-4-stretch",
+"name": "Banded Figure-4 Stretch",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-fire-hydrant",
+"name": "Banded Fire Hydrant",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "banded-glute-bridge",
+"name": "Banded Glute Bridge",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-good-morning",
+"name": "Banded Good Morning",
+"muscle": "Hamstrings",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-hamstring-stretch",
+"name": "Banded Hamstring Stretch",
+"muscle": "Hamstrings",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-hip-thrust",
+"name": "Banded Hip Thrust",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-it-band-stretch",
+"name": "Banded IT-Band Stretch",
+"muscle": "Hip Abductors",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-lat-stretch",
+"name": "Banded Lat Stretch",
+"muscle": "Lats",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-lateral-walk",
+"name": "Banded Lateral Walk",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-romanian-deadlift",
+"name": "Banded Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-shoulder-stretch",
+"name": "Banded Shoulder Stretch",
+"muscle": "Front Deltoids",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-squat",
+"name": "Banded Squat",
+"muscle": "Quadriceps",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-sumo-walk",
+"name": "Banded Sumo Walk",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-triceps-stretch",
+"name": "Banded Triceps Stretch",
+"muscle": "Triceps",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "barbell-ab-rollout",
+"name": "Barbell Ab Rollout",
+"muscle": "Abs",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "squat",
+"name": "Barbell Back Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bench-press",
+"name": "Barbell Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-calf-raise",
+"name": "Barbell Calf Raise",
+"muscle": "Calves",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "barbell-curl",
+"name": "Barbell Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "deadlift",
+"name": "Barbell Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-front-raise",
+"name": "Barbell Front Raise",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "barbell-glute-bridge",
+"name": "Barbell Glute Bridge",
+"muscle": "Glutes",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hip-thrust",
+"name": "Barbell Hip Thrust",
+"muscle": "Glutes",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-lunge",
+"name": "Barbell Lunge",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-overhead-extension",
+"name": "Barbell Overhead Extension",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ohp",
+"name": "Barbell Overhead Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-preacher-curl",
+"name": "Barbell Preacher Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "barbell-pullover",
+"name": "Barbell Pullover",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-reverse-lunge",
+"name": "Barbell Reverse Lunge",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "shrug",
+"name": "Barbell Shrug",
+"muscle": "Upper Traps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "upright-row",
+"name": "Barbell Upright Row",
+"muscle": "Lateral Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-wrist-curl",
+"name": "Barbell Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "battle-rope-double-slam",
+"name": "Battle Rope Double Slam",
+"muscle": "Front Deltoids",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "battle-ropes",
+"name": "Battle Ropes",
+"muscle": "Front Deltoids",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "bear-crawl",
+"name": "Bear Crawl",
+"muscle": "Front Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "behind-the-back-barbell-shrug",
+"name": "Behind the Back Barbell Shrug",
+"muscle": "Upper Traps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "behind-the-neck-press",
+"name": "Behind the Neck Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "behind-the-neck-lat-pulldown",
+"name": "Behind-the-Neck Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "behind-the-neck-pull-ups",
+"name": "Behind-the-Neck Pull-Up",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bench-adductor-stretch",
+"name": "Bench Adductor Stretch",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-ankle-stretch",
+"name": "Bench Ankle Stretch",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-bulgarian-split-stretch",
+"name": "Bench Bulgarian Split Stretch",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "bench-calf-stretch",
+"name": "Bench Calf Stretch",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-chest-stretch",
+"name": "Bench Chest Stretch",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-childs-pose",
+"name": "Bench Child's Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "bench-couch-stretch",
+"name": "Bench Couch Stretch",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "bench-dips",
+"name": "Bench Dips",
+"muscle": "Triceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bench-figure-4-glute-stretch",
+"name": "Bench Figure-4 Glute Stretch",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-hamstring-stretch",
+"name": "Bench Hamstring Stretch",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-lat-stretch",
+"name": "Bench Lat Stretch",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "bench-leg-pull-in",
+"name": "Bench Leg Pull-In",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "smith-machine-bench-press",
+"name": "Bench Press (Smith Machine)",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bench-pull",
+"name": "Bench Pull",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bent-arm-barbell-pullover",
+"name": "Bent Arm Barbell Pullover",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "smith-machine-bent-over-row",
+"name": "Bent Over Row (Smith Machine)",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bent-arm-ez-bar-pullover",
+"name": "Bent-Arm EZ-Bar Pullover",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "barbell-row",
+"name": "Bent-Over Barbell Row",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bent-over-db-row",
+"name": "Bent-Over Dumbbell Row",
+"muscle": "Lats",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bent-over-ez-bar-row",
+"name": "Bent-Over EZ-Bar Row",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bicycle-crunch",
+"name": "Bicycle Crunch",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "wrist-curl",
+"name": "Bilateral Dumbbell Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "bird-dog-hold",
+"name": "Bird Dog Hold",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "bird-dog",
+"name": "Bird-Dog",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "boat-pose",
+"name": "Boat Pose",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "bodyweight-calf-raise",
+"name": "Bodyweight Calf Raise",
+"muscle": "Calves",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "bodyweight-good-morning",
+"name": "Bodyweight Good Morning",
+"muscle": "Hamstrings",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bodyweight-lateral-raise",
+"name": "Bodyweight Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "bodyweight-overhead-press",
+"name": "Bodyweight Overhead Press",
+"muscle": "Front Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bodyweight-reverse-lunge",
+"name": "Bodyweight Reverse Lunge",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bodyweight-squat",
+"name": "Bodyweight Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bow-pose",
+"name": "Bow Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "box-jump",
+"name": "Box Jump",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "plyometric_explosive",
+"level": "compound"
+},
+{
+"id": "box-squat",
+"name": "Box Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "bulgarian-split-squat",
+"name": "Bulgarian Split Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-bulgarian-split-squat",
+"name": "Bulgarian Split Squat (Kettlebell)",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-bulgarian-split",
+"name": "Bulgarian Split Squat (Smith Machine)",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "burpees",
+"name": "Burpees",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "butterfly-stretch",
+"name": "Butterfly Stretch",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "cable-bent-over-row",
+"name": "Cable Bent-Over Row",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cable-chest-press",
+"name": "Cable Chest Press",
+"muscle": "Pectorals",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cable-crunch",
+"name": "Cable Crunch",
+"muscle": "Abs",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-curl",
+"name": "Cable Curl",
+"muscle": "Biceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-external-rotation",
+"name": "Cable External Rotation",
+"muscle": "Rear Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "face-pull",
+"name": "Cable Face Pull",
+"muscle": "Rear Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cable-fly",
+"name": "Cable Fly",
+"muscle": "Pectorals",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-front-raise",
+"name": "Cable Front Raise",
+"muscle": "Front Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-kickback",
+"name": "Cable Glute Kickback",
+"muscle": "Glutes",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-hammer-curl",
+"name": "Cable Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-lateral-raise",
+"name": "Cable Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-pallof-press",
+"name": "Cable Pallof Press",
+"muscle": "Obliques",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cable-tricep-kickback",
+"name": "Cable Tricep Kickback",
+"muscle": "Triceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "tricep-pushdown",
+"name": "Cable Tricep Pushdown",
+"muscle": "Triceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cable-upright-row",
+"name": "Cable Upright Row",
+"muscle": "Lateral Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cable-wrist-curl",
+"name": "Cable Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "smith-machine-calf-raise",
+"name": "Calf Raise (Smith Machine)",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "camel-pose",
+"name": "Camel Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "captains-chair-knee-raise",
+"name": "Captain's Chair Knee Raise",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "captains-chair-leg-raise",
+"name": "Captain's Chair Leg Raise",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "cat-stretch",
+"name": "Cat Stretch",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "cat-cow",
+"name": "Cat-Cow",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "chair-pose",
+"name": "Chair Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "cheat-curl",
+"name": "Cheat Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dips",
+"name": "Chest Dips",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "chest-supported-dumbbell-shrug",
+"name": "Chest Supported Dumbbell Shrug",
+"muscle": "Upper Traps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "chest-supported-db-row",
+"name": "Chest-Supported Dumbbell Row",
+"muscle": "Lats",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "chest-supported-kettlebell-row",
+"name": "Chest-Supported Kettlebell Row",
+"muscle": "Lats",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "chest-supported-smith-machine-row",
+"name": "Chest-Supported Smith Machine Row",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "childs-pose",
+"name": "Child's Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "chin-tuck-hold",
+"name": "Chin Tuck Hold",
+"muscle": "Upper Traps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "chin-ups",
+"name": "Chin-Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "clamshells-hold",
+"name": "Clamshell Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "clamshells",
+"name": "Clamshells",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "clap-push-ups",
+"name": "Clap Push-Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "clean",
+"name": "Clean",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "clean-and-jerk",
+"name": "Clean and Jerk",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "close-grip-lat-pulldown",
+"name": "Close Grip Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-push-ups",
+"name": "Close Grip Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "close-grip-barbell-curl",
+"name": "Close-Grip Barbell Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "close-grip-bench-press",
+"name": "Close-Grip Bench Press",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-db-bench-press",
+"name": "Close-Grip Dumbbell Bench Press",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-ez-bar-bench-press",
+"name": "Close-Grip EZ-Bar Bench Press",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-ez-bar-curl",
+"name": "Close-Grip EZ-Bar Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-close-grip-floor-press",
+"name": "Close-Grip Floor Press (Kettlebell)",
+"muscle": "Triceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-incline-bench",
+"name": "Close-Grip Incline Bench Press",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-grip-pull-ups",
+"name": "Close-Grip Pull-Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "close-stance-leg-press",
+"name": "Close-Stance Leg Press",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "cobra-stretch",
+"name": "Cobra Stretch",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "cocoons",
+"name": "Cocoons",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "concentration-curl",
+"name": "Concentration Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "savasana",
+"name": "Corpse Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "cossack-squat",
+"name": "Cossack Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "cow-face-pose",
+"name": "Cow Face Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "crab-dips",
+"name": "Crab Dips",
+"muscle": "Triceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "crescent-lunge",
+"name": "Crescent Lunge",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "cross-body-hammer-curl",
+"name": "Cross Body Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "cross-body-crunch",
+"name": "Cross-Body Crunch",
+"muscle": "Obliques",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "cross-body-shoulder-stretch",
+"name": "Cross-Body Shoulder Stretch",
+"muscle": "Rear Deltoids",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "crow-pose",
+"name": "Crow Pose",
+"muscle": "Front Deltoids",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "crunches",
+"name": "Crunches",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "dancer-pose",
+"name": "Dancer Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "dead-bug",
+"name": "Dead Bug",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "dead-bug-hold",
+"name": "Dead Bug Hold",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "dead-hang",
+"name": "Dead Hang",
+"muscle": "Forearms",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "decline-bench-press-barbell",
+"name": "Decline Barbell Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "decline-bench-press",
+"name": "Decline Bench Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-decline-bench-press",
+"name": "Decline Bench Press (Smith Machine)",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "decline-crunch",
+"name": "Decline Crunch",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "decline-db-fly",
+"name": "Decline Dumbbell Fly",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "decline-bench-press-ez-bar",
+"name": "Decline EZ-Bar Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "decline-push-up",
+"name": "Decline Push-Up",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "deficit-deadlift",
+"name": "Deficit Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "deficit-push-ups",
+"name": "Deficit Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "diamond-push-ups",
+"name": "Diamond Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "dolphin-pose",
+"name": "Dolphin Pose",
+"muscle": "Front Deltoids",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "donkey-calf-raise",
+"name": "Donkey Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "doorway-chest-stretch",
+"name": "Doorway Chest Stretch",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "double-db-kickstand-deadlift",
+"name": "Double Dumbbell Kickstand Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-db-overhead-carry",
+"name": "Double Dumbbell Overhead Carry",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-bicep-curl",
+"name": "Double Kettlebell Bicep Curl",
+"muscle": "Biceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "double-kettlebell-clean",
+"name": "Double Kettlebell Clean",
+"muscle": "Glutes",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-clean-and-press",
+"name": "Double Kettlebell Clean and Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-dead-clean",
+"name": "Double Kettlebell Dead Clean",
+"muscle": "Glutes",
+"equipment": "Kettlebell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-dead-split-snatch",
+"name": "Double Kettlebell Dead Split Snatch",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-jerk",
+"name": "Double Kettlebell Jerk",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-overhead-carry",
+"name": "Double Kettlebell Overhead Carry",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-overhead-press",
+"name": "Double Kettlebell Overhead Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-push-press",
+"name": "Double Kettlebell Push Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-rear-delt-row",
+"name": "Double Kettlebell Rear Delt Row",
+"muscle": "Rear Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-row",
+"name": "Double Kettlebell Row",
+"muscle": "Lats",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-split-jerk",
+"name": "Double Kettlebell Split Jerk",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "double-kettlebell-swing-snatch",
+"name": "Double Kettlebell Swing Snatch",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "downward-dog-knee-tuck",
+"name": "Downward Dog Knee Tuck",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "downward-dog-pedal",
+"name": "Downward Dog Pedal",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "downward-dog-to-knee-drive",
+"name": "Downward Dog to Knee Drive",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "downward-dog-to-low-lunge",
+"name": "Downward Dog to Low Lunge",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "downward-dog-to-plank",
+"name": "Downward Dog to Plank",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "downward-dog-to-upward-dog",
+"name": "Downward Dog to Upward Dog",
+"muscle": "Front Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "downward-dog",
+"name": "Downward-Facing Dog",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "drag-curl",
+"name": "Drag Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dragon-flag",
+"name": "Dragon Flag",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "db-bench-press",
+"name": "Dumbbell Bench Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-bench-pull",
+"name": "Dumbbell Bench Pull",
+"muscle": "Lats",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "bicep-curl",
+"name": "Dumbbell Bicep Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-calf-raise",
+"name": "Dumbbell Calf Raise",
+"muscle": "Calves",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-deadlift",
+"name": "Dumbbell Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-face-pull",
+"name": "Dumbbell Face Pull",
+"muscle": "Rear Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-farmers-walk",
+"name": "Dumbbell Farmer's Walk",
+"muscle": "Forearms",
+"equipment": "Dumbbell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "dumbbell-floor-press",
+"name": "Dumbbell Floor Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-fly",
+"name": "Dumbbell Fly",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-front-raise",
+"name": "Dumbbell Front Raise",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-front-squat",
+"name": "Dumbbell Front Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hammer-curl",
+"name": "Dumbbell Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-hip-thrust",
+"name": "Dumbbell Hip Thrust",
+"muscle": "Glutes",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-kickstand-deadlift",
+"name": "Dumbbell Kickstand Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "lateral-raise",
+"name": "Dumbbell Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "db-lunge",
+"name": "Dumbbell Lunge",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-overhead-carry",
+"name": "Dumbbell Overhead Carry",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "dumbbell-pistol-squat",
+"name": "Dumbbell Pistol Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-pullover",
+"name": "Dumbbell Pullover",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-push-press",
+"name": "Dumbbell Push Press",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-reverse-curl",
+"name": "Dumbbell Reverse Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-reverse-fly",
+"name": "Dumbbell Reverse Fly",
+"muscle": "Rear Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-romanian-deadlift",
+"name": "Dumbbell Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-shoulder-press",
+"name": "Dumbbell Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-shrug",
+"name": "Dumbbell Shrug",
+"muscle": "Upper Traps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-side-bend",
+"name": "Dumbbell Side Bend",
+"muscle": "Obliques",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "db-skull-crusher",
+"name": "Dumbbell Skull Crusher",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-snatch",
+"name": "Dumbbell Snatch",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "db-somersault-squat",
+"name": "Dumbbell Somersault Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-split-squat",
+"name": "Dumbbell Split Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-squat",
+"name": "Dumbbell Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-sumo-squat",
+"name": "Dumbbell Sumo Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "db-svend-press",
+"name": "Dumbbell Svend Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-tricep-extension",
+"name": "Dumbbell Tricep Extension",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "tricep-kickback",
+"name": "Dumbbell Tricep Kickback",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "dumbbell-upright-row",
+"name": "Dumbbell Upright Row",
+"muscle": "Lateral Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-windmill",
+"name": "Dumbbell Windmill",
+"muscle": "Lateral Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "dumbbell-wrist-curl",
+"name": "Dumbbell Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "eagle-pose",
+"name": "Eagle Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "easy-pose",
+"name": "Easy Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "elliptical-trainer",
+"name": "Elliptical Trainer",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "extended-side-angle",
+"name": "Extended Side Angle Pose",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "ez-bar-pullover",
+"name": "EZ Bar Pullover",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ez-bar-bench-press",
+"name": "EZ-Bar Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ez-bar-curl",
+"name": "EZ-Bar Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-front-raise",
+"name": "EZ-Bar Front Raise",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-reverse-curl",
+"name": "EZ-Bar Reverse Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-romanian-deadlift",
+"name": "EZ-Bar Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ez-bar-shrug",
+"name": "EZ-Bar Shrug",
+"muscle": "Upper Traps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-upright-row",
+"name": "EZ-Bar Upright Row",
+"muscle": "Lateral Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ez-bar-wrist-curl",
+"name": "EZ-Bar Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "fish-pose",
+"name": "Fish Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "floor-ez-bar-press",
+"name": "Floor EZ-Bar Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "floor-kettlebell-pullover",
+"name": "Floor Kettlebell Pullover",
+"muscle": "Lats",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "floor-press",
+"name": "Floor Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "flutter-kicks",
+"name": "Flutter Kicks",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "front-lever",
+"name": "Front Lever",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "front-squat",
+"name": "Front Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-front-squat",
+"name": "Front Squat (Smith Machine)",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "garland-pose",
+"name": "Garland Pose",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "glute-bridge",
+"name": "Glute Bridge",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "glute-bridge-hold",
+"name": "Glute Bridge Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "glute-kickback",
+"name": "Glute Kickback",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "glute-kickback-hold",
+"name": "Glute Kickback Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "goblet-squat",
+"name": "Goblet Squat",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "good-morning",
+"name": "Good Morning",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-good-morning",
+"name": "Good Morning (Smith Machine)",
+"muscle": "Hamstrings",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hack-squat",
+"name": "Hack Squat",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hack-squat-calf-raise",
+"name": "Hack Squat Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "half-moon-pose",
+"name": "Half Moon Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "half-kneeling-hip-flexor-rock",
+"name": "Half-Kneeling Hip Flexor Rock",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "handstand-push-ups",
+"name": "Handstand Push Ups",
+"muscle": "Front Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "hang-clean",
+"name": "Hang Clean",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "hang-power-clean",
+"name": "Hang Power Clean",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "hanging-knee-raise",
+"name": "Hanging Knee Raise",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hanging-leg-raise",
+"name": "Hanging Leg Raise",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "hanging-pike",
+"name": "Hanging Pike",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "happy-baby",
+"name": "Happy Baby Pose",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "head-to-knee-pose",
+"name": "Head-to-Knee Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "heel-elevated-squat",
+"name": "Heel-Elevated Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "heel-to-toe-walk",
+"name": "Heel-to-Toe Walk",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "hero-pose",
+"name": "Hero Pose",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "hex-bar-deadlift",
+"name": "Hex Bar Deadlift",
+"muscle": "Spinal Erectors",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "high-knees",
+"name": "High Knees",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "high-plank",
+"name": "High Plank",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "high-foot-leg-press",
+"name": "High-Foot Leg Press",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hip-adduction",
+"name": "Hip Adduction",
+"muscle": "Hip Adductors",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "stability-ball-hip-bridge",
+"name": "Hip Bridge (Ball)",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "smith-machine-hip-thrust",
+"name": "Hip Thrust (Smith Machine)",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hollow-body-hold",
+"name": "Hollow Body Hold",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "horizontal-leg-press",
+"name": "Horizontal Leg Press",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "human-flag",
+"name": "Human Flag",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "incline-bench-press",
+"name": "Incline Barbell Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-incline-bench-press",
+"name": "Incline Bench Press (Smith Machine)",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "incline-db-curl",
+"name": "Incline Dumbbell Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "incline-dumbbell-fly",
+"name": "Incline Dumbbell Fly",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "incline-db-press",
+"name": "Incline Dumbbell Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "incline-bench-ez-bar-press",
+"name": "Incline EZ-Bar Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "incline-hammer-curl",
+"name": "Incline Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "incline-push-ups",
+"name": "Incline Push-Up",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "incline-treadmill-walk",
+"name": "Incline Treadmill Walk",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "inverted-row",
+"name": "Inverted Row",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "isometric-neck-side",
+"name": "Isometric Neck Lateral Flexion",
+"muscle": "Upper Traps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "jackknife-sit-up",
+"name": "Jackknife Sit-Up",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "jefferson-curl",
+"name": "Jefferson Curl",
+"muscle": "Spinal Erectors",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "jump-rope",
+"name": "Jump Rope",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "jump-squat",
+"name": "Jump Squat",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "plyometric_explosive",
+"level": "compound"
+},
+{
+"id": "jumping-jacks",
+"name": "Jumping Jacks",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "kettlebell-concentration-curl",
+"name": "Kettlebell Concentration Curl",
+"muscle": "Biceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-deadlift",
+"name": "Kettlebell Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-farmers-walk",
+"name": "Kettlebell Farmer's Walk",
+"muscle": "Forearms",
+"equipment": "Kettlebell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "kettlebell-floor-press",
+"name": "Kettlebell Floor Press",
+"muscle": "Pectorals",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-goblet-lunge",
+"name": "Kettlebell Goblet Lunge",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-halo",
+"name": "Kettlebell Halo",
+"muscle": "Lateral Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-hammer-curl",
+"name": "Kettlebell Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-hip-thrust",
+"name": "Kettlebell Hip Thrust",
+"muscle": "Glutes",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-kickstand-deadlift",
+"name": "Kettlebell Kickstand Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-lunge-press",
+"name": "Kettlebell Lunge Press",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-overhead-carry",
+"name": "Kettlebell Overhead Carry",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "kettlebell-pistol-squat",
+"name": "Kettlebell Pistol Squat",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-pullover",
+"name": "Kettlebell Pullover",
+"muscle": "Lats",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-reverse-lunge",
+"name": "Kettlebell Reverse Lunge",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-rotational-lunge",
+"name": "Kettlebell Rotational Lunge",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-russian-twist",
+"name": "Kettlebell Russian Twist",
+"muscle": "Obliques",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-shrug",
+"name": "Kettlebell Shrug",
+"muscle": "Upper Traps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-skull-crusher",
+"name": "Kettlebell Skull Crusher",
+"muscle": "Triceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-squat",
+"name": "Kettlebell Squat",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-sumo-deadlift",
+"name": "Kettlebell Sumo Deadlift",
+"muscle": "Glutes",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-svend-press",
+"name": "Kettlebell Svend Press",
+"muscle": "Pectorals",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-swing",
+"name": "Kettlebell Swing",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-swing-clean",
+"name": "Kettlebell Swing Clean",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "kettlebell-windmills",
+"name": "Kettlebell Windmills",
+"muscle": "Hip Adductors",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-wrist-curl",
+"name": "Kettlebell Wrist Curl",
+"muscle": "Forearms",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "knee-push-ups",
+"name": "Knee Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "stability-ball-knee-tuck",
+"name": "Knee Tuck (Ball)",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "knee-to-chest-stretch",
+"name": "Knee-to-Chest Stretch",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "kneeling-cable-row",
+"name": "Kneeling Cable Row",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kneeling-hip-flexor-stretch",
+"name": "Kneeling Hip Flexor Stretch",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "banded-kneeling-hip-thrust",
+"name": "Kneeling Hip Thrust (Band)",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kneeling-wrist-stretch",
+"name": "Kneeling Wrist Stretch",
+"muscle": "Forearms",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "l-sit",
+"name": "L Sit",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "landmine-press",
+"name": "Landmine Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "lat-pulldown",
+"name": "Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ball-leg-curl",
+"name": "Leg Curl (Ball)",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "leg-extension",
+"name": "Leg Extension",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "leg-press",
+"name": "Leg Press",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "legs-up-the-wall",
+"name": "Legs-Up-the-Wall Pose",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "lizard-stretch",
+"name": "Lizard Stretch",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "locust-pose",
+"name": "Locust Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "low-lunge",
+"name": "Low Lunge",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "low-lunge-to-half-split",
+"name": "Low Lunge to Half Split",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "lunge",
+"name": "Lunge",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "leg-curl",
+"name": "Lying Leg Curl",
+"muscle": "Hamstrings",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "lying-leg-raise",
+"name": "Lying Leg Raise",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "lying-tricep-extension",
+"name": "Lying Tricep Extension",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-lying-tricep-extension",
+"name": "Lying Triceps Extension (EZ-Bar)",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "assisted-dips",
+"name": "Machine Assisted Dips",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "machine-back-extension",
+"name": "Machine Back Extension",
+"muscle": "Spinal Erectors",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-bicep-curl",
+"name": "Machine Bicep Curl",
+"muscle": "Biceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-calf-raise",
+"name": "Machine Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-chest-fly",
+"name": "Machine Chest Fly",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "chest-press-machine",
+"name": "Machine Chest Press",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "hip-abduction",
+"name": "Machine Hip Abduction",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-preacher-curl",
+"name": "Machine Preacher Curl",
+"muscle": "Biceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-seated-crunch",
+"name": "Machine Seated Crunch",
+"muscle": "Abs",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "machine-shoulder-press",
+"name": "Machine Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "machine-triceps-extension",
+"name": "Machine Triceps Extension",
+"muscle": "Triceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "medicine-ball-slam",
+"name": "Medicine Ball Slam",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "mountain-climbers",
+"name": "Mountain Climbers",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "mountain-pose",
+"name": "Mountain Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "muscle-snatch",
+"name": "Muscle Snatch",
+"muscle": "Lateral Deltoids",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "muscle-ups",
+"name": "Muscle Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "neck-side-stretch",
+"name": "Neck Side Stretch",
+"muscle": "Upper Traps",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "negative-pull-ups",
+"name": "Negative Pull Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "neutral-grip-pull-ups",
+"name": "Neutral Grip Pull Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "nordic-hamstring-curl",
+"name": "Nordic Hamstring Curl",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-offset-reverse-lunge-and-press",
+"name": "Offset Reverse Lunge and Press (Kettlebell)",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-bicep-curl",
+"name": "One Arm Kettlebell Bicep Curl",
+"muscle": "Biceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "one-arm-kettlebell-floor-glute-bridge-press",
+"name": "One Arm Kettlebell Floor Glute Bridge Press",
+"muscle": "Glutes",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-floor-press",
+"name": "One Arm Kettlebell Floor Press",
+"muscle": "Pectorals",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-front-squat",
+"name": "One Arm Kettlebell Front Squat",
+"muscle": "Quadriceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-push-press",
+"name": "One Arm Kettlebell Push Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-row",
+"name": "One Arm Kettlebell Row",
+"muscle": "Lats",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-shoulder-press",
+"name": "One Arm Kettlebell Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-swing",
+"name": "One Arm Kettlebell Swing",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-dumbbell-push-press",
+"name": "One-Arm Dumbbell Push Press",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-dumbbell-swing",
+"name": "One-Arm Dumbbell Swing",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-bottoms-up-press",
+"name": "One-Arm Kettlebell Bottoms-Up Press",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-kettlebell-tricep-kickback",
+"name": "One-Arm Kettlebell Tricep Kickback",
+"muscle": "Triceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "one-arm-landmine-press",
+"name": "One-Arm Landmine Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-lat-pulldown",
+"name": "One-Arm Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-single-leg-dumbbell-romanian-deadlift",
+"name": "One-Arm Single-Leg Dumbbell Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "one-arm-single-leg-kettlebell-romanian-deadlift",
+"name": "One-Arm Single-Leg Kettlebell Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "overhead-squat",
+"name": "Overhead Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "overhead-tricep-extension",
+"name": "Overhead Tricep Extension",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-overhead-extension",
+"name": "Overhead Tricep Extension (EZ-Bar)",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-overhead-tricep-extension",
+"name": "Overhead Tricep Extension (Kettlebell)",
+"muscle": "Triceps",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "overhead-triceps-stretch",
+"name": "Overhead Triceps Stretch",
+"muscle": "Triceps",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "pause-deadlift",
+"name": "Pause Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "pause-pull-up",
+"name": "Pause Pull-Up",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "pause-squat",
+"name": "Pause Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "paused-bench-press",
+"name": "Paused Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "paused-incline-bench-press",
+"name": "Paused Incline Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "paused-ohp",
+"name": "Paused Overhead Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "pec-deck",
+"name": "Pec Deck",
+"muscle": "Pectorals",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "pendlay-row",
+"name": "Pendlay Row",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "pigeon-stretch",
+"name": "Pigeon Stretch",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "pike-push-ups",
+"name": "Pike Push Ups",
+"muscle": "Front Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-kneeling-side-kick",
+"name": "Pilates Kneeling Side Kick",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-leg-pull-back",
+"name": "Pilates Leg Pull Back",
+"muscle": "Spinal Erectors",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-leg-pull-front",
+"name": "Pilates Leg Pull Front",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-roll-down",
+"name": "Pilates Roll Down",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "pilates-roll-over",
+"name": "Pilates Roll Over",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-saw",
+"name": "Pilates Saw",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "pilates-side-bend",
+"name": "Pilates Side Bend",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pilates-spine-stretch-forward",
+"name": "Pilates Spine Stretch Forward",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "pilates-spine-twist",
+"name": "Pilates Spine Twist",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "pistol-squat",
+"name": "Pistol Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "planche",
+"name": "Planche",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "plank",
+"name": "Plank",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "plate-pinch",
+"name": "Plate Pinch",
+"muscle": "Forearms",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "plate-pullover",
+"name": "Plate Pullover",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "plate-loaded-donkey-calf-raise",
+"name": "Plate-Loaded Donkey Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "plate-loaded-glute-drive",
+"name": "Plate-Loaded Glute Drive",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "plate-loaded-lateral-raise",
+"name": "Plate-Loaded Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "plate-loaded-shrug",
+"name": "Plate-Loaded Shrug",
+"muscle": "Upper Traps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "plow-pose",
+"name": "Plow Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "plyo-lunge",
+"name": "Plyo Lunge",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "plyometric_explosive",
+"level": "compound"
+},
+{
+"id": "plyo-push-up",
+"name": "Plyo Push-Up",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "plyometric_explosive",
+"level": "compound"
+},
+{
+"id": "preacher-curl",
+"name": "Preacher Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "preacher-hammer-curl",
+"name": "Preacher Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "pseudo-planche-push-ups",
+"name": "Pseudo Planche Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "pull-up",
+"name": "Pull-Up",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "puppy-pose",
+"name": "Puppy Pose",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "push-jerk",
+"name": "Push Jerk",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "push-press",
+"name": "Push Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "push-up",
+"name": "Push-Up",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "stability-ball-push-up-hands-on-ball",
+"name": "Push-Up (Hands on Ball) (Ball)",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "pyramid-pose",
+"name": "Pyramid Pose",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "rack-pull",
+"name": "Rack Pull",
+"muscle": "Spinal Erectors",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "rear-delt-fly",
+"name": "Rear Delt Fly",
+"muscle": "Rear Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "barbell-rear-delt-row",
+"name": "Rear Delt Row (Barbell)",
+"muscle": "Rear Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-rear-delt-stretch",
+"name": "Rear Delt Stretch (Band)",
+"muscle": "Rear Deltoids",
+"equipment": "Bands",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "reverse-crunches",
+"name": "Reverse Crunches",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "reverse-curl",
+"name": "Reverse Curl",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "reverse-grip-bent-over-row",
+"name": "Reverse Grip Bent Over Row",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-reverse-grip-bent-over-row",
+"name": "Reverse Grip Bent Over Row (Smith Machine)",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "reverse-grip-lat-pulldown",
+"name": "Reverse Grip Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ez-bar-reverse-grip-row",
+"name": "Reverse Grip Row (EZ-Bar)",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "reverse-lunge",
+"name": "Reverse Lunge",
+"muscle": "Quadriceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-reverse-lunge",
+"name": "Reverse Lunge (Smith Machine)",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "reverse-nordic-curl",
+"name": "Reverse Nordic Curl",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "reverse-plank",
+"name": "Reverse Plank",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "reverse-plank-dips",
+"name": "Reverse Plank Dips",
+"muscle": "Triceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "reverse-tabletop-hip-pulses",
+"name": "Reverse Tabletop Hip Pulses",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "reverse-tabletop-hold",
+"name": "Reverse Tabletop Hold",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "db-reverse-wrist-curl",
+"name": "Reverse Wrist Curl (Dumbbell)",
+"muscle": "Forearms",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-reverse-wrist-curl",
+"name": "Reverse Wrist Curl (Kettlebell)",
+"muscle": "Forearms",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "revolved-chair-pose",
+"name": "Revolved Chair Pose",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "revolved-crescent-lunge",
+"name": "Revolved Crescent Lunge",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "ring-dead-hang",
+"name": "Ring Dead Hang",
+"muscle": "Forearms",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "ring-dips",
+"name": "Ring Dips",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ring-face-pull",
+"name": "Ring Face Pull",
+"muscle": "Rear Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ring-muscle-up",
+"name": "Ring Muscle-Up",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ring-push-up",
+"name": "Ring Push-Up",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "ring-row",
+"name": "Ring Row",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "rings-inverted-row",
+"name": "Rings Inverted Row",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "romanian-deadlift",
+"name": "Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-rdl",
+"name": "Romanian Deadlift (Smith Machine)",
+"muscle": "Hamstrings",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "rope-climb",
+"name": "Rope Climb",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "rowing-machine",
+"name": "Rowing Machine",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "running",
+"name": "Running",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "russian-twist",
+"name": "Russian Twist",
+"muscle": "Obliques",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "scapular-pull-ups",
+"name": "Scapular Pull Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "scissor-kicks",
+"name": "Scissor Kicks",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "seated-barbell-overhead-press",
+"name": "Seated Barbell Overhead Press",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "seated-cable-row",
+"name": "Seated Cable Row",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "seated-calf-raise",
+"name": "Seated Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-dumbbell-curl",
+"name": "Seated Dumbbell Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-dumbbell-lateral-raise",
+"name": "Seated Dumbbell Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-db-press",
+"name": "Seated Dumbbell Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "seated-dumbbell-tricep-extension",
+"name": "Seated Dumbbell Tricep Extension",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-forward-fold",
+"name": "Seated Forward Fold",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "banded-seated-hip-abduction",
+"name": "Seated Hip Abduction (Band)",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-leg-curl",
+"name": "Seated Leg Curl",
+"muscle": "Hamstrings",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "seated-smith-machine-shoulder-press",
+"name": "Seated Smith Machine Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "seated-spinal-twist",
+"name": "Seated Spinal Twist",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "seated-straddle-stretch",
+"name": "Seated Straddle Stretch",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "smith-machine-shoulder-press",
+"name": "Shoulder Press (Smith Machine)",
+"muscle": "Front Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "side-lunge",
+"name": "Side Lunge",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "side-lying-hip-adduction",
+"name": "Side Lying Hip Adduction",
+"muscle": "Hip Adductors",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "side-plank",
+"name": "Side Plank",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "side-plank-leg-lift-hold",
+"name": "Side Plank Leg Lift Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "side-plank-leg-lift",
+"name": "Side Plank with Leg Lift",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "side-lying-hip-abduction",
+"name": "Side-Lying Hip Abduction",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "side-lying-hip-abduction-hold",
+"name": "Side-Lying Hip Abduction Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "side-lying-hip-adduction-hold",
+"name": "Side-Lying Hip Adduction Hold",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "isolation"
+},
+{
+"id": "side-lying-lateral-raise",
+"name": "Side-Lying Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-arm-tricep-pushdown",
+"name": "Single Arm Tricep Pushdown",
+"muscle": "Triceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-db-svend-press",
+"name": "Single Dumbbell Svend Press",
+"muscle": "Pectorals",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-leg-calf-raise",
+"name": "Single Leg Calf Raise",
+"muscle": "Calves",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "kettlebell-single-leg-deadlift",
+"name": "Single Leg Deadlift (Kettlebell)",
+"muscle": "Hamstrings",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-leg-extension",
+"name": "Single Leg Extension",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-leg-glute-bridge",
+"name": "Single Leg Glute Bridge",
+"muscle": "Glutes",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "single-leg-lying-leg-curl",
+"name": "Single Leg Lying Leg Curl",
+"muscle": "Hamstrings",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-leg-press",
+"name": "Single Leg Press",
+"muscle": "Glutes",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-leg-romanian-deadlift",
+"name": "Single Leg Romanian Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-arm-chest-supported-dumbbell-row",
+"name": "Single-Arm Chest-Supported Dumbbell Row",
+"muscle": "Lats",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-arm-dumbbell-overhead-tricep-extension",
+"name": "Single-Arm Dumbbell Overhead Tricep Extension",
+"muscle": "Triceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-arm-db-row",
+"name": "Single-Arm Dumbbell Row",
+"muscle": "Lats",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-arm-hammer-curl",
+"name": "Single-Arm Hammer Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-arm-machine-shoulder-press",
+"name": "Single-Arm Machine Shoulder Press",
+"muscle": "Front Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "single-arm-plate-loaded-lateral-raise",
+"name": "Single-Arm Plate-Loaded Lateral Raise",
+"muscle": "Lateral Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "single-leg-glute-bridge-hold",
+"name": "Single-Leg Glute Bridge Hold",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "sit-ups",
+"name": "Sit-Ups",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "skull-crusher",
+"name": "Skull Crusher",
+"muscle": "Triceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "sled-row",
+"name": "Sled Row",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-shrug",
+"name": "Smith Machine Shrug",
+"muscle": "Upper Traps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "smith-machine-squat",
+"name": "Smith Machine Squat",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "snatch",
+"name": "Snatch",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "sphinx-pose",
+"name": "Sphinx Pose",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "spider-curl",
+"name": "Spider Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "ez-bar-spider-curl",
+"name": "Spider Curl (EZ-Bar)",
+"muscle": "Biceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "split-jerk",
+"name": "Split Jerk",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "olympic_lift",
+"level": "compound"
+},
+{
+"id": "split-squat",
+"name": "Split Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "smith-machine-split-squat",
+"name": "Split Squat (Smith Machine)",
+"muscle": "Quadriceps",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "spoto-press",
+"name": "Spoto Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "stability-ball-push-up",
+"name": "Stability Ball Push-Up",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "stair-climber",
+"name": "Stair Climber",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "standing-calf-raise",
+"name": "Standing Calf Raise",
+"muscle": "Calves",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "standing-calf-stretch",
+"name": "Standing Calf Stretch",
+"muscle": "Calves",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "standing-forward-fold",
+"name": "Standing Forward Fold",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "standing-forward-fold-to-half-lift",
+"name": "Standing Forward Fold to Half Lift",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "banded-standing-hip-abduction",
+"name": "Standing Hip Abduction (Band)",
+"muscle": "Glutes",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "banded-standing-hip-adduction",
+"name": "Standing Hip Adduction (Band)",
+"muscle": "Hip Adductors",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "banded-standing-curl",
+"name": "Standing Leg Curl (Band)",
+"muscle": "Hamstrings",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "standing-quad-stretch",
+"name": "Standing Quad Stretch",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "standing-side-bend",
+"name": "Standing Side Bend",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "isolation"
+},
+{
+"id": "standing-side-bend-flow",
+"name": "Standing Side Bend Flow",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "standing-split",
+"name": "Standing Split",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "stationary-bike",
+"name": "Stationary Bike",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "step-ups",
+"name": "Step Ups",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "stiff-leg-deadlift",
+"name": "Stiff Leg Deadlift",
+"muscle": "Hamstrings",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "straight-bar-dips",
+"name": "Straight Bar Dips",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "straight-arm-pulldown",
+"name": "Straight-Arm Pulldown",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "straight-bar-cable-front-raise",
+"name": "Straight-Bar Cable Front Raise",
+"muscle": "Front Deltoids",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "strict-curl",
+"name": "Strict Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "suitcase-carry",
+"name": "Suitcase Carry",
+"muscle": "Forearms",
+"equipment": "Kettlebell",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "sumo-deadlift",
+"name": "Sumo Deadlift",
+"muscle": "Glutes",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "kettlebell-sumo-high-pull",
+"name": "Sumo High Pull (Kettlebell)",
+"muscle": "Hip Adductors",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "sumo-squat",
+"name": "Sumo Squat",
+"muscle": "Quadriceps",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "superman",
+"name": "Superman",
+"muscle": "Spinal Erectors",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "isolation"
+},
+{
+"id": "supine-spinal-twist",
+"name": "Supine Spinal Twist",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "supine-windshield-wipers",
+"name": "Supine Windshield Wipers",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "supported-shoulderstand",
+"name": "Supported Shoulderstand",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "svend-press",
+"name": "Svend Press",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "t-bar-row",
+"name": "T-Bar Row",
+"muscle": "Lats",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "banded-terminal-knee-extension",
+"name": "Terminal Knee Extension (Band)",
+"muscle": "Quadriceps",
+"equipment": "Bands",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "thoracic-bridge",
+"name": "Thoracic Bridge",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "thread-the-needle",
+"name": "Thread the Needle",
+"muscle": "Rear Deltoids",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "thread-the-needle-flow",
+"name": "Thread the Needle Flow",
+"muscle": "Obliques",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "three-legged-dog",
+"name": "Three-Legged Downward Dog",
+"muscle": "Front Deltoids",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "thruster",
+"name": "Thruster",
+"muscle": "Front Deltoids",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "toes-to-bar",
+"name": "Toes to Bar",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "treadmill-running",
+"name": "Treadmill Running",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "tree-pose",
+"name": "Tree Pose",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "triangle-pose",
+"name": "Triangle Pose",
+"muscle": "Hamstrings",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "trx-bicep-curl",
+"name": "TRX Bicep Curl",
+"muscle": "Biceps",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "trx-chest-press",
+"name": "TRX Chest Press",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-face-pull",
+"name": "TRX Face Pull",
+"muscle": "Rear Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-hamstring-curl",
+"name": "TRX Hamstring Curl",
+"muscle": "Hamstrings",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "trx-lunge",
+"name": "TRX Lunge",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-pistol-squat",
+"name": "TRX Pistol Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-plank",
+"name": "TRX Plank",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "trx-row",
+"name": "TRX Row",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-side-plank",
+"name": "TRX Side Plank",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "trx-squat",
+"name": "TRX Squat",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "trx-tricep-extension",
+"name": "TRX Triceps Extension",
+"muscle": "Triceps",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "trx-y-fly",
+"name": "TRX Y-Fly",
+"muscle": "Rear Deltoids",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "kettlebell-turkish-get-ups",
+"name": "Turkish Get Ups (Kettlebell)",
+"muscle": "Front Deltoids",
+"equipment": "Kettlebell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "smith-machine-upright-row",
+"name": "Upright Row (Smith Machine)",
+"muscle": "Lateral Deltoids",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "upward-dog",
+"name": "Upward-Facing Dog",
+"muscle": "Spinal Erectors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "v-ups",
+"name": "V Ups",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "v-bar-lat-pulldown",
+"name": "V-Bar Lat Pulldown",
+"muscle": "Lats",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "v-bar-tricep-pushdown",
+"name": "V-Bar Tricep Pushdown",
+"muscle": "Triceps",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "v-sit",
+"name": "V-Sit",
+"muscle": "Abs",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "walking",
+"name": "Walking",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "cardio_conditioning",
+"level": "compound"
+},
+{
+"id": "walking-lunge",
+"name": "Walking Lunge",
+"muscle": "Quadriceps",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "wall-push-ups",
+"name": "Wall Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "wall-sit",
+"name": "Wall Sit",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "stability-ball-wall-squat",
+"name": "Wall Squat (Ball)",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "warrior-one",
+"name": "Warrior I",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "warrior-two",
+"name": "Warrior II",
+"muscle": "Quadriceps",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "warrior-three",
+"name": "Warrior III",
+"muscle": "Glutes",
+"equipment": "Other",
+"type": "isometric_hold_or_carry",
+"level": "compound"
+},
+{
+"id": "weighted-dips",
+"name": "Weighted Dips",
+"muscle": "Pectorals",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "weighted-pull-up",
+"name": "Weighted Pull-Up",
+"muscle": "Lats",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "weighted-wall-crunch",
+"name": "Weighted Wall Crunch",
+"muscle": "Abs",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+},
+{
+"id": "wide-grip-pull-ups",
+"name": "Wide Grip Pull Ups",
+"muscle": "Lats",
+"equipment": "Bodyweight",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "wide-grip-push-ups",
+"name": "Wide Grip Push Ups",
+"muscle": "Pectorals",
+"equipment": "Bodyweight",
+"type": "strength_bodyweight",
+"level": "compound"
+},
+{
+"id": "wide-grip-seated-cable-row",
+"name": "Wide Grip Seated Cable Row",
+"muscle": "Lats",
+"equipment": "Cable",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "wide-grip-bench-press",
+"name": "Wide-Grip Bench Press",
+"muscle": "Pectorals",
+"equipment": "Barbell",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "wide-legged-forward-fold",
+"name": "Wide-Legged Forward Fold",
+"muscle": "Hip Adductors",
+"equipment": "Other",
+"type": "mobility_stretching",
+"level": "compound"
+},
+{
+"id": "wide-stance-leg-press",
+"name": "Wide-Stance Leg Press",
+"muscle": "Hip Adductors",
+"equipment": "Machine",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "wrist-roller",
+"name": "Wrist Roller",
+"muscle": "Forearms",
+"equipment": "Other",
+"type": "strength_weighted_or_machine",
+"level": "compound"
+},
+{
+"id": "zottman-curl",
+"name": "Zottman Curl",
+"muscle": "Biceps",
+"equipment": "Dumbbell",
+"type": "strength_weighted_or_machine",
+"level": "isolation"
+}
+]
