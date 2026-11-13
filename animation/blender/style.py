@@ -36,8 +36,11 @@ def render_settings(res=1080, samples=96, engine="CYCLES"):
         cy = sc.cycles
         cy.samples = samples
         cy.use_denoising = True
-        # GPU only when asked: the owner's llama-server usually holds most of the 8 GB card.
-        cy.device = os.environ.get("RENDER_DEVICE", "CPU")
+        # Owner rule (2026-11-12): the graphics card renders. CPU only when explicitly asked
+        # (RENDER_DEVICE=CPU), e.g. if another program has filled the card's memory.
+        cy.device = os.environ.get("RENDER_DEVICE", "GPU")
+        if cy.device == "GPU":
+            cy.denoiser = "OPTIX"   # denoise on the card too (OIDN would run on the CPU)
         if cy.device == "CPU":
             sc.render.threads_mode = "AUTO"
             return _common(sc)
@@ -47,7 +50,7 @@ def render_settings(res=1080, samples=96, engine="CYCLES"):
                 prefs.compute_device_type = kind
                 prefs.get_devices()
                 for d in prefs.devices:
-                    d.use = True
+                    d.use = d.type != "CPU"   # GPU only, no hybrid CPU+GPU
                 break
             except TypeError:
                 continue

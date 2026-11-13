@@ -50,8 +50,8 @@ MUSCLES = {
     "rear_delts": [([V((0.12, 0.075, 1.405)), V((0.19, 0.06, 1.35)), on(S, E, 0.40, dx=0.02, dy=0.03)], (0.4, 1, 0.3), 0.024, FUSI)],
     "forearms": [([on(E, W, 0.05, dx=-0.02, dy=-0.03), on(E, W, 0.45, dx=-0.01, dy=-0.035), on(E, W, 0.95, dy=-0.02)], (-0.5, -1, 0), 0.022, FUSI),
                  ([on(E, W, 0.05, dx=0.03, dy=0.02), on(E, W, 0.45, dx=0.03, dy=0.02), on(E, W, 0.95, dx=0.02, dy=0.01)], (1, 0.6, 0), 0.020, FUSI)],
-    "pectorals": fan(V((0.012, -0.12, 1.14)), V((0.012, -0.12, 1.36)), V((0.155, -0.06, 1.305)), (0, -1, 0.1), 0.030,
-                     bulge=(0.0, -0.025, 0.0)) + fan(V((0.03, -0.11, 1.385)), V((0.11, -0.09, 1.395)), V((0.158, -0.06, 1.315)),
+    "pectorals": fan(V((0.012, -0.12, 1.14)), V((0.012, -0.12, 1.36)), V((0.155, -0.06, 1.305)), (0, -1, 0.1), 0.040,
+                     bulge=(0.0, -0.025, 0.0), n=14) + fan(V((0.03, -0.11, 1.385)), V((0.11, -0.09, 1.395)), V((0.158, -0.06, 1.315)),
                                                    (0, -1, 0.3), 0.020, n=4, kind="fusiform"),
     "abs": [([V((0.035, -0.125, 0.94)), V((0.04, -0.135, 1.08)), V((0.05, -0.13, 1.22))], (0, -1, 0), 0.036, STRIP)],
     "obliques": [([V((0.125, -0.07, 1.17)), V((0.13, -0.07, 1.08)), V((0.115, -0.08, 0.99))], (1, -0.7, 0), 0.034, FUSI),
@@ -65,9 +65,9 @@ MUSCLES = {
     "glutes": fan(V((0.012, 0.12, 0.90)), V((0.13, 0.10, 1.0)), V((0.165, 0.06, 0.80)), (0.3, 1, 0), 0.058,
                   bulge=(0, 0.04, 0), n=12, kind="fusiform"),
     "hip_abductors": [([V((0.15, 0.02, 0.99)), V((0.17, 0.01, 0.92)), V((0.175, 0.0, 0.82))], (1, 0, 0), 0.035, FUSI)],
-    "quadriceps": [([on(H, K, 0.08, dy=-0.07), on(H, K, 0.5, dy=-0.075), on(H, K, 0.92, dy=-0.06)], (0, -1, 0), 0.030, FUSI),
-                   ([on(H, K, 0.15, dx=0.06, dy=-0.03), on(H, K, 0.55, dx=0.065, dy=-0.03), on(H, K, 0.88, dx=0.04, dy=-0.04)], (1, -0.5, 0), 0.030, FUSI),
-                   ([on(H, K, 0.55, dx=-0.04, dy=-0.05), on(H, K, 0.78, dx=-0.045, dy=-0.05), on(H, K, 0.93, dx=-0.03, dy=-0.05)], (-0.6, -1, 0), 0.026, FUSI)],
+    "quadriceps": [([on(H, K, 0.08, dy=-0.07), on(H, K, 0.5, dy=-0.075), on(H, K, 0.92, dy=-0.06)], (0, -1, 0), 0.040, FUSI),
+                   ([on(H, K, 0.15, dx=0.045, dy=-0.055), on(H, K, 0.55, dx=0.05, dy=-0.055), on(H, K, 0.88, dx=0.03, dy=-0.05)], (0.6, -1, 0), 0.042, FUSI),
+                   ([on(H, K, 0.50, dx=-0.025, dy=-0.06), on(H, K, 0.78, dx=-0.035, dy=-0.06), on(H, K, 0.95, dx=-0.025, dy=-0.055)], (-0.4, -1, 0), 0.036, FUSI)],
     "hip_adductors": [([V((0.025, -0.04, 0.83)), on(H, K, 0.35, dx=-0.06, dy=-0.01), on(H, K, 0.72, dx=-0.05)], (-1, -0.3, 0), 0.032, FAN)],
     "hamstrings": [([on(H, K, 0.12, dx=-0.02, dy=0.08), on(H, K, 0.5, dx=-0.02, dy=0.075), on(H, K, 0.93, dx=-0.025, dy=0.05)], (0, 1, 0), 0.026, FUSI),
                    ([on(H, K, 0.12, dx=0.015, dy=0.08), on(H, K, 0.5, dx=0.03, dy=0.07), on(H, K, 0.93, dx=0.035, dy=0.045)], (0.3, 1, 0), 0.026, FUSI)],
@@ -167,8 +167,30 @@ def build_masks(me, depth=0.022, soft=0.18):
     return masks
 
 
+def smooth_masks(me, masks, iterations=18, lo=0.30, hi=0.60):
+    """Diffuse each mask over the surface, then re-sharpen: the strands of a fan muscle merge
+    into one sheet with a single clean outline instead of a row of leaf shapes."""
+    ed = np.empty(len(me.edges) * 2, np.int32)
+    me.edges.foreach_get("vertices", ed)
+    ed = ed.reshape(-1, 2)
+    n = len(me.vertices)
+    cnt = np.zeros(n, np.float32)
+    np.add.at(cnt, ed[:, 0], 1)
+    np.add.at(cnt, ed[:, 1], 1)
+    cnt = np.maximum(cnt, 1)
+    for g, m in masks.items():
+        v = m.astype(np.float32)
+        for _ in range(iterations):
+            acc = np.zeros(n, np.float32)
+            np.add.at(acc, ed[:, 0], v[ed[:, 1]])
+            np.add.at(acc, ed[:, 1], v[ed[:, 0]])
+            v = 0.5 * v + 0.5 * acc / cnt
+        masks[g] = np.clip((v - lo) / (hi - lo), 0, 1).astype(np.float32)
+    return masks
+
+
 def write_masks(me):
-    masks = build_masks(me)
+    masks = smooth_masks(me, build_masks(me))
     for g, m in masks.items():
         a = me.attributes.get(f"m_{g}") or me.attributes.new(f"m_{g}", "FLOAT", "POINT")
         a.data.foreach_set("value", m)

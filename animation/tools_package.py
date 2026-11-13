@@ -1,69 +1,87 @@
-"""Package one exercise's PNG frames into the deliverables.
+"""Package one exercise's rendered frames into the app deliverables (PRODUCTION_PLAN.md A.5).
 
-  python tools_package.py <slug> [reference_frame.png]
+  python tools_package.py <slug>
 
-Writes into output/<slug>/:
-  render.webm         VP9 with alpha, loops seamlessly (for apps/web)
-  render.mp4          H.264 on RepDB navy (fallback, no alpha)
-  render.webp         animated transparent WebP, 540 px (the format RepDB ships)
-  contact-sheet.png   12 evenly spaced frames on navy
-  compare.png         our frame next to the RepDB reference, same scale
-  loop-check.txt      last->first frame difference vs the average step (seam test)
+21 frames = a symmetric loop rendered once (ping-pong: 1..21 then 20..2 -> 40 frames @ 20 fps);
+any other count is played as-is. Writes into output/<slug>/:
+  clip.mp4          app clip: stacked alpha H.264 - left colour (premultiplied on black), right
+                    alpha as luma; the figure crop scaled to 512 px tall, 20 fps, one I-frame
+  clip.webp         fallback: animated WebP with alpha, same crop/size
+  poster.webp       still of the first frame (placeholder while the clip decodes)
+  preview.mp4       review copy on RepIo dark #121212 (not shipped)
+  contact-sheet.png 12 frames on #121212
+  loop-check.txt    seam vs. neighbour steps, sizes
 """
 import glob
+import os
+import shutil
 import subprocess
 import sys
+import tempfile
 
 import numpy as np
 from PIL import Image
 
 A = "/home/matrix/StudioProjects/RepIo/animation"
-NAVY = (18, 18, 18)  # RepIo dark background (#121212)
+BG = (18, 18, 18)
+HEIGHT, FPS = 512, int(os.environ.get("FPS", "20"))
 slug = sys.argv[1]
-ref = sys.argv[2] if len(sys.argv) > 2 else None
 out = f"{A}/output/{slug}"
-frames = sorted(glob.glob(f"{out}/frames/*.png"))
-n = len(frames)
-assert n >= 2, "no frames"
+src = sorted(glob.glob(f"{out}/frames/*.png"))
+assert len(src) >= 2, "no frames"
+seq = src + src[-2:0:-1] if len(src) == 21 else src
 
-subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", "30", "-i", f"{out}/frames/%04d.png",
-                "-c:v", "libvpx-vp9", "-pix_fmt", "yuva420p", "-b:v", "0", "-crf", "24", "-row-mt", "1",
-                f"{out}/render.webm"], check=True)
-subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-f", "lavfi", "-i", "color=c=0x121212:s=1080x1080:r=30",
-                "-framerate", "30", "-i", f"{out}/frames/%04d.png",
-                "-filter_complex", "[0][1]overlay=shortest=1,format=yuv420p",
-                "-c:v", "libx264", "-crf", "18", "-movflags", "+faststart", f"{out}/render.mp4"], check=True)
+imgs = [Image.open(f).convert("RGBA") for f in seq]
+# union bounding box of everything visible, + margin, then scale to HEIGHT (even width)
+boxes = [im.getchannel("A").point(lambda v: 255 if v > 8 else 0).getbbox() for im in imgs]
+x0 = min(b[0] for b in boxes); y0 = min(b[1] for b in boxes)
+x1 = max(b[2] for b in boxes); y1 = max(b[3] for b in boxes)
+m = int(0.04 * max(x1 - x0, y1 - y0))
+W, H = imgs[0].size
+box = (max(0, x0 - m), max(0, y0 - m), min(W, x1 + m), min(H, y1 + m))
+bw, bh = box[2] - box[0], box[3] - box[1]
+tw = max(2, int(round(bw * HEIGHT / bh / 2)) * 2)
+crops = [im.crop(box).resize((tw, HEIGHT), Image.LANCZOS) for im in imgs]
 
-imgs = [Image.open(f).convert("RGBA") for f in frames]
-small = [im.resize((540, 540), Image.LANCZOS) for im in imgs]
-small[0].save(f"{out}/render.webp", save_all=True, append_images=small[1:], duration=1000 // 30, loop=0,
-              lossless=False, quality=88, method=5)
+tmp = tempfile.mkdtemp(prefix="pkg_", dir=f"{A}/renders")
+for i, im in enumerate(crops):
+    a = np.asarray(im, dtype=np.float32) / 255.0
+    rgb = a[..., :3] * a[..., 3:4]                                   # premultiplied on black
+    alpha = np.repeat(a[..., 3:4], 3, axis=2)
+    stacked = np.concatenate([rgb, alpha], axis=1)
+    Image.fromarray((stacked * 255 + 0.5).astype(np.uint8)).save(f"{tmp}/s{i:04d}.png")
+    bg = Image.new("RGBA", im.size, BG + (255,))
+    bg.alpha_composite(im)
+    bg.convert("RGB").save(f"{tmp}/p{i:04d}.png")
 
-picks = [round(i * n / 12) for i in range(12)]
+x264 = ["-c:v", "libx264", "-preset", "veryslow", "-crf", "24", "-g", "999", "-pix_fmt", "yuv420p",
+        "-movflags", "+faststart", "-an"]
+subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", f"{tmp}/s%04d.png", *x264,
+                f"{out}/clip.mp4"], check=True)
+subprocess.run(["ffmpeg", "-y", "-loglevel", "error", "-framerate", str(FPS), "-i", f"{tmp}/p%04d.png",
+                "-c:v", "libx264", "-preset", "slow", "-crf", "20", "-pix_fmt", "yuv420p", "-movflags", "+faststart",
+                f"{out}/preview.mp4"], check=True)
+crops[0].save(f"{out}/clip.webp", save_all=True, append_images=crops[1:], duration=1000 // FPS, loop=0,
+              quality=70, alpha_quality=65, method=6, minimize_size=True)
+crops[0].save(f"{out}/poster.webp", quality=80, alpha_quality=70, method=6)
+shutil.rmtree(tmp)
+
 s = 300
-sheet = Image.new("RGB", (6 * s, 2 * s), NAVY)
-for k, i in enumerate(picks):
-    t = imgs[i].resize((s, s), Image.LANCZOS)
-    sheet.paste(t, ((k % 6) * s, (k // 6) * s), t)
+sheet = Image.new("RGB", (6 * s, 2 * s), BG)
+for k in range(12):
+    t = crops[round(k * len(crops) / 12) % len(crops)].copy()
+    t.thumbnail((s, s), Image.LANCZOS)
+    sheet.paste(t, ((k % 6) * s + (s - t.width) // 2, (k // 6) * s + (s - t.height) // 2), t)
 sheet.save(f"{out}/contact-sheet.png")
 
-if ref:
-    h = 720
-    pair = [imgs[picks[6]], Image.open(ref).convert("RGBA")]
-    tiles = []
-    for im in pair:
-        im = im.crop(im.getbbox())
-        im.thumbnail((h - 40, h - 40), Image.LANCZOS)
-        tiles.append(im)
-    cmp_ = Image.new("RGB", (2 * h, h), NAVY)
-    for i, t in enumerate(tiles):
-        cmp_.paste(t, (i * h + (h - t.width) // 2, (h - t.height) // 2), t)
-    cmp_.save(f"{out}/compare.png")
-
-arr = [np.asarray(im, dtype=np.float32) for im in imgs]
-steps = [np.abs(arr[i + 1] - arr[i]).mean() for i in range(n - 1)]
+arr = [np.asarray(im, dtype=np.float32) for im in crops]
+steps = [np.abs(arr[i + 1] - arr[i]).mean() for i in range(len(arr) - 1)]
 seam = np.abs(arr[0] - arr[-1]).mean()
-with open(f"{out}/loop-check.txt", "w") as f:
-    f.write(f"frames: {n}\nmean step between neighbours: {np.mean(steps):.3f}\nmax step: {max(steps):.3f}\n"
-            f"seam (last -> first): {seam:.3f}\nseam within normal step range: {seam <= max(steps) * 1.05}\n")
-print(open(f"{out}/loop-check.txt").read())
+kb = lambda p: os.path.getsize(p) / 1024
+rep = (f"frames delivered: {len(crops)} ({len(src)} rendered) @ {FPS} fps, {tw}x{HEIGHT}\n"
+       f"mean step: {np.mean(steps):.3f}  max step: {max(steps):.3f}  seam: {seam:.3f}  "
+       f"seam ok: {seam <= max(steps) * 1.05}\n"
+       f"clip.mp4 {kb(f'{out}/clip.mp4'):.1f} KB  clip.webp {kb(f'{out}/clip.webp'):.1f} KB  "
+       f"poster.webp {kb(f'{out}/poster.webp'):.1f} KB  preview.mp4 {kb(f'{out}/preview.mp4'):.1f} KB\n")
+open(f"{out}/loop-check.txt", "w").write(rep)
+print(rep)

@@ -28,7 +28,7 @@ MODE=anim blender -b --python blender/ex_standing_dumbbell_curl.py
 .venv/bin/python tools_package.py standing-dumbbell-curl
 ```
 
-Renders run on the CPU by default (`RENDER_DEVICE=GPU` to use the graphics card).
+Renders run on the graphics card (OptiX) by default; `RENDER_DEVICE=CPU` only as a fallback.
 
 ## Layout
 | Path | What |
