@@ -21,3 +21,29 @@ my-upload-key.jks
 # Local release artifacts (AAB/APK history). Keep them out of the repo: they are
 # multi-megabyte binaries and every revision would be stored in history forever.
 /composeApp/release/
+
+# --- Private / local-only material -------------------------------------------
+# Anything here must never reach a public repo: signing material, Play Console
+# exports, Firebase project config and local tool state.
+*.jks
+*.keystore
+upload_certificate.*
+signing_report.txt
+Task appsigningReport.txt
+google-services.json
+firebase_setup.txt
+sync.config.json
+.env
+.env.*
+!.env.example
+local.properties
+
+# Agent / editor tool state (machine-specific, holds local paths and worktrees)
+.agents/
+.claude/
+.freebuff/
+skills-lock.json
+
+# Local working media: downloaded reference clips and render scratch
+ad-video/
+.cloud-attachments/
