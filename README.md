@@ -2,6 +2,8 @@
 
 A minimalist, modern Android application designed for real-time workout logging and clean weekly progress analytics. Built with simplicity in mind—zero advertisements, zero bloat, and pure performance for everyday use.
 
+> A [Grafizum](https://github.com/grafizum) studio product.
+
 ---
 
 ## 🌟 Key Features
