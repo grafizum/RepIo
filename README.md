@@ -15,6 +15,12 @@ A minimalist, modern Android application designed for real-time workout logging 
 
 ---
 
+## 📲 Coming to Google Play
+
+RepIo is being tested now and is heading to Google Play next — the store listing is in preparation, and the app is going through closed testing before it opens to everyone. Until it is live there, the app is built from source; see **Getting Started** below.
+
+---
+
 ## 📱 Tech Stack
 
 - **Platform:** Android (API 23+)
