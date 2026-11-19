@@ -4,13 +4,17 @@
     <color name="bg_beige">#FDFCFB</color>
     <color name="bg_emerald">#FBFFFF</color>
     <color name="bg_crimson">#FFFBFA</color>
-    <color name="bg_azure">#FFFFFF</color>
     <color name="bg_purple">#121212</color>
     <color name="bg_flame">#121212</color>
     <color name="bg_ocean">#121212</color>
     <color name="bg_rose">#121212</color>
     <color name="bg_retro">#121212</color>
+    <color name="bg_royal_blue">#FFFFFF</color>
 
     <!-- App icon background: white squircle design (matches the icon mockup) -->
     <color name="icon_bg_white">#FFFFFF</color>
-</resources>
+    <!-- Dark-theme variants (purple/flame/ocean/rose): same squircle, dark ground, so the
+         icon does not glare on a dark launcher; the plate keeps its shading. -->
+    <color name="icon_bg_dark">#121212</color>
+    <color name="icon_bg_developer">#0A0A0A</color>
+</resources>

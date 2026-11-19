@@ -1,0 +1,32 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  Sturdy household chair, side view: back rest, seat and four legs. Drawn for the
+  Chair tile of the home equipment grid, which used to share the bench drawing
+  with the Bench tile - a chair is not a bench and the user ticks them apart.
+-->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- back rest -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M6.6,2.8 H8.4 V10.4 H6.6 Z" />
+    <!-- seat -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M5.2,10.4 H18.8 A1.4,1.4 0 0 1 18.8,13.2 H5.2 A1.4,1.4 0 0 1 5.2,10.4 Z" />
+    <!-- legs -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M7.2,13.2 V19.4 M16.8,13.2 V19.4" />
+    <!-- back support into the seat -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M6.6,13.2 H8.4" />
+</vector>

@@ -1,0 +1,26 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- MUSCLE GLYPH - ARMS. One flexed arm: forearm and fist up the left, upper arm
+     leaving to the right, elbow at the bottom.
+
+     THE STYLE IS THE EQUIPMENT SET'S. Owner, 2026-10-11, rejecting the first attempt
+     (one whole figure with the chosen part inked in a heavy stroke): *"i want clean
+     muscle group icons of body parts, arm leg etc etc. not some wierd sht that you
+     just drew in the preview tab. remake them to actually match with the icons you
+     drew for the equipments"*. So: stroke only, 1.8 wide, round caps and joins,
+     nothing filled, the shape closing itself like [ic_eq_bench] and
+     [ic_eq_kettlebell] do. ONE PART, drawn alone - no body around it.
+
+     The other five are in ic_muscle_legs / _chest / _back / _core / _shoulders, all
+     in the same lane. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:strokeLineJoin="round"
+        android:pathData="M20.8,11.9 C17.6,10.3 13.2,10.2 10.2,11.5 C9.2,12.0 8.9,12.5 8.9,13.4 L8.9,6.8 C8.9,5.6 8.6,4.9 7.6,4.9 C6.4,4.9 4.4,5.1 4.1,6.4 L3.9,13.7 C3.9,15.6 5.0,16.8 6.8,17.2 C11.2,18.0 16.4,18.0 20.8,17.2 Z" />
+</vector>

@@ -10,13 +10,14 @@ import kotlin.math.abs
 
 /**
  * Guards the muscle-group palette. The colours are the only thing telling body
- * parts apart on the Analytics donut, the legend and the detailed breakdown bars,
- * so each muscle group has to keep the exact colour it is drawn with.
+ * parts apart on the Analytics donut, the legend and the detailed breakdown bars.
  *
- * The palette assigns a distinct (light) colour per muscle — its own tone for
- * Biceps, Triceps, Forearms and the delt heads, Amber for Abs and Yellow for
- * Core — rather than one colour per broad body part. The tones are the light
- * step of each hue by owner request: lighter, never a different hue.
+ * The palette assigns ONE colour per BROAD BODY PART (owner request): Chest,
+ * Back, Legs, Shoulders, Arms and Core each own a hue, and every precise muscle
+ * group (Biceps, Triceps, Quadriceps, Front Deltoids…) inherits the hue of the
+ * body part it belongs to — resolved through [WorkoutTemplates.getTopicForMuscle],
+ * the same grouping the badges use. The tones are the light step of each hue by
+ * owner request: lighter, never a different hue.
  */
 class MuscleGroupPaletteTest {
 
@@ -27,10 +28,10 @@ class MuscleGroupPaletteTest {
     private val expectedColors = mapOf(
         "Chest" to Color(0xFFF87171),
         "Pectorals" to Color(0xFFF87171),
-        "Abs" to Color(0xFFFBBF24),
-        "Abdominals" to Color(0xFFFBBF24),
         "Core" to Color(0xFFFACC15),
         "Obliques" to Color(0xFFFACC15),
+        "Abs" to Color(0xFFFACC15),
+        "Abdominals" to Color(0xFFFACC15),
         "Legs" to Color(0xFF34D399),
         "Quadriceps" to Color(0xFF34D399),
         "Hamstrings" to Color(0xFF34D399),
@@ -44,10 +45,10 @@ class MuscleGroupPaletteTest {
         "Traps" to Color(0xFF60A5FA),
         "Upper Traps" to Color(0xFF60A5FA),
         "Spinal Erectors" to Color(0xFF60A5FA),
-        "Biceps" to Color(0xFFA78BFA),
-        "Triceps" to Color(0xFF22D3EE),
+        "Biceps" to Color(0xFF818CF8),
+        "Triceps" to Color(0xFF818CF8),
         "Arms" to Color(0xFF818CF8),
-        "Forearms" to Color(0xFFFB923C),
+        "Forearms" to Color(0xFF818CF8),
         "Shoulders" to Color(0xFFF472B6),
         "Deltoids" to Color(0xFFF472B6),
         "Front Deltoids" to Color(0xFFF472B6),
@@ -90,8 +91,10 @@ class MuscleGroupPaletteTest {
         assertEquals(core, getMuscleGroupColor("Obliques"))
         assertEquals(expectedColors.getValue("Core"), core)
 
-        assertNotEquals(getMuscleGroupColor("Abs"), core)
-        assertEquals(expectedColors.getValue("Abs"), getMuscleGroupColor("Abs"))
+        // Abs and Abdominals are part of the Core body part, so they share
+        // its hue rather than carrying their own amber tone.
+        assertEquals(core, getMuscleGroupColor("Abs"))
+        assertEquals(core, getMuscleGroupColor("Abdominals"))
         // Yellow: red and green channels high and close together, blue far below.
         assertEquals(
             "Core should be closer to red and green than to blue, " +
@@ -101,10 +104,24 @@ class MuscleGroupPaletteTest {
         )
     }
 
+    /**
+     * Under the body-part palette the arm muscles deliberately SHARE one hue —
+     * the part's indigo. What must stay distinct is the SET of body-part hues:
+     * no arm muscle may collide with another body part's colour.
+     */
     @Test
     fun armsMusclesKeepDistinctColors() {
         val arms = listOf("Biceps", "Triceps", "Arms", "Forearms").map { getMuscleGroupColor(it) }
-        assertEquals("arms muscles must stay distinguishable", arms.size, arms.toSet().size)
+        assertEquals("arm muscles must share the Arms hue", setOf(getMuscleGroupColor("Arms")), arms.toSet())
+
+        // ...and the Arms hue must differ from every other body part.
+        bodyParts.filter { it != "Arms" }.forEach { part ->
+            assertNotEquals(
+                "the Arms hue must not collide with $part",
+                getMuscleGroupColor(part),
+                getMuscleGroupColor("Biceps")
+            )
+        }
     }
 
     @Test

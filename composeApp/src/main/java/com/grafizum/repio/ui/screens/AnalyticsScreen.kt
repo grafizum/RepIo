@@ -21,9 +21,14 @@ import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.Assessment
 import androidx.compose.material.icons.filled.DeleteSweep
-import androidx.compose.material.icons.filled.LocalFireDepartment
+import androidx.compose.material.icons.filled.EmojiEvents
 import androidx.compose.material3.AlertDialog
 import androidx.compose.material3.Button
+import androidx.compose.material3.ExperimentalMaterial3Api
+import androidx.compose.material3.PlainTooltip
+import androidx.compose.material3.TooltipBox
+import androidx.compose.material3.TooltipDefaults
+import androidx.compose.material3.rememberTooltipState
 import androidx.compose.material3.ButtonDefaults
 import androidx.compose.material3.Icon
 import androidx.compose.material3.IconButton
@@ -59,6 +64,27 @@ import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
 import com.grafizum.repio.util.getString
 
 
+/**
+ * Room the Analytics scroll box leaves for a card's elevation shadow — INSIDE the box.
+ *
+ * The scrolling column clips its content, so the Overall Level card's own 4dp shadow had nowhere
+ * to be drawn at the top of the list and the card read as cut off above its label. Owner board
+ * task_13503y3v4d5e3o6w5e5e0e5v, 2026-10-12: *"the shadow around \"overall level\" makes the
+ * label look cut off above so give the overlay top section a bit smaller so the shadows can also
+ * go over the top side of the overall level card"*.
+ *
+ * It is measured against the card's own elevation (4dp in [StatCard], read at its compact size),
+ * so the number cannot quietly fall below the shadow it exists to show.
+ */
+internal val CARD_SHADOW_HEADROOM = 6.dp
+
+/**
+ * What is left of the gap that used to sit ABOVE the scroll box. The headroom it gave up moved
+ * inside the box, so the card ends up where it always did — with its shadow now drawn.
+ */
+internal val SHADOW_HEADROOM_ABOVE_SCROLL = 2.dp
+
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun AnalyticsScreen(
     viewModel: WorkoutViewModel,
@@ -66,7 +92,8 @@ fun AnalyticsScreen(
     onBack: (() -> Unit)? = null
 ) {
     val loggedSets by viewModel.allLoggedSets.collectAsState()
-    val routineDays by viewModel.allRoutineDays.collectAsState()
+    // The Overall Level replaced the consecutive-days streak on this screen.
+    val userStats by viewModel.userStats.collectAsState()
     val isDeveloper = LocalDeveloperSkin.current
     val focusManager = LocalFocusManager.current
     val window = LocalWindowSize.current
@@ -93,14 +120,6 @@ fun AnalyticsScreen(
             map[group] = (map[group] ?: 0) + 1
         }
         map
-    }
-
-    // Logic for Weekly Report
-    val consecutiveWorkoutDays = remember(loggedSets) {
-        com.grafizum.repio.data.WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
-    }
-    val skippedWorkoutDays = remember(loggedSets, routineDays) {
-        com.grafizum.repio.data.WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
     }
 
     if (showClearConfirmDialog) {
@@ -188,7 +207,7 @@ fun AnalyticsScreen(
                         Icon(
                             imageVector = Icons.Default.DeleteSweep,
                             contentDescription = "Clear History",
-                            tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                            tint = MaterialTheme.colorScheme.primary
                         )
                     }
                 }
@@ -197,7 +216,9 @@ fun AnalyticsScreen(
 
         // Removed showCalendarDialog block
 
-        Spacer(modifier = Modifier.height(8.dp))
+        // Smaller than the 8dp this used to be, with the difference spent INSIDE the scroll
+        // box below: see [CARD_SHADOW_HEADROOM].
+        Spacer(modifier = Modifier.height(SHADOW_HEADROOM_ABOVE_SCROLL))
 
         // Cards column: compact stat card + week metrics + muscle focus.
         //
@@ -218,17 +239,72 @@ fun AnalyticsScreen(
                 },
             verticalArrangement = Arrangement.spacedBy(window.sectionSpacing)
         ) {
+            // The Overall Level card's shadow, which the box's own clip would otherwise eat.
+            Spacer(modifier = Modifier.height(CARD_SHADOW_HEADROOM))
+
             // 1. QUICK STAT CARD (compact so the Analytics tab fits one screen)
-            StatCard(
-                title = getString("consecutive_days_title"),
-                value = consecutiveWorkoutDays.toString(),
-                subtitle = "",
-                icon = Icons.Default.LocalFireDepartment,
-                iconColor = MaterialTheme.colorScheme.primary,
-                modifier = Modifier.fillMaxWidth(),
-                badgeText = getString("skipped_days_format", skippedWorkoutDays),
-                compact = true
-            )
+            //
+            // The Overall Level sits here now, in place of the consecutive-days
+            // streak: this screen reports what the training has produced, and the
+            // level is that answer at a glance. Consistency is still visible in the
+            // weekly calendar directly below.
+            val overallLevel = userStats?.takeIf { it.overallLevelReady }?.overallStrengthLevel
+            // Same badge and same explanation as Home: the rank is one value, so
+            // it is derived once and shown identically in both places.
+            val overallRank = com.grafizum.repio.data.OverallLevelRank.of(userStats)
+            TooltipBox(
+                positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                tooltip = {
+                    PlainTooltip {
+                        com.grafizum.repio.ui.components.OverallLevelTooltip(
+                            level = overallLevel,
+                            rank = overallRank,
+                            exerciseCount = userStats?.exercisesCountForLevel ?: 0
+                        )
+                    }
+                },
+                state = rememberTooltipState()
+            ) {
+                StatCard(
+                    title = getString("overall_level_label"),
+                    // The LEVEL as a whole number, with the rank letter as the
+                    // leading badge — same as Home, and for the same reason: the
+                    // letter was already the badge, so printing "Rank E" as the
+                    // value said it twice and hid the one number that moves
+                    // every session. The raw 0-100 figure and the weighted
+                    // median behind it stay backend-only (owner, 2026-10-02).
+                    value = if (overallLevel != null && overallRank != null) {
+                        getString(
+                            "overall_level_value_format",
+                            com.grafizum.repio.data.OverallLevelRank.displayLevel(overallLevel)
+                        )
+                    } else {
+                        getString("overall_level_none")
+                    },
+                    subtitle = "",
+                    // Same as Home's card: the rank letter leads, in the themed tile
+                    // the trophy used to own, and the trophy falls back into that same
+                    // tile while there is no rank yet. Two cards showing one stat must
+                    // not disagree about where the rank sits.
+                    icon = if (overallRank == null) Icons.Default.EmojiEvents else null,
+                    iconColor = MaterialTheme.colorScheme.primary,
+                    modifier = Modifier.fillMaxWidth(),
+                    badgeText = if (overallLevel != null) null
+                                else getString("overall_level_not_ready"),
+                    compact = true,
+                    leading = if (overallRank != null) {
+                        {
+                            com.grafizum.repio.ui.components.RankBadge(
+                                rank = overallRank.rank,
+                                contentDescription = getString("rank_badge_content_desc", overallRank.letter),
+                                size = 40.dp
+                            )
+                        }
+                    } else {
+                        null
+                    }
+                )
+            }
 
             // 2. WEEK METRICS (TRAINING OUTPUT)
             WorkoutCalendar(

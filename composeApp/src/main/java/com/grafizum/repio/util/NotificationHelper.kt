@@ -6,12 +6,14 @@ import android.app.PendingIntent
 import android.content.Context
 import android.content.Intent
 import android.media.AudioAttributes
+import android.net.Uri
 import android.media.RingtoneManager
 import android.os.Build
 import android.os.VibrationEffect
 import android.os.Vibrator
 import android.os.VibratorManager
 import android.graphics.Color
+import android.provider.Settings
 import androidx.core.app.NotificationCompat
 import androidx.core.app.NotificationManagerCompat
 
@@ -121,6 +123,25 @@ object NotificationHelper {
         }
     }
 
+    /**
+     * Clears a rest / timed-exercise alert that is still sitting in the tray.
+     *
+     * The alert is only ever POSTED while the app is in the background (in the
+     * foreground the same moment vibrates and the in-app banner says it), so by
+     * the time the app is open the tray entry describes something already over.
+     * Owner, 2026-11-03: *"Have repio message be dismissed when opening the app
+     * or when the app is open once it gave the popup notification."*
+     */
+    fun cancelRestTimerNotification(context: Context) {
+        try {
+            val notificationManager =
+                context.getSystemService(Context.NOTIFICATION_SERVICE) as NotificationManager
+            notificationManager.cancel(NOTIFICATION_ID)
+        } catch (e: Exception) {
+            // Ignore
+        }
+    }
+
     fun cancelUpdateNotification(context: Context) {
         try {
             val notificationManager =
@@ -128,6 +149,40 @@ object NotificationHelper {
             notificationManager.cancel(UPDATE_NOTIFICATION_ID)
         } catch (e: Exception) {
             // Ignore
+        }
+    }
+
+    /**
+     * Opens this app's own notification settings page.
+     *
+     * The last resort when the runtime permission dialog will not appear: on
+     * Android 13+ a second denial is FINAL, and `launch(POST_NOTIFICATIONS)`
+     * then returns immediately without showing anything - a tap that looks
+     * like it did nothing. Settings is the only place the grant can still be
+     * switched on, so a refused tap has to land there rather than go silent.
+     *
+     * Three intents, tried in order, because the first two are absent on some
+     * OEM builds: the per-app notification page, the app's detail page, and the
+     * top-level settings screen as a final fallback.
+     */
+    fun openNotificationSettings(context: Context) {
+        val candidates = listOf(
+            Intent(Settings.ACTION_APP_NOTIFICATION_SETTINGS).apply {
+                putExtra(Settings.EXTRA_APP_PACKAGE, context.packageName)
+            },
+            Intent(Settings.ACTION_APPLICATION_DETAILS_SETTINGS).apply {
+                data = Uri.fromParts("package", context.packageName, null)
+            },
+            Intent(Settings.ACTION_SETTINGS)
+        )
+        for (intent in candidates) {
+            try {
+                intent.addFlags(Intent.FLAG_ACTIVITY_NEW_TASK)
+                context.startActivity(intent)
+                return
+            } catch (_: Exception) {
+                // Try the next, less specific page.
+            }
         }
     }
 
@@ -227,11 +282,15 @@ object NotificationHelper {
      * [alert] is false for a silent timer, which ends without a sound, a vibration or a
      * notification — the session still hears about it either way.
      */
-    fun showRestTimerEndedNotification(context: Context, alert: Boolean = true) {
+    fun showRestTimerEndedNotification(
+        context: Context,
+        alert: Boolean = true,
+        wasExerciseTimer: Boolean = false
+    ) {
         val isInForeground = AppEventBus.isAppInForeground.value
 
         // Always trigger in-app event so it's ready when user returns or is inside
-        AppEventBus.onRestTimerEnded()
+        AppEventBus.onRestTimerEnded(wasExerciseTimer)
 
         if (!alert) return
 
@@ -269,8 +328,26 @@ object NotificationHelper {
 
         val builder = NotificationCompat.Builder(context, CHANNEL_ID)
             .setSmallIcon(R.drawable.ic_notification)
-            .setContentTitle(context.getString(R.string.notification_title))
-            .setContentText(context.getString(R.string.notification_text))
+            .setContentTitle(
+                context.getString(
+                    // A TIMED EXERCISE is not a rest. One function fired both
+                    // alerts with the rest wording, so finishing a 45-second
+                    // plank announced "Rest Pause Ended! Time to smash your next
+                    // set!" - the owner reported it as "wrong, i want it to show
+                    // some other message to say the time finished but not rest
+                    // time". The KIND of timer is the only thing that decides
+                    // these two strings, so it is a parameter rather than a
+                    // second notification method that could drift.
+                    if (wasExerciseTimer) R.string.notification_exercise_title
+                    else R.string.notification_title
+                )
+            )
+            .setContentText(
+                context.getString(
+                    if (wasExerciseTimer) R.string.notification_exercise_text
+                    else R.string.notification_text
+                )
+            )
             .setPriority(NotificationCompat.PRIORITY_MAX)
             .setCategory(NotificationCompat.CATEGORY_ALARM)
             .setContentIntent(pendingIntent)

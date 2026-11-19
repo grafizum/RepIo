@@ -6,14 +6,6 @@
         <entry key="Firebase Crashlytics">
           <value>
             <InsightsFilterSettings>
-              <option name="connection">
-                <ConnectionSetting>
-                  <option name="appId" value="com.grafizum.repio" />
-                  <option name="mobileSdkAppId" value="1:148957846250:android:15061ebe349888272f9593" />
-                  <option name="projectId" value="repio-8b15b" />
-                  <option name="projectNumber" value="148957846250" />
-                </ConnectionSetting>
-              </option>
               <option name="signal" value="SIGNAL_UNSPECIFIED" />
               <option name="timeIntervalDays" value="THIRTY_DAYS" />
               <option name="visibilityType" value="ALL" />

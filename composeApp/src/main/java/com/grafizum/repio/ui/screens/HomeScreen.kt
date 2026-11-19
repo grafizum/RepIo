@@ -36,6 +36,7 @@ import androidx.compose.ui.semantics.testTag
 import androidx.compose.ui.text.font.FontWeight
 import androidx.compose.ui.text.style.TextAlign
 import androidx.compose.ui.text.style.TextOverflow
+import androidx.compose.ui.unit.LayoutDirection
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import androidx.compose.ui.res.painterResource
@@ -54,6 +55,7 @@ import com.grafizum.repio.ui.theme.LocalDeveloperSkin
 import com.grafizum.repio.ui.components.LocalWindowSize
 import com.grafizum.repio.ui.components.ScreenHeader
 
+@OptIn(ExperimentalMaterial3Api::class)
 @Composable
 fun HomeScreen(
     viewModel: WorkoutViewModel,
@@ -63,6 +65,8 @@ fun HomeScreen(
     val routineDays by viewModel.allRoutineDays.collectAsState()
     val allExercises by viewModel.allRoutineExercises.collectAsState()
     val loggedSets by viewModel.allLoggedSets.collectAsState()
+    val todayRecap by viewModel.todayRecap.collectAsState()
+    val userStats by viewModel.userStats.collectAsState()
     val density = LocalDensity.current
     val focusManager = LocalFocusManager.current
     val window = LocalWindowSize.current
@@ -98,9 +102,22 @@ fun HomeScreen(
         }
     }
 
+    // The day is FINISHED when every scheduled exercise has its target sets
+    // (the same -1 the "next up" highlighting answers). Owner, 2026-10-17:
+    // the recap REPLACES the schedule section once that happens - "not have
+    // both shown" - so Home reads as the plan while training and as the result
+    // once done. A rest day keeps its "no exercises today" card: an empty
+    // schedule is not a finished workout.
+    val showRecapInsteadOfSchedule =
+        todayExercises.isNotEmpty() && nextUpIndex == -1 && todayRecap != null
+
     var hasAutoScrolled by remember { mutableStateOf(false) }
+    // The rank scale, opened from the Overall Level card: the card states one
+    // band, and the table is what makes it readable as a scale.
+    var showRankTable by remember { mutableStateOf(false) }
     LaunchedEffect(todayExercises) {
-        if (todayExercises.isNotEmpty() && !hasAutoScrolled) {
+        // Nothing to scroll to when the list has been swapped for the recap.
+        if (todayExercises.isNotEmpty() && !hasAutoScrolled && !showRecapInsteadOfSchedule) {
             val indexToScroll = if (nextUpIndex == -1) todayExercises.size - 1 else nextUpIndex
             
             if (expandedExerciseIds.isEmpty() && nextUpIndex != -1) {
@@ -114,12 +131,12 @@ fun HomeScreen(
         }
     }
 
-    val consecutiveWorkoutDays = remember(loggedSets) {
-        WorkoutTemplates.calculateConsecutiveWorkoutDays(loggedSets)
-    }
-    val skippedWorkoutDays = remember(loggedSets, routineDays) {
-        WorkoutTemplates.calculateSkippedWorkoutDays(loggedSets, routineDays)
-    }
+    // The consecutive-days streak no longer lives on this screen: the slot below
+    // the hero reports the overall level instead. The streak itself is unchanged
+    // and still shown on the Analytics screen ("Consecutive Days").
+    // Non-null exactly when the calculator had enough exercises to report a
+    // level, so one null check drives both the value and the "locked" hint.
+    val overallLevel = userStats?.takeIf { it.overallLevelReady }?.overallStrengthLevel
     val isDeveloper = LocalDeveloperSkin.current
 
     Column(
@@ -152,9 +169,9 @@ fun HomeScreen(
             item {
                 Spacer(modifier = Modifier.height(16.dp))
                 Card(
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(24.dp),
-                    elevation = CardDefaults.cardElevation(defaultElevation = if (isDeveloper) 0.dp else 6.dp),
-                    border = if (isDeveloper) BorderStroke(2.dp, Color.White) else null,
+                    shape = RoundedCornerShape(24.dp),
+                    elevation = CardDefaults.cardElevation(defaultElevation = 6.dp),
+                    border = null,
                     modifier = Modifier
                         .fillMaxWidth()
                         .semantics { testTag = "hero_workout_now_card" }
@@ -163,16 +180,12 @@ fun HomeScreen(
                         modifier = Modifier
                             .fillMaxWidth()
                             .background(
-                                if (isDeveloper) {
-                                    androidx.compose.ui.graphics.SolidColor(Color.Black)
-                                } else {
-                                    Brush.linearGradient(
-                                        colors = listOf(
-                                            MaterialTheme.colorScheme.surfaceVariant,
-                                            MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
-                                        )
+                                Brush.linearGradient(
+                                    colors = listOf(
+                                        MaterialTheme.colorScheme.surfaceVariant,
+                                        MaterialTheme.colorScheme.primaryContainer.copy(alpha = 0.6f)
                                     )
-                                }
+                                )
                             )
                             .padding(window.cardPadding)
                     ) {
@@ -183,17 +196,16 @@ fun HomeScreen(
                                 modifier = Modifier.fillMaxWidth()
                             ) {
                                 Surface(
-                                    color = if (isDeveloper) Color.White.copy(alpha = 0.2f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null
-                                ) {
+                                    color = MaterialTheme.colorScheme.primary.copy(alpha = 0.15f),
+                                    shape = RoundedCornerShape(20.dp),
+                                    border = null) {
                                     Text(
                                         text = getString("todays_workout"),
                                         style = MaterialTheme.typography.labelSmall.copy(
                                             fontWeight = FontWeight.Bold,
                                             letterSpacing = 1.sp
                                         ),
-                                        color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                        color = MaterialTheme.colorScheme.primary,
                                         modifier = Modifier.padding(horizontal = 10.dp, vertical = 4.dp)
                                     )
                                 }
@@ -274,11 +286,11 @@ fun HomeScreen(
                                     onNavigateToWorkoutNow()
                                 },
                                 colors = ButtonDefaults.buttonColors(
-                                    containerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                    contentColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                    containerColor = MaterialTheme.colorScheme.primary,
+                                    contentColor = MaterialTheme.colorScheme.onPrimary
                                 ),
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(16.dp),
-                                border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                                shape = RoundedCornerShape(16.dp),
+                                border = null,
                                 modifier = Modifier
                                     .fillMaxWidth()
                                     .heightIn(min = 52.dp)
@@ -299,288 +311,448 @@ fun HomeScreen(
 
             item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }
 
-            // QUICK STATS ROW
+            // OVERALL LEVEL — the app-wide strength stat, replacing the streak
+            // that used to sit here. It is derived (see OverallLevelCalculator),
+            // so it is read straight from user_stats and never computed in the UI.
             item {
-                StatCard(
-                    title = getString("consecutive_days_title"),
-                    value = consecutiveWorkoutDays.toString(),
-                    subtitle = "",
-                    icon = Icons.Default.LocalFireDepartment,
-                    iconColor = MaterialTheme.colorScheme.primary,
-                    modifier = Modifier.fillMaxWidth(),
-                    badgeText = getString("skipped_days_format", skippedWorkoutDays),
-                    compact = true
-                )
+                val level = overallLevel
+                // Null until the calculator has enough exercises, so an unrated
+                // user shows no badge rather than a bottom-tier one.
+                val rank = OverallLevelRank.of(userStats)
+                // Long-press (or hover) explains where the number comes from — the
+                // five-exercise requirement is not self-evident from a bare "—",
+                // and the letter alone does not say what the next rank is.
+                TooltipBox(
+                    positionProvider = TooltipDefaults.rememberPlainTooltipPositionProvider(),
+                    tooltip = {
+                        PlainTooltip {
+                            OverallLevelTooltip(
+                                level = level,
+                                rank = rank,
+                                exerciseCount = userStats?.exercisesCountForLevel ?: 0
+                            )
+                        }
+                    },
+                    state = rememberTooltipState()
+                ) {
+                    StatCard(
+                        title = getString("overall_level_label"),
+                        // The RANK, never the percentage. The owner ruled
+                        // (2026-10-02) that the 0-100 figure and the median behind
+                        // it stay backend-only, so the headline number a user reads
+                        // is the letter their progress has earned. The figure is
+                        // still computed and still stored - it is what the letter is
+                        // derived from - it just is not printed.
+                        value = if (level != null && rank != null) {
+                            // The LEVEL, not the rank word. The owner asked for
+                            // "the actual level with only the rank symbol next to
+                            // it": the letter is already the card's leading badge
+                            // (RankBadge below), so printing "Rank E" as well
+                            // said the same thing twice and hid the one number
+                            // that moves every session.
+                            getString(
+                                "overall_level_value_format",
+                                OverallLevelRank.displayLevel(level)
+                            )
+                        } else {
+                            getString("overall_level_none")
+                        },
+                        subtitle = "",
+                        // The rank letter takes the slot the trophy used to own, so
+                        // it reads BEFORE the number rather than after it, in the same
+                        // themed tile every other stat on this screen uses. With no
+                        // rank yet there is no letter to show, and `leading` wins over
+                        // `icon`, so the trophy falls back into the same tile rather
+                        // than leaving it empty.
+                        icon = if (rank == null) Icons.Default.EmojiEvents else null,
+                        iconColor = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier
+                            .fillMaxWidth()
+                            .clickable { showRankTable = true },
+                        badgeText = if (level != null) {
+                            null
+                        } else {
+                            getString("overall_level_not_ready")
+                        },
+                        compact = true,
+                        leading = if (rank != null) {
+                            {
+                                RankBadge(
+                                    rank = rank.rank,
+                                    contentDescription = getString("rank_badge_content_desc", rank.letter),
+                                    size = 40.dp
+                                )
+                            }
+                        } else {
+                            null
+                        }
+                    )
+                }
+
+                // Tapping the card opens the whole scale. Long-press already
+                // explains where the number comes from (the tooltip above); this
+                // answers the other question a bare letter raises — what the
+                // letters are, and which levels each one covers.
+                if (showRankTable) {
+                    OverallLevelRanksDialog(
+                        currentLevel = level?.let { OverallLevelRank.displayLevel(it) },
+                        currentRank = rank,
+                        onDismiss = { showRankTable = false }
+                    )
+                }
             }
 
             item { Spacer(modifier = Modifier.height(window.sectionSpacing)) }
 
-            // TODAY'S EXERCISES LIST PREVIEW
-            item {
-                Row(
-                    verticalAlignment = Alignment.CenterVertically,
-                    horizontalArrangement = Arrangement.SpaceBetween,
-                    modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
-                ) {
-                    Text(
-                        text = getString("todays_schedule"),
-                        style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
-                        // weight only, never fill: the "expand all" chip keeps its size and a
-                        // long translated title ellipsizes rather than squeezing it.
-                        modifier = Modifier.weight(1f, fill = false),
-                        maxLines = 2,
-                        overflow = TextOverflow.Ellipsis
-                    )
-                    val isAllExpanded by remember(todayExercises, expandedExerciseIds) {
-                        derivedStateOf { 
-                            todayExercises.isNotEmpty() && expandedExerciseIds.size == todayExercises.size 
-                        }
-                    }
-                    Surface(
-                        onClick = {
-                            if (isAllExpanded) {
-                                expandedExerciseIds.clear()
-                            } else {
-                                expandedExerciseIds.clear()
-                                expandedExerciseIds.addAll(todayExercises.map { it.id })
-                            }
-                        },
-                        color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
-                        shape = RoundedCornerShape(10.dp),
-                        modifier = Modifier.padding(bottom = 2.dp, end = 4.dp)
-                    ) {
-                        Text(
-                            text = if (isAllExpanded) getString("collapse_all") else getString("expand_all"),
-                            style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
-                            color = MaterialTheme.colorScheme.primary,
-                            modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
-                        )
-                    }
-                }
-            }
-
-            if (todayExercises.isEmpty()) {
+            if (showRecapInsteadOfSchedule) {
+                // THE SWAP: done for the day, so Home answers "what was
+                // done" instead of "what is planned" - never both at once
+                // (owner, 2026-10-17: "i want 'session recap' instead of
+                // 'todays schedule' ... and not have both shown"). The card
+                // is the same [WorkoutRecapCard] the Workout Now completion
+                // view shows - one source, one rendering.
                 item {
-                    Card(
-                        shape = RoundedCornerShape(16.dp),
-                        colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Text(
-                            text = getString("no_exercises_today"),
-                            style = MaterialTheme.typography.bodyMedium,
-                            color = MaterialTheme.colorScheme.onSurfaceVariant,
-                            modifier = Modifier.padding(20.dp)
-                        )
+                    // The finished label now lives INSIDE the card as its
+                    // header (owner correction, same day) — one box, not two.
+                    todayRecap?.let { recap ->
+                        WorkoutRecapCard(recap = recap)
                     }
                 }
             } else {
-                itemsIndexed(todayExercises, key = { _, ex -> ex.id }) { index, exercise ->
-                    val isLast = index == todayExercises.size - 1
-                    val setsForThisExercise = remember(todayLoggedSets, exercise.name) {
-                        todayLoggedSets.filter { it.exerciseName == exercise.name }
-                    }
-                    val isCompleted = setsForThisExercise.size >= exercise.targetSets
-                    val isExpanded = expandedExerciseIds.contains(exercise.id)
-                    val isActive = index == nextUpIndex
-
-                    val primaryColor = MaterialTheme.colorScheme.primary
-                    val primaryDisabledColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
-                    val outlineColor = MaterialTheme.colorScheme.outline
-                    
-                    val lineColor = if (isCompleted) primaryColor else primaryDisabledColor
-
-                    // Calculate previous item's line color state
-                    val prevCompleted = if (index > 0) {
-                        val prevExercise = todayExercises[index - 1]
-                        val prevSets = todayLoggedSets.filter { it.exerciseName == prevExercise.name }
-                        prevSets.size >= prevExercise.targetSets
-                    } else false
-
-                    val prevLineColor = if (prevCompleted) primaryColor else primaryDisabledColor
-
+                // TODAY'S EXERCISES LIST PREVIEW
+                item {
                     Row(
-                        modifier = Modifier
-                            .fillMaxWidth()
-                            .padding(horizontal = 4.dp)
-                            .drawBehind {
-                                val centerX = 18.dp.toPx()
-                                val dotCenterY = 12.dp.toPx() // Align with Title text center (Box height 24 / 2)
-                                
-                                // Calculate gap based on symbol size
-                                val symbolRadius = if (isCompleted) 14.dp.toPx() // Check icon (24dp + small buffer)
-                                                  else if (isActive) 10.dp.toPx() // Active dot (16dp + buffer)
-                                                  else 8.dp.toPx() // Inactive dot (12dp + buffer)
-                                
-                                val gap = 2.dp.toPx() // Additional clean space
-                                val totalGap = symbolRadius + gap
-
-                                // Line ABOVE the dot (except for the first item)
-                                if (index > 0) {
-                                    val lineEndY = dotCenterY - totalGap
-                                    if (lineEndY > 0) {
-                                        drawLine(
-                                            color = prevLineColor,
-                                            start = androidx.compose.ui.geometry.Offset(centerX, 0f),
-                                            end = androidx.compose.ui.geometry.Offset(centerX, lineEndY),
-                                            strokeWidth = 3.dp.toPx()
-                                        )
-                                    }
-                                }
-
-                                // Line BELOW the dot (except for the last item)
-                                if (!isLast) {
-                                    val lineStartY = dotCenterY + totalGap
-                                    if (lineStartY < size.height) {
-                                        drawLine(
-                                            color = lineColor,
-                                            start = androidx.compose.ui.geometry.Offset(centerX, lineStartY),
-                                            end = androidx.compose.ui.geometry.Offset(centerX, size.height),
-                                            strokeWidth = 3.dp.toPx()
-                                        )
-                                    }
-                                }
-                            }
-                            .clickable {
-                                if (isExpanded) {
-                                    expandedExerciseIds.remove(exercise.id)
-                                } else {
-                                    expandedExerciseIds.clear()
-                                    expandedExerciseIds.add(exercise.id)
-                                    pendingScrollIndex = index
-                                }
-                            }
+                        verticalAlignment = Alignment.CenterVertically,
+                        horizontalArrangement = Arrangement.SpaceBetween,
+                        modifier = Modifier.fillMaxWidth().padding(bottom = 12.dp)
                     ) {
-                        // Timeline Column (Just the dot/icon)
-                        Box(
-                            modifier = Modifier.width(36.dp).height(24.dp), // Height 24 to match title line height
-                            contentAlignment = Alignment.Center
-                        ) {
-                            if (isCompleted) {
-                                Icon(
-                                    imageVector = Icons.Default.CheckCircle,
-                                    contentDescription = null,
-                                    tint = primaryColor,
-                                    modifier = Modifier.size(24.dp)
-                                )
-                            } else {
-                                Box(
-                                    modifier = Modifier
-                                        .size(if (isActive) 16.dp else 12.dp)
-                                        .clip(CircleShape)
-                                        .background(
-                                            if (isActive) primaryColor 
-                                            else outlineColor.copy(alpha = 0.4f)
-                                        )
-                                )
+                        Text(
+                            text = getString("todays_schedule"),
+                            style = MaterialTheme.typography.titleLarge.copy(fontWeight = FontWeight.Bold),
+                            // weight only, never fill: the "expand all" chip keeps its size and a
+                            // long translated title ellipsizes rather than squeezing it.
+                            modifier = Modifier.weight(1f, fill = false),
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
+                        )
+                        val isAllExpanded by remember(todayExercises, expandedExerciseIds) {
+                            derivedStateOf { 
+                                todayExercises.isNotEmpty() && expandedExerciseIds.size == todayExercises.size 
                             }
                         }
-
-                        Spacer(modifier = Modifier.width(14.dp))
-
-                        // Exercise Info Column
-                        Column(
-                            modifier = Modifier
-                                .weight(1f)
-                                .padding(bottom = 20.dp)
+                        Surface(
+                            onClick = {
+                                if (isAllExpanded) {
+                                    expandedExerciseIds.clear()
+                                } else {
+                                    expandedExerciseIds.clear()
+                                    expandedExerciseIds.addAll(todayExercises.map { it.id })
+                                }
+                            },
+                            color = MaterialTheme.colorScheme.primary.copy(alpha = 0.12f),
+                            shape = RoundedCornerShape(10.dp),
+                            modifier = Modifier.padding(bottom = 2.dp, end = 4.dp)
                         ) {
-                            Row(
-                                verticalAlignment = Alignment.CenterVertically,
-                                horizontalArrangement = Arrangement.SpaceBetween,
-                                modifier = Modifier.fillMaxWidth()
-                            ) {
-                                Text(
-                                    text = translateExerciseName(exercise.name),
-                                    style = MaterialTheme.typography.titleMedium.copy(
-                                        fontWeight = if (isActive || isExpanded) FontWeight.Black else FontWeight.Bold,
-                                        lineHeight = 24.sp
-                                    ),
-                                    color = when {
-                                        isExpanded -> MaterialTheme.colorScheme.primary
-                                        isActive -> MaterialTheme.colorScheme.primary
-                                        isCompleted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
-                                        else -> MaterialTheme.colorScheme.onSurface
-                                    },
-                                    modifier = Modifier.weight(1f),
-                                    maxLines = if (isExpanded) 2 else 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
+                            Text(
+                                text = if (isAllExpanded) getString("collapse_all") else getString("expand_all"),
+                                style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
+                                color = MaterialTheme.colorScheme.primary,
+                                modifier = Modifier.padding(horizontal = 10.dp, vertical = 6.dp)
+                            )
+                        }
+                    }
+                }
 
-                                if (isExpanded) {
+                if (todayExercises.isEmpty()) {
+                    item {
+                        Card(
+                            shape = RoundedCornerShape(16.dp),
+                            colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Text(
+                                text = getString("no_exercises_today"),
+                                style = MaterialTheme.typography.bodyMedium,
+                                color = MaterialTheme.colorScheme.onSurfaceVariant,
+                                modifier = Modifier.padding(20.dp)
+                            )
+                        }
+                    }
+                } else {
+                    itemsIndexed(todayExercises, key = { _, ex -> ex.id }) { index, exercise ->
+                        val isLast = index == todayExercises.size - 1
+                        val setsForThisExercise = remember(todayLoggedSets, exercise.name) {
+                            todayLoggedSets.filter { it.exerciseName == exercise.name }
+                        }
+                        val isCompleted = setsForThisExercise.size >= exercise.targetSets
+                        val isExpanded = expandedExerciseIds.contains(exercise.id)
+                        val isActive = index == nextUpIndex
+
+                        val primaryColor = MaterialTheme.colorScheme.primary
+                        val primaryDisabledColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.35f)
+                        val outlineColor = MaterialTheme.colorScheme.outline
+                    
+                        val lineColor = if (isCompleted) primaryColor else primaryDisabledColor
+
+                        // Calculate previous item's line color state
+                        val prevCompleted = if (index > 0) {
+                            val prevExercise = todayExercises[index - 1]
+                            val prevSets = todayLoggedSets.filter { it.exerciseName == prevExercise.name }
+                            prevSets.size >= prevExercise.targetSets
+                        } else false
+
+                        val prevLineColor = if (prevCompleted) primaryColor else primaryDisabledColor
+
+                        Row(
+                            modifier = Modifier
+                                .fillMaxWidth()
+                                .padding(horizontal = 4.dp)
+                                .drawBehind {
+                                    // THE SPINE HAS TO MIRROR WITH THE ROW.
+                                    //
+                                    // `drawBehind` works in PHYSICAL pixels - it has no start and
+                                    // no end, so a flat `18.dp.toPx()` is always the LEFT edge.
+                                    // The row's children do mirror: under an RTL configuration the
+                                    // 36dp dot box becomes the rightmost child and the titles align
+                                    // to the right. The line stayed on the left while the rest of
+                                    // the row moved right, which is the Home screen in the owner's
+                                    // Arabic screenshot: the timeline walked down the wrong side of
+                                    // every exercise. Measure the same 18dp from the row's real
+                                    // start instead, so the line sits through the centre of the dot
+                                    // box in either direction.
+                                    val startInset = 18.dp.toPx()
+                                    val centerX = if (layoutDirection == LayoutDirection.Rtl) {
+                                        size.width - startInset
+                                    } else {
+                                        startInset
+                                    }
+                                    val dotCenterY = 12.dp.toPx() // Align with Title text center (Box height 24 / 2)
+                                
+                                    // Calculate gap based on symbol size
+                                    val symbolRadius = if (isCompleted) 14.dp.toPx() // Check icon (24dp + small buffer)
+                                                      else if (isActive) 10.dp.toPx() // Active dot (16dp + buffer)
+                                                      else 8.dp.toPx() // Inactive dot (12dp + buffer)
+                                
+                                    val gap = 2.dp.toPx() // Additional clean space
+                                    val totalGap = symbolRadius + gap
+
+                                    // Line ABOVE the dot (except for the first item)
+                                    if (index > 0) {
+                                        val lineEndY = dotCenterY - totalGap
+                                        if (lineEndY > 0) {
+                                            drawLine(
+                                                color = prevLineColor,
+                                                start = androidx.compose.ui.geometry.Offset(centerX, 0f),
+                                                end = androidx.compose.ui.geometry.Offset(centerX, lineEndY),
+                                                strokeWidth = 3.dp.toPx()
+                                            )
+                                        }
+                                    }
+
+                                    // Line BELOW the dot (except for the last item)
+                                    if (!isLast) {
+                                        val lineStartY = dotCenterY + totalGap
+                                        if (lineStartY < size.height) {
+                                            drawLine(
+                                                color = lineColor,
+                                                start = androidx.compose.ui.geometry.Offset(centerX, lineStartY),
+                                                end = androidx.compose.ui.geometry.Offset(centerX, size.height),
+                                                strokeWidth = 3.dp.toPx()
+                                            )
+                                        }
+                                    }
+                                }
+                                .clickable {
+                                    if (isExpanded) {
+                                        expandedExerciseIds.remove(exercise.id)
+                                    } else {
+                                        expandedExerciseIds.clear()
+                                        expandedExerciseIds.add(exercise.id)
+                                        pendingScrollIndex = index
+                                    }
+                                }
+                        ) {
+                            // Timeline Column (Just the dot/icon)
+                            Box(
+                                modifier = Modifier.width(36.dp).height(24.dp), // Height 24 to match title line height
+                                contentAlignment = Alignment.Center
+                            ) {
+                                if (isCompleted) {
                                     Icon(
-                                        imageVector = Icons.Default.ExpandLess,
+                                        imageVector = Icons.Default.CheckCircle,
                                         contentDescription = null,
-                                        tint = MaterialTheme.colorScheme.primary,
+                                        tint = primaryColor,
                                         modifier = Modifier.size(24.dp)
+                                    )
+                                } else {
+                                    Box(
+                                        modifier = Modifier
+                                            .size(if (isActive) 16.dp else 12.dp)
+                                            .clip(CircleShape)
+                                            .background(
+                                                if (isActive) primaryColor 
+                                                else outlineColor.copy(alpha = 0.4f)
+                                            )
                                     )
                                 }
                             }
-                            
-                            Spacer(modifier = Modifier.height(2.dp))
 
-                            Row(verticalAlignment = Alignment.CenterVertically) {
-                                Text(
-                                    text = getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
-                                    style = MaterialTheme.typography.bodyMedium,
-                                    color = MaterialTheme.colorScheme.onSurfaceVariant
-                                )
-                                if (exercise.tempo.isNotBlank()) {
+                            Spacer(modifier = Modifier.width(14.dp))
+
+                            // Exercise Info Column
+                            Column(
+                                modifier = Modifier
+                                    .weight(1f)
+                                    .padding(bottom = 20.dp)
+                            ) {
+                                Row(
+                                    verticalAlignment = Alignment.CenterVertically,
+                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                    modifier = Modifier.fillMaxWidth()
+                                ) {
+                                    Text(
+                                        text = translateExerciseName(exercise.name),
+                                        style = MaterialTheme.typography.titleMedium.copy(
+                                            fontWeight = if (isActive || isExpanded) FontWeight.Black else FontWeight.Bold,
+                                            lineHeight = 24.sp
+                                        ),
+                                        color = when {
+                                            isExpanded -> MaterialTheme.colorScheme.primary
+                                            isActive -> MaterialTheme.colorScheme.primary
+                                            isCompleted -> MaterialTheme.colorScheme.onSurface.copy(alpha = 0.6f)
+                                            else -> MaterialTheme.colorScheme.onSurface
+                                        },
+                                        modifier = Modifier.weight(1f),
+                                        maxLines = if (isExpanded) 2 else 1,
+                                        overflow = TextOverflow.Ellipsis
+                                    )
+
+                                    if (isExpanded) {
+                                        Icon(
+                                            imageVector = Icons.Default.ExpandLess,
+                                            contentDescription = null,
+                                            tint = MaterialTheme.colorScheme.primary,
+                                            modifier = Modifier.size(24.dp)
+                                        )
+                                    }
+                                }
+                            
+                                Spacer(modifier = Modifier.height(2.dp))
+
+                                Row(verticalAlignment = Alignment.CenterVertically) {
+                                    Text(
+                                        // "3 sets x 90 s" for a timed exercise, not "... x 8–12 reps":
+                                        // see [exerciseSetsSummaryLabel]. Jumping Jacks was listed
+                                        // on TODAY'S SCHEDULE as a rep exercise while the workout
+                                        // card under it ran a timer (owner, 2026-10-09: "it shows
+                                        // reps in the card yet the exercise is based on time and
+                                        // has a timer????"), because this row decided the unit on
+                                        // its own and always said "reps". The number is the level's
+                                        // own prescription, so the schedule and the card agree.
+                                        text = exerciseSetsSummaryLabel(
+                                            exerciseName = exercise.name,
+                                            targetSets = exercise.targetSets,
+                                            storedTarget = exercise.targetReps,
+                                            prescribed = viewModel.progressionDisplayLevel(exercise.name)
+                                                ?.let { viewModel.progressionPrescribedAt(exercise.name, it) },
+                                        ),
+                                        style = MaterialTheme.typography.bodyMedium,
+                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                    )
+                                    if (exercise.tempo.isNotBlank()) {
+                                        Spacer(modifier = Modifier.width(6.dp))
+                                        Text(
+                                            text = getTempoLabel(exercise.tempo),
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
+                                        )
+                                    }
+                                    Spacer(modifier = Modifier.width(10.dp))
+                                    Box(
+                                        modifier = Modifier
+                                            .size(8.dp)
+                                            .clip(CircleShape)
+                                            .background(muscleGroupColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)))
+                                    )
                                     Spacer(modifier = Modifier.width(6.dp))
                                     Text(
-                                        text = getTempoLabel(exercise.tempo),
-                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
-                                        color = MaterialTheme.colorScheme.primary,
+                                        text = formatMuscleGroup(exercise.muscleGroup, exercise.name),
+                                        style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
+                                        // Same hue family as the dot, Home's chip and the Analytics
+                                        // breakdown, but read as TEXT: on light themes the deep tone
+                                        // keeps yellow/amber hues legible on the near-white surface.
+                                        color = muscleGroupTextColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)),
+                                        modifier = Modifier.weight(1f, fill = false),
                                         maxLines = 1,
                                         overflow = TextOverflow.Ellipsis
                                     )
                                 }
-                                Spacer(modifier = Modifier.width(10.dp))
-                                Box(
-                                    modifier = Modifier
-                                        .size(8.dp)
-                                        .clip(CircleShape)
-                                        .background(muscleGroupColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)))
-                                )
-                                Spacer(modifier = Modifier.width(6.dp))
-                                Text(
-                                    text = formatMuscleGroup(exercise.muscleGroup, exercise.name),
-                                    style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.SemiBold),
-                                    // Same hue family as the dot, Home's chip and the Analytics
-                                    // breakdown, but read as TEXT: on light themes the deep tone
-                                    // keeps yellow/amber hues legible on the near-white surface.
-                                    color = muscleGroupTextColor(effectiveMuscleGroup(exercise.name, exercise.muscleGroup)),
-                                    modifier = Modifier.weight(1f, fill = false),
-                                    maxLines = 1,
-                                    overflow = TextOverflow.Ellipsis
-                                )
-                            }
 
-                            AnimatedVisibility(
-                                visible = isExpanded,
-                                enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
-                                        expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), expandFrom = Alignment.Top),
-                                exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
-                                       shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), shrinkTowards = Alignment.Top)
-                            ) {
-                                Column {
-                                    val (description, _) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
-                                    
-                                    Spacer(modifier = Modifier.height(10.dp))
-                                    if (description.isNotBlank()) {
+                                // WHAT THE SET IS SUPPOSED TO FEEL LIKE, on the list a user reads
+                                // BEFORE training rather than only where the routine is edited.
+                                //
+                                // Owner prompt, 2026-10-15: RPE and RIR "integrated in the workout
+                                // creation or exercises (just as labels for users nothing more)".
+                                //
+                                // IT GETS ITS OWN LINE, and that is a measurement, not a preference.
+                                // On the 1080px emulator, inline after the sets summary it rendered
+                                // 512-905 and squeezed the muscle group from 255px to its own
+                                // ellipsis at 58px - the row's fixed content (310px of summary, 393px
+                                // of label, 66px of dot and gaps) is already over the 840px the row
+                                // has to spend, so SOMETHING had to lose and it was the group name.
+                                // A short form would not have saved it (even "RPE 7 - 3 RIR" leaves
+                                // the name 112px of the 255 it needs), so the figure moves instead of
+                                // the group: nothing on the summary line changes width, and the label
+                                // is measured here against the full row.
+                                //
+                                // Same helper as the card, so the two can never describe one value
+                                // two ways, and the same "word (figures)" form - a summary that
+                                // abbreviates what the card spells out is a second vocabulary.
+                                if (exercise.targetIntensity.isNotBlank()) {
+                                    val displayIntensity = displayIntensityLabel(exercise.targetIntensity)
+                                    if (displayIntensity.isNotBlank()) {
+                                        Spacer(modifier = Modifier.height(3.dp))
                                         Text(
-                                            text = description,
-                                            style = MaterialTheme.typography.bodyMedium,
-                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            text = "• $displayIntensity",
+                                            style = MaterialTheme.typography.bodySmall.copy(fontWeight = FontWeight.Bold),
+                                            color = MaterialTheme.colorScheme.primary,
+                                            maxLines = 1,
+                                            overflow = TextOverflow.Ellipsis
                                         )
+                                    }
+                                }
+
+                                AnimatedVisibility(
+                                    visible = isExpanded,
+                                    enter = fadeIn(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
+                                            expandVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), expandFrom = Alignment.Top),
+                                    exit = fadeOut(animationSpec = spring(stiffness = Spring.StiffnessLow)) + 
+                                           shrinkVertically(animationSpec = spring(stiffness = Spring.StiffnessLow), shrinkTowards = Alignment.Top)
+                                ) {
+                                    Column {
+                                        val (description, _) = getExerciseDetails(exercise.name, exercise.muscleGroup, exercise.targetIntensity)
+                                    
+                                        Spacer(modifier = Modifier.height(10.dp))
+                                        if (description.isNotBlank()) {
+                                            Text(
+                                                text = description,
+                                                style = MaterialTheme.typography.bodyMedium,
+                                                color = MaterialTheme.colorScheme.onSurfaceVariant
+                                            )
+                                        }
                                     }
                                 }
                             }
                         }
                     }
                 }
+
             }
 
             item { Spacer(modifier = Modifier.height(24.dp)) }
         }
     }
 }
+

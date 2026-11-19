@@ -3,1100 +3,627 @@ package com.grafizum.repio.data
 /**
  * Italian names and method descriptions for the built-in exercise pool.
  *
- * Keyed by the canonical-name slug from [ExerciseLocalization.slugify] — see
- * [ExerciseLocalization] for why the key is the English name's slug and not the English
- * name itself. `ExerciseLocalizationTest` asserts that this table covers every pool
- * exercise exactly once and that no entry names an exercise outside the pool, so a typo in
- * a key fails the build instead of quietly leaving one exercise in English.
+ * Refilled after the CSV rebuild (branch `experiment/csv-exercise-db`): the pool
+ * grew from 271 to 601 exercises and every canonical name changed, so the previous
+ * table no longer matched a single key. One `"slug" to ex("Name", "Method text")`
+ * entry per pool exercise, keyed by `ExerciseLocalization.slugify(canonicalName)`.
+ *
+ * The integrity assertions in `ExerciseLocalizationTest` accept a partial table
+ * while it regrows and lock full coverage again once it is complete, so add the
+ * missing slugs as you go - `python tools/exercise-i18n/pool_dump.py` prints the
+ * pool, `python tools/exercise-i18n/check.py` reports duplicate names or
+ * descriptions. A slug typo does not crash anything, it just leaves that one
+ * exercise in English, which is exactly what the coverage test is there to catch.
  */
 internal val EXERCISE_TEXT_IT: Map<String, ExerciseText> = mapOf(
-    // --- Corpo libero ---
-    "archer_pull_ups" to ex(
-        "Trazioni Archer",
-        "Appenditi alla sbarra con una mano vicino all'estremità e l'altra più al centro. Tira su spostando il peso verso il braccio largo, mantenendo l'altro braccio disteso di lato."
-    ),
-    "bicycle_crunches" to ex(
-        "Crunch bicicletta",
-        "Sdraiati sulla schiena con le mani dietro la testa. Avvicina un ginocchio al gomito opposto ed estendi l'altra gamba, alternando i lati senza tirare il collo."
-    ),
-    "bird_dogs" to ex(
-        "Bird-Dog",
-        "Parti in quadrupedia. Estendi braccio e gamba opposti fino all'altezza del busto, fermati un istante e cambia lato senza far ruotare il bacino."
-    ),
-    "back_extensions" to ex(
-        "Estensioni lombari",
-        "Fissa il bacino sul cuscinetto della panca per le estensioni. Fletti il busto in avanti dall'anca e risali usando lombari e glutei."
-    ),
-    "box_jumps" to ex(
-        "Salto sul box",
-        "Mettiti davanti a un box stabile. Salta in modo esplosivo e atterra morbido con le ginocchia flesse, poi scendi con controllo."
-    ),
-    "calf_raises" to ex(
-        "Calf raise",
-        "Mettiti con le punte dei piedi su un gradino. Sollevati il più possibile sulle punte, fermati e abbassa i talloni sotto il gradino."
-    ),
-    "chin_ups" to ex(
-        "Trazioni a presa supina",
-        "Appenditi alla sbarra a presa supina, alla larghezza delle spalle. Porta il mento sopra la sbarra e scendi con controllo."
-    ),
-    "clamshells" to ex(
-        "Clamshell",
-        "Sdraiati su un fianco con le ginocchia flesse e i piedi uniti. Apri il ginocchio superiore come una conchiglia, stringi il gluteo in alto e chiudi lentamente."
-    ),
-    "copenhagen_planks" to ex(
-        "Plank di Copenhagen",
-        "Sdraiati su un fianco con la gamba superiore su una panca. Attiva il core e solleva il bacino da terra, mantenendo la posizione."
-    ),
-    "cossack_squats" to ex(
-        "Cossack squat",
-        "Stai in piedi a gambe larghe con le punte rivolte in avanti. Sposta il peso su una gamba e scendi in uno squat profondo mentre l'altra resta distesa, poi cambia lato."
-    ),
-    "crunches" to ex(
-        "Crunch",
-        "Sdraiati sulla schiena con le ginocchia flesse e i piedi a terra. Solleva le spalle da terra premendo la zona lombare, poi scendi lentamente."
-    ),
-    "dead_hangs" to ex(
-        "Sospensione a braccia distese",
-        "Appenditi alla sbarra con le braccia distese e le spalle rilassate. Mantieni la posizione per costruire presa e resistenza dei dorsali."
-    ),
-    "decline_sit_ups_weighted" to ex(
-        "Sit-up su panca declinata (con peso)",
-        "Fissa i piedi sulla panca declinata e tieni un peso al petto. Arrotola il busto verso l'alto e scendi con controllo."
-    ),
-    "dips" to ex(
-        "Dip alle parallele",
-        "Sostieniti sulle parallele con le braccia distese. Scendi flettendo i gomiti finché le spalle superano i gomiti, poi spingi di nuovo su."
-    ),
-    "dips_chest_focus" to ex(
-        "Dip con enfasi sul petto",
-        "Sostieniti alle parallele e inclina il busto in avanti. Scendi finché le spalle sono sotto i gomiti mantenendo l'inclinazione, poi spingi su."
-    ),
-    "dirty_dogs" to ex(
-        "Dirty Dog",
-        "Parti in quadrupedia con le ginocchia flesse. Solleva un ginocchio di lato come un cane all'idrante, mantenendo il bacino orizzontale, poi abbassalo."
-    ),
-    "donkey_kicks" to ex(
-        "Donkey kick",
-        "Parti in quadrupedia. Calcia una gamba in alto e indietro con il ginocchio flesso, stringi il gluteo in alto e scendi."
-    ),
-    "dragon_flags" to ex(
-        "Dragon flag",
-        "Sdraiati supino e afferra una panca dietro la testa. Solleva gambe e bacino, poi scendi con tutto il corpo disteso senza toccare terra."
-    ),
-    "false_grip_holds" to ex(
-        "Sospensione a presa falsa",
-        "Aggancia i polsi sopra la sbarra con le nocche rivolte verso l'alto. Appenditi o mantieni la posizione per costruire presa e avambracci."
-    ),
-    "finger_push_ups" to ex(
-        "Piegamenti sulle dita",
-        "Esegui i piegamenti sulle punte delle dita invece che sui palmi, per rinforzare dita e avambracci, mantenendo il corpo allineato."
-    ),
-    "fire_hydrants" to ex(
-        "Fire hydrant",
-        "Parti in quadrupedia. Solleva un ginocchio di lato all'altezza del bacino con la schiena piatta, poi abbassa e cambia lato."
-    ),
-    "fist_squeezes" to ex(
-        "Stretta dei pugni",
-        "Stringi i pugni con tutta la forza per qualche secondo, poi rilascia. Ripeti per rinforzare la presa."
-    ),
-    "frog_pumps" to ex(
-        "Frog pump",
-        "Sdraiati supino con le piante dei piedi unite e le ginocchia aperte. Spingi il bacino in alto stringendo i glutei, poi scendi."
-    ),
-    "garhammer_raises" to ex(
-        "Garhammer raise",
-        "Appenditi alla sbarra. Solleva le gambe tese a circa 45 gradi, poi scendi lentamente senza oscillare."
-    ),
-    "glute_bridges" to ex(
-        "Ponte per glutei",
-        "Sdraiati supino con le ginocchia flesse e i piedi a terra. Spingi il bacino in alto stringendo i glutei in cima, poi scendi lentamente."
-    ),
-    "handstand_holds" to ex(
-        "Verticale statica",
-        "Entra in verticale contro il muro. Mantieni la posizione con braccia distese, core attivo e punte dei piedi tese."
-    ),
-    "handstand_shrugs" to ex(
-        "Shrug in verticale",
-        "In verticale al muro, solleva le spalle verso le orecchie e poi riabbassale."
-    ),
-    "hanging_leg_raises" to ex(
-        "Sollevamento gambe alla sbarra",
-        "Appenditi alla sbarra. Solleva le gambe tese o poco flesse all'altezza del bacino o più in alto senza oscillare, poi scendi lentamente."
-    ),
-    "hanging_side_raises" to ex(
-        "Sollevamento laterale alla sbarra",
-        "Appenditi alla sbarra. Solleva le gambe di lato, prima da un lato e poi dall'altro, con controllo e senza oscillazioni."
-    ),
-    "hollow_body_holds" to ex(
-        "Hollow body hold",
-        "Sdraiati supino e solleva gambe e spalle da terra, premendo la zona lombare a terra. Mantieni la posizione."
-    ),
-    "inverted_curls" to ex(
-        "Curl inverso alla sbarra",
-        "Afferra una sbarra o degli anelli a presa supina con il corpo inclinato sotto. Porta il petto alla sbarra flettendo i gomiti, poi scendi."
-    ),
-    "inverted_rows" to ex(
-        "Rematore inverso",
-        "Metti una sbarra all'altezza del bacino e appenditi sotto con il corpo disteso. Porta il petto alla sbarra stringendo la schiena, poi scendi lentamente."
-    ),
-    "jumping_jacks" to ex(
-        "Jumping jack",
-        "Stai in piedi con i piedi uniti e le braccia lungo i fianchi. Salta aprendo le gambe e portando le braccia sopra la testa, poi torna alla posizione iniziale."
-    ),
-    "l_sits" to ex(
-        "L-sit",
-        "Sostieniti alle parallele o premi i palmi a terra. Solleva le gambe tese in avanti, mantenendole parallele al suolo."
-    ),
-    "l_sit_pull_ups" to ex(
-        "Trazioni in L-sit",
-        "Appenditi alla sbarra e solleva le gambe in posizione a L. Tira su mantenendo la L e scendi con controllo."
-    ),
-    "lateral_plank_walks" to ex(
-        "Camminata in plank laterale",
-        "Mantieni un plank laterale sull'avambraccio. Fai passare avanti e indietro la gamba superiore senza far cadere il bacino."
-    ),
-    "leg_raises" to ex(
-        "Sollevamento gambe",
-        "Sdraiati supino con le gambe tese. Sollevale verso il soffitto senza inarcare la zona lombare, poi scendi lentamente."
-    ),
-    "lunges" to ex(
-        "Affondi",
-        "Stai in piedi, fai un passo avanti e scendi finché entrambe le ginocchia non formano circa 90 gradi. Spingi per tornare in piedi e cambia gamba."
-    ),
-    "mountain_climbers" to ex(
-        "Mountain climber",
-        "Parti in plank. Porta rapidamente un ginocchio al petto e alterna le gambe mantenendo il bacino basso."
-    ),
-    "muscle_ups_bw" to ex(
-        "Muscle-up",
-        "Tira in modo esplosivo finché il petto supera la sbarra, poi spingi sopra la sbarra in un dip, chiudendo con le braccia distese."
-    ),
-    "nordic_curls" to ex(
-        "Nordic curl",
-        "Inginocchiati con le caviglie fissate. Scendi con il busto lentamente e con controllo, resistendo con i femorali, poi tirati su."
-    ),
-    "plank_to_down_dogs" to ex(
-        "Plank to down dog",
-        "Dal plank spingi il bacino in alto e indietro nel cane a testa in giù, poi torna in plank. Muoviti con controllo."
-    ),
-    "planks" to ex(
-        "Plank",
-        "Sostieniti su avambracci e punte dei piedi. Mantieni il corpo in linea retta, attiva il core e non far cadere il bacino."
-    ),
-    "pike_holds" to ex(
-        "Pike hold",
-        "Dalla posizione di piegamento porta i piedi vicini e solleva il bacino in posizione di pike. Mantieni con gambe e braccia distese."
-    ),
-    "pull_ups" to ex(
-        "Trazioni alla sbarra",
-        "Appenditi alla sbarra a presa prona, poco più larga delle spalle. Porta il petto alla sbarra e scendi con controllo."
-    ),
-    "push_ups" to ex(
-        "Piegamenti sulle braccia",
-        "Parti in plank alto con le mani sotto le spalle. Scendi con il petto verso terra e spingi di nuovo su, mantenendo il corpo allineato."
-    ),
-    "reverse_snow_angels" to ex(
-        "Snow angel inverso",
-        "Sdraiati prono e solleva leggermente braccia e gambe da terra. Muovi le braccia dall'alto verso i fianchi come un angelo nella neve, senza appoggiarle."
-    ),
-    "russian_twists" to ex(
-        "Russian twist",
-        "Siediti con le ginocchia flesse e inclinati leggermente indietro. Ruota il busto da un lato all'altro con il petto alto e il core attivo."
-    ),
-    "scapular_pull_ups" to ex(
-        "Trazioni scapolari",
-        "Appenditi alla sbarra con le braccia distese. Deprimi e avvicina le scapole per sollevarti di qualche centimetro, poi rilascia."
-    ),
-    "scapular_push_ups" to ex(
-        "Piegamenti scapolari",
-        "Parti in plank. Avvicina e allontana le scapole senza flettere i gomiti."
-    ),
-    "shoulder_taps" to ex(
-        "Tocco spalle",
-        "Parti in plank alto. Tocca con una mano la spalla opposta, alternando, senza muovere il bacino."
-    ),
-    "side_lying_leg_raises" to ex(
-        "Sollevamento gamba su un fianco",
-        "Sdraiati su un fianco con le gambe tese. Solleva la gamba superiore tesa verso il soffitto e scendi lentamente."
-    ),
-    "side_plank_crunches" to ex(
-        "Crunch in plank laterale",
-        "Mantieni un plank laterale sull'avambraccio. Avvicina gomito e ginocchio superiori, poi riestendi."
-    ),
-    "side_plank_leg_raises" to ex(
-        "Sollevamento gamba in plank laterale",
-        "Mantieni un plank laterale sull'avambraccio. Solleva e abbassa la gamba superiore mantenendo il bacino stabile."
-    ),
-    "side_plank_rotations" to ex(
-        "Rotazione in plank laterale",
-        "Mantieni un plank laterale sull'avambraccio. Ruota il busto e passa il braccio superiore sotto il corpo, poi riapri."
-    ),
-    "side_planks" to ex(
-        "Plank laterale",
-        "Sostieniti su un avambraccio con i piedi sovrapposti. Solleva il bacino finché il corpo è in linea retta e mantieni la posizione."
-    ),
-    "side_steps" to ex(
-        "Passi laterali",
-        "Metti un elastico attorno alle cosce e stai con i piedi alla larghezza dei fianchi. Fai passi laterali mantenendo la tensione, poi torna indietro."
-    ),
-    "sissy_squats" to ex(
-        "Sissy squat",
-        "Tieniti a un sostegno e inclinati leggermente indietro. Scendi flettendo le ginocchia con il busto inclinato all'indietro, poi risali."
-    ),
-    "sliding_leg_curls" to ex(
-        "Leg curl con slider",
-        "Sdraiati supino con i talloni su slider o asciugamani. Fai scivolare i piedi verso i glutei, poi riestendi."
-    ),
-    "split_squats" to ex(
-        "Split squat",
-        "Un piede avanti e l'altro dietro. Scendi in verticale finché il ginocchio posteriore non sfiora terra, poi spingi sul piede anteriore."
-    ),
-    "squats" to ex(
-        "Squat",
-        "Stai in piedi a piedi larghezza spalle. Abbassa il bacino come per sederti, poi spingi sui talloni per rialzarti."
-    ),
-    "step_ups" to ex(
-        "Step-up",
-        "Mettiti davanti a una panca. Sali con un piede spingendo sul tallone, poi scendi e cambia gamba."
-    ),
-    "sumo_squats" to ex(
-        "Sumo squat",
-        "Stai a gambe larghe con le punte rivolte verso l'esterno. Scendi tra le gambe con il petto alto e le ginocchia in linea con le punte, poi spingi su."
-    ),
-    "superman_extensions" to ex(
-        "Superman extension",
-        "Sdraiati prono e solleva braccia, petto e gambe da terra. Fermati un istante e scendi lentamente."
-    ),
-    "supermans" to ex(
-        "Superman",
-        "Sdraiati prono con le braccia distese. Solleva contemporaneamente braccia, petto e gambe, fermati un istante e scendi."
-    ),
-    "tibialis_raises" to ex(
-        "Tibiali",
-        "Siediti con i talloni fissati e un peso sulle punte, oppure stai con la schiena al muro. Porta le punte verso gli stinchi e scendi lentamente."
-    ),
-    "tip_toe_walks" to ex(
-        "Camminata sulle punte",
-        "Cammina sulle punte per una distanza o un tempo definiti per rinforzare i polpacci."
-    ),
-    "towel_hangs" to ex(
-        "Sospensione all'asciugamano",
-        "Avvolgi un asciugamano sulla sbarra per ogni mano e appenditi. Mantieni la posizione per rinforzare la presa."
-    ),
-    "underhand_inverted_rows" to ex(
-        "Rematore inverso a presa supina",
-        "Metti una sbarra all'altezza del bacino e appenditi sotto a presa supina. Porta il petto alla sbarra e scendi lentamente."
-    ),
-    "v_ups" to ex(
-        "V-up",
-        "Sdraiati supino con le braccia sopra la testa. Solleva insieme gambe e busto formando una V, poi scendi con controllo."
-    ),
-    "wall_sits" to ex(
-        "Wall sit",
-        "Fai scivolare la schiena lungo il muro finché le cosce sono parallele al suolo. Mantieni con le ginocchia a 90 gradi."
-    ),
-    "wall_slides" to ex(
-        "Wall slide",
-        "Stai con la schiena al muro e le braccia piegate a 90 gradi. Fai scorrere le braccia su e giù mantenendole aderenti al muro."
-    ),
-    "weighted_dips" to ex(
-        "Dip con sovraccarico",
-        "Esegui i dip con un manubrio tra i piedi o con una cintura zavorrata. Scendi finché le spalle sono sotto i gomiti, poi spingi su."
-    ),
-    "wide_grip_pull_ups" to ex(
-        "Trazioni a presa larga",
-        "Appenditi alla sbarra con presa larga. Porta il petto verso la sbarra e scendi con controllo."
-    ),
-    "windshield_wipers" to ex(
-        "Tergicristallo",
-        "Sdraiati supino con le braccia aperte e le gambe sollevate. Abbassa le gambe da un lato all'altro come un tergicristallo, tenendo le spalle a terra."
-    ),
-    "y_w_t_raises" to ex(
-        "Y-W-T raise",
-        "Sdraiati prono e forma con le braccia le lettere Y, W e T, sollevando ogni posizione da terra per lavorare la parte alta della schiena."
-    ),
-
-    // --- Manubri ---
-    "arnold_presses" to ex(
-        "Arnold press",
-        "Tieni i manubri all'altezza delle spalle con i palmi verso di te. Spingi in alto ruotando i palmi verso l'esterno finché le braccia sono distese; in discesa ruota al contrario."
-    ),
-    "concentration_curls" to ex(
-        "Curl di concentrazione",
-        "Siediti con il gomito appoggiato all'interno della coscia. Fletti il manubrio verso la spalla senza muovere il braccio e scendi lentamente."
-    ),
-    "decline_dumbbell_presses" to ex(
-        "Panca declinata con manubri",
-        "Sdraiati su una panca declinata con un manubrio per mano. Scendi verso la parte bassa del petto e spingi in alto finché le braccia sono distese."
-    ),
-    "dumbbell_back_extensions" to ex(
-        "Estensioni lombari con manubrio",
-        "Tieni un manubrio al petto sulla panca per le estensioni. Fletti il busto in avanti dall'anca e risali con lombari e glutei."
-    ),
-    "dumbbell_bench_presses" to ex(
-        "Panca piana con manubri",
-        "Sdraiati sulla panca piana con un manubrio per mano all'altezza del petto. Spingi in alto finché le braccia sono distese, poi scendi con controllo."
-    ),
-    "dumbbell_calf_raises" to ex(
-        "Calf raise con manubri",
-        "Tieni i manubri ai fianchi con le punte dei piedi su un gradino. Sollevati sulle punte, fermati e abbassa i talloni sotto il gradino."
-    ),
-    "dumbbell_clean_presses" to ex(
-        "Clean & press con manubri",
-        "Porta un manubrio da terra o dall'alto in modo esplosivo sulla spalla, poi spingilo sopra la testa finché il braccio è disteso."
-    ),
-    "dumbbell_crunches" to ex(
-        "Crunch con manubrio",
-        "Sdraiati supino tenendo un manubrio al petto. Arrotola le spalle verso l'alto premendo la zona lombare a terra, poi scendi."
-    ),
-    "dumbbell_curls" to ex(
-        "Curl con manubri",
-        "Stai in piedi con i manubri ai fianchi e i palmi rivolti in avanti. Fletti verso le spalle tenendo i gomiti aderenti ai fianchi, poi scendi lentamente."
-    ),
-    "dumbbell_deadlifts" to ex(
-        "Stacco da terra con manubri",
-        "Stai con i manubri davanti alle cosce. Fletti il busto dall'anca con la schiena piatta e scendi oltre le ginocchia, poi risali in piedi."
-    ),
-    "dumbbell_face_pulls" to ex(
-        "Face pull con manubri",
-        "Tieni manubri leggeri e solleva le braccia ai lati con i pollici in alto, poi fletti i gomiti portando i pesi verso il viso e stringendo le spalle posteriori."
-    ),
-    "dumbbell_floor_presses" to ex(
-        "Floor press con manubri",
-        "Sdraiati a terra con un manubrio per mano al petto. Spingi in alto e scendi finché gli omeri toccano il pavimento."
-    ),
-    "dumbbell_flyes" to ex(
-        "Croci con manubri",
-        "Sdraiati sulla panca con i manubri sopra il petto, i palmi verso l'interno e i gomiti leggermente flessi. Apri le braccia in un arco ampio, poi stringi il petto per riunirle."
-    ),
-    "dumbbell_front_raises" to ex(
-        "Alzate frontali con manubri",
-        "Stai con i manubri davanti alle cosce. Sollevali distesi davanti a te fino all'altezza delle spalle, poi scendi lentamente."
-    ),
-    "dumbbell_glute_bridges" to ex(
-        "Ponte per glutei con manubrio",
-        "Sdraiati supino con le ginocchia flesse e un manubrio sul bacino. Spingi il bacino in alto stringendo i glutei, poi scendi."
-    ),
-    "dumbbell_good_mornings" to ex(
-        "Good morning con manubri",
-        "Tieni i manubri sulle spalle o lungo le cosce. Fletti il busto in avanti dall'anca con la schiena piatta e le ginocchia leggermente flesse, poi risali."
-    ),
-    "dumbbell_hammer_curls" to ex(
-        "Hammer curl con manubri",
-        "Tieni i manubri con i palmi rivolti l'uno verso l'altro. Fletti verso le spalle mantenendo la presa neutra, poi scendi lentamente."
-    ),
-    "dumbbell_hip_thrusts" to ex(
-        "Hip thrust con manubrio",
-        "Siediti con la parte alta della schiena su una panca e un manubrio sul bacino. Spingi il bacino in alto stringendo i glutei, poi scendi."
-    ),
-    "dumbbell_kickbacks" to ex(
-        "Kickback con manubrio",
-        "Fletti il busto in avanti con un braccio al fianco e il gomito flesso. Estendi il braccio dritto all'indietro stringendo il tricipite, poi torna."
-    ),
-    "dumbbell_lateral_raises" to ex(
-        "Alzate laterali con manubri",
-        "Stai con i manubri ai fianchi e i gomiti leggermente flessi. Solleva le braccia ai lati fino all'altezza delle spalle, poi scendi lentamente."
-    ),
-    "dumbbell_leg_curls" to ex(
-        "Leg curl con manubrio",
-        "Sdraiati prono o siediti tenendo un manubrio tra i piedi. Fletti i talloni verso i glutei, poi scendi lentamente."
-    ),
-    "dumbbell_leg_raises" to ex(
-        "Sollevamento gambe con manubrio",
-        "Sdraiati supino tenendo un manubrio tra i piedi o nelle mani. Solleva le gambe tese, poi scendi con controllo."
-    ),
-    "dumbbell_lunges" to ex(
-        "Affondi con manubri",
-        "Tieni i manubri ai fianchi. Fai un passo avanti e scendi finché entrambe le ginocchia formano circa 90 gradi, poi torna in piedi e cambia gamba."
-    ),
-    "dumbbell_overhead_extensions" to ex(
-        "Estensioni sopra la testa con manubrio",
-        "Tieni un manubrio sopra la testa con entrambe le mani (o una sola). Scendilo dietro la testa flettendo i gomiti, poi spingi di nuovo su."
-    ),
-    "dumbbell_pinch_grips" to ex(
-        "Pinch grip con manubrio",
-        "Pizzica un manubrio sul disco superiore con dita e pollice. Tienilo al fianco a tempo per rinforzare la presa."
-    ),
-    "dumbbell_pullovers" to ex(
-        "Pullover con manubrio",
-        "Sdraiati sulla panca tenendo un manubrio con entrambe le mani sopra il petto. Scendilo dietro la testa in un arco, poi riportalo sopra il petto."
-    ),
-    "dumbbell_rear_delt_flyes" to ex(
-        "Croci posteriori con manubri",
-        "Fletti il busto in avanti con la schiena piatta. Con i gomiti leggermente flessi solleva i manubri ai lati stringendo le spalle posteriori."
-    ),
-    "dumbbell_reverse_curls" to ex(
-        "Curl inverso con manubri",
-        "Tieni i manubri a presa prona (palmi verso il basso). Fletti verso le spalle tenendo i gomiti ai fianchi, poi scendi lentamente."
-    ),
-    "dumbbell_romanian_deadlifts" to ex(
-        "Stacco rumeno con manubri",
-        "Stai con i manubri davanti alle cosce. Spingi il bacino indietro e fai scendere i pesi lungo le gambe con le ginocchia poco flesse finché senti l'allungamento dei femorali, poi risali."
-    ),
-    "dumbbell_rows" to ex(
-        "Rematore con manubrio",
-        "Fletti il busto in avanti appoggiando una mano su una panca e il piede opposto a terra. Tira il manubrio verso il fianco con la schiena piatta, poi scendi con controllo."
-    ),
-    "dumbbell_russian_twists" to ex(
-        "Russian twist con manubrio",
-        "Siediti con le ginocchia flesse, un manubrio al petto e il busto leggermente indietro. Ruota il busto da un lato all'altro toccando terra con il peso a ogni lato."
-    ),
-    "dumbbell_shoulder_presses" to ex(
-        "Spinte con manubri",
-        "Tieni i manubri all'altezza delle spalle con i palmi in avanti. Spingi sopra la testa finché le braccia sono distese, poi scendi con controllo."
-    ),
-    "dumbbell_shrugs" to ex(
-        "Shrug con manubri",
-        "Tieni i manubri ai fianchi con le braccia distese. Solleva le spalle verso le orecchie, fermati e scendi."
-    ),
-    "dumbbell_side_bends" to ex(
-        "Flessioni laterali con manubrio",
-        "Tieni un manubrio in una mano al fianco. Piega il busto verso il peso, poi torna su e cambia lato."
-    ),
-    "dumbbell_side_lunges" to ex(
-        "Affondi laterali con manubri",
-        "Tieni i manubri al petto o ai fianchi. Fai un passo di lato flettendo quel ginocchio mentre l'altra gamba resta tesa, poi torna al centro."
-    ),
-    "dumbbell_skullcrushers" to ex(
-        "Skullcrusher con manubri",
-        "Sdraiati sulla panca con i manubri sopra il petto. Scendili verso la testa flettendo i gomiti, poi riestendi."
-    ),
-    "dumbbell_split_squats" to ex(
-        "Split squat con manubri",
-        "Tieni i manubri ai fianchi con un piede appoggiato dietro su una panca. Scendi in verticale finché il ginocchio posteriore sfiora terra, poi spingi su."
-    ),
-    "dumbbell_squats" to ex(
-        "Squat con manubri",
-        "Tieni i manubri ai fianchi o alle spalle. Scendi in squat finché le cosce sono almeno parallele al suolo, petto alto, poi spingi su."
-    ),
-    "dumbbell_step_ups" to ex(
-        "Step-up con manubri",
-        "Tieni i manubri ai fianchi. Sali su una panca spingendo sul tallone, poi scendi e cambia gamba."
-    ),
-    "dumbbell_thrusters" to ex(
-        "Thruster con manubri",
-        "Tieni i manubri alle spalle. Scendi in squat e spingi su portando i manubri sopra la testa in un movimento continuo."
-    ),
-    "dumbbell_v_ups" to ex(
-        "V-up con manubrio",
-        "Sdraiati supino tenendo un manubrio sopra la testa. Solleva insieme gambe e busto formando una V, poi scendi con controllo."
-    ),
-    "dumbbell_windmills" to ex(
-        "Windmill con manubrio",
-        "Tieni un manubrio sopra la testa con il braccio disteso. Ruota il bacino indietro e fai scendere la mano libera lungo la gamba, poi torna in piedi."
-    ),
-    "dumbbell_woodchoppers" to ex(
-        "Woodchopper con manubrio",
-        "Tieni un manubrio con entrambe le mani. Ruota il busto facendolo oscillare in diagonale dall'alto verso il basso (o viceversa) con il core attivo."
-    ),
-    "dumbbell_wrist_curls" to ex(
-        "Curl per polsi con manubri",
-        "Siediti con gli avambracci sulle cosce, i palmi verso l'alto e i manubri in mano. Fletti i polsi verso l'alto, poi scendi lentamente."
-    ),
-    "dumbbell_y_raises" to ex(
-        "Y-raise con manubri",
-        "Inclinati leggermente in avanti con i manubri ai fianchi. Solleva le braccia in alto e in fuori formando una Y, stringendo la parte alta della schiena."
-    ),
-    "farmer_s_walks" to ex(
-        "Farmer's walk",
-        "Tieni un peso pesante in ogni mano con postura eretta e core attivo. Cammina con passi controllati senza far cadere le spalle in avanti."
-    ),
-    "goblet_squats" to ex(
-        "Goblet squat",
-        "Tieni un manubrio o un kettlebell al petto. Scendi in uno squat profondo con il petto alto e i gomiti dentro le ginocchia, poi spingi su."
-    ),
-    "incline_dumbbell_curls" to ex(
-        "Curl su panca inclinata",
-        "Siediti su una panca inclinata con i manubri che pendono ai lati. Fletti verso l'alto tenendo i gomiti indietro e le spalle ferme, poi scendi lentamente."
-    ),
-    "incline_dumbbell_presses" to ex(
-        "Panca inclinata con manubri",
-        "Sdraiati su una panca inclinata con un manubrio per mano alla parte alta del petto. Spingi in alto fino a distendere le braccia, poi scendi con controllo."
-    ),
-    "preacher_curls" to ex(
-        "Curl alla panca Scott",
-        "Siediti alla panca Scott con gli omeri sul cuscinetto. Fletti il bilanciere o i manubri verso l'alto e scendi finché le braccia sono quasi distese."
-    ),
-    "rear_delt_floor_flyes" to ex(
-        "Croci posteriori a terra",
-        "Sdraiati prono a terra con manubri leggeri. Solleva le braccia ai lati stringendo le spalle posteriori, poi scendi."
-    ),
-    "spider_curls" to ex(
-        "Spider curl",
-        "Sdraiati prono su una panca inclinata con i manubri. Fletti verso le spalle con gli omeri perpendicolari al suolo, poi scendi lentamente."
-    ),
-    "stiff_leg_dumbbell_deadlifts" to ex(
-        "Stacco a gambe tese con manubri",
-        "Stai con i manubri davanti alle cosce e le gambe quasi tese. Fletti il busto in avanti facendo scendere i pesi lungo le gambe, poi risali."
-    ),
-    "zottman_curls" to ex(
-        "Zottman curl",
-        "Fletti i manubri con i palmi verso l'alto. In alto ruota i palmi verso il basso e scendi lentamente, poi ruota di nuovo per la ripetizione successiva."
-    ),
-    // --- Bilancieri ---
-    "barbell_back_extensions" to ex(
-        "Estensioni lombari con bilanciere",
-        "Tieni il bilanciere sulla parte alta della schiena sulla panca per le estensioni. Fletti il busto in avanti dall'anca e risali con lombari e glutei."
-    ),
-    "barbell_bench_presses" to ex(
-        "Panca piana con bilanciere",
-        "Sdraiati sulla panca con il bilanciere sopra gli occhi e i piedi a terra. Impugna poco più largo delle spalle, scendi al centro del petto e spingi fino a distendere le braccia."
-    ),
-    "barbell_calf_raises" to ex(
-        "Calf raise con bilanciere",
-        "Stai con il bilanciere sulle spalle e le punte dei piedi su un gradino. Sollevati sulle punte, fermati e abbassa i talloni sotto il gradino."
-    ),
-    "barbell_clean_presses" to ex(
-        "Clean & press con bilanciere",
-        "Porta il bilanciere da terra o dall'alto in modo esplosivo sulle spalle, poi spingilo sopra la testa fino a distendere le braccia."
-    ),
-    "barbell_crunches" to ex(
-        "Crunch con bilanciere",
-        "Sdraiati supino tenendo il bilanciere al petto o sopra la testa. Arrotola le spalle da terra mantenendo la zona lombare a terra, poi scendi lentamente."
-    ),
-    "barbell_curls" to ex(
-        "Curl con bilanciere",
-        "Stai eretto con il bilanciere a presa supina. Flettilo verso il petto tenendo i gomiti ai fianchi, poi scendi lentamente."
-    ),
-    "barbell_deadlifts" to ex(
-        "Stacco da terra",
-        "Stai a piedi larghezza fianchi con il bilanciere sopra il centro del piede. Impugna, attiva il core e spingi sui talloni per alzarti con la schiena piatta, poi scendi con controllo."
-    ),
-    "barbell_face_pulls" to ex(
-        "Face pull con bilanciere",
-        "Metti una sbarra o una corda all'altezza del viso. Tira verso il viso con i gomiti alti e larghi, stringendo le spalle posteriori, poi torna."
-    ),
-    "barbell_floor_presses" to ex(
-        "Floor press con bilanciere",
-        "Sdraiati a terra con il bilanciere sopra il petto. Scendi finché gli omeri toccano il pavimento, poi spingi su: il pavimento limita l'escursione."
-    ),
-    "barbell_front_raises" to ex(
-        "Alzate frontali con bilanciere",
-        "Stai eretto tenendo il bilanciere a presa prona. Sollevalo disteso davanti a te fino all'altezza delle spalle, poi scendi con controllo."
-    ),
-    "barbell_front_squats" to ex(
-        "Front squat",
-        "Appoggia il bilanciere davanti alle spalle con i gomiti alti. Scendi in squat con il petto alto e il busto verticale, poi spingi su."
-    ),
-    "barbell_glute_bridges" to ex(
-        "Ponte per glutei con bilanciere",
-        "Sdraiati supino con le ginocchia flesse e il bilanciere sul bacino. Spingi il bacino in alto stringendo i glutei finché il corpo è in linea, poi scendi."
-    ),
-    "barbell_good_mornings" to ex(
-        "Good morning con bilanciere",
-        "Appoggia il bilanciere sulla parte alta della schiena. Fletti il busto in avanti dall'anca con la schiena piatta e le ginocchia poco flesse, poi risali spingendo il bacino in avanti."
-    ),
-    "barbell_hip_thrusts" to ex(
-        "Hip thrust con bilanciere",
-        "Siediti con la parte alta della schiena su una panca e il bilanciere sul bacino. Spingi il bacino in alto stringendo i glutei, poi scendi."
-    ),
-    "barbell_leg_raises" to ex(
-        "Sollevamento gambe con bilanciere",
-        "Sdraiati supino tenendo il bilanciere sopra la testa o tra i piedi. Solleva le gambe tese fino alla verticale e scendi lentamente senza inarcare la zona lombare."
-    ),
-    "barbell_lunges" to ex(
-        "Affondi con bilanciere",
-        "Tieni il bilanciere sulla parte alta della schiena. Fai un passo avanti e scendi finché entrambe le ginocchia formano circa 90 gradi, poi torna in piedi."
-    ),
-    "barbell_overhead_extensions" to ex(
-        "Estensioni sopra la testa con bilanciere",
-        "Tieni il bilanciere sopra la testa a presa stretta. Scendilo dietro la testa flettendo i gomiti, poi spingi su fino a distendere le braccia."
-    ),
-    "barbell_overhead_presses" to ex(
-        "Distensioni sopra la testa con bilanciere",
-        "Stai con il bilanciere sulle clavicole. Spingilo sopra la testa fino a distendere le braccia con il core attivo, poi scendi al petto."
-    ),
-    "barbell_pullovers" to ex(
-        "Pullover con bilanciere",
-        "Sdraiati sulla panca tenendo il bilanciere a presa stretta sopra il petto. Scendilo dietro la testa in un arco, poi riportalo sopra il petto."
-    ),
-    "barbell_push_presses" to ex(
-        "Push press",
-        "Tieni il bilanciere alle spalle con le ginocchia leggermente flesse. Fai un piccolo affondo e spingi il bilanciere sopra la testa usando le gambe."
-    ),
-    "barbell_rack_pulls" to ex(
-        "Rack pull",
-        "Metti il bilanciere sui supporti all'altezza delle ginocchia. Impugna e spingi sui talloni per alzarti con la schiena piatta, poi riappoggialo."
-    ),
-    "barbell_reverse_curls" to ex(
-        "Curl inverso con bilanciere",
-        "Tieni il bilanciere a presa prona (palmi verso il basso). Flettilo verso le spalle tenendo i gomiti ai fianchi, poi scendi lentamente."
-    ),
-    "barbell_reverse_wrist_curls" to ex(
-        "Curl inverso per polsi con bilanciere",
-        "Siediti con gli avambracci sulle cosce e i palmi verso il basso. Fletti i polsi verso l'alto, poi scendi lentamente."
-    ),
-    "barbell_rollouts" to ex(
-        "Rollout con bilanciere",
-        "Inginocchiati con il bilanciere carico davanti a te. Fallo rotolare in avanti con il core attivo e la zona lombare piatta, poi riportalo indietro con gli addominali."
-    ),
-    "barbell_romanian_deadlifts" to ex(
-        "Stacco rumeno con bilanciere",
-        "Stai con il bilanciere ai fianchi. Spingi il bacino indietro facendo scendere il bilanciere lungo le cosce con le ginocchia poco flesse finché senti l'allungamento dei femorali, poi risali."
-    ),
-    "barbell_rows" to ex(
-        "Rematore con bilanciere",
-        "Fletti il busto in avanti con la schiena piatta e il bilanciere a braccia distese. Tiralo verso le costole basse stringendo le scapole, poi scendi con controllo."
-    ),
-    "barbell_shrugs" to ex(
-        "Shrug con bilanciere",
-        "Stai eretto tenendo il bilanciere a braccia distese. Solleva le spalle verso le orecchie, fermati e scendi lentamente."
-    ),
-    "barbell_side_bends" to ex(
-        "Flessioni laterali con bilanciere",
-        "Tieni il bilanciere sulle spalle o a un fianco. Piega il busto di lato in vita, poi torna su con controllo e cambia lato."
-    ),
-    "barbell_side_lunges" to ex(
-        "Affondi laterali con bilanciere",
-        "Tieni il bilanciere sulla parte alta della schiena. Fai un passo di lato flettendo quel ginocchio mentre l'altra gamba resta tesa, poi torna al centro."
-    ),
-    "barbell_sit_ups" to ex(
-        "Sit-up con bilanciere",
-        "Sdraiati supino tenendo il bilanciere al petto o sopra la testa. Siediti arrotolando il busto in avanti, poi scendi con controllo."
-    ),
-    "barbell_skullcrushers" to ex(
-        "Skullcrusher con bilanciere",
-        "Sdraiati sulla panca tenendo il bilanciere a presa stretta sopra il petto. Scendilo verso la fronte flettendo i gomiti, poi riestendi."
-    ),
-    "barbell_spider_curls" to ex(
-        "Spider curl con bilanciere",
-        "Sdraiati prono su una panca inclinata tenendo il bilanciere. Flettilo verso le spalle con gli omeri perpendicolari al suolo, poi scendi lentamente."
-    ),
-    "barbell_squats" to ex(
-        "Squat con bilanciere",
-        "Appoggia il bilanciere sulla parte alta della schiena. Scendi in squat finché le cosce sono almeno parallele al suolo, petto alto e ginocchia in linea con le punte, poi spingi su."
-    ),
-    "barbell_step_ups" to ex(
-        "Step-up con bilanciere",
-        "Tieni il bilanciere sulla schiena. Sali su una panca spingendo sul tallone anteriore, poi scendi e cambia gamba."
-    ),
-    "barbell_strict_presses" to ex(
-        "Strict press",
-        "Stai con il bilanciere sulle clavicole e senza spinta di gambe. Spingilo sopra la testa usando solo spalle e braccia, poi scendi con controllo."
-    ),
-    "barbell_windmills" to ex(
-        "Windmill con bilanciere",
-        "Tieni il bilanciere sopra la testa con un braccio disteso. Ruota il bacino indietro e fai scendere la mano libera lungo la gamba, poi torna in piedi."
-    ),
-    "barbell_wrist_curls" to ex(
-        "Curl per polsi con bilanciere",
-        "Siediti con gli avambracci sulle cosce e i palmi verso l'alto. Fletti i polsi verso l'alto, poi scendi lentamente."
-    ),
-    "close_grip_barbell_presses" to ex(
-        "Panca a presa stretta",
-        "Sdraiati sulla panca con le mani alla larghezza delle spalle. Scendi il bilanciere alla parte bassa del petto con i gomiti aderenti e spingi su."
-    ),
-    "decline_barbell_presses" to ex(
-        "Panca declinata con bilanciere",
-        "Sdraiati sulla panca declinata con il bilanciere sopra la parte bassa del petto. Scendilo e spingi fino a distendere le braccia."
-    ),
-    "incline_barbell_presses" to ex(
-        "Panca inclinata con bilanciere",
-        "Sdraiati sulla panca inclinata con il bilanciere sopra la parte alta del petto. Scendilo alla parte alta del petto e spingi fino a distendere."
-    ),
-    "landmine_presses" to ex(
-        "Landmine press",
-        "Inserisci un'estremità del bilanciere in un angolo landmine. Spingi l'altra estremità sopra la testa dall'altezza della spalla con una traiettoria leggermente diagonale, poi scendi."
-    ),
-    "landmine_rainbows" to ex(
-        "Landmine rainbow",
-        "Tieni l'estremità carica del bilanciere sopra la testa. Fallo oscillare in un arco ampio da un lato all'altro con il core attivo."
-    ),
-    "landmine_twists" to ex(
-        "Landmine twist",
-        "Tieni l'estremità carica del bilanciere al petto. Ruota il busto da un lato all'altro mantenendo il bacino rivolto in avanti."
-    ),
-    "military_presses" to ex(
-        "Military press",
-        "Stai o siediti con il bilanciere sulle clavicole. Spingilo sopra la testa fino a distendere le braccia con il core attivo."
-    ),
-    "stiff_leg_barbell_deadlifts" to ex(
-        "Stacco a gambe tese con bilanciere",
-        "Stai con il bilanciere ai fianchi e le gambe quasi tese. Fletti il busto in avanti facendo scendere il bilanciere lungo le gambe finché senti l'allungamento, poi risali."
-    ),
-    "t_bar_rows" to ex(
-        "Rematore al T-bar",
-        "Mettiti a cavallo del T-bar e impugna le maniglie. Tira il peso al petto stringendo le scapole, poi scendi."
-    ),
-    "upright_barbell_rows" to ex(
-        "Tirate al mento",
-        "Tieni il bilanciere a presa prona. Tiralo fino al mento guidando con i gomiti, poi scendi con controllo."
-    ),
-    // --- Cavi e macchine ---
-    "ab_wheels" to ex(
-        "Ab wheel",
-        "Inginocchiati e tieni la ruota sotto le spalle. Fallo rotolare in avanti con il core attivo e senza far cadere il bacino, poi riportalo indietro arrotolando gli addominali."
-    ),
-    "abductor_machines" to ex(
-        "Abduzione alla macchina",
-        "Siediti nella macchina per l'abduzione con i cuscinetti all'esterno delle cosce. Apri le gambe contro i cuscinetti, fermati e torna lentamente."
-    ),
-    "adductor_machines" to ex(
-        "Adduzione alla macchina",
-        "Siediti nella macchina con i cuscinetti all'interno delle cosce. Stringi le gambe contro i cuscinetti, fermati e rilascia lentamente."
-    ),
-    "assisted_pull_up_machines" to ex(
-        "Trazioni assistite",
-        "Imposta l'assistenza in modo da completare le ripetizioni. Impugna la sbarra con le ginocchia sul cuscinetto, porta il petto alla sbarra e scendi con controllo."
-    ),
-    "bayesian_curls_cable" to ex(
-        "Bayesian curl al cavo",
-        "Mettiti di spalle al cavo basso con la maniglia nella mano del braccio arretrato. Fletti verso la spalla tenendo il gomito fermo, poi scendi lentamente."
-    ),
-    "behind_the_back_cable_lateral_raises" to ex(
-        "Alzate laterali al cavo dietro la schiena",
-        "Mettiti con la schiena al cavo basso e la maniglia in una mano dietro di te. Solleva il braccio di lato fino all'altezza della spalla, poi scendi."
-    ),
-    "cable_abductions" to ex(
-        "Abduzione al cavo",
-        "Fissa una cavigliera al cavo basso e mettiti di fianco. Porta la gamba esterna di lato contro la resistenza, poi torna."
-    ),
-    "cable_adductions" to ex(
-        "Adduzione al cavo",
-        "Fissa una cavigliera al cavo basso e mettiti di fianco. Porta la gamba interna attraverso il corpo contro la resistenza, poi torna."
-    ),
-    "cable_crossovers" to ex(
-        "Croci ai cavi",
-        "Metti le carrucole sopra l'altezza delle spalle e impugna una maniglia per mano. Porta le mani insieme davanti al petto stringendo i pettorali, poi apri con controllo."
-    ),
-    "cable_crunches" to ex(
-        "Crunch al cavo",
-        "Inginocchiati davanti a un cavo alto con la corda vicino alla testa. Arrotola i gomiti verso le ginocchia tenendo fermo il bacino, poi torna."
-    ),
-    "cable_curls" to ex(
-        "Curl al cavo",
-        "Mettiti davanti a un cavo basso con barra o corda. Fletti tenendo i gomiti ai fianchi, poi scendi lentamente."
-    ),
-    "cable_face_pulls" to ex(
-        "Face pull al cavo",
-        "Metti la corda all'altezza del viso. Tira verso il viso con i gomiti alti e larghi, stringendo le spalle posteriori e la parte alta della schiena."
-    ),
-    "cable_flyes" to ex(
-        "Croci al cavo",
-        "Metti le carrucole all'altezza del petto. Con i gomiti leggermente flessi porta le mani insieme in un arco davanti al petto, poi apri con controllo."
-    ),
-    "cable_front_raises" to ex(
-        "Alzate frontali al cavo",
-        "Mettiti di spalle al cavo basso. Solleva la maniglia distesa davanti a te fino all'altezza della spalla, poi scendi lentamente."
-    ),
-    "cable_kickbacks" to ex(
-        "Kickback al cavo",
-        "Mettiti davanti a un cavo basso con il gomito flesso al fianco. Estendi il braccio dritto all'indietro stringendo il tricipite, poi torna."
-    ),
-    "cable_knee_raises" to ex(
-        "Sollevamento ginocchia al cavo",
-        "Fissa le cavigliere a un cavo basso e appenditi a una sbarra o mettiti nella postazione. Porta le ginocchia al petto contro la resistenza, poi scendi."
-    ),
-    "cable_lateral_raises" to ex(
-        "Alzate laterali al cavo",
-        "Mettiti di fianco a un cavo basso. Solleva la maniglia di lato fino all'altezza della spalla, poi scendi lentamente."
-    ),
-    "cable_pallof_presses" to ex(
-        "Pallof press al cavo",
-        "Mettiti di fianco a un cavo all'altezza del petto. Spingi la maniglia dritta davanti a te resistendo alla rotazione, poi riportala indietro."
-    ),
-    "cable_pull_throughs" to ex(
-        "Pull-through al cavo",
-        "Mettiti di spalle al cavo basso con la corda tra le gambe. Fletti il busto dall'anca e poi spingi il bacino in avanti per raddrizzarti stringendo i glutei."
-    ),
-    "cable_rear_delt_flyes" to ex(
-        "Croci posteriori al cavo",
-        "Metti il cavo all'altezza del petto e impugna la maniglia con la mano opposta. Tira attraverso il corpo aprendo il braccio di lato e stringendo la spalla posteriore."
-    ),
-    "cable_rows_rear_delt_focus" to ex(
-        "Rematore al cavo (spalle posteriori)",
-        "Usa il cavo basso con presa stretta. Tira verso la parte alta del petto con gomiti alti e larghi per enfatizzare le spalle posteriori."
-    ),
-    "cable_shrugs" to ex(
-        "Shrug al cavo",
-        "Tieni una barra fissata a un cavo basso. Solleva le spalle, fermati e scendi."
-    ),
-    "cable_side_bends" to ex(
-        "Flessioni laterali al cavo",
-        "Mettiti di fianco a un cavo basso tenendo la maniglia al fianco. Piega il busto in vita lontano dal cavo, poi torna su."
-    ),
-    "cable_woodchoppers" to ex(
-        "Woodchopper al cavo",
-        "Metti il cavo in alto o in basso. Tira la maniglia in diagonale attraverso il corpo ruotando il busto, poi torna con controllo."
-    ),
-    "cable_wrist_curls" to ex(
-        "Curl per polsi al cavo",
-        "Fissa una barra a un cavo basso e siediti con gli avambracci sulle cosce. Fletti i polsi verso l'alto, poi scendi lentamente."
-    ),
-    "captain_s_chair_leg_raises" to ex(
-        "Sollevamento gambe alla captain's chair",
-        "Appoggia gli avambracci sui cuscinetti della captain's chair. Solleva le ginocchia verso il petto senza oscillare, poi scendi lentamente."
-    ),
-    "chest_press_machines" to ex(
-        "Chest press",
-        "Siediti nella chest press con le maniglie all'altezza del petto. Spingi in avanti fino a distendere le braccia, poi torna con controllo."
-    ),
-    "chest_supported_machine_rows" to ex(
-        "Rematore con appoggio al petto",
-        "Siediti con il petto sul cuscinetto. Tira le maniglie verso il busto stringendo le scapole, poi riestendi con controllo."
-    ),
-    "close_grip_lat_pulldowns" to ex(
-        "Lat machine a presa stretta",
-        "Usa una presa stretta sulla sbarra (palmi verso l'interno o proni). Tira la sbarra alla parte alta del petto guidando i gomiti in basso e indietro."
-    ),
-    "cross_cable_lateral_raises" to ex(
-        "Alzate laterali incrociate ai cavi",
-        "Mettiti tra due cavi bassi e impugna le maniglie opposte. Solleva entrambe le braccia di lato fino all'altezza delle spalle, poi scendi."
-    ),
-    "donkey_calf_raises" to ex(
-        "Donkey calf raise",
-        "Inclinati in avanti con il busto appoggiato e un peso sulla parte bassa della schiena. Sollevati sulle punte, fermati e abbassa i talloni."
-    ),
-    "drag_curls_cable" to ex(
-        "Drag curl al cavo",
-        "Mettiti davanti a un cavo basso. Fletti la barra vicino al corpo facendola strisciare sul busto con i gomiti indietro, poi scendi."
-    ),
-    "egyptian_lateral_raises_cable" to ex(
-        "Alzate laterali egiziane al cavo",
-        "Metti il cavo all'altezza della spalla e parti con il braccio attraverso il corpo. Sollevalo di lato fino all'altezza della spalla, poi torna."
-    ),
-    "floor_presses_machine" to ex(
-        "Floor press alla macchina",
-        "Sdraiati a terra sotto le maniglie della macchina. Spingi in alto e scendi finché gli omeri toccano il pavimento, che limita la profondità."
-    ),
-    "glute_bridge_machines" to ex(
-        "Glute bridge alla macchina",
-        "Siediti nella macchina con le spalle sul cuscinetto. Spingi con i piedi per estendere il bacino stringendo i glutei, poi torna."
-    ),
-    "glute_ham_raises" to ex(
-        "Glute ham raise",
-        "Fissa le caviglie sulla glute-ham bench con le ginocchia sul bordo del cuscinetto. Scendi con il busto in modo controllato e tirati su con femorali e glutei."
-    ),
-    "glute_kickbacks" to ex(
-        "Glute kickback",
-        "Stai in piedi o in ginocchio davanti a un cavo o a una macchina. Calcia una gamba dritta all'indietro stringendo il gluteo in alto, poi torna."
-    ),
-    "glute_presses_machine" to ex(
-        "Glute press",
-        "Siediti nella glute press con i piedi sulla pedana. Spingi sui talloni per estendere il bacino, poi torna."
-    ),
-    "good_mornings_machine" to ex(
-        "Good morning alla macchina",
-        "Metti il cuscinetto della macchina sulla parte alta della schiena. Fletti il busto in avanti dall'anca con la schiena piatta, poi torna in piedi."
-    ),
-    "hack_squats" to ex(
-        "Hack squat",
-        "Entra nella macchina hack con la schiena sul cuscinetto e i piedi sulla pedana. Scendi finché le cosce sono parallele, poi spingi su."
-    ),
-    "hammer_cable_curls" to ex(
-        "Hammer curl al cavo",
-        "Fissa una corda a un cavo basso. Fletti a presa neutra con i palmi rivolti l'uno verso l'altro, poi scendi lentamente."
-    ),
-    "hammer_strength_chest_presses" to ex(
-        "Chest press Hammer Strength",
-        "Siediti nella macchina Hammer Strength con le maniglie all'altezza del petto. Spingi in avanti fino a distendere le braccia, poi torna con controllo."
-    ),
-    "hammer_strength_rows" to ex(
-        "Rematore Hammer Strength",
-        "Siediti nella macchina con il petto sul cuscinetto. Tira le maniglie verso di te stringendo le scapole, poi riestendi."
-    ),
-    "hammer_strength_shoulder_presses" to ex(
-        "Shoulder press Hammer Strength",
-        "Siediti nella macchina Hammer Strength con le maniglie all'altezza delle spalle. Spingi sopra la testa fino a distendere le braccia, poi scendi con controllo."
-    ),
-    "high_cable_curls" to ex(
-        "Curl al cavo alto",
-        "Metti il cavo sopra l'altezza della spalla e fletti da quell'angolo. Tieni il gomito fermo e scendi lentamente."
-    ),
-    "hise_shrugs_machine" to ex(
-        "Hise shrug",
-        "Siediti nella leg press con le spalle sotto i cuscinetti. Solleva le spalle contro il carico, poi scendi."
-    ),
-    "lateral_cable_leg_raises" to ex(
-        "Abduzione gamba al cavo",
-        "Fissa una cavigliera a un cavo basso. Solleva la gamba esterna di lato, poi scendi lentamente."
-    ),
-    "lat_pulldowns" to ex(
-        "Lat machine",
-        "Siediti alla macchina e impugna la sbarra più larga delle spalle. Tira alla parte alta del petto guidando i gomiti in basso e indietro, poi risali lentamente."
-    ),
-    "leg_curls" to ex(
-        "Leg curl",
-        "Sdraiati prono sulla leg curl. Fletti i talloni verso i glutei, fermati e scendi lentamente."
-    ),
-    "leg_extensions" to ex(
-        "Leg extension",
-        "Siediti nella macchina con il cuscinetto sugli stinchi. Estendi le gambe fino a distenderle stringendo il quadricipite, poi scendi lentamente."
-    ),
-    "leg_press_calf_raises" to ex(
-        "Calf raise alla leg press",
-        "Metti le punte dei piedi sul bordo della pedana. Spingi sulle punte per sollevarla e abbassa i talloni per un allungamento profondo."
-    ),
-    "leg_presses" to ex(
-        "Leg press",
-        "Siediti nella leg press con i piedi alla larghezza delle spalle sulla pedana. Abbassala finché le ginocchia sono vicine al petto e spingi su senza bloccarle."
-    ),
-    "low_cable_flyes" to ex(
-        "Croci al cavo basso",
-        "Metti le carrucole alla minima altezza. Con i gomiti leggermente flessi porta le mani in alto e insieme davanti al petto stringendo i pettorali."
-    ),
-    "machine_crunches" to ex(
-        "Crunch alla macchina",
-        "Siediti nella macchina con il cuscinetto al petto. Arrotola il busto in avanti, poi torna lentamente."
-    ),
-    "machine_curls" to ex(
-        "Curl alla macchina",
-        "Siediti nella macchina con le braccia sul cuscinetto. Fletti le maniglie verso l'alto, poi scendi lentamente."
-    ),
-    "machine_dips" to ex(
-        "Dip alla macchina",
-        "Usa una stazione per dip o una macchina assistita. Scendi finché le spalle sono sotto i gomiti, poi spingi di nuovo su."
-    ),
-    "machine_flyes" to ex(
-        "Croci alla macchina",
-        "Siediti nella pec deck o nella macchina per le croci. Porta i cuscinetti insieme davanti al petto stringendo i pettorali, poi apri lentamente."
-    ),
-    "machine_lateral_raises" to ex(
-        "Alzate laterali alla macchina",
-        "Siediti nella macchina per le alzate laterali con le braccia sui cuscinetti. Solleva le braccia all'altezza delle spalle, poi scendi lentamente."
-    ),
-    "machine_rows" to ex(
-        "Rematore alla macchina",
-        "Siediti nella macchina con il petto sul cuscinetto. Tira le maniglie al busto stringendo le scapole, poi riestendi."
-    ),
-    "machine_shrugs" to ex(
-        "Shrug alla macchina",
-        "Imposta i cuscinetti per le spalle sulla macchina. Solleva le spalle, fermati e scendi."
-    ),
-    "overhead_cable_extensions" to ex(
-        "Estensioni sopra la testa al cavo",
-        "Mettiti di spalle a un cavo alto tenendo la corda dietro la testa. Estendi le braccia sopra la testa, poi scendi lentamente."
-    ),
-    "pec_decks" to ex(
-        "Pec deck",
-        "Siediti nella pec deck con gli avambracci sui cuscinetti. Porta le braccia insieme davanti al petto stringendo i pettorali, poi apri."
-    ),
-    "pendulum_squats" to ex(
-        "Pendulum squat",
-        "Metti i piedi sulla pedana della macchina pendulum. Scendi finché le cosce sono parallele, poi spingi su."
-    ),
-    "rear_delt_decks" to ex(
-        "Rear delt deck",
-        "Siediti con il viso verso la macchina e le braccia davanti. Spingi le braccia indietro e di lato stringendo le spalle posteriori."
-    ),
-    "reverse_hypers" to ex(
-        "Reverse hyper",
-        "Sdraiati prono con il bacino sul bordo della panca. Solleva le gambe tese dietro di te stringendo glutei e lombari, poi scendi."
-    ),
-    "reverse_pec_decks" to ex(
-        "Reverse pec deck",
-        "Siediti con la schiena verso la macchina e le braccia davanti. Tira le braccia indietro e di lato stringendo le spalle posteriori."
-    ),
-    "rope_crunches" to ex(
-        "Crunch alla corda",
-        "Inginocchiati davanti a un cavo alto tenendo le estremità della corda alla testa. Arrotola i gomiti verso le ginocchia separando leggermente la corda, poi torna."
-    ),
-    "rope_pushdowns" to ex(
-        "Pushdown alla corda",
-        "Mettiti davanti a un cavo alto con una corda. Spingi la corda verso il basso fino a distendere le braccia, separando le estremità in basso, poi torna."
-    ),
-    "rotary_torso_machines" to ex(
-        "Rotazione del busto alla macchina",
-        "Siediti nella macchina e impugna le maniglie al petto. Ruota il busto da un lato all'altro con controllo."
-    ),
-    "seated_abduction_machines" to ex(
-        "Abduzione da seduto",
-        "Siediti con il busto appoggiato e i cuscinetti all'esterno delle cosce. Apri le gambe contro i cuscinetti, fermati un istante e torna lentamente."
-    ),
-    "seated_adduction_machines" to ex(
-        "Adduzione da seduto",
-        "Siediti nella macchina con i cuscinetti all'interno delle cosce. Stringi le gambe, fermati e rilascia lentamente."
-    ),
-    "seated_calf_raises" to ex(
-        "Calf raise da seduto",
-        "Siediti nella macchina con i cuscinetti sulle ginocchia. Sollevati sulle punte, fermati e abbassa i talloni per allungare."
-    ),
-    "seated_leg_curls" to ex(
-        "Leg curl da seduto",
-        "Siediti nella macchina con il cuscinetto sopra i talloni. Fletti i talloni in basso e indietro verso i glutei, poi torna lentamente."
-    ),
-    "seated_rows" to ex(
-        "Pulley basso",
-        "Siediti con i piedi appoggiati e la schiena dritta. Tira la maniglia allo stomaco stringendo le scapole, poi riestendi con controllo."
-    ),
-    "seated_wide_rows" to ex(
-        "Pulley a presa larga",
-        "Usa la maniglia larga al pulley. Tiralo al petto con i gomiti aperti stringendo la parte alta della schiena."
-    ),
-    "shoulder_press_machines" to ex(
-        "Shoulder press alla macchina",
-        "Siediti nella shoulder press con le maniglie all'altezza delle spalle. Spingi sopra la testa fino a distendere le braccia, poi scendi con controllo."
-    ),
-    "side_lying_clamshells_machine" to ex(
-        "Clamshell alla macchina",
-        "Sdraiati su un fianco con le ginocchia flesse e la resistenza di un elastico o della macchina. Apri il ginocchio superiore contro la resistenza, poi chiudi."
-    ),
-    "smith_machine_calf_raises" to ex(
-        "Calf raise alla Smith machine",
-        "Appoggia la barra sulle spalle nella Smith machine. Sollevati sulle punte, fermati e abbassa i talloni."
-    ),
-    "smith_machine_deadlifts" to ex(
-        "Stacco alla Smith machine",
-        "Metti la barra della Smith machine a metà coscia. Fletti il busto dall'anca con la schiena piatta per scendere, poi risali in piedi."
-    ),
-    "smith_machine_jm_presses" to ex(
-        "JM press alla Smith machine",
-        "Sdraiati sulla panca sotto la barra della Smith machine. Scendi la barra verso la parte alta del petto con i gomiti stretti, poi spingi su."
-    ),
-    "smith_machine_presses" to ex(
-        "Shoulder press alla Smith machine",
-        "Siediti o stai nella Smith machine con la barra alla parte alta del petto. Spingila sopra la testa, poi scendi con controllo."
-    ),
-    "smith_machine_rdls" to ex(
-        "Stacco rumeno alla Smith machine",
-        "Metti la barra della Smith machine all'altezza del bacino. Spingi il bacino indietro facendo scendere la barra lungo le cosce, poi torna."
-    ),
-    "smith_machine_shrugs" to ex(
-        "Shrug alla Smith machine",
-        "Stai nella Smith machine con la barra sulle spalle. Solleva le spalle, fermati e scendi."
-    ),
-    "smith_machine_squats" to ex(
-        "Squat alla Smith machine",
-        "Appoggia la barra della Smith machine sul trapezio. Scendi in squat finché le cosce sono parallele, petto alto, poi spingi su."
-    ),
-    "standing_calf_raises" to ex(
-        "Calf raise in piedi",
-        "Stai con le punte dei piedi sul bordo di un gradino. Sollevati sulle punte, fermati e abbassa i talloni sotto il gradino."
-    ),
-    "straight_arm_pulldowns" to ex(
-        "Pullover al cavo a braccia tese",
-        "Stai davanti a un cavo alto con le braccia distese. Tira la sbarra verso le cosce usando i dorsali, mantenendo le braccia tese, poi lascia risalire."
-    ),
-    "svend_presses_cable" to ex(
-        "Svend press al cavo",
-        "Stai con una maniglia del cavo stretta tra i palmi all'altezza del petto. Spingi in avanti stringendo il petto, poi torna."
-    ),
-    "tricep_pushdowns" to ex(
-        "Pushdown per tricipiti",
-        "Mettiti davanti a un cavo alto con barra o corda. Spingi verso il basso fino a distendere le braccia tenendo i gomiti ai fianchi, poi torna."
-    ),
-    "v_bar_pulldowns" to ex(
-        "Lat machine con presa a V",
-        "Usa la maniglia a V alla lat machine. Tira alla parte alta del petto guidando i gomiti in basso, poi risali lentamente."
-    ),
-    "v_bar_pushdowns" to ex(
-        "Pushdown con presa a V",
-        "Usa la maniglia a V su un cavo alto. Spingi verso il basso fino a distendere le braccia tenendo i gomiti ai fianchi, poi torna."
-    ),
-    "v_squat_machines" to ex(
-        "V-squat",
-        "Siediti nella V-squat con i piedi sulla pedana. Scendi finché le cosce sono parallele, poi spingi su."
-    ),
-    "wrist_curl_machines" to ex(
-        "Curl per polsi alla macchina",
-        "Siediti nella macchina con gli avambracci sul cuscinetto e i palmi verso l'alto. Fletti i polsi verso l'alto, poi scendi lentamente."
-    ),
-    "wrist_rollers" to ex(
-        "Rullo per polsi",
-        "Tieni un rullo per polsi con un peso attaccato. Arrotola il peso con movimenti alternati dei polsi, poi lascialo scendere lentamente."
-    ),
-    "y_raises_cable" to ex(
-        "Y-raise al cavo",
-        "Metti il cavo in basso e tieni la maniglia con il braccio disteso. Solleva il braccio in alto e in fuori formando una Y, stringendo la parte alta della schiena."
-    ),
+    // ---- A ----
+    "ab_wheel_rollout" to ex("Rotolamento con la ruota", "Porta la ruota in avanti con le braccia tese finché le spalle passano oltre le mani, poi torna indietro stringendo gli addominali."),
+    "air_bike" to ex("Air Bike", "Pedala in modo regolare e deciso, busto alto e respiro sincronizzato con la pedalata."),
+    "archer_pull_ups" to ex("Trazioni con l'arciere", "Tira con un solo braccio finché il mento supera la mano piegata, mentre l'altro braccio resta quasi teso."),
+    "archer_push_ups" to ex("Piegamenti con l'arciere", "Scendi in profondità su un lato mentre l'altra mano scivola di lato, con i fianchi in linea."),
+    "arnold_press" to ex("Arnold press", "Ruota i palmi da interni a esterni e viceversa durante la spinta, con gli avambracci quasi paralleli al busto."),
+    "assisted_pull_ups" to ex("Trazioni assistite", "Regola l'assistenza sul carico che riesci ancora a togliere, e scendi in controllo."),
+    // ---- B ----
+    "back_extension" to ex("Estensioni della schiena", "Inclinati in avanti con la schiena dritta fino a orizzontale e risali spingendo con i glutei."),
+    "back_lever" to ex("Back lever", "Mantieni il corpo orizzontale e rigido sotto la sbarra, con le braccia in carico e le gambe dietro."),
+    "ball_pike" to ex("Pike con la palla", "Spingi gli anche in alto con le gambe tese e torna in plank senza far rotolare la palla."),
+    "assisted_pull_ups_band" to ex("Trazioni con banda di assistenza", "Passa la banda attorno a piedi o ginocchia: ti scarica esattamente quanto riesci ancora a controllare."),
+    "band_pull_apart" to ex("Rotazioni esterne con banda", "Tira le braccia tese verso i lati e avvicina le scapole."),
+    "banded_adductor_stretch" to ex("Stretch con banda degli adduttori", "Porta una gamba di lato con la banda e inclina il busto verso il lato opposto."),
+    "banded_ankle_stretch" to ex("Stretch della caviglia con banda", "Spingi il tallone verso il terreno con la banda senza lasciar cedere il ginocchio."),
+    "banded_calf_stretch" to ex("Stretch dei polpacci con banda", "Pianta il piede davanti e tira il tallone indietro con la banda fino a sentire il polpaccio."),
+    "banded_chest_stretch" to ex("Stretch del petto con banda", "Incrocia le braccia dietro la schiena e portale in alto a petto aperto, schiena dritta."),
+    "banded_clamshell" to ex("Clamshell con banda", "Sul fianco con i piedi uniti, apri il ginocchio superiore contro la trazione della banda."),
+    "banded_figure_4_stretch" to ex("Stretch figura 4 con banda", "Porta la gamba verso il corpo e ruota il busto verso la spalla opposta, schiena ferma."),
+    "banded_fire_hydrant" to ex("Fire hydrant con banda", "In quadrupedia apri il ginocchio di lato contro la banda, tenendo il sedere fermo."),
+    "banded_glute_bridge" to ex("Ponte gluteo con banda", "Spingi il bacino in alto e avvicina le ginocchia con la banda senza rovesciare il bacino."),
+    "banded_good_morning" to ex("Good morning con banda", "Inclinati in avanti con schiena dritta e ginocchia morbide mentre la banda tira gli anche indietro."),
+    "banded_hamstring_stretch" to ex("Stretch dei femorali con banda", "Tira lentamente la gamba verso il petto con la banda, l'altra gamba resta tesa."),
+    "banded_hip_thrust" to ex("Hip thrust con banda", "Spingi il bacino in estensione e avvicina le ginocchia con la banda."),
+    "banded_it_band_stretch" to ex("Stretch della fascia ileotibiale", "Porta la gamba tesa sul lato opposto tenendo il busto in alto."),
+    "kneeling_hip_thrust_band" to ex("Hip thrust in ginocchio con banda", "In ginocchio e busto alto, spingi il bacino in avanti fino all'estensione."),
+    "banded_lat_stretch" to ex("Stretch laterale con banda per la schiena", "Prendi la banda sopra la testa e piegati di lato senza aprire le costole."),
+    "banded_lateral_walk" to ex("Camminata laterale con banda", "Cammina di lato in posizione semiflessa con la banda sempre in tensione."),
+    "rear_delt_stretch_band" to ex("Stretch del deltoide posteriore", "Porta il braccio davanti al corpo e piega il busto dalla parte opposta."),
+    "banded_romanian_deadlift" to ex("Stacco romeno con banda", "Porta il bacino indietro con le gambe quasi tese tirando la banda verso gli anche."),
+    "seated_hip_abduction_band" to ex("Abduzione dell'anca da seduti", "Seduto spingi il ginocchio verso l'esterno contro la banda, il fianco resta a terra."),
+    "banded_shoulder_stretch" to ex("Stretch della spalla con banda", "Porta un braccio davanti al petto verso l'altro e spingi delicatamente con la banda."),
+    "banded_squat" to ex("Squat con banda", "Spingiti in alto con la banda sopra la testa, le ginocchia restano allineate con i piedi."),
+    "standing_hip_abduction_band" to ex("Abduzione dell'anca in piedi con banda", "In piedi e busto alto, alza il ginocchio di lato contro la trazione."),
+    "standing_hip_adduction_band" to ex("Adduzione dell'anca in piedi con banda", "Tira il ginocchio verso l'interno contro la banda senza muovere il busto."),
+    "standing_leg_curl_band" to ex("Piegamento gamba in piedi con banda", "Tira il tallone verso il sedere con addome fermo e ginocchio fermo sul posto."),
+    "banded_sumo_walk" to ex("Camminata sumo con banda", "Cammina di lato con i piedi larghi, banda in tensione e ginocchia aperte verso l'esterno."),
+    "terminal_knee_extension_band" to ex("Estensione finale del ginocchio con banda", "Metti la banda davanti al ginocchio e distendi la gamba contro la trazione fino all'estensione."),
+    "banded_triceps_stretch" to ex("Stretch dei tricipiti con banda", "Tira il gomito verso la testa e spingi delicatamente con la banda."),
+    "barbell_ab_rollout" to ex("Rollout con bilanciere", "Porta il bilanciere in avanti con le braccia tese e torna indietro con gli addominali, schiena ferma."),
+    "barbell_back_squat" to ex("Squat con bilanciere", "Scendi in profondità con il bilanciere sui trapezi, le ginocchia restano sulle dita dei piedi e la schiena è dritta."),
+    "barbell_bench_press" to ex("Panca con bilanciere", "Porta il bilanciere al petto e spingilo sopra i gomiti, con i piedi fermi a terra."),
+    "barbell_calf_raise" to ex("Calf raise con bilanciere", "Sali sulle punta dei piedi e scendi abbastanza da sentire il polpaccio allungarsi."),
+    "barbell_curl" to ex("Curl con bilanciere", "Piega i gomiti tenendoli fermi lungo i fianchi, il busto resta in piedi."),
+    "barbell_deadlift" to ex("Stacco con bilanciere", "Tira il bilanciere da terra spingendo il bacino in avanti e risali con il bilanciere vicino al corpo."),
+    "barbell_front_raise" to ex("Alzate laterali frontali con bilanciere", "Solleva il bilanciere con le braccia tese fino all'altezza degli occhi senza piegare la schiena."),
+    "barbell_glute_bridge" to ex("Ponte gluteo con bilanciere", "Appoggia il bilanciere sugli anche e spingilo fino all'estensione."),
+    "barbell_hip_thrust" to ex("Hip thrust con bilanciere", "Spingi il bacino in estensione con il mento leggermente dentro e ferma la contrazione."),
+    "barbell_lunge" to ex("Affondi con bilanciere", "Scendi lungamente indietro finché il ginocchio tocca terra e risali spingendo col piede davanti."),
+    "barbell_overhead_extension" to ex("Estensioni sopra la testa con bilanciere", "Estendi i gomiti fino a portare le mani sopra la testa con le costole chiuse."),
+    "barbell_overhead_press" to ex("Lento avanti con bilanciere", "Spingi il bilanciere dalle clavicole sopra la testa stringendo i glutei."),
+    "barbell_preacher_curl" to ex("Curl con bilancire su panchetto preacher", "Appoggia gli avambracci sulla panchetto e distendi solo gli avambracci, senza sollevare il busto."),
+    "barbell_pullover" to ex("Pullover con bilanciere", "Porta il bilanciere dietro la testa senza alzare la schiena, poi riportalo sopra i fianchi."),
+    "rear_delt_row_barbell" to ex("Trazioni per deltoide posteriore", "Tira il bilanciere verso i fianchi e avvicina le scapole, busto fermo."),
+    "barbell_reverse_lunge" to ex("Affondi indietro con bilanciere", "Porta il ginocchio posteriore verso il pavimento e risali spingendo col piede davanti."),
+    "barbell_shrug" to ex("Scrollate con bilanciere", "Porta le spalle verso le orecchie, fermati un istante e scendi in controllo."),
+    "barbell_upright_row" to ex("Upright row con bilanciere", "Tira il bilanciere fino al petto con i gomiti in avanti e poi verso l'alto."),
+    "barbell_wrist_curl" to ex("Curl dei polsi con bilanciere", "Palmi in su e bilanciere che sale solo per la mobilità del polso."),
+    "battle_rope_double_slam" to ex("Doppio colpo con le corde", "Strappa le due braccia insieme dall'alto verso il basso e lascia la corda rientrare in controllo."),
+    "battle_ropes" to ex("Corde da battaglia", "Genera onde con le braccia tenendo il busto fermo e in verticale."),
+    "bear_crawl" to ex("Bear crawl", "Avanza con le ginocchia che sfiorano il terreno, schiena piatta e sguardo in avanti."),
+    "behind_the_back_barbell_shrug" to ex("Scrollate dietro la schiena", "Porta il bilanciere dietro la schiena e tira le spalle in alto in controllo."),
+    // ---- B, proseguimento ----
+    "behind_the_neck_press" to ex("Lento dietro la nuca", "Spingi il bilanciere dietro la testa, ma solo con il busto alto e libero."),
+    "behind_the_neck_lat_pulldown" to ex("Trazione lat dietro la nuca", "Tira la barra dietro la testa con il petto aperto e i gomiti che vanno indietro."),
+    "behind_the_neck_pull_up" to ex("Trazioni dietro la nuca", "Tirati su con le mani dietro la testa, portando il mento sopra la sbarra."),
+    "bench_adductor_stretch" to ex("Stretch degli adduttori sulla panchetto", "Sdraiati sulla panchetto e lascia ricadere le gambe aperte, sentendo l'allungamento all'inguine."),
+    "bench_ankle_stretch" to ex("Stretch della caviglia sulla panchetto", "Spingi il tallone lontano da te e tira le dita dei piedi verso di te."),
+    "bench_bulgarian_split_stretch" to ex("Stretch bulgaro sulla panchetto", "Appoggia il piede posteriore sulla panchetto e piegati in avanti con schiena dritta."),
+    "bench_calf_stretch" to ex("Stretch dei polpacci alla panchetto", "Sposta lentamente la panchetto lontano da te con la gamba davanti tesa."),
+    "bench_chest_stretch" to ex("Stretch del petto sulla panchetto", "Lascia le braccia ricadere oltre il bordo della panchetto e apri il petto in avanti."),
+    "bench_child_s_pose" to ex("Posizione del bambino sulla panchetto", "Porta lentamente braccia e busto oltre la panchetto fino all'allungamento."),
+    "bench_couch_stretch" to ex("Stretch da divano sulla panchetto", "Appoggia un piede sulla panchetto con il ginocchio teso e piegati in avanti con schiena dritta."),
+    "bench_dips" to ex("Dip alla panchetto", "Appoggiati dietro il corpo sulla panchetto e scendi finché i gomiti raggiungono novanta gradi."),
+    "bench_figure_4_glute_stretch" to ex("Stretch figura 4 per i glutei sulla panchetto", "Appoggia la caviglia sul ginocchio opposto e piegati in avanti con schiena dritta."),
+    "bench_hamstring_stretch" to ex("Stretch dei femorali sulla panchetto", "Un piede sulla panchetto, ginocchio teso, e piegati in avanti mantenendo la schiena dritta."),
+    "bench_lat_stretch" to ex("Stretch dei dorsali sulla panchetto", "Solleva le braccia lateralmente sopra la panchetto e apri il fianco senza inarcare la schiena."),
+    "bench_leg_pull_in" to ex("Tirata delle gambe sulla panchetto", "Sdraiato sulla panchetto porta un ginocchio verso il petto mentre l'altra gamba resta tesa."),
+    "bench_pull" to ex("Trazioni con il petto sulla panchetto", "Appoggia il petto sulla panchetto e tira il bilanciere verso i fianchi con la schiena ferma."),
+    "bent_arm_barbell_pullover" to ex("Pullover con bilanciere a gomiti piegati", "Porta il bilanciere dietro la testa con le braccia leggermente piegate senza alzare la schiena."),
+    "bent_arm_ez_bar_pullover" to ex("Pullover con EZ a gomiti piegati", "Tira la barra curva dietro la testa con le braccia piegate e torna indietro."),
+    "bent_over_barbell_row" to ex("Trazioni con bilanciere a busto piegato", "Piegati con schiena dritta e tira il bilanciere verso i fianchi, i gomiti restano vicini."),
+    "bent_over_dumbbell_row" to ex("Trazioni con manubri a busto piegato", "Appoggia la mano libera sulla coscia e tira il manubrio verso l'addome con il gomito vicino."),
+    "bent_over_ez_bar_row" to ex("Trazioni con EZ a busto piegato", "Tira la barra curva verso di te con schiena dritta e braccia piegate."),
+    "bicycle_crunch" to ex("Crunch a bicicletta", "Ruota contemporaneamente busto e gomito verso il ginocchio alzato mentre l'altra gamba si distende."),
+    "bilateral_dumbbell_wrist_curl" to ex("Curl dei polsi bilaterale", "Palmi in su e fai salire entrambi i bilancieri insieme, muovendo solo i polsi."),
+    "bird_dog_hold" to ex("Bird dog in tenuta", "Tieni braccio e gamba opposti paralleli al pavimento con la schiena ferma."),
+    "bird_dog" to ex("Bird dog", "Dalla quadrupedia distendi braccio e gamba opposti senza ruotare la schiena."),
+    "boat_pose" to ex("Posizione della barca", "Seduto sul bacino, busto e gambe sollevati a formare una V."),
+    "bodyweight_calf_raise" to ex("Calf raise a corpo libero", "Sali sulle punta dei piedi e scendi lentamente sui talloni."),
+    "bodyweight_good_morning" to ex("Good morning a corpo libero", "Piegati in avanti con schiena dritta e ginocchia morbide, poi risali spingendo con i glutei."),
+    "bodyweight_lateral_raise" to ex("Alzate laterali a corpo libero", "Solleva le braccia lateralmente fino all'altezza delle spalle e abbassale senza slanciarti."),
+    "bodyweight_overhead_press" to ex("Lento avanti a corpo libero", "Spingi le braccia da spalle a sopra la testa tenendo gli addominali contratti."),
+    "bodyweight_reverse_lunge" to ex("Affondi indietro a corpo libero", "Scendi con il ginocchio posteriore vicino al pavimento e torna in alto senza spingerti con la mano sulla coscia."),
+    "bodyweight_squat" to ex("Squat a corpo libero", "Scendi in profondità con schiena dritta e risali spingendo sui talloni."),
+    "bow_pose" to ex("Posizione dell'arco", "Tira un braccio in alto e piega il busto con schiena dritta fino all'allungamento."),
+    "box_jump" to ex("Salto sul box", "Salta con forza sul box e atterra morbido su entrambi i piedi."),
+    "box_squat" to ex("Squat al box", "Accovacciati sul box con schiena dritta e risali spingendo sulle gambe."),
+    "bulgarian_split_squat" to ex("Affondi bulgaro", "Appoggia il piede posteriore su una sedia e scendi in avanti, con il ginocchio davanti sopra il piede."),
+    "burpees" to ex("Burpee", "Salta, scendi in plank e torna in posizione accovacciata, con un ritmo regolare."),
+    "butterfly_stretch" to ex("Stretch della farfalla", "Seduto con i piedi uniti e piegati in avanti mantenendo la schiena dritta."),
+    // ---- C ----
+    "cable_bent_over_row" to ex("Trazioni al cavo a busto piegato", "Scendi in posizione inclinata e tira il cavo verso i fianchi con i gomiti vicini."),
+    "cable_chest_press" to ex("Lento avanti al cavo", "Spingi il cavo via dal petto senza bloccare i gomiti."),
+    "cable_crunch" to ex("Crunch al cavo", "Piega il busto verso il cavo mentre il bacino resta a terra."),
+    "cable_curl" to ex("Curl al cavo", "Palmi in su e tira il cavo verso la spalla tenendo il braccio fermo."),
+    "cable_external_rotation" to ex("Rotazione esterna al cavo", "Gomiti al fianco e apri gli avambracci verso l'esterno."),
+    "cable_face_pull" to ex("Face pull al cavo", "Tira il cavo verso il viso con i polsi ruotati fuori e le scapole aperte."),
+    "cable_fly" to ex("Croci ai cavi", "Riporta le braccia davanti al petto con i gomiti leggermente piegati."),
+    "cable_front_raise" to ex("Alzate frontali al cavo", "Solleva il cavo con le braccia tese fino all'altezza degli occhi senza piegare la schiena."),
+    "cable_glute_kickback" to ex("Kickback glutei al cavo", "Spingi il tallone indietro e in alto senza alzare la schiena."),
+    "cable_hammer_curl" to ex("Hammer curl al cavo", "Impugna il cavo come un martello e tiralo verso la spalla."),
+    "cable_lateral_raise" to ex("Alzate laterali al cavo", "Solleva il braccio laterale fino alla spalla e riporta il cavo lentamente."),
+    "cable_pallof_press" to ex("Pallof press al cavo", "Spingi il cavo via dal petto e mantieni, mentre il busto lavora contro la rotazione."),
+    "cable_tricep_kickback" to ex("Kickback tricipiti al cavo", "Braccia al fianco e distendi l'avambraccio all'indietro."),
+    "cable_tricep_pushdown" to ex("Pushdown tricipiti al cavo", "Spingi il cavo in basso fino a braccia tese, i gomiti restano fermi."),
+    "cable_upright_row" to ex("Upright row al cavo", "Tira il cavo fino al petto con i gomiti in avanti e poi verso l'alto."),
+    "cable_wrist_curl" to ex("Curl dei polsi al cavo", "Palmi in su e fai salire il cavo muovendo solo il polso."),
+    "camel_pose" to ex("Posizione del cammello", "In profonda flessione della schiena, afferra con una mano il piede posteriore."),
+    "captain_s_chair_knee_raise" to ex("Elevazione gambe alla captain's chair", "Seduto con le gambe libere, tira le ginocchia verso l'alto con gli addominali."),
+    "captain_s_chair_leg_raise" to ex("Estensione gambe alla captain's chair", "Seduto alla captain's chair distendi le gambe in avanti e in alto."),
+    "cat_stretch" to ex("Gatto", "Inarca la schiena e lascia pendere la testa, poi rilascia le scapole."),
+    "cat_cow" to ex("Gatto-mucca", "Incurva e allunga la colonna alternando, il movimento nasce dalla schiena."),
+    "chair_pose" to ex("Posizione della sedia", "Accovacciati su una sedia immaginaria, bacino indietro e petto aperto."),
+    // ---- Aggiunti nell'ordine di popolarità (rowing, spinte, piegamenti) ----
+    "kettlebell_reverse_lunge" to ex("Affondo inverso (kettlebell)", "Fai un passo indietro con il kettlebell al petto o in rack, risparmiando le ginocchia e caricando quadricipiti e glutei. Tieni il busto in verticale e lascia che la gamba anteriore dia la profondità; il kettlebell bilancia l’inclinazione."),
+    "kneeling_cable_row" to ex("Tiro ai cavi in ginocchio", "In ginocchio, rivolto a un pulley basso, tira il manubrio fino alle costole. Il core deve tenere il busto in verticale senza panchetto né sedile. Mantieni i fianchi paralleli e tira forte con il gomito; la posizione in ginocchio allunga anche i flessori dell’anca."),
+    "machine_assisted_dips" to ex("Dip assistiti", "I dip assistiti si eseguono in ginocchio o in piedi sulla piattaforma del peso di contrasto di una stazione assistita, togliendo parte del peso corporeo. Regola l’assistenza più bassa possibile mantenendo ripetizioni pulite; movimento e posizione del gomito restano identici ai dip liberi, ed è il ponte standard verso i dip completi."),
+    "machine_back_extension" to ex("Estensione dorsale (macchina)", "L’estensione dorsale alla macchina allena gli erettori spinali con un’ippica controllata e una risalita contro il bilanciere. Flessi dall’anca, tieni le costole basse e contrai i glutei alla fine: il movimento nasce dall’anca, non da uno scatto del lombare."),
+    "dumbbell_bench_press" to ex("Panca ai manubri", "La panchetto con i manubri è un pilastro in tutto il mondo. È il movimento classico per costruire un petto più grande e più forte, ed è per questo spesso il primo esercizio di una seduta per l’ipertrofia del petto."),
+    "ez_bar_bench_press" to ex("Panca con bilanciere EZ", "Panca con la barra angolare: si cede un po’ di carico sui pettorali in cambio di polso e gomito molto più comodi. Impugna le curve interne, tieni gli avambracci verticali in basso e spingi il bilanciere in un leggero arco sopra il petto."),
+    "bench_press_smith_machine" to ex("Panca alla Smith", "La panchetto alla Smith è un movimento su macchina per il petto. La Smith imita il bilanciere ma offre più stabilità. Si programma con poche ripetizioni per la forza o con tante per muscolo e resistenza; di solito con ripetizioni medio-alte, 8–12 per serie, dentro una seduta per petto o parte alta."),
+    "dumbbell_bench_pull" to ex("Tiro su panchetto (manubri)", "Sdraiato con il petto su una panchetto alta, tira un manubrio per mano da sotto fino al bordo inferiore della panchetto. Il cuscino blocca il busto, così lavora solo la schiena; riabbassa i manubri in modo controllato a ogni ripetizione."),
+    "bent_over_row_smith_machine" to ex("Tiro inclinato (Smith)", "Il tiro inclinato alla Smith è un esercizio per la parte alta che lavora i muscoli della schiena, in particolare i dorsali. Si programma con poche ripetizioni per la forza o con tante per muscolo e resistenza; di solito con ripetizioni medio-alte, 8–12 per serie, dentro una seduta per parte alta o schiena."),
+    "dumbbell_bicep_curl" to ex("Curl bicipiti (manubri)", "Curl con manubri, in piedi o seduto. Stai o siediti con i gomiti fermi contro i fianchi e i palmi in avanti; solleva i manubri fino alle spalle senza dondolare con il busto, ferma un secondo in alto e scendi lentamente tutta la strada. Che i gomiti restino fermi è ciò che rende questo un curl e non un sollevamento."),
+    "machine_bicep_curl" to ex("Curl bicipiti (macchina)", "Nel curl alla macchina i gomiti restano bloccati nel cuscinetto e il manubrio si muove su un arco fisso, isolando i bicipiti. Il cuscinetto elimina ogni slancio: distendi il braccio del tutto in basso e contrai in alto a ogni ripetizione."),
+    "trx_bicep_curl" to ex("Curl bicipiti (TRX)", "Il curl TRX si inclina all’indietro tenendo le maniglie e porta il corpo verso le ancoraggi flettendo i gomiti: il peso corporeo è la resistenza. Tieni il corpo rigido come nella plank e i gomiti fermi all’altezza delle spalle; avvicina i piedi per aumentare il carico."),
+    "bulgarian_split_squat_kettlebell" to ex("Split squat bulgaro (kettlebell)", "Lo split squat bulgaro con kettlebell carica uno split squat con il piede posteriore sollevato e uno o due kettlebell al petto o ai fianchi. La tensione del kettlebell tiene onesto il busto; affonda il ginocchio posteriore e spingi dal tallone del piede anteriore."),
+    "bulgarian_split_squat_smith_machine" to ex("Split squat bulgaro (Smith)", "Nello split squat bulgaro alla Smith il piede posteriore appoggia su una panchetto e il bilanciere guida un percorso perfettamente verticale, lasciando tutto il carico alla gamba anteriore. Il bilanciere fisito toglie l’equilibrio dall’equazione, così più carico arriva a quadricipiti e glutei della gamba che lavora."),
+    "dumbbell_calf_raise" to ex("Calf raise (manubri)", "Il calf raise con manubri in camminata è un esercizio dinamico per i muscoli del polpaccio, in particolare il gastrocnemio. Si può eseguire a distanza oppure a ripetizioni."),
+    "machine_calf_raise" to ex("Calf raise (macchina)", "Il calf raise seduto alla macchina lavora i muscoli del polpaccio, in particolare il soleo. Di solito con ripetizioni medio-alte, 8–12 per serie, e a volte con serie molto alte da 50–100 ripetizioni totali dedicate al burnout."),
+    "calf_raise_smith_machine" to ex("Calf raise (Smith)", "Il calf raise in piedi alla Smith lavora i muscoli del polpaccio, in particolare il gastrocnemio. Di solito con ripetizioni medio-alte, 8–12 per serie o più, nella parte bassa della seduta."),
+    "cheat_curl" to ex("Curl cheat", "Il curl cheat usa uno slancio controllato del corpo per avviare un curl con bilanciere più pesante dello strict, poi è il bicipite puro a frenare la discesa. Il cheat sta nell’avvio, non nella ripetizione, e la fase eccentrica deve restare pulita: è uno strumento di sovraccarico per chi è avanzato, non un permesso di slanciare ogni curl."),
+    "chest_dips" to ex("Dip per il petto", "Il dip per il petto si esegue appendendosi tra due maniglie parallele. Un busto leggermente inclinato in avanti sposta l’enfasi dai tricipiti al petto."),
+    "machine_chest_fly" to ex("Fly per il petto", "Il fly alla macchina lavora il petto. Imita il movimento di un fly con manubri o a cavo, ma di solito si esegue seduti in posizione eretta e rivolti in avanti. Il movimento viene spesso paragonato all’abbraccio di un tronco d’albero. Di solito con ripetizioni medio-alte, 8–12 per serie o più, come preaffaticamento o dentro una seduta di ipertrofia della parte alta."),
+    "machine_chest_press" to ex("Pressa petto (macchina)", "La pressa petto alla macchina lavora il petto. Imita il movimento della panchetto, ma di solito si esegue seduti, eretti e rivolti in avanti. Molte macchine offrono prese diverse: prona supina, neutra (i palmi si guardano) o sottohand. Si esegue spesso con ripetizioni medio-alte, 8–12 per serie o più, come preaffaticamento o in una seduta di ipertrofia della parte alta."),
+    "trx_chest_press" to ex("Pressa petto (TRX)", "La pressa petto TRX tiene le maniglie e abbassa il corpo verso le mani in una push-up sul trainer a sospensione. Tieni le maniglie in tensione e il corpo in linea: più i piedi camminano all’indietro, più è duro spingere."),
+    "chest_supported_dumbbell_row" to ex("Tiro con appoggio al petto (manubri)", "Nel tiro con appoggio al petto tiri due manubri da una panchetto inclinata mentre il petto resta fissato sul cuscino: sparisce ogni aiuto della schiena. Porta i gomiti oltre le costole e contrai le scapole; in basso i manubri pendono liberi."),
+    "chest_supported_dumbbell_shrug" to ex("Shrug con appoggio al petto (manubri)", "Nello shrug con appoggio al petto sollevi due manubri pesanti da una panchetto inclinata con il petto in basso, isolando i trapezi senza coinvolgere il lombare. Braccia lunghe e spalle verso le orecchie; una breve sosta in alto fa il lavoro."),
+    "chest_supported_kettlebell_row" to ex("Tiro con appoggio al petto (kettlebell)", "Nel tiro con appoggio al petto tiri due kettlebell da una panchetto inclinata mentre il petto resta appoggiato: lo slancio sparisce del tutto dal movimento. Contrai le scapole in alto e lascia le braccia pendere del tutto in basso; dopo, deve dolere la schiena, non le braccia."),
+    "chest_supported_smith_machine_row" to ex("Tiro con appoggio al petto (Smith)", "Nel tiro con appoggio al petto alla Smith la panchetto inclinata sta sotto il bilanciere, così il petto resta fisso mentre le braccia tirano. Il cuscino elimina ogni imbroglio dal tiro; contrai le scapole in alto e lascia i gomiti superare le costole."),
+    // ---- Mobilità, trazioni, sollevamento olimpico ----
+    "child_s_pose" to ex("Posizione del bambino", "La posizione del bambino è un classico della yoga, molto usata anche nel fitness e nel lavoro di forza. Lavora sulla mobilità della dorsale e sul controllo della colonna. Si esegue a tempo o a ripetizioni come riscaldamento dinamico, oppure in qualsiasi momento come esercizio di mobilità o di recupero. Può anche entrare in una sequenza di yoga o a corpo libero con altre posizioni."),
+    "chin_tuck_hold" to ex("Retrazione del mento", "La retrazione del mento si esegue supini e porta delicatamente il mento verso la gola, rafforzando i flessori profondi del collo. È una correzione comune per la postura della testa in avanti e si mantiene di solito per 15-30 secondi."),
+    "chin_ups" to ex("Trazioni con presa prona", "La trazione con presa prona è una variante del Pulldown in cui le ripetizioni si eseguono con i palmi verso il corpo, a presa prona, con una presa più stretta delle spalle. Come le altre varianti costruisce forza e massa nella parte alta della schiena, nei bicipiti e nel core, ma usa un po’ più i bicipiti del presa supina. È un’alternativa più gentile sulle spalle del Pulldown con sbarra dritta, e aiuta a fare più ripetizioni di quante se ne facciano in presa supina."),
+    "clamshell_hold" to ex("Clamshell isometrico", "Il clamshell isometrico tiene il ginocchio superiore aperto e sospeso da un esercizio in decubito laterale, trasformando il movimento in un isometrico per gli abductori dell’anca. La gamba resta leggera; se il bacino rolla all’indietro, il gluteo non sta più lavorando."),
+    "clamshells" to ex("Clamshell a corpo libero", "Il clamshell a corpo libero si esegue sul fianco con i talloni uniti e apre il ginocchio superiore come una conchiglia: allena il gluteo medio nel suo compito più piccolo ma più importante. Il bacino deve restare perfettamente fermo; se l’anca rotola indietro, il gluteo ha passato il lavoro."),
+    "clap_push_ups" to ex("Push-up con battito", "La push-up con battito esplode verso l’alto abbastanza da staccare le mani dal pavimento e applaudere prima della ripetizione successiva: sviluppa potenza nella parte alta. Atterra con i gomiti morbidi e mantieni il corpo in linea per tutta la serie; se gli atterraggi diventano sciatti, torna alle push-up normali."),
+    "clean" to ex("Clean (slancio)", "Il clean porta il bilanciere dal pavimento alle spalle in un unico movimento esplosivo, prendendolo sui deltoidi anteriori in un quarto di squat. Sviluppa la potenza della tripla estensione attraverso anca, ginocchia e caviglie come nessun sollevamento lento; il tiro è verticale e i gomiti sfrecciano sotto in fretta."),
+    "clean_and_jerk" to ex("Clean e jerk", "Sollevamento olimpico in due tempi: prima il clean, in cui il bilanciere viene tirato da terra e ricevuto in posizione di rack anteriore, poi il jerk sopra la testa. Il clean si esegue in tre fasi: prima trazione fino a poco sotto il ginocchio, poi seconda trazione fino a estensione completa, infine una terza trazione rapida che porta i gomiti a superare il bilanciere e a posarlo sul rack. Scendi sotto il bilanciere e poi jerk: abbassi di pochi centimetri e spingi con forza, ruotando i polsi. Lavora ogni muscolo dal pavimento alla testa, quindi si allena a basse ripetizioni con la tecnica, non con il carico, a fare la differenza."),
+    "close_grip_barbell_curl" to ex("Curl con bilanciere a presa stretta", "Il curl con presa più stretta delle spalle è una variante in cui le mani sono ravvicinate. Si ritiene che aiuti a costruire la testa esterna del bicipite e il picco. Di solito con ripetizioni medio-alte, 8-12 per serie."),
+    "close_grip_bench_press" to ex("Panca a presa stretta", "Panchetto a presa stretta, con le mani più vicine del normale, che sposta più lavoro sui tricipiti. Sdraiati sulla panca, impugna il bilanciere a distanza inferiore alla larghezza delle spalle e abbassa aiuto del gomiti che scendono lungo i fianchi fino al basso petto. Rispingi senza far divaricare i gomiti. Più stretta è la presa, più tricipiti e meno petto."),
+    "close_grip_dumbbell_bench_press" to ex("Panca ai manubri a presa stretta", "La panchetto ai manubri a presa stretta è una variante diffusa in cui i manubri si tengono più ravvicinati delle spalle. Questo mette più accento sui tricipiti e forse anche sul petto interno. Si esegue con meno ripetizioni per la forza o con più per la crescita muscolare."),
+    "close_grip_ez_bar_bench_press" to ex("Panca a presa stretta con bilanciere EZ", "La panchetto a presa stretta con bilanciere EZ lavora petto, spalle e tricipiti. Questo movimento si esegue più spesso con la sbarra dritta, e con la EZ bar è spesso parte di un complesso come i pullover o gli skullcrusher."),
+    "close_grip_ez_bar_curl" to ex("Curl a presa stretta con bilanciere EZ", "Il curl a presa stretta con bilanciere EZ lavora i bicipiti, in particolare la testa lunga. La differenza principale rispetto ai curl EZ standard è che le mani sono più ravvicinate sul bilanciere. Si ritiene che aiuti a costruire la testa esterna del bicipite e il picco. Di solito con ripetizioni medio-alte, 8-12 per serie."),
+    "close_grip_floor_press_kettlebell" to ex("Panca a terra a presa stretta", "La presa stretta da terra si esegue a terra spingendo due kettlebell con i gomiti tenuti vicini alle costole. Il terreno ferma il gomito in sicurezza e il percorso stretto carica molto i tricipiti; fai una breve pausa quando le braccia sono appoggiate, prima della ripetizione successiva."),
+    "close_grip_incline_bench_press" to ex("Panca inclinata a presa stretta", "La panchetto inclinata a presa stretta spinge da una panchetto inclinata con le mani dentro la larghezza delle spalle, sommando tricipiti e petto alto. Tieni i gomiti aderenti al corpo e tocca il bilanciere appena sotto la linea delle clavicole."),
+    "close_grip_lat_pulldown" to ex("Pulldown a presa stretta", "Il Pulldown a presa stretta è una variante del Pulldown, la macchina a cavi onnipresente in ogni palestra. Questo esercizio per la schiena è facile da imparare e molto efficace, e permette un carico variabile a seconda di dove si posiziona il perno nel bilanciere."),
+    // ---- Trazioni, gambe, yoga e core ----
+    "close_grip_pull_ups" to ex("Trazioni a presa stretta", "Nelle trazioni a presa stretta le mani sono quasi a contatto e si tira il petto alla sbarra, spostando il carico sui dorsali bassi e sui bicipiti. Non alzare le spalle e porta i gomiti verso i fianchi: la presa stretta chiede di più alle braccia."),
+    "close_grip_push_ups" to ex("Push-up a presa stretta", "Nella push-up a presa stretta le mani restano sotto le spalle o più ravvicinate, spostando il carico dal petto ai tricipiti. Lascia che i gomiti sfiorino le costole in discesa; il corpo resta in una linea esatta come nella push-up normale."),
+    "close_stance_leg_press" to ex("Leg press (stazione stretta)", "La leg press a stazione stretta mette i piedi alla larghezza dei fianchi e in basso sulla pedana, spostando l’accento sui quadricipiti. Tieni la zona lombare incollata al cuscino e ferma la serie quando il bacino inizia a incurvarsi: la profondità serve, la lombare arrotondata no."),
+    "cobra_stretch" to ex("Cobra", "Il cobra si esegue prono e solleva il petto con le braccia tese o con un sollevamento delicato, aprendo gli addominali e i flessori dell’anca. Tieni le spalle lontane dalle orecchie e il collo neutro; piccole dosi dopo essere stati seduti o dopo squats pesanti fanno meglio."),
+    "cocoons" to ex("Cocoon", "Il crunch cocoon è un esercizio a corpo libero per gli addominali, in particolare il retto dell’addome. Si portano le ginocchia al petto e le braccia dall’alto verso il centro. Si esegue a tempo o a ripetizioni nella parte di addominali di qualsiasi seduta."),
+    "concentration_curl" to ex("Curl concentrato", "Il curl concentrato è un classico per costruire i bicipiti un braccio alla volta. Si esegue piegato in avanti o in ginocchio, ma più spesso seduti su una panchetto. Ottimo per enfatizzare il picco del bicipite e spesso usato per chiudere il lavoro sui braccia. Come la maggior parte delle varianti di curl, si esegue con ripetizioni medio-alte, 8-12 per serie o più."),
+    "kettlebell_concentration_curl" to ex("Curl concentrato (kettlebell)", "Il curl concentrato con kettlebell appoggia il gomito lavorante contro la coscia interna e cura il kettlebell in isolamento rigoroso. L’appoggio elimina ogni scorciatoia; contrai in alto e abbassa lentamente, in controllo."),
+    "corpse_pose" to ex("Posizione cadavere", "La posizione cadavere si sta distesi supini, con gli arti pesanti e il respiro lento. Chiude la seduta abbassando il battito e rilasciando la tensione residua; la disciplina è non fare nulla apposta, scansare il corpo e lasciarlo andare pezzo per pezzo."),
+    "cossack_squat" to ex("Squat cosacco", "Lo squat cosacco scende di lato su una gamba caricata mentre l’altra si estende lunga: lavora quadricipiti, adduttori e mobilità della caviglia insieme. Tieni il tallone a terra e il petto alto; scendi solo quanto ciao e consentono senza cedere."),
+    "cow_face_pose" to ex("Vacca (gomito al ginocchio)", "Nella posizione della vacca le ginocchia si impilano e le mani si legano dietro la schiena, aprendo fianchi esterni e spalle insieme. Usa una cinghia se le mani non si toccano e cambia lato per tenere entrambi i fianchi pari."),
+    "crab_dips" to ex("Dip a granchio", "Il dip a granchio abbassa il corpo da una posizione a tavolo inverso piegando i gomiti e lavora i tricipiti con un insolito angolo di estensione della spalla. Tieni i fianchi alti e i gomiti diretti all’indietro; le spalle si aprono, non si alzano verso le orecchie."),
+    "crescent_lunge" to ex("Affondo a mezzaluna", "L’affondo a mezzaluna tiene un affondo profondo con il ginocchio posteriore sollevato e le braccia sopra la testa. Apre i flessori dell’anca della gamba posteriore mentre la gamba anteriore e il core tengono l’equilibrio; mantieni il ginocchio anteriore sopra la caviglia."),
+    "cross_body_crunch" to ex("Crunch obliquo", "Il crunch gomito-ginocchio è un esercizio a corpo libero per gli addominali, in particolare gli obliqui e il retto dell’addome. Si esegue a tempo o a ripetizioni nella parte di addominali di qualsiasi seduta."),
+    "cross_body_hammer_curl" to ex("Hammer curl incrociato", "L’hammer curl incrociato è un esercizio con manubri che lavora bicipiti, brachiale e muscoli dell’avambraccio. Invece di sollevare i pesi davanti al corpo, li si porta attraverso il busto. I polsi restano neutri per tutta la ripetizione, come chi martella un chiodo. Questo isola il brachiale di ogni braccio. Di solito con ripetizioni medio-alte, 8-12 o più, nella parte della seduta sulle braccia."),
+    "cross_body_shoulder_stretch" to ex("Stretch spalle incrociato", "Lo stretch spalle incrociato mira ad aumentare la flessibilità delle spalle. È comune nel riscaldamento dinamico della parte alta prima di allenarsi o di fare sport, ma si può eseguire in qualsiasi momento per sciogliere la parte alta."),
+    "crow_pose" to ex("Posizione del corvo", "Nella posizione del corvo gli stinchi appoggiano sul retro delle braccia e i piedi restano sollevati da terra: lavora stabilità delle spalle, forza dei polsi e controllo del core. Inizia con un piede alla volta o con un blocco sotto le dita; guarda un po’ avanti, non dritto in basso."),
+    // ---- Core, trazioni, stacchi e panche declinate ----
+    "crunches" to ex("Crunch addominali", "Il crunch è un esercizio per il core molto diffuso, che lavora il retto dell’addome e gli obliqui. È il punto centrale di molti allenamenti per gli addominali, per la sua semplicità e per il bruciore intenso e il collegamento muscolo-mente che produce. Si esegue a tempo o a ripetizioni nella parte di addominali di qualsiasi seduta."),
+    "ez_bar_curl" to ex("Curl con bilanciere EZ", "Il curl in piedi con bilanciere EZ è un esercizio estremamente diffuso per i bicipiti. Si esegue di solito con ripetizioni medio-alte, dentro una seduta sulla parte alta o sulle braccia. Molte palestre hanno bilancieri EZ a peso fisso, il che rende il cambio di carico immediato."),
+    "dancer_pose" to ex("Posizione della danzatrice", "Nella posizione della danzatrice si bilancia su una gamba tenendo il piede opposto dietro il corpo e spingendo la gamba sollevata verso la mano per aprire quadricipite e spalla. Fissa lo sguardo su un punto e inclina il busto in avanti gradualmente: è una prova di equilibrio quanto di flessibilità."),
+    "dead_bug" to ex("Dead bug", "Il dead bug si esegue supini e allunga lentamente il braccio e la gamba opposti allontanandoli dal busto, mentre la zona lombare resta premuta sul pavimento. Insegna al core a tenere la posizione mentre si muovono gli arti; vai abbastanza lento che nient’altro del corpo oscilli."),
+    "dead_bug_hold" to ex("Dead bug isometrico", "Il dead bug isometrico mantiene braccio e gamba opposti sollevati da terra: è la versione statica del dead bug. Premi la zona lombare contro il suolo per tutto il tempo; appena si inarca, il range è troppo ampio per il core."),
+    "dead_hang" to ex("Dead hang", "Il dead hang è l’aggrappars alla sbarra con le braccia tese e costruisce forza di presa, salute delle spalle e la mobilità dei dorsali necessaria per i movimenti di trazione. Lascia che le spalle salgano verso le orecchie all’inizio e poi assestati in una sospensione rilassata e attiva."),
+    "dumbbell_deadlift" to ex("Stacco con manubri", "Lo stacco con manubri lavora hamstring, glutei e muscoli della schiena. Si può eseguire da terra come uno stacco con bilanciere, ma più spesso si parte dall’alto come uno stacco romeno. Si esegue con poche ripetizioni per costruire forza sulla catena posteriore, o con ripetizioni medio-alte per muscolo e resistenza."),
+    "kettlebell_deadlift" to ex("Stacco con kettlebell", "Lo stacco con kettlebell è un movimento fondamentale del kettlebell training. Viene spesso insegnato come preparazione o come regressione allo swing, e per far imparare il movimento di “hip hinge” in modo più accessibile che con il bilanciere."),
+    "decline_barbell_bench_press" to ex("Panca declinata con bilanciere", "Panchetto con i piedi rialzati e la testa più in basso dei fianchi, che sposta l'allungamento verso il petto basso. Blocca i piedi, inarcando la schiena alta sul banco, e abbassa il bilanciere sotto lo sterno, al petto basso, lasciando rotolare in avanti le scapole. Rispingi verso l'alto."),
+    "decline_bench_press" to ex("Panca declinata", "Panchetto declinato con bilanciere, eseguito con i piedi rialzati su un rialzo e la testa sotto i fianchi. Sicura i piedi, inarcando la schiena alta sul banco, e abbassa il bilanciere al petto basso appena sotto lo sterno, lasciando rotolare in avanti le scapole; l'angolo più o meno ripido decide se il lavoro vada più al basso petto o alle spalle. Rispingi verso l'alto."),
+    "decline_bench_press_smith_machine" to ex("Panca declinata (Smith)", "La panchetto declinata alla Smith lavora i muscoli del petto, in particolare il petto basso. La Smith imita il bilanciere ma offre più stabilità. Si esegue spesso con ripetizioni medio-alte, 8-12 per serie o più, in una seduta per petto o parte alta."),
+    "decline_crunch" to ex("Crunch declinato", "Il crunch declinato è un esercizio efficace per il core che lavora il retto dell’addome."),
+    "decline_dumbbell_fly" to ex("Fly declinato (manubri)", "Il fly declinato con manubri è un esercizio di isolamento per la parte alta che lavora il petto basso. Richiede meno carico di una pressione declinata, il che lo rende un ottimo esercizio di ipertrofia con ripetizioni alte."),
+    "decline_ez_bar_bench_press" to ex("Panca declinata con bilanciere EZ", "La panchetto declinata con bilanciere EZ spinge da una panchetto declinata con la barra angolare, insistendo sul petto basso e risparmiando le spalle. Tieni i piedi agganciati, fai scorrere il bilanciere sopra il petto basso e i gomiti a circa 45 gradi dal busto."),
+    "decline_push_up" to ex("Push-up declinato", "La push-up con i piedi rialzati è una variante della push-up. I piedi sono più in alto, così il corpo è in diagonale rispetto al pavimento invece che parallelo."),
+    "deficit_deadlift" to ex("Stacco deficit", "Lo stacco deficit con bilanciere è un esercizio composto che lavora la catena posteriore."),
+    // ---- Movimenti base: spinte, trazioni e piegamenti (in ordine di popolarità) ----
+    "push_up" to ex("Push-up", "Il push-up è l'esercizio a corpo libero più conosciuto al mondo e compare in quasi ogni test di fitness militare e tattico. Costruisce petto, tricipiti e spalle, lavorando anche la parte alta della schiena e il core. Mantieni il corpo in linea retta e abbassa il petto fino a pochi centimetri dal suolo."),
+    "pull_up" to ex("Trazioni con presa supina", "La trazione a presa supina è un esercizio a corpo libero multiarticolare che costruisce forza e massa nella parte alta della schiena, nei bicipiti e nel core. Viene spesso usata come misura nei test di fitness militare o tattico ed è un ottimo indicatore di forza relativa, cioè forza rispetto al peso corporeo. Tira il petto verso la sbarra senza alzare le spalle."),
+    "inverted_row" to ex("Tiro invertito", "Nel tiro invertito ti appendi sotto la sbarra e tiri il petto in su con il corpo teso, allenando latissimi e parte alta della schiena: è la trazione al contrario. Puoi cambiare l'altezza della sbarra per regolare l'angolo e la difficoltà. Di solito da 8-12 ripetizioni per serie o più."),
+    "lat_pulldown" to ex("Pulldown", "Il pulldown è un esercizio ai cavi presente in ogni palestra del mondo. Questo costruttore della schiena è facile da imparare e molto efficace per massa e forza, perché i gomiti guidano il movimento e il petto non appoggia sul banco. Di solito da 8-12 ripetizioni per serie. Se la presa ti limita, usa i polsieri."),
+    "leg_press" to ex("Leg press", "Il leg press è un esercizio alla macchina che lavora i quadricipiti. È il preferito da chi preferisce la posizione seduta a stare in piedi con un carico sulla spina dorsale. Lo schienale scarica la schiena, ma devi comunque tenerla in posizione con i muscoli del core."),
+    "incline_dumbbell_press" to ex("Panca inclinata (manubri)", "La panchetto inclinata con i manubri lavora la parte alta del petto. Più la panchetto è inclinata, più il carico sale dal centro del petto verso l'alto. Regola il banco in modo che i manubri siano all'altezza delle spalle e spingi sopra il petto, non davanti al mento."),
+    "incline_dumbbell_fly" to ex("Croci su panchetto inclinata (manubri)", "Le croci su panchetto inclinata sono un esercizio di isolamento per la parte alta del petto, usato soprattutto con obiettivi estetici. Serve molto meno peso di una panchetto inclinata in stacco, il che lo rende ottimo per alte ripetizioni e per portare il muscolo attraverso l'intero range di stiramento."),
+    "dumbbell_fly" to ex("Croci con manubri", "Le croci con manubri isolano il pettorale, allungandolo e contraendolo mentre le spalle restano il più possibile fuori gioco. Diversamente dalla panchetto, il gomito mantiene un angolo quasi costante; il movimento viene spesso paragonato all'abbraccio di un albero. Di solito da 8-12 ripetizioni per serie o più."),
+    "dumbbell_pullover" to ex("Pullover (manubri)", "Il pullover con manubri lavora petto, parte alta della schiena, latissimi e serratus anteriore distendendoti sul banco con le braccia tese. È un puro abbassamento e risalimento dei manubri, senza piegare i gomiti. Era un favorito dei bodybuilder di vecchia scuola, che gli attribuivano la costruzione di una vita a V."),
+    "dumbbell_tricep_extension" to ex("Estensione tricipiti", "L'estensione tricipiti abbassa un manubrio dietro la testa partendo dalla presa sopra la testa e allunga la testa lunga del tricipite su tutto il suo range. Tieni i gomiti stretti e puntati in avanti; più profondo lo allungamento, migliore la ripetizione, sempre entro il comfort della spalla."),
+    "dumbbell_skull_crusher" to ex("Skull crusher (manubri)", "Lo skull crusher con manubri è un pilastro dell'allenamento ai tricipiti da decenni. Si esegue sdraiato sul banco abbassando i manubri dietro la testa fino a toccare gli avambracci con le braccia. Di solito da 8-12 ripetizioni per serie o più, nella parte di braccia della seduta."),
+    "dumbbell_hammer_curl" to ex("Hammer curl (manubri)", "L'hammer curl si esegue con due manubri contemporaneamente ma senza supinare il polso. Durante ogni ripetizione il polso resta neutro, come quando si pianta un chiodo col martello. Coinvolge soprattutto il brachiale e la testa lunga del bicipite. Di solito da 8-12 ripetizioni o più."),
+    "dumbbell_shoulder_press" to ex("Lento avanti (manubri)", "La spinta in alto con manubri da seduti è un classico costruttore del deltoide, soprattutto di quello anteriore, presente in ogni palestra del mondo. Da seduto lo schienale rende il busto stabile, in piedi si può usare più peso ma il core lavora per tenerti in posizione. Tieni il busto verticale con le costole in basso."),
+    "dumbbell_lateral_raise" to ex("Alzate laterali (manubri)", "L'alzata laterale con manubri lavora la testa media del deltoide ed è un movimento fondamentale dell'allenamento della forza. Il braccio sale lateralmente all'altezza della spalla, con una lieve inclinazione in avanti, e ci si ferma un attimo. Fatto male diventa di fatto una alzata frontale: è l'inclinazione a fare la differenza. Di solito da 8-12 ripetizioni per serie o più, con carichi leggeri."),
+    "dumbbell_front_raise" to ex("Alzate frontali (manubri)", "L'alzata frontale con manubri è un esercizio monoarticolare per i muscoli della spalla, in particolare il deltoide anteriore. Il braccio sale dritto davanti fino all'altezza della spalla, senza slancio e senza far inclinare il busto all'indietro. Di solito da 8-12 ripetizioni per serie, nella parte di spalle della seduta."),
+    "dumbbell_upright_row" to ex("Upright row (manubri)", "L'upright row con manubri in piedi tira i manubri lungo il corpo fino allo sterno e lavora insieme trapezio e spalle. Per questo molti lo abbinano o al giorno di schiena o a quello di spalle, perché coinvolge entrambe le parti. Di solito da 8-12 ripetizioni per serie o più."),
+    "dumbbell_shrug" to ex("Scrollate (manubri)", "La scrollata in piedi con i manubri alza le spalle verso le orecchie e lavora il trapezio. È spesso usata alla fine di un giorno di spalle o di schiena nel bodybuilding, ma funziona benissimo anche nel full body o negli allenamenti di forza. Lascia le braccia pendere e tira le spalle in alto senza rotolarle in avanti."),
+    "dumbbell_face_pull" to ex("Face pull (manubri)", "Il face pull con manubri flette il busto in avanti e tira due manubri in alto verso il viso con i gomiti aperti. Lavora il deltoide posteriore e i rotatori esterni della spalla, cioè esattamente i muscoli che soffrono di seduta e smartphone. Il punto sono pesi leggeri e percorso pulito; finisci con i gomiti sopra i polsi."),
+    "front_squat" to ex("Squat frontale", "Nello squat frontale il bilanciere appoggia sui deltoidi anteriori, il busto resta verticale e il carico si sposta sui quadricipiti e sulla parte alta della schiena. I gomiti restano alti, i polsi in estensione. Tra gli squat pesanti è il più onesto tecnicamente: una posizione debole si vede subito."),
+    "dumbbell_front_squat" to ex("Squat frontale (manubri)", "Lo squat frontale con manubri lavora le gambe e chiede in più un core stabile per tenere i manubri in posizione di rack. Quanto peso puoi usare dipende da quanto riesci a portarlo in quella posizione, quindi di solito si fanno 8-12 ripetizioni per serie o più. Se ti fa male al ginocchio, allarga la base d'appoggio."),
+    "dumbbell_squat" to ex("Squat con manubri", "Lo squat con manubri è un classico esercizio per gambe che lavora quadricipiti, femorali e glutei. Questa variante si esegue di solito con carichi relativamente leggeri e tante ripetizioni, ma può anche sostituire lo squat con bilanciere o lo stacco con la sbarra trapezoidale in qualsiasi scheda."),
+    "dumbbell_lunge" to ex("Affondi (manubri)", "L'affondo con manubri costruisce forza e massa una gamba alla volta. Serve a imparare la tecnica dell'affondo, ma ha valore anche da solo: 5-8 ripetizioni per serie per la forza, più ripetizioni per la massa o per la resistenza. Il ginocchio avanti resta sopra la caviglia."),
+    "dumbbell_split_squat" to ex("Split squat (manubri)", "Lo split squat con manubri lavora una gamba alla volta, con un percorso molto più lungo di un affondo. Non solo aumenta la forza delle gambe: mette anche in luce le piccole differenze tra destra e sinistra, perché ogni lato porta il proprio carico. Mettendo i piedi più avanti aumenta l'allungamento dell'anca."),
+    "dumbbell_hip_thrust" to ex("Hip thrust (manubri)", "L'hip thrust con manubri spinge le anche fino alla piena estensione con un manubrio appoggiato trasversalmente sul bacino, una variante a basso attrito di quella col bilanciere. Stringi i glutei in alto e appoggia il manubrio sopra l'osso dell'anca, non sulla pancia, che diventa scomodo."),
+    "glute_bridge" to ex("Ponte gluteo", "Il ponte gluteo è un esercizio a corpo libero per i glutei che attiva anche la bassa schiena e i femorali. Funziona con il solo peso corporeo o con resistenza aggiunta da bilanciere, manubri o banda. Sta bene in un riscaldamento dinamico per le gambe, ma si può fare in qualsiasi momento per attivare i glutei."),
+    "good_morning" to ex("Good morning", "Il good morning con bilanciere lavora glutei, femorali e bassa schiena e viene spesso programmatole come accessorio dello stacco. Per il carico sulla colonna lombare viene raramente trattato come un singolo sollevamento a massimo impegno, e più spesso si fanno 5-8 ripetizioni per serie. Schiena dritta, bilanciere vicino al corpo."),
+    "hang_clean" to ex("Clean da sospensione", "Il clean da sospensione tira il bilanciere da sopra il ginocchio alle spalle con una singola estensione esplosiva, scambiando il tiro da terra con la pura potenza partendo dalla sospensione. Tieni il bilanciere vicino mentre le anche si estendono, poi tira i gomiti sotto in posizione di rack frontale."),
+    "nordic_hamstring_curl" to ex("Curl nordico", "Nel curl nordico le caviglie sono fissate e il corpo scende in avanti dalle ginocchia con le anche tese, resistendo alla caduta solo con i femorali. È uno dei drill più efficaci per la forza dei femorali e la prevenzione degli infortuni nello sport. Controlla la discesa e risali solo fin dove la forza ti regge."),
+    "goblet_squat" to ex("Goblet squat", "Nel goblet squat tieni una kettlebell o un manubrio davanti al petto come se reggessi un calice pesante. Questo scarica la bassa schiena e rende lo squat migliore per chiunque, dal principiante all'atleta, e per chi è esperto resta un ottimo accessorio per massa e forza. Si presta bene anche in combinazione con swing, spinte e clean."),
+    "kettlebell_swing" to ex("Swing con kettlebell", "Lo swing con kettlebell lavora femorali, glutei e schiena con un'estensione esplosiva delle anche. Si usa per la potenza esplosiva, per il condizionamento cardio, nel circuit training o come accessorio dello stacco. Il peso non viene sollevato con le braccia ma spinto dalle anche alle mani: le braccia sono solo una corda."),
+    "plank" to ex("Plank", "Isometria sugli avambracci che mantiene la colonna ferma. Sdraiato sul pavimento, appoggiati sugli avambracci con i gomiti sotto le spalle, solleva il bacino fino a formare una linea unica dalla testa ai talloni. Contrai glutei e addominali e respira in modo regolare invece di trattenere il fiato. Si tiene per tempo ed è spesso usata per imparare la braceatura."),
+    "side_plank" to ex("Plank laterale", "Il plank laterale lavora in isometrico gli obliqui e la muscolatura profonda del core. Insieme al curl up e al bird dog forma i tre esercizi raccomandati dal gruppo di McGill per forza e stabilità del core. Si tiene a tempo e sta bene nel riscaldamento o nella parte di core di qualsiasi seduta."),
+    "hanging_leg_raise" to ex("Elevazione gambe appese", "L'elevazione delle gambe appese lavora gli addominali e coinvolge anche latissimi e flessori dell'anca. Invece di appoggiare gli avambracci sui cuscini della captain's chair, ci si appende a una sbarra. Per chi è esperto sembra facile, ma i principianti spesso devono costruirsi fino a serie da 8-12 ripetizioni."),
+    "lying_leg_raise" to ex("Elevazione gambe supino", "Esercizio a corpo libero che solleva le gambe verso il soffitto per lavorare gli addominali bassi. Sdraiato sulla schiena con le mani sotto i glutei e le gambe tese, solleva le gambe in alto e oltre finché il bacino si chiude, tenendo le gambe unite e la zona lombare piatta. Scendi lentamente senza far toccare i talloni il pavimento."),
+    "mountain_climbers" to ex("Mountain climber", "Il mountain climber è un esercizio a corpo libero per i muscoli del core e insieme per le spalle, le anche e il sistema cardiovascolare. Dalla posizione di plank con le braccia tese si porta un ginocchio alla volta verso il petto. Sta bene nel riscaldamento dinamico, nel cardio a corpo libero o come allenamento del core senza attrezzi."),
+    "jumping_jacks" to ex("Jumping jack", "Il jumping jack è un classico esercizio calistenico per migliorare la condizione generale, uno dei più riconoscibili al mondo e quasi sinonimo dell'addestramento dei militari. Si esegue a tempo o per ripetizioni, spesso nel riscaldamento dinamico o per mobilizzare anche e spalle."),
+    "sit_ups" to ex("Sit-up", "Esercizio a corpo libero che solleva il busto da sdraiato a seduto. Sdraiato sulla schiena con le ginocchia piegate, incrocia le braccia o appoggia le mani accanto alle orecchie e sali fino a torso verticale senza tirare il collo. Scendi lentamente senza ricadere sulla schiena. I piedi possono essere ancorati o liberi, e il punto di ancoraggio cambia quanto lavorano i flessori dell'anca."),
+    "jump_rope" to ex("Salto con la corda", "Il salto con la corda la fa girare sopra la testa e sotto i piedi in piccoli salti continui, allenando polpacci, spalle e coordinazione e facendo salire la frequenza cardiaca. Resta sulle punte dei piedi con salti bassi e silenziosi. Si presta sia a riscaldamenti leggeri sia a intervalli molto duri."),
+    "deficit_push_ups" to ex("Push-up in deficit", "Nei push-up in deficit i piedi sono rialzati, spesso su una panchetto, mentre le mani restano a terra. Questa posizione allunga il percorso del petto a ogni ripetizione e rende l’esercizio nettamente più difficile del push-up normale. Il corpo resta in linea retta dai talloni alla testa."),
+    "diamond_push_ups" to ex("Push-up a diamante", "Nei push-up a diamante le mani sono sotto il petto con pollice e indice che formano un rombo. Così il tricipite lavora in primo piano e si affina la parte bassa del petto. I gomiti restano vicini al corpo: se si allargano l’esercizio diventa un remo e il punto di carico si perde."),
+    "dolphin_pose" to ex("Posizione del delfino", "La posizione del delfino è unasana che allunga insieme spalle, parte posteriore delle braccia e schiena. Dall’appoggio sugli avambracci spingi i fianchi in alto finché la schiena è lunga e il collo resta attivo. Non lasciare cadere il peso sul collo: la carica va sulle scapole."),
+    "donkey_calf_raise" to ex("Calf raise asino", "Nel calf raise asino stai in piedi con le gambe tese davanti a una panchetto, appoggi le mani al bordo e spingi i fianchi in avanti e in alto. I polpacci vengono così caricati su un percorso molto più lungo del calf raise normale. I talloni spingono attivamente verso il pavimento."),
+    "doorway_chest_stretch" to ex("Stretch petto nel telaio della porta", "Appoggia entrambi gli avambracci sui montanti della porta, i gomiti all’altezza delle spalle e fai un passo avanti. Petto e spalle vengono tirati in avanti, il collo resta libero. Respira dentro lo stiramento e torna indietro lentamente senza spostare la porta."),
+    "double_dumbbell_kickstand_deadlift" to ex("Stacco a gamba unita con due bilanciere", "Nello stacco a gamba unita un piede sta davanti all’altro e entrambi restano a terra. Sollevi le due bilanciere lungo il corpo senza staccarle: così la catena posteriore resta più carica che nel tappato su una gamba sola. Schiena dritta e non spingere i fianchi troppo in alto."),
+    "double_dumbbell_overhead_carry" to ex("Carry sopra la spalla con due bilanciere", "Tieni una bilanciere per mano e cammina con il busto eretto, i carichi fermi sopra l’altezza delle spalle. È uno dei pochi esercizi che allenano stabilità delle spalle E core sotto carico continuo. Testa neutra, costole basse, niente inclinazione laterale."),
+    "double_kettlebell_bicep_curl" to ex("Curl bicipiti con due kettlebell", "Con un kettlebell per mano questa variante lavora le due braccia insieme e chiede più controllo del core rispetto al curl singolo. Gli avambracci restano fissi sui manici e i gomiti fermi davanti al busto. Stendi in alto e scendi lentamente tutta la corsa."),
+    "double_kettlebell_clean" to ex("Double kettlebell clean", "Nel double clean tiri entrambi i kettlebell da terra, li guidi sopra i fianchi e li ricevi in posizione rack. Il fianco è il cardine: manda prima il fianco, poi lascia seguire le braccia. Un clean staccato nasce quasi sempre dal tirare troppo presto con le braccia."),
+    "double_kettlebell_clean_and_press" to ex("Clean and press con due kettlebell", "Dal clean si va direttamente alla press sopra la testa senza appoggiare i carichi. Le gambe trasmettono l’impulso e le braccia subentrano solo quando il fianco è in equilibrio. I kettlebell devono percorrere tutta la strada sopra la testa, altrimenti è una press a metà."),
+    "double_kettlebell_dead_clean" to ex("Dead clean con due kettlebell", "Il kettlebell pende tra le gambe e viene portato in rack con un unico strappo dopo un breve stacco dal suolo. Le gambe guidano il movimento e le braccia restano quasi tese. È l’esercizio che insegna che un clean è un sollevamento da terra e non un remo."),
+    "double_kettlebell_dead_split_snatch" to ex("Dead split snatch con due kettlebell", "Strappa entrambi i kettlebell da terra e portali sopra la testa cambiando in posizione split. La gamba posteriore deve ricevere attivamente, non restare passiva: l’equilibrio dipende tutto da lì. Atterraggio sull’avampiede, il ginocchio posteriore scende verso il suolo."),
+    "double_kettlebell_jerk" to ex("Jerk con due kettlebell", "Il jerk è la variante esplosiva del clean and press: fianco esplosivo, poi una spinta di spalla che porta i carichi sopra la testa. Non spingere con le braccia. Conta tutto il timing: una spinta troppo presto costa la stabilizzazione del fianco e con essa l’altezza."),
+    "double_kettlebell_overhead_carry" to ex("Carry sopra la spalla con due kettlebell", "Porta due kettlebell sopra la testa e cammina. La posizione estesa e pesante costringe il core a restare stabile in carico continuo, perché un carico ribalterebbe subito. Collo neutro, fianchi non in avanti, sguardo avanti e non sui piedi."),
+    "double_kettlebell_overhead_press" to ex("Press sopra la spalla con due kettlebell", "Spingi entrambi i kettlebell dal rack sopra la testa tenendo le costole chiuse verso il basso. Due carichi suonano più pesanti ma sono più facili da stabilizzare di un singolo carico pesante: il vantaggio sta nell’allenare il core contro l’estensione. Dorsi delle mani in avanti."),
+    "double_kettlebell_push_press" to ex("Push press con due kettlebell", "Il push press è un clean con una spinta breve: i carichi arrivano appena sotto i fianchi e vengono spinti sopra la testa con un piccolo colpo di spalla. Le gambe non devono spingere, il peso viene dal colpo. Tieni i kettlebell vicini al corpo fino al colpo."),
+    "double_kettlebell_rear_delt_row" to ex("Row per deltoide posteriore con due kettlebell", "Tira i due kettlebell con i gomiti vicini al corpo e verso dietro, non in alto. È il carico diretto per il deltoide posteriore e il trapezio medio. I carichi passano sotto il petto e non verso il mento, altrimenti lavora il dorso."),
+    "double_kettlebell_row" to ex("Row con due kettlebell", "Entrambi i kettlebell restano appesi e il busto si mantiene a circa 45 gradi. Tira i carichi fino alla costola bassa con i gomiti aderenti al corpo. I due carichi obbligano a controllare gli avambracci, perché un peso pesante da un lato trascina il core."),
+    "double_kettlebell_split_jerk" to ex("Split jerk con due kettlebell", "Dalla posizione esplodi verso l’estensione e spingi entrambi i kettlebell sopra la testa. La gamba posteriore dà la spinta, quella davanti riceve. Uno split jerk senza salto è solo una press a metà: le gambe devono staccarsi dal suolo."),
+    "double_kettlebell_swing_snatch" to ex("Swing snatch con due kettlebell", "Qui il movimento del fianco del swing si fonde con lo strappo dello snatch: il core lancia i carichi in alto e le braccia li ricevono sopra la testa, catchingli in posizione rack. La velocità del fianco decide se i kettlebell vengono presi o meno."),
+    "downward_dog_knee_tuck" to ex("Downward dog con ginocchio al petto", "Dalla posizione del cane albero tiri un ginocchio sotto il corpo mentre l’altra gamba resta lunga. Non è uno stiramento ma un esercizio per gli addomini in appoggio sulle braccia: gli addomini devono tenere la gamba, non lasciarla cadere. Lavoro calmo, senza slancio."),
+    "downward_dog_pedal" to ex("Downward dog con tallone pedal", "Resta nel cane albero e abbassa i talloni uno alla volta verso il pavimento. Ogni tallone scende fin dove il polpaccio lo consente. È l’unico esercizio che allunga i polpacci in una posizione lunga: il confronto con il calf rise perde subito."),
+    "downward_dog_to_knee_drive" to ex("Downward dog con ginocchio verso la mano opposta", "Dal cane albero porta il ginocchio verso la mano opposta contraendo la schiena e poi torna. È un riscaldamento che attiva il core, non un semplice stiramento. Contrai prima la schiena e poi muovi il ginocchio: chi alza prima la gamba perde l’anca dalla posizione."),
+    "downward_dog_to_low_lunge" to ex("Downward dog verso affondo basso", "Dal cane albero porta un piede tra le mani in avanti in un affondo basso mentre la gamba posteriore resta lunga. Collo calmo e la spalla del lato anteriore verso il basso: è il dettaglio che quasi tutti eseguono con l’espirazione."),
+    "downward_dog_to_plank" to ex("Downward dog a plank", "Dal cane albero spingi i fianchi in avanti finché il corpo forma una linea su spalle e talloni. Lungo il percorso è dove lavora di più il core, che deve tenere i fianchi contro la gravità. Non far cedere la schiena all’indietro."),
+    "downward_dog_to_upward_dog" to ex("Downward dog a cobra", "Dal cane albero rotola in cobra e spingi in alto fino a braccia quasi tese. Il movimento viene dalle mani e non dalla schiena: i muscoli della schiena tengono solo ciò che le braccia costruiscono. Non inarcare la schiena."),
+    "downward_facing_dog" to ex("Cane al contrario", "La posizione base di ogni sequenza in flusso: spingi mani e piedi verso il bassi partendo dai fianchi, schiena lunga, collo libero. Anche se sembra riposo è un esercizio di forza per spalle e addomini. Chi vuole solo stirare sposta il peso nel punto sbagliato."),
+    "drag_curl" to ex("Drag curl", "Nel drag curl il busto viaggia in avanti con il carico, così l’estensione del gomito sparisce per un istante e il peso prosegue con la forza delle spalle. Il carico può tirare leggermente il busto in avanti: è proprio lì che sta l’effetto, e diventa tecnicamente scorretto appena lo recuperi con le braccia."),
+    "dragon_flag" to ex("Dragon flag", "È l’esercizio per gli addomini più duro con effetto leva: appeso a una sbarra stesa abbassa tutto il corpo fino a sfiorare il suolo senza flettere la schiena. Se il fianco cede prima che la schiena possa lavorare, hai finito: in quel caso scendi meno."),
+    "dumbbell_farmer_s_walk" to ex("Farmers walk con bilanciere", "Cammina a braccia tese con pesanti bilanciere. Non allena solo la presa ma tutto il core contro il ribaltamento e le spalle contro l’abbassamento. Passi piccoli, ritmo costante, mandibola rilassata: una postura storta rende l’esercizio inefficace."),
+    "dumbbell_floor_press" to ex("Chest press da terra con bilanciere", "I carichi partono da terra e vengono spinti fino a braccia tese. Gli avambracci devono costruire forza solo in fase di sollevamento, quindi l’avvio è più duro che al panchetto e il tricipite lavora di più. Non far cadere i gomiti a terra: l’articolazione del polso si prende metà del carico."),
+    "dumbbell_kickstand_deadlift" to ex("Stacco con bilanciere e appoggio a gamba unita", "Un piede sta davanti all’altro e entrambi restano a terra. Tirai la bilanciera lungo il corpo e la riabbassi in controllo. Il vantaggio sul tappato su una gamba sola: puoi prendere il carico prima e in sicurezza e caricare la catena posteriore in modo più pulito."),
+    "dumbbell_overhead_carry" to ex("Carry sopra la spalla con bilanciere", "Porta un bilanciere pesante sopra la testa e cammina. Il nucleo è il core: sotto un carico asimmetrico deve tenere la colonna neutra mentre le spalle reggono il peso. Non chinare i fianchi per alleggerire, altrimenti non stai allenando niente."),
+    "dumbbell_pistol_squat" to ex("Pistol squat con bilanciere", "Scendi in profondità su una gamba sola con l’altra libera in aria. È il più difficile esercizio monopodalico con carico; molti ci arrivano solo con supporti e non è un difetto. La gamba libera non è un problema finché fianco e ginocchio della gamba di appoggio restano in linea."),
+    "dumbbell_push_press" to ex("Push press con bilanciere", "Dalla parte bassa del sollevamento porta la bilanciere vicino ai fianchi e spingila sopra la testa con un colpo breve di spalla. Le gambe non devono spingere: il peso viene dal colpo, altrimenti è uno squat con un giro in più."),
+    "dumbbell_reverse_curl" to ex("Curl inverso con bilanciere", "I palmi guardano verso il basso invece che verso l’alto. Questo lavora brachiale e avambraccio più del bicipite ed è uno dei pochi esercizi che li isolano davvero. Abbassa i carichi lentamente: è quella parte a portare il muscolo."),
+    "dumbbell_reverse_fly" to ex("Reverse fly con bilanciere", "Il classico lavoro per il deltoide posteriore: braccia tese in avanti poi aperte ai lati, come se si accogliessero indietro. Il peso è leggero, è il movimento a fare il carico. Con bilanciere troppo pesanti lavora il dorso e perdi proprio lo stimolo che cerchi."),
+    "dumbbell_romanian_deadlift" to ex("Stacco rumeno con manubri", "Con ginocchi leggermente piegati spingi i fianchi indietro e fai scivolare i carichi lungo le cosce. La differenza rispetto allo stacco classico è il ginocchio: sempre piegato, così la catena posteriore lavora più a lungo e lo stiramento della gamba resta minore."),
+    "dumbbell_side_bend" to ex("Lateral raise con bilanciere", "Inclinati lateralmente con una bilanciere senza allungare. Lavori gli obliqui, che nella maggior parte delle persone sono undertrained. Importante: il movimento viene dal fianco e non dall’anca. Una bilanciere troppo pesante lo trasforma in un esercizio per i glutei."),
+    "dumbbell_snatch" to ex("Snatch con bilanciere", "Porta una bilanciere da terra sopra la testa con un solo strappo. Il fianco lancia il carico e le braccia lo ricevono: a differenza del clean il bilanciere non resta in rack. Per chi inizia la versione a una mano, con meno profondità di squat, è decisamente più sicura."),
+    "heel_to_toe_walk" to ex("Camminata tallone-punta", "Cammina in linea retta appoggiando ogni passo prima col tallone e poi con la punta. Se la punta non atterra davanti al tallone non è più una camminata tallone-punta ma normale deambulazione con sguardi compiaciuti verso il basso. Allena equilibrio e coordinazione su un asse che nella vita di tutti giorni si allena poco."),
+    "hero_pose" to ex("Posizione dell’eroe", "Ginocchia a terra, fianchi sui talloni, colonna in estensione e braccia in alto. Una delle posture base delle sequenze yoga e non una posizione da tenere ferma: premi le mani sulle cosce e apri attivamente l’articolazione della spalla. È la parte che manca quando la postura tira."),
+    "hex_bar_deadlift" to ex("Stacco con hex bar", "L’hex bar non ha un manico libero, le mani restano sopra il carico e la schiena è più facile da tenere in posizione. I muscoli lombari lavora quindi meno e lo stacco è più gentile con la colonna, ma anche meno impegnativo. Se cerchi una variante più leggera, sei nel posto giusto."),
+    "high_foot_leg_press" to ex("Leg press con piedi alti", "Appoggia entrambi i piedi in alto sullo schienale, con i fianchi bassi e le ginocchia in alto. L’angolo dell’anca cambia rispetto alla leg press classica e i glutei lavorano di più. Non spingere le ginocchia oltre la punta dei piedi."),
+    "high_knees" to ex("High knees", "Corri con le ginocchia alte e le braccia attive. Allena il flessore dell’anca, la coordinazione e alza subito le pulsazioni. Le ginocchia devono salire davvero e non basta correre più veloce: la differenza tra high knees e corsa è l’estensione dell’anca, e senza quella è solo cardio."),
+    "high_plank" to ex("Plank alto", "Avambracci a terra, corpo in linea retta dai talloni alla testa. Diversamente dal plank normale nessuna parte del corpo appoggia a terra: l’anca è molto più vicina all’estensione e il carico è nettamente maggiore. Se il lombare fa male, appoggia le ginocchia."),
+    "hip_adduction" to ex("Adduzione dell’anca", "Sdraiati su un fianco e solleva la gamba alta da terra senza inclinare il busto indietro. Il muscolo stretto in quella zona è quasi sempre undertrained ed è il motivo per cui molti si strappano sul lato interno del ginocchio durante gli scatti. Anca in estensione, è la gamba a condurre il movimento."),
+    "hip_bridge_ball" to ex("Bridge dell’anca su palla", "Scapole sulla palla e fianchi in alto fino al corpo dritto. La palla rende inevitabile lo stiramento dei quadricipiti perché le gambe devono restare tese, ed è questo che rende utile l’esercizio. Ginocchia dritte, non appoggiarti su una panchetto."),
+    "hip_thrust_smith_machine" to ex("Hip thrust alla Smith", "La barra scorre su un binario fisso, quindi l’anca può salire molto più in alto che con il bilanciere libero e la schiena resta stabile in basso. Per molti è la variante di hip thrust finalmente possibile, perché l’equilibrio non è più un problema."),
+    "hollow_body_hold" to ex("Hollow body hold", "Schiena a terra, braccia e gambe tese e sollevate appena finché solo la parte bassa della schiena resta a contatto. È uno degli esercizi isometrici per gli addomini più duri: la zona lombare vuole arrotolarsi e gli addomini devono impedirlo. Fermati prima che la schiena si stacchi."),
+    "horizontal_leg_press" to ex("Leg press orizzontale", "Sei disteso e spingi con i piedi in avanti contro il piano inclinato. L’effetto è diverso dalla leg press classica: il corpo è orizzontale, quindi lavora soprattutto il femorale posteriore e i glutei partecipano. Anca e schiena restano appoggiate."),
+    "human_flag" to ex("Human flag", "È uno degli esercizi calisthenics più duri in assoluto: appeso di lato a una sbarra, apri l’anca fino all’orizzontale e tieni la gamba inferiore parallela. Il corpo resta attivo, le braccia spingono e il core tiene. Senza forza preventiva nella spalla e nel core non è raggiungibile, e non è un fallimento ma una questione di ordine."),
+    "incline_barbell_bench_press" to ex("Panca inclinata con bilanciere", "Porta la panchetto a circa 30 gradi. Più è inclinata, più lavorano le spalle e meno il petto. 30 gradi è il compromesso in cui il petto resta nella zona di spinta senza sovraccaricare la spalla: più ripida di 45 gradi e il movimento è diventato un esercizio per le spalle."),
+    "incline_bench_press_smith_machine" to ex("Panca inclinata alla Smith", "La barra della Smith rende la panchetto inclinata più stabile del bilanciere libero perché scarica i polsi. Il prezzo è una corsa negativa più breve, ed è proprio lì che questa panchetto perde più forza."),
+    "incline_dumbbell_curl" to ex("Curl inclinato con bilanciere", "Il busto si inclina leggermente indietro così il braccio si estende completamente in fase eccentrica. Con il busto verticale resta un angolo al gomito ed è proprio quello a impedire lo stiramento della testa lunga. Schiena dritta, gomiti fermi, lavora solo l’avambraccio."),
+    "incline_ez_bar_bench_press" to ex("Panca inclinata con EZ bar", "La barra curva evita la presa neutra, scarica i polsi e la spalla. In cambio la distanza di presa è minore che con una barra dritta, più o meno comodo a seconda della larghezza delle spalle. Quando carichi i dischi non appoggiare il bilanciere sui manici."),
+    "incline_hammer_curl" to ex("Curl martello inclinato con bilanciere", "Impugnatura a martello e busto leggermente inclinato indietro. La combinazione è più forte del martello normale perché così si stira anche la testa lunga. Non inclinarti troppo: da quel punto entra in azione la parte anteriore della spalla ed è il momento in cui diventa scomodo."),
+    "incline_push_up" to ex("Push-up inclinato", "Mani su una panchetto o su un cassone, corpo dritto dai talloni alla testa. Quanto più alta è la superficie, più facile è l’esercizio: è la variante ideale per chi a terra non riesce ancora a tenere la posizione. Non far cedere i fianchi."),
+    "incline_treadmill_walk" to ex("Camminata in salita sul tappeto", "Non correre, cammina in fretta con pendenza decisa. Il carico sale quasi quanto nella corsa, ma con molto meno impatto su articolazioni e schiena. Una delle poche forme di cardio che allenano invece di far salire solo le pulsazioni, soprattutto dopo una sessione con i pesi."),
+    "isometric_neck_lateral_flexion" to ex("Flessione laterale isometrica del collo", "Inclina la testa di lato e oppoggi la mano con forza minima, senza spingere. Il collo è la zona più sovraccaricata e meno allenata della vita quotidiana, e quasi tutte le attività da scrivania lo inclinano in avanti per ore. Nessuna spinta, tieni solo la posizione."),
+    "jackknife_sit_up" to ex("Sit-up jackknife", "Dalla posizione distesa solleva gambe e busto insieme fino a far toccare dita dei piedi e mani. Molto più duro di un sit-up normale perché tutto il core spinge contro la gravità. Non tirare il collo."),
+    "jefferson_curl" to ex("Jefferson curl", "Un bilanciere in entrambe le mani con le braccia che pendono libere, poi si flettono solo i gomiti portando il carico davanti al corpo. Lo stiramento sugli estensori dell’avambraccio è estremo, ed è per questo che l’esercizio è così efficace e così pericoloso. Inizia con un carico leggero e lavora lentamente."),
+    "jump_squat" to ex("Jump squat", "Dalla posizione in piedi scendi nel fondo e salta in avanti esplosivo. Allena la forza esplosiva delle gambe ed è anche l’esercizio col rischio di infortunio più alto di questa lista. Atterra sempre sull’avampiede e su un appoggio sicuro, ginocchia verso la punta dei piedi."),
+    "kettlebell_farmer_s_walk" to ex("Farmers walk con kettlebell", "La variante pesante del farmers walk: un kettlebell tenuto a due mani sopra l’altezza delle spalle. Unisce forza della presa a mobilità di core e spalle perché la stabilità laterale lavora molto di più. Il kettlebell resta in mano: niente appoggi, altrimenti il carico cambia."),
+    "kettlebell_floor_press" to ex("Chest press da terra con kettlebell", "Come il panchetto ma con il manico appoggiato a terra. Il kettlebell è corto per via del manico e il pavimento ne assorbe parte del peso, scaricando gli avambracci prima della spinta: l’esercizio sembra più leggero di quanto sia."),
+    "kettlebell_goblet_lunge" to ex("Affondo con kettlebell goblet", "Il kettlebell si tiene a due mani davanti al petto, il che sostiene molto bene la postura verticale. L’affondo diventa così più lungo e profondo senza perdere l’equilibrio: è la migliore variante iniziale se i tuoi affondi sono ancora instabili."),
+    "kettlebell_halo" to ex("Kettlebell halo", "Un kettlebell descrive un cerchio intorno alla testa come se lanciassi un cerchione. Il bersaglio è meno il deltoide e più il controllo della spalla e la calma propriocettiva nel collo: il kettlebell non deve toccare la testa. Inizia con un carico molto leggero."),
+    "kettlebell_hammer_curl" to ex("Curl martello con kettlebell", "Il kettlebell sta più in basso di una bilanciere e il manico è più corto, quindi l’avambraccio si stira meno. Parte del lavoro finisce così sul gomito invece che sul braccio. Corsa più breve rispetto al martello con bilanciere, ma molto più stabile."),
+    "kettlebell_hip_thrust" to ex("Hip thrust con kettlebell", "Scapole sulla panchetto o sul bordo, fianchi in avanti fino alla piena estensione. Con il kettlebell il centro di massa sta più in alto che col bilanciere, quindi l’anca lavora più velocemente e con più precisione: per molti è la variante migliore perché il bacino è più facile da controllare."),
+    "kettlebell_kickstand_deadlift" to ex("Stacco a gamba unita con kettlebell", "Un piede davanti all’altro, entrambi a terra, il kettlebell pende tra le gambe. Diversamente dal tappato su una gamba sola l’anca resta molto più stabile e la schiena può lavorare pulita. Il manico centrale del kettlebell dà inoltre più stabilità di una presa singola."),
+    "kettlebell_lunge_press" to ex("Lunge press con kettlebell", "Dall’affondo spingi il kettlebell del lato anteriore sopra la testa e intanto risali. La spinta arriva dal basso e la press dall’alto: l’esercizio unisce i due movimenti perché chiede molti muscoli stabilizzatori insieme."),
+    "kettlebell_overhead_carry" to ex("Carry sopra la spalla con kettlebell", "Porta il kettlebell come un lampione a palla sopra la testa e cammina. La forma sferica e asimmetrica richiede un continuo piccolo aggiustamento del core, ed è questo che distingue l’esercizio dalla versione con la bilanciere. Respira calmo, sguardo avanti."),
+    "kettlebell_pistol_squat" to ex("Pistol squat con kettlebell", "Squat monopodalico con kettlebell. La forma a sfera rende l’equilibrio più facile che con la bilanciere perché il palmo ha meno momento di rotazione. Non far cedere il ginocchio: se la gamba di appoggio non regge è un problema di equilibrio, non uno stimolo."),
+    "kettlebell_pullover" to ex("Pullover con kettlebell", "Disteso, porta il kettlebell con due mani dietro la testa e tiralo attraverso la cassa toracica. Il dorso lavora in allungamento, ed è quello il vero stimolo di questa variante. Non staccare la zona lombare da terra: il carico viene guidato, non sollevato."),
+    "kettlebell_rotational_lunge" to ex("Affondo rotatorio con kettlebell", "Dall’affondo profondo ruota il kettlebell dietro la gamba opposta. Allena in diagonale rispetto alla direzione di lavoro e prende esattamente i movimenti che mancano a tutti gli esercizi con macchina. L’anca deve girare davvero, altrimenti è solo una posizione."),
+    "kettlebell_russian_twist" to ex("Russian twist con kettlebell", "Seduti con il busto leggermente indietro, ruota il kettlebell davanti al corpo da un lato all’altro. Lo stimolo è nel cambio rapido di direzione, non nel peso: un kettlebell leggero e veloce batte uno pesante al rallentatore. Colonna eretta, non curva."),
+    "kettlebell_shrug" to ex("Shrug con kettlebell", "Tieni il kettlebell davanti al corpo e tira le spalle dritte verso le orecchie. Con una bilanciere tendi a sollevarla, il kettlebell pende e rende il movimento più pulito perché non si stemma per errore. Niente rotazioni, solo su e fermo."),
+    "kettlebell_skull_crusher" to ex("Skull crusher con kettlebell", "Disteso sul panchetto tieni il kettlebell a due mani vicino alle orecchie e abbassa l’avambraccio sopra la testa. Per via della forma sferica la presa è meno stabile che con una EZ bar, quindi spesso si fa seduti e con meno carico. Non chiudere completamente il gomito."),
+    "kettlebell_squat" to ex("Squat con kettlebell", "Tenere il kettlebell davanti al petto inclina il busto in avanti molto meno di un bilanciere sulla schiena, perché il peso è più vicino alla linea di equilibrio. Per questo per molti è la variante più stabile prima di passare al bilanciere."),
+    "kettlebell_sumo_deadlift" to ex("Stacco sumo con kettlebell", "Posizione larga, punte dei piedi in fuori, kettlebell tirato in alto tra le gambe. La posizione larga impegna di più la catena posteriore e permette una corsa di sollevamento più corta: la schiena resta più a lungo appesa e questa è la fonte d’errore più comune."),
+    "kettlebell_svend_press" to ex("Svend press con kettlebell", "Tieni il carico in orizzontale davanti al petto, stringilo al centro e riaprilo. Come dice il nome lavora la cassa toracica: è un esercizio in movimento con un peso, non una spinta classica. Tante ripetizioni, ritmo calmo."),
+    "kettlebell_swing_clean" to ex("Swing clean con kettlebell", "Il remo esplosivo con kettlebell che finisce in rack: il core lancia la sfera in alto e le braccia la ricevono all’altezza delle spalle invece di accompagnarla. frenare il carico con le braccia è l’errore tipico e la principale fonte di infortunio."),
+    "kettlebell_windmills" to ex("Windmill con kettlebell", "Due mani su un manico, porta un kettlebell sopra la testa da un lato e l’altro braccio segue. Lo stimolo è nel controllo del core sotto carico asimmetrico e non nelle spalle: l’anca deve restare davvero ferma, altrimenti ci si ribalta. Molto lentamente e con poco peso."),
+    "kettlebell_wrist_curl" to ex("Curl polso con kettlebell", "Prendi il carico col palmo verso l’alto e muovi solo la mano in su e in giù. L’avambraccio resta fermo appoggiato sulla coscia. Il kettlebell è un po’ scomodo per via del manico corto, in compenso il manico è più spesso e la mano resta più in estensione."),
+    "one_arm_single_leg_dumbbell_romanian_deadlift" to ex("Stacco rumeno monopodalico con manubri", "Una bilanciere in una mano, in piedi su una gamba, fianchi spinti indietro. Combina equilibrio, monopodalità e catena posteriore in un solo esercizio: l’equilibrio è il motivo per cui molti ci arrivano solo con la schiena al muro. Ginocchio della gamba di appoggio leggermente piegato, il peso non deve cadere in avanti."),
+    "one_arm_single_leg_kettlebell_romanian_deadlift" to ex("Stacco rumeno monopodalico con kettlebell", "Come la versione con i manubri, ma il manico centrale dà alla mano una base più stabile e l’equilibrio ne risente in positivo. Il kettlebell resta libero e lavora di più l’avambraccio: non è un difetto, è un equilibrio diverso."),
+    "overhead_squat" to ex("Squat in posizione overhead", "Scendi nello squat con un bilanciere o una barra sopra la testa. È uno degli esercizi con i pesi più impegnativi: appena il carico tips in avanti l’equilibrio finisce e devi risalire. Il trucco è spingere attivamente il carico verso l’alto e non soltanto sostenerlo, così resta sopra il piede."),
+    "overhead_tricep_extension" to ex("Estensione tricipiti overhead con bilanciere", "Porta la bilanciere dietro la testa con due mani e stendi i gomiti. La testa lunga del tricipite viene allungata e, con il carico dietro la testa, lo stiramento è molto più forte rispetto all’esecuzione davanti al corpo. Non aprire troppo i gomiti o lo stimolo finisce nell’articolazione della spalla."),
+    "overhead_tricep_extension_ez_bar" to ex("Estensione tricipiti overhead con EZ bar", "La barra curva appoggia comodamente dietro la testa e tiene le mani più vicine, alleggerendo il collo. Per questo è la variante migliore per chi con la barra dritta sente il manico nel collo. Gomiti in avanti e fermi lì."),
+    "overhead_tricep_extension_kettlebell" to ex("Estensione tricipiti overhead con kettlebell", "Tieni un kettlebell dietro la testa con due mani e stendi. Per via della forma sferica il centro di massa è meno favorevole che con la bilanciere e il peso ribalta più facilmente all’indietro: per il core è più impegnativo della versione con i manici."),
+    "overhead_triceps_stretch" to ex("Stiramento tricipiti overhead", "Piega un braccio sopra la testa, porta il gomito indietro e tira leggermente al gomito con l’altra mano. Non inclinare la spalla: altrimenti si allungano i muscoli della schiena superiore invece del tricipite. Lo stiramento funziona meglio con le scapole ferme e basse."),
+    "pause_deadlift" to ex("Stacco con pausa", "Fermati un attimo nella posizione bassa senza appoggiare e poi tira in alto. La pausa obbliga la schiena a tenere la posizione neutra anche da ferma, che è esattamente la capacità che nei problemi di collo e schiena manca durante lo stacco. Due o tre secondi bastano ampiamente."),
+    "pause_pull_up" to ex("Pull-up con pausa", "Resta appeso con il mento sopra la barra senza slanciarti e poi continua a tirare. Allena la forza relativa della schiena e combatte lo slancio che negli ultimi repetition costa. Resta fermo, non spingerti attivamente verso il basso."),
+    "pause_squat" to ex("Squat con pausa", "Fermati un attimo nella posizione più bassa e poi risali. La pausa toglie il riflesso elastico e obbliga le gambe a spingere dall’estensione invece di sfruttare l’attrito del rimbalzo. Due o tre secondi, dopo è solo attesa."),
+    "paused_bench_press" to ex("Panca con pausa", "Fermati un attimo in basso e poi spingi. Lo stimolo sta nel togliere l’allungamento che si crea nella discesa, e per il petto vale moltissimo. Non trattenere troppo, altrimenti la ripetizione dopo diventa troppo pesante e la tecnica crolla."),
+    "paused_incline_bench_press" to ex("Panca inclinata con pausa", "Come la panchetto piatta ma con uno stimolo di allungamento maggiore sulla parte alta del petto, perché l’angolo tiene il muscolo in tensione più a lungo. Qui la pausa in basso conta ancora più che sulla panchetto piatta, perché il peso insiste proprio sul pectorale alto."),
+    "paused_overhead_press" to ex("Press in posizione con pausa", "Tieni un attimo il bilanciere in posizione rack con il busto verticale e poi spingi. La scapola non deve scivolare in avanti, altrimenti spingi con le spalle anteriori invece che con le mani. Tutta la differenza tra farlo bene e male sta in quei due secondi."),
+    "pec_deck" to ex("Pec deck", "Avvicina le due braccia sulla macchina e schiaccia il petto. La macchina toglie il lavoro di stabilizzazione e lascia il muscolo lavorare fino alla contrazione massima. Appoggia le mani solo leggermente: chi si aggrappa al manico scarica la spalla."),
+    "pendlay_row" to ex("Pendlay row", "Il bilanciere resta sospeso pochi centimetri sopra il suolo, lo tiri in caduta libera alle cosce e lo abbassi in controllo senza appoggiarlo. Questa variante obbliga la schiena a restare davvero in posizione perché il bilanciere sparisce subito se sollevi troppo presto. Attenzione alla zona lombare."),
+    "pigeon_stretch" to ex("Posizione del piccione", "Dalla posizione a quattro zampe porta un ginocchio in avanti tra le mani, allunga l’altra gamba dietro e lascia scendere il busto. Lo stiramento è sul femorale posteriore e sull’anca. Resta in verticale e non appoggiarti sulle mani, altrimenti lavora solo la schiena."),
+    "pike_push_ups" to ex("Push-up pike", "Mani a terra, piedi in alto su una panchetto, corpo a formare una V ripida e testa verso il pavimento. Con il corpo inclinato al contrario il peso finisce quasi tutto sulle spalle: è la variante di push-up più difficile. Collo in linea con la schiena, non guardare in avanti."),
+    "pilates_kneeling_side_kick" to ex("Calciata laterale in ginocchio (Pilates)", "In ginocchio allunga la gamba di lato e riportala dentro senza far oscillare il busto. Sembra un esercizio piccolo e innocuo ma allena proprio la stabilità dell’anca che manca camminando e sulle scale durante il giorno. L’anca resta all’altezza della spalla."),
+    "pilates_leg_pull_back" to ex("Pilates gamba indietro", "In ginocchio tira la gamba tesa indietro e rilascia senza far inclinare il busto in avanti. Esercizio classico della pilates per glutei e catena posteriore. La gamba resta tesa: un ginocchio piegato ne cambia completamente il lavoro."),
+    "pilates_leg_pull_front" to ex("Pilates gamba avanti", "In ginocchio distendi la gamba davanti in aria stringendo gli addomi e poi abbassa. Lo stimolo è negli addomini e non nella gamba: è un esercizio per il core in posizione a quattro zampe. Piano, la salita è la parte difficile."),
+    "pilates_roll_down" to ex("Pilates roll down", "In piedi con la schiena dritta rolls indietro segmento per segmento, come se mettessi giù un vertebra alla volta. Allena gli addomi sotto una richiesta alta perché la schiena non può inclinare senza l’aiuto del core. Scendi indietro solo fin quanto l’equilibrio regge."),
+    "pilates_roll_over" to ex("Pilates roll over", "Disteso porta le gambe oltre la testa fino a staccare la zona lombare da terra. Molto impegnativo per addome e anche e poco amico della colonna lombare: se hai dolore alla schiena è meglio evitarlo e iniziare dal roll down."),
+    "pilates_saw" to ex("Pilates saw", "Seduto ruota lentamente il busto teso in diagonale in avanti finché la mano opposta tocca il terra dietro il piede. Lavora soprattutto la mobilità della dorsale e non l’anca: chi ruota con il bacino perde lo stimolo vero."),
+    "pilates_side_bend" to ex("Pilates piegamento laterale", "Seduto o in piedi inclina il busto di lato senza trascinare l’anca. Due metà della testa in modo equo, altrimenti alleni un solo lato e te ne accorgi anni dopo. Molto lentamente, è un esercizio di respirazione."),
+    "pilates_spine_stretch_forward" to ex("Pilates stiramento della colonna in avanti", "Seduto spingi i fianchi indietro, rolls la schiena in avanti segmento per segmento e abbassa la testa per ultima. Il bacino deve andare con te, altrimenti la schiena si incurva e lo stiramento finisce nel punto sbagliato. Mani sulle gambe o a terra, secondo la portata."),
+    "pilates_spine_twist" to ex("Pilates rotazione della colonna", "Seduto, con il bacino fermo, ruota lentamente la colonna a sinistra e a destra. Ogni rotazione è separata e voluta: è quella la parte dell’esercizio, e far ruotare anche il bacino la trasforma in una normale rotazione del corpo."),
+    "pistol_squat" to ex("Pistol squat", "Squat monopodalico con la gamba di appoggio sollevata. È l’esercizio monopodalico più impegnativo perché il centro di massa sta tutto su un piede. Avere un bastone a portata di mano come sicurezza non è una resa ma buon senso con questo esercizio."),
+    "planche" to ex("Planche", "In appoggio sulle braccia tieni le gambe orizzontali fino a formare una linea col corpo. È uno degli esercizi calisthenics più duri in assoluto: la spalla deve reggere tutto il corpo e le scapole si avvicinano attivamente. Non tirarti più in alto con le braccia per alzare le gambi, altrimenti non è un planche."),
+    "plate_loaded_donkey_calf_raise" to ex("Calf raise asino con bilanciere", "Con le gambe tese davanti alla panchetto appoggiate il bilanciere sulla schiena e spingi i fianchi in avanti. Lo stiramento intenso dei polpacci nasce dalla proiezione dei fianchi in avanti e non dal peso: il bilanciere rende il movimento più impegnativo per l’anca."),
+    "plate_loaded_glute_drive" to ex("Glute drive con bilanciere", "In supino spingi l’anca fino all’estensione e fermati in alto. Il bacino si solleva abbastanza da far stemmare i glutei contro la gravità. Un peso sulle cosce trasformerebbe questo in un esercizio per i glutei invece che per l’anca."),
+    "plate_loaded_lateral_raise" to ex("Alzate laterale con bilanciere", "Solleva un disco con un manico fino all’altezza delle spalle. I dischi non hanno un manico, il peso sta molto fuori e il deltoide deve stabilizzare di più che con una bilanciere. Per questo l’esercizio è più pericoloso per la spalla: tieni il peso più vicino al corpo."),
+    "plate_loaded_shrug" to ex("Scrollate con disco", "Porta il carico all’altezza delle spalle e tira le spalle verso le orecchie senza rotolarle in avanti. Chi le spinge in avanti allena i glutei: è l’errore più comune in questo esercizio, si sente bene ma non lavora su quello giusto."),
+    "plate_pinch" to ex("Pinzatura del disco", "Prendi un disco con due dita e tienilo il più a lungo possibile, poi appoggialo. È l’esercizio di presa più puro della raccolta: costruisce esattamente la forza di presa che fa la differenza in stacchi e sollevamenti. Metti un po’ di talco sulla pelle o il disco scivola."),
+    "plate_pullover" to ex("Pullover con disco", "Guida un disco dietro la testa con due mani e rolls sopra la testa con le braccia tese. Il dorso lavora in allungamento perché il movimento è più ampio rispetto al pullover con bilanciere. La zona lombare resta a terra: è questo che lo distingue da un esercizio con sovraccarico."),
+    "plow_pose" to ex("Posizione dell’aratro", "Dall’appoggio sugli avambracci porta le gambe oltre la testa appoggiandole al suolo fino a formare una linea. Allunga tutta la catena posteriore compresi i polpacci. Non comprimere la cervicale e torna indietro lentamente."),
+    "plyo_lunge" to ex("Affondo pliometrico", "Dall’affondo scatta verso il lato opposto. Allena la forza esplosiva delle gambe e richiede un atterraggio stabile. Spingi con il piede posteriore: chi salta con quello anteriore atterra troppo avanti e perde la stabilità."),
+    "plyo_push_up" to ex("Push-up pliometrico", "Dalla posizione più bassa solleva per un attimo entrambe le mani da terra e riappoggiale. La spinta viene dalle spalle e dal core e non dalle braccia: quanto più le mani si staccano, tanto più è chiaro. Non saltare troppo in alto, non serve e carica i polsi."),
+    "preacher_curl" to ex("Preacher curl", "Appoggia gli avambracci sul banco, lascia gli upper arm liberi e fletti solo il gomito. Con gli upper arm appoggiati il percorso è corto e la testa corta del bicipite non può contribuire: per questo l’esercizio è così efficace e la forma così importante."),
+    "preacher_hammer_curl" to ex("Preacher curl a martello", "Banco preacher con presa neutra. Qui l’avambraccio è neutro e quindi il brachiale lavora di più che nel preacher curl classico. Gli upper arm appoggiati tengono il percorso corto: il movimento è piccolo ma il carico è preciso."),
+    "pseudo_planche_push_ups" to ex("Push-up pseudo planche", "Mani molto vicine al corpo e piedi in avanti abbastanza da sollevare appena il bacino. Sembra un push-up ma lavora più la spalla che il petto, perché il bacino è alto. Per il petto i push-up normali restano la scelta migliore."),
+    "puppy_pose" to ex("Posizione del cucciolo", "Dalla posizione a quattro zampe spingi i fianchi verso i talloni in direzione del cielo con le braccia lunghe. Le spalle si allargano molto e la schiena resta sospesa. Se la tieni troppo breve la schiena va in lordosi, il movimento opposto del plank."),
+    "push_jerk" to ex("Push jerk", "Dalla posizione rack spingi il carico in alto con una spinta esplosiva di spalla. Il fianco deve prima essere in equilibrio, altrimenti la spinta resta nelle braccia e diventa una press. Il movimento è breve e veloce: ogni pausa nel mezzo toglie forza."),
+    "push_press" to ex("Push press", "Dalla zona bassa del sollevamento porta velocemente il carico sulle spalle e spingi con un breve colpo. La differenza rispetto alla press è l’esplosività del sollevamento: conta la velocità con cui il carico sale e non la forza nella press."),
+    "push_up_hands_on_ball_ball" to ex("Push-up con mani sulla palla", "Appoggia le mani su una palla morbida e fai push-up. Il peso si sposta in avanti di più perché la palla cede, quindi spalle e core lavorano più che nei push-up a terra. Le palle morbide sono obbligatorie, una palla gonfiata non è la stessa cosa."),
+    "pyramid_pose" to ex("Posizione della piramide", "Seduto con le gambe tese spingi i fianchi oltre i talloni e piega il petto lungamente in avanti. Allunga tutta la catena posteriore compresa la muscolatura della schiena senza incurvare. Ciò che conta è la schiena, non quanto vai in avanti."),
+    "rack_pull" to ex("Rack pull", "Dalla posizione bassa dello stacco tira il bilanciere fino ai fianchi senza rialzarlo sulle cosce. Allena la catena posteriore nel percorso più breve possibile e migliora la posizione del bacino, il che a sua volta rende più facile lo stacco."),
+    "rear_delt_fly" to ex("Alzate posteriore deltoide", "Il deltoide posteriore è un puro muscolo stabilizzante: non porta nulla. Per questo l’esercizio funziona solo con un carico molto leggero e le braccia aperte che passano dietro la schiena. Con troppo peso lavora il dorso e alleni la schiena invece della spalla."),
+    "reverse_crunches" to ex("Crunch inverso", "Disteso porta le zone alla regione sternale, e allo stesso tempo premi la schiena bassa contro il suolo. È un esercizio per gli addominali che controllano il bacino, non per le gambe, che si muovono solo. È esattamente l’inverso del crunch tradizionale, ed è per questo che viene sottovalutato."),
+    "reverse_curl" to ex("Curl inverso", "Palmi verso il basso e porti il carico verso la nuca. L’inversione rispetto al curl classico sposta lo stimolo su brachiale e avambraccio, e il polso viene coinvolto di più. Se senti dolore lì, il carico è troppo alto."),
+    "reverse_grip_bent_over_row" to ex("Row a presa inversa con busto flesso", "Tira con presa prona (palmi verso l’alto). La presa inversa toglie al dorso parte della leva e sposta lo stimolo sul trapezio medio e sul deltoide posteriore. Schiena parallela al pavimento, senza dondolare avanti e indietro."),
+    "single_arm_chest_supported_dumbbell_row" to ex("Row con bilanciere a un braccio con petto appoggiato", "Petto e addome sulla panchetto, un braccio pende con la bilanciere verso il basso. Il petto è appoggiato e così il row è davvero solo lavoro di schiena e braccio, senza il dorso che altrimenti trasforma ogni movimento in un esercizio di vogato. Ideale dopo una giornata pesante perché i braccia non si affaticano."),
+    "single_arm_dumbbell_overhead_tricep_extension" to ex("Estensione tricipiti overhead a un braccio con bilanciere", "Porta una bilanciere dietro la testa con una mano sola e stendi. A un braccio lo stiramento è più forte perché nessuna seconda mano tira in equilibrio sul gomito, e il core deve stabilizzare di più per non ribaltare. Meglio da seduti."),
+    "single_arm_dumbbell_row" to ex("Row con bilanciere a un braccio", "Tira con una bilanciere in una mano e appoggia l’altra sulla coscia. Allena la schiena da un lato solo e rende visibili le differenze destra-sinistra che altrimenti si ignorano per anni. Schiena parallela al pavimento, gomiti aderenti al corpo."),
+    "single_arm_hammer_curl" to ex("Curl martello a un braccio", "Una bilanciere, presa neutra, un braccio solo. La lateralità obbliga il core a lavorare contro la torsione che un singolo braccio genera sempre. Non ruotare con il busto: così stai sollevando peso con la colonna invece che con il braccio."),
+    "single_arm_machine_shoulder_press" to ex("Press spalle a un braccio in macchina", "Spingi un braccio in macchina. La macchina guida il movimento e ne toglie la parte di equilibrio: tutto il carico finisce sul deltoide senza dover coinvolgere gli stabilizzatori. La scelta migliore per chi ha problemi di spalla."),
+    "single_arm_plate_loaded_lateral_raise" to ex("Alzate laterale a un braccio con disco", "Porta un disco con una mano fino all’altezza della spalla. Il deltoide non ha la forza di sollevare la spalla oltre l’altezza della spalla, quindi è la mano a condurre quasi completamente: la corsa si allunga fino alla piena estensione e il limite del muscolo diventa più evidente. È l’alzata laterale più dura e più pulita."),
+    "single_arm_tricep_pushdown" to ex("Pushdown tricipiti a un braccio", "Tira un cavo verso il basso con una mano sola. A un braccio il core deve compensare la rotazione che un tiro singolo genera sempre: per il tricipite è più efficace della versione a due braccia e per la stabilità altrettanto. Gomiti fissi al corpo."),
+    "single_dumbbell_svend_press" to ex("Svend press con una sola bilanciere", "Tieni una bilanciere in orizzontale davanti al petto e stringila al centro. Con una sola bilanciere puoi avvicinarti di più al petto perché il manico non lascia spazio per la larghezza della mano: lo stiramento è più forte che nella versione a due bilanciere."),
+    "single_leg_calf_raise" to ex("Calf raise su una gamba", "In piedi su una gamba alza e abbassa il tallone. Allena il polpaccio da un lato solo e chiede più equilibrio, quindi allena anche quello. Abbassa lentamente: è la discesa la parte che carica davvero il polpaccio."),
+    "single_leg_deadlift_kettlebell" to ex("Stacco monopodalico con kettlebell", "In piedi su una gamba con un kettlebell porta i fianchi indietro in posizione a quattro zampe finché la gamba tocca quasi terra. Il kettlebell pende al centro e tiene la mano tranquilla, rendendo l’equilibrio un po’ più semplice. Schiena lunga, fianchi indietro e non in alto."),
+    "single_leg_extension" to ex("Leg extension su una gamba", "Estendi una gamba alla leg press. Il quadricipite di una gamba sola viene caricato molto di più che nella versione bilaterale perché l’altro lato non aiuta più. Non far scattare il piede: gli ultimi gradi devono arrivare dal muscolo e non dal peso."),
+    "single_leg_glute_bridge" to ex("Bridge dell’anca su una gamba", "Supino su una gamba spingi il bacino fino all’estensione. Il piede d’appoggio resta a terra e fa da equilibratore mentre i glutei del lato lavorante sollevano il bacino. Non alzare la gamba troppo: lo stiramento del flessore dell’anca arriva da solo se estendi davvero il bacino."),
+    "single_leg_glute_bridge_hold" to ex("Bridge su una gamba in tenuta", "Tieni il bacino in alto su una gamba senza scendere. La differenza rispetto al bridge normale è il tempo: così si allena il muscolo in contrazione mantenuta, ed è proprio lì che si nasconde il compenso con la schiena. La schiena resta a terra."),
+    "single_leg_lying_leg_curl" to ex("Leg curl supino su una gamba", "Disteso aggancia una gamba alla leg curl. La catena posteriore viene caricata moltissimo da un lato solo, e la posizione del bacino rivela subito se stai allenando su una gamba o su due. Premi il bacino verso il tappetino e lavora solo con la gamba."),
+    "single_leg_press" to ex("Leg press su una gamba", "Spingi solo con un piede. È un esercizio in cui ci si sovrastima in fretta: l’equilibrio su una gamba fa sembrare il carico molto più alto che su due. Il bacino resta appoggiato allo schienale, altrimenti lavora anche l’anca."),
+    "single_leg_romanian_deadlift" to ex("Stacco rumeno monopodalico", "In piedi su una gamba spingi i fianchi indietro finché la gamba libera resta in aria. La combinazione di monopodalità, equilibrio e catena posteriore ne fa la variante di stacco più dura. Una mano si appoggia sulla coscia della gamba di appoggio: non è un aiuto, è la tecnica."),
+    "skull_crusher" to ex("Skull crusher", "Disteso sul panchetto tieni la bilanciere a due mani vicino alle orecchie e abbassa l’avambraccio sopra la testa. Il nome descrive il movimento ma il rischio resta: non scendere oltre la testa, altrimenti il gomito si apre verso l’esterno e l’irritazione tendinea è scritta."),
+    "sled_row" to ex("Row con lo slittino", "Tira contro la resistenza di uno slittino che scorre su una rotaia. A seconda del peso dello slittino la schiena viene caricata più o meno. Tutto il movimento è controllato, quindi è adatto anche ai principianti che vogliono imparare bene la tecnica."),
+    "smith_machine_shrug" to ex("Scrollate alla Smith", "Tira la barra della Smith fino alle cosce e porta le spalle verso le orecchie. La barra guidata rende il movimento innocuo per la schiena perché nulla rischia di ribaltare all’indietro, in compenso il trapezio viene caricato più che con un peso libero."),
+    "smith_machine_squat" to ex("Squat alla Smith", "Barra sulle spalle e si scende nello squat. La barra fissa rende il movimento molto più sicuro del bilanciere libero perché l’equilibrio non è un problema: è il motivo per cui quasi tutti iniziano alla Smith prima di passare al bilanciere."),
+    "snatch" to ex("Snatch", "Il movimento olimpico base: dalla posizione più profonda un bilanciere viene portato sopra la testa con un solo strappo. Il core lo lancia, le braccia lo ricevono. I due errori principali sono tirare troppo presto con le braccia e inclinare troppo il busto in avanti nel ricevimento. Si correggono con carichi leggeri e tante ripetizioni."),
+    "sphinx_pose" to ex("Posizione dello sfinge", "Prone sugli avambracci sotto le spalle, solleva busto e cosce finché solo la zona del bacino resta a contatto. La schiena resta lunga e lavora isometricamente. Non inarcare in lordosi: il collo guarda avanti e la schiena è una linea."),
+    "spider_curl" to ex("Spider curl", "Il curl con entrambe le braccia libere e ruotate verso l’interno. Senza un punto d’appoggio per gli upper arm il muscolo lavora più a lungo fino alla piena estensione, ed è per questo che la variante è molto più forte nella parte di allungamento. I polsi vengono molto caricati: inizia con bilanciere leggere."),
+    "spider_curl_ez_bar" to ex("Spider curl con EZ bar", "Come il spider curl semplice ma la barra curva sta davanti al corpo e tiene le mani vicine, il che rende la presa più comoda per i polsi. Lo stimolo è lo stesso, il carico sui polsi un po’ minore."),
+    "split_jerk" to ex("Split jerk", "Dalla posizione esplodi in alto e spingi entrambe le bilanciere sopra la testa arrivando in piedi. La gamba posteriore deve dare il salto: chi non salta fa solo una press a metà. Scendi in controllo nella posizione split."),
+    "split_squat" to ex("Split squat", "Un piede avanti, l’altro molto indietro, si scende in profondità. La catena posteriore della gamba davanti viene molto caricata perché regge tutto il peso. Lo squat è più profondo di un affondo normale perché le gambe non sono affiancate e quindi puoi scendere di più."),
+    "split_squat_smith_machine" to ex("Split squat alla Smith", "Barra sulle spalle, un piede ben avanti e l’altro ben indietro. La barra fissa rende inutile l’equilibrio altrimenti impegnativo, così puoi scendere molto più in basso e far lavorare i glutei in modo decisamente maggiore."),
+    "spoto_press" to ex("Spoto press", "Una normale panchetto con una breve pausa a metà strada. Prende il nome da Paul Spoto, che la raccomandava per la prevenzione degli infortuni. Il vantaggio è la breve pausa a metà, che tiene stabile il ritmo della spinta e percorre la strada fino al bersaglio senza rimbalzo."),
+    "stability_ball_push_up" to ex("Push-up su palla di stabilità", "Mani sulla palla, piedi a terra. La palla rotola e obbliga il core a riequilibrarsi a ogni singola ripetizione: ogni ripetizione allena il centro. Quanto meno sei stabile sulla palla, più lavoro per gli addominali fai a ripetizione."),
+    "stair_climber" to ex("Climb step", "Sali e scendi gli scalini con tutto il peso su una gamba. Allena gambe e sistema cardiovascolare insieme e sembra solo una camminata, per questo l’intensità viene spesso sottovalutata. L’anca deve davvero salire sopra ogni gradino, altrimenti è solo salire le scale."),
+    "standing_calf_raise" to ex("Calf raise in piedi", "In piedi, solleva i talloni il più in alto possibile e abbassa lentamente. Nient’altro: il polpaccio cresce grazie allo stiramento e non al numero di ripetizioni. Ogni giorno e con poco peso, perché il polpaccio viene impegnato ad ogni sessione ed è così che diventa visibile."),
+    "standing_calf_stretch" to ex("Stiramento polpacci in piedi", "Posa un piede dietro, lascia il tallone a terra e spingi il tallone in avanti. Il polpaccio si allunga senza far inclinare il busto, ed è per questo che si fa in piedi e non da seduti. Non sollevare il tallone, altrimenti non è uno stiramento."),
+    "standing_forward_fold" to ex("Piegamento avanti in piedi", "Piegati in avanti con le gambe quasi tese e le mani a terra accanto ai piedi. La schiena resta lunga: è tutta la differenza tra uno stiramento e una posizione yoga. Se le mani non arrivano a terra, la schiena curva non è un errore dello stiramento ma una piega troppo corta."),
+    "standing_forward_fold_to_half_lift" to ex("Dal piegamento avanti a mezzo sollevamento", "Dal piegamento profondo risolleva il busto a metà altezza, fino a portare i fianchi all’altezza delle ginocchia. Allunga la catena posteriore e allena insieme il sollevamento, perché la posizione intermediaria va tenuta. È proprio la metà dell’altezza a trasformarlo in un esercizio per la schiena e non in un semplice stiramento."),
+    "standing_quad_stretch" to ex("Stiramento quadricipiti in piedi", "Prendi un piede da dietro con la mano e tira il tallone verso i glutei. Tieni le ginocchia unite: è quella parte che rende vero lo stiramento. Inclinati leggermente in avanti e il bacino si posiziona, così lo stiramento è sul quadricipite e non sulla schiena."),
+    "standing_side_bend" to ex("Pieganza laterale in piedi", "In piedi inclina il busto di lato portando un braccio teso sopra la testa. La muscolatura laterale del core si allunga e si rafforza. L’anca può seguire, ma il bacino non deve ribaltarsi, altrimenti allungi il flessore dell’anca invece della fianco."),
+    "standing_side_bend_flow" to ex("Flusso piegamento laterale in piedi", "La pieganza laterale come movimento continuo da una parte all’altra, senza trattenersi a fine corsa. Le pulsazioni e la circolazione fanno la differenza rispetto allo stiramento statico. Respiro calmo, nessun cambio di direzione brusco."),
+    "standing_split" to ex("Spagat in piedi", "Un piede avanti e l’altro dietro, restando in verticale. Allunga tutta la catena posteriore e l’anca, ma richiede equilibrio. Se riesci a tenere il tallone basso è fatto bene: il tallone davanti si alza da solo quasi sempre."),
+    "stationary_bike" to ex("Cyclette", "Bici da_statico con resistenza impostata. Diversamente dalla corsa carica poco le articolazioni e allena comunque sistema cardiovascolare, gambe e resistenza. La resistenza conta più del tempo: con resistenza troppo leggera è solo pedalare più veloce."),
+    "step_ups" to ex("Step up", "Sali su una superficie rialzata e ridiscendi, tutto il peso su una gamba per volta. Allena gambe e equilibrio insieme e funziona ovunque senza attrezzature: le ripetizioni contano su una gamba sola, altrimenti perdi la parte di equilibrio."),
+    "stiff_leg_deadlift" to ex("Stacco a gambe tese", "Con ginocchia quasi tese spingi i fianchi indietro e fai scivolare il bilanciere lungo le cosce. Diversamente dallo stacco rumeno la schiena resta molto più a lungo inclinata e le gambe restano tese: polpacci e zona lombare sono quindi più coinvolti."),
+    "straight_arm_pulldown" to ex("Pulldown a braccia tese", "Tira il cavo verso i fianchi con le braccia tese. La schiena lavora in estensione e il movimento richiede meno forza di un bilanciere ma più controllo. È un ottimo ingresso al lavoro con i cavi perché le braccia non possono cedere."),
+    "straight_bar_cable_front_raise" to ex("Front raise al cavo con barra dritta", "Con la barra dritta tira il cavo all’altezza del petto tenendo le braccia tese. Grazie alla barra la presa è chiusa e le spalle non devono stabilizzare: per questa variante è molto più pulita di quella con un cavo per mano."),
+    "straight_bar_dips" to ex("Dips alla barra dritta", "In appoggio sulla barra porta le gambe in avanti. Sulla barra dritta non puoi inclinare il corpo in avanti come sui manubri, il che rende l’esercizio molto più controllato ma anche meno impegnativo per le spalle."),
+    "strict_curl" to ex("Curl strict", "Curl in piedi con le braccia aderenti al corpo e niente slancio. La posizione stretta rende il movimento più pesante del curl seduto e obbliga il bicipite a lavorare senza aiuto del pendolo. È quello il punto: l’esercizio mette alla prova la costanza, non la forza."),
+    "suitcase_carry" to ex("Carry valigia", "Porta un bilanciere pesante per un manico tenendola di lato, come se trasportassi una valigia. La parte di presa è la stessa del farmers walk ma la lateralità rende la stabilizzazione molto più difficile e allena di più i muscoli laterali del core."),
+    "sumo_deadlift" to ex("Stacco sumo", "Posizione larga, punte dei piedi in fuori, bilanciere tirata in alto tra le gambe. La posizione larga impegna di più il femorale posteriore e permette all’anca di scendere più in basso: è il vantaggio principale rispetto allo stacco classico. Schiena lunga, non chinarsi in avanti."),
+    "sumo_high_pull_kettlebell" to ex("High pull sumo con kettlebell", "Dalla posizione sumo tira il kettlebell in alto con uno strappo fino all’altezza del petto e poi ricevilo. Il core spinge, le braccia ricevono: il flessore dell’anca lavora molto perché è lui a innescare il sollevamento sopra l’altezza delle spalle."),
+    "sumo_squat" to ex("Squat sumo", "Posizione larga, punte dei piedi in fuori, scendi in profondità. La posizione larga porta in gioco più glutei e adduttori e permette di scendere più in basso con meno stress sulle ginocchia. Ginocchia verso la punta dei piedi, non verso l’interno."),
+    "superman" to ex("Superman", "Prone solleva insieme braccia e gambe e riabbassa. Allena tutta la catena posteriore ma resta comunque un esercizio per la schiena e non di forza: per l’equilibrio è poco impegnativo, per la muscolatura della schiena molto. Non allungare il collo."),
+    "supine_spinal_twist" to ex("Rotazione supina della colonna", "Disteso porta un ginocchio al petto e lascialo cadire lentamente di lato, la spalla resta a terra. Allunga insieme la colonna e i glutei ed è uno dei pochi esercizi in cui puoi restare passivo e ottenere comunque qualcosa."),
+    "supine_windshield_wipers" to ex("Tergicristallo supino", "Disteso con le gambe tese lasciale cadire alternativamente di lato. Lo stimolo sta nel controllo del movimento del bacino più che negli addominali: chi fa ruotare anche il bacino allena soprattutto i flessori dell’anca e ricava poco dall’esercizio."),
+    "supported_shoulderstand" to ex("Spalle appoggiato al muro", "Supino in spalle appoggiato con la schiena al muro e i fianchi oltre la testa. Senza il muro diventa un appoggiato sulla testa ed è troppo per quasi tutti. Il core deve tenere il bacino sopra le costole ed è proprio la muscolatura addominale a farlo."),
+    "svend_press" to ex("Svend press", "Tieni le due bilanciere in orizzontale davanti al petto, stringile al centro e riaprile. Come dice il nome lavora la cassa toracica: è un esercizio in movimento con un peso, non una spinta classica. Tante ripetizioni, ritmo calmo."),
+    "t_bar_row" to ex("Row con T bar", "Busto sotto la barra e tira sul bilanciere orizzontale. La posizione è molto inclinata e richiede forza dalla schiena; la presa resta stretta e questo fa lavorare la schiena più che con una barra normale. È una leva dorsale eccellente per chi è avanzato."),
+    "thoracic_bridge" to ex("Ponte della dorsale", "Supino con i piedi appoggiati spingi il bacino fino all’estensione inarcando la dorsale a ponte. Allunga l’estensione della schiena, la meno allenata davanti alla scrivania. Non spingere con la mandibola: è il bacino a fare il lavoro."),
+    "thread_the_needle" to ex("Thread the needle", "Dalla posizione a quattro zampe passa un braccio sotto l’altro fino a posare spalla e testa a terra. Allunga la muscolatura alta della schiena e la cuffia dei rotatori. Non spingere con forza: lo stiramento arriva da solo quando molli."),
+    "thread_the_needle_flow" to ex("Flusso thread the needle", "La rotazione del thread the needle come movimento continuo avanti e indietro, ogni volta un po’ più in avanti. Le pulsazioni fanno la differenza tra stirare e riscaldare, ed è per questo che l’esercizio sta più in fondo al riscaldamento."),
+    "three_legged_downward_dog" to ex("Cane al contrario a tre zampe", "Cane al contrario con una gamba alzata verso il cielo. Allunga tutta la catena posteriore e chiede in più equilibrio e forza di spalla. La gamba alzata resta verticale e non inclinata: con una gamba diagonale alleni più l’equilibrio che lo stiramento."),
+    "thruster" to ex("Thruster", "Dallo squat con il busto verticale spingi il bilanciere sopra la testa e risali in piedi. Combina lavoro gambe e spalle in un solo movimento ed è un full body molto efficiente. Resta perfettamente verticale: chi si inclina allena l’anca invece delle gambe."),
+    "dumbbell_somersault_squat" to ex("Squat somersault con bilanciere", "Fai un somersault all’indietro con bilanciere leggere e atterra in posizione raccolta. La gravità aggiuntiva lo rende molto più pesante dello squat normale. Atterra morbido e non sulla schiena: il somersault deve essere finito prima del contatto col pavimento."),
+    "dumbbell_sumo_squat" to ex("Squat sumo con bilanciere", "Posizione larga con le bilanciere in mano e scendi in profondità. La posizione larga lavora di più su glutei e adduttori e permette di scendere più in basso con meno carico sulle ginocchia. Le bilanciere pendono tra le gambe e non disturbano la linea."),
+    "dumbbell_svend_press" to ex("Svend press con bilanciere", "Tieni una bilanciere in orizzontale davanti al petto e stringila al centro. Con una sola bilanciere scivoli più vicino al petto perché il manico non lascia spazio per la larghezza della mano: lo stiramento è più forte che con due. Tante ripetizioni."),
+    "dumbbell_tricep_kickback" to ex("Kickback tricipiti con bilanciere", "Fissa l’upper arm al corpo, tieni l’avambraccio indietro e poi estendi in alto. L’escursione residua del braccio è il senso dell’esercizio: il tricipite lavora solo negli ultimi 30 gradi e allena l’estensione proprio dove è più debole. Non inclinare i fianchi per guadagnare corsa."),
+    "dumbbell_windmill" to ex("Windmill con bilanciere", "Due mani su un manico, porta una bilanciere sopra la testa di lato e l’altro braccio segue. Lo stimolo sta nel controllo dell’anca sotto carico asimmetrico: l’anca deve restare davvero ferma, altrimenti ci si ribalta. Molto lentamente e con poco peso."),
+    "dumbbell_wrist_curl" to ex("Curl polso con bilanciere", "Prendi la bilanciere col palmo verso l’alto e muovi solo la mano in su e in giù, avambraccio sulla coscia. Il manico della bilanciere è più largo di quello del bilanciere e rende la presa più neutra, così l’avambraccio si stira meno che con presa prona."),
+    "eagle_pose" to ex("Posizione dell’aquila", "Seduti incrocia le gambe, intreccia le braccia davanti al corpo e ruota i gomiti verso l’alto. È una delle posizioni yoga più difficili per il flessore dell’anca e per la muscolatura alta della schiena. Non premere con le mani sul pavimento: così tieni solo la forza e non lo stiramento."),
+    "easy_pose" to ex("Posizione facile", "La posizione seduta con gambe incrociate e schiena eretta. Sembra non fare niente ed è invece un vero esercizio: mette in colonna e allena i flessori dell’anca che da seduti non vengono mai usati. Resta calmo e respira."),
+    "elliptical_trainer" to ex("Ellittica", "Sull’ellittica il corpo non è trainato da una catena come in bici, ma ti muovi tu con piedi e braccia. Così si coinvolge più massa muscolare e le ginocchia ne soffrono molto meno rispetto alla corsa. Prendi sul serio la resistenza: pedalare piano è solo pedalare più veloce."),
+    "extended_side_angle_pose" to ex("Angolo laterale esteso", "Nell’affondo piega il ginocchio inferiore verso il pavimento e porta il braccio basso lungo la gamba posteriore fino al tallone, con il braccio alto teso sopra la testa. È una delle aperture d’anca più profonde dello yoga e quindi molto intensa. Usa un blocco se l’equilibrio non c’è ancora."),
+    "ez_bar_front_raise" to ex("Front raise con EZ bar", "Impugna l’EZ bar poco più larga delle spalle e solleva davanti in alto. La presa è più larga di una bilanciere normale e impedisce che sia la spalla a guidare il movimento. Non alzare oltre l’altezza delle spalle: appena il braccio devia di lato lavora il deltoide e non il frontale."),
+    "ez_bar_pullover" to ex("Pullover con EZ bar", "Disteso sul panchetto porta l’EZ bar dietro la testa con due mani e rolls sopra la testa con le braccia tese. Appoggia le gambe sul panchetto e abbassa il bacino: eso amplifica molto l’allungamento sul dorso."),
+    "ez_bar_reverse_curl" to ex("Curl inverso con EZ bar", "Palmi verso il basso e porta l’EZ bar verso la nuca. La barra curva tiene le mani più vicine, il che rende il curl inverso un po’ più leggero che con una barra dritta. L’inversione rispetto al curl normale sposta lo stimolo su brachiale e avambraccio."),
+    "ez_bar_romanian_deadlift" to ex("Stacco rumeno con EZ bar", "Con ginocchia leggermente piegati spingi i fianchi indietro e fai scivolare l’EZ bar lungo le cosce. La barra curva toglie una parte della componente di equilibrio perché le mani non pendono libere e rende lo stacco più gentile sulla colonna lombare."),
+    "ez_bar_shrug" to ex("Scrollate con EZ bar", "Tira l’EZ bar fino alle cosce e porta le spalle verso le orecchie. La presa resta chiusa perché entrambe le mani sono su un unico manico: la schiena resta tranquilla e il trapezio riceve tutto il movimento. Non rotolare le spalle in avanti."),
+    "ez_bar_upright_row" to ex("Upright row con EZ bar", "Tira l’EZ bar al petto e poi alzalo lateralmente lungo il corpo fino all’altezza delle spalle. Il movimento inizia come un row e finisce come un alzata laterale, ed è quella trasformazione ad allenare il deltoide. Non alzare oltre l’altezza delle spalle: diventerebbe uno shrug."),
+    "ez_bar_wrist_curl" to ex("Curl polso con EZ bar", "Impugna l’EZ bar col palmo verso l’alto e muovi solo la mano in su e in giù, avambraccio sulla coscia. La presa larga dell’EZ bar rende la mano più neutra rispetto a una bilanciere normale, così l’estensione del polso viene allenata meglio."),
+    "fish_pose" to ex("Posizione del pesce", "Supino, appoggiato su un gomito e la coscia, solleva la cassa toracica finché la sommità del collo stacca da terra. È uno degli stiramenti più efficaci per la schiena: scarica la zona lombare e apre tutta la dorsale. Non spingere con le mani, il bacino resta in basso."),
+    "floor_ez_bar_press" to ex("Chest press da terra con EZ bar", "L’EZ bar parte da terra e viene spinto fino a braccia tese. Il pavimento assorbe parte del peso e scarica gli avambracci: l’esercizio è più leggero di una panchetto dello stesso peso ma lavora lo stesso muscolo."),
+    "floor_kettlebell_pullover" to ex("Pullover da terra con kettlebell", "Disteso a terra porta il kettlebell dietro la testa e rolls sopra la testa con le braccia tese. Senza panchetto le gambe sono libere e possono restare a terra o in aria: più corsa che sul panchetto e più trazione sul dorso."),
+    "floor_press" to ex("Chest press da terra", "Disteso spingi con due bilanciere che partono da terra. Con il contatto col pavimento il punto di partenza è fisso e la discesa è limitata, così il petto lavora di più in allungamento che al panchetto. Non far sbattere i gomiti a terra."),
+    "flutter_kicks" to ex("Flutter kicks", "Disteso con le gambe tese muovile velocemente e in piccoli archi di su e giù. Lo stimolo non è nelle gambe ma negli addominali, che devono tenere fermo il bacino mentre le gambe si muovono. Più veloci sono le gambe, più devono tenere gli addominali."),
+    "front_lever" to ex("Front lever", "In appuggio sulle braccia tieni le gambe tese orizzontali con il corpo parallelo al pavimento. È uno degli esercizi calisthenics più duri: la schiena regge tutto il corpo come leva e le scapole si avvicinano attivamente. Non tirarti le gambe in alto con le braccia: non è un front lever."),
+    "front_squat_smith_machine" to ex("Front squat alla Smith", "Barra sulle spalle anteriori invece che sulla schiena, e scendi in profondità. La posizione rack sul davanti tiene il busto molto più eretto di quella sulla schiena e chiede molto più controllo del core. Gomiti in avanti, non lasciarli scendere."),
+    "garland_pose" to ex("Posizione della ghirlanda", "Scendi molto in basso con i piedi uniti, premi i gomiti sulla parte interna delle ginocchia e tieni le mani unite davanti allo sterno. È una delle aperture d’anca più profonde in assoluto e anche una delle più difficili da mantenere. Eseguiscila su un blocco se l’equilibrio non basta."),
+    "glute_bridge_hold" to ex("Bridge dell’anca in tenuta", "Supino, tieni l’anca in alto senza scendere. Il tempo fa la differenza rispetto al bridge normale: in contrazione mantenuta alleni un muscolo che altrimenti si lavora quasi solo isometricamente. Non compensare con la schiena, è il momento in cui diventa troppo tardi."),
+    "glute_kickback" to ex("Glute kickback", "In posizione a quattro zampe solleva una gamba e portala indietro e in alto. Isometrico e allo stesso tempo potente: il kickback in tenuta è per molti lo stimolo sui glutei più efficace che esista. Schiena dritta, niente lordosi."),
+    "glute_kickback_hold" to ex("Glute kickback in tenuta", "Tieni la gamba indietro e in alto senza scendere, con il bacino fermo. La combinazione di isometrico ed estensione è difficilmente battibile per i glutei. La schiena resta dritta perché il peso della gamba farebbe altrimenti lordosi da solo."),
+    "good_morning_smith_machine" to ex("Good morning alla Smith", "Barra sulle spalle e spingi i fianchi in avanti con le gambe tese. La barra della Smith rende il movimento più stabile del bilanciere libero perché la barra non può ribaltare: è la variante migliore per imparare l’estensione d’anca con un peso."),
+    "hack_squat" to ex("Hack squat", "Macchina inclinata con le spalle appoggiate al cuscino e spingi la pedana con i piedi in avanti. Per via dell’inclinazione l’anca resta libera e i glutei possono lavorare molto meglio che nella leg press verticale. La schiena resta sul cuscino, il bacino viaggia."),
+    "hack_squat_calf_raise" to ex("Calf raise su hack squat", "Sulla macchina inclinata, punte dei piedi sulla pedana, tira i talloni in alto fino alla piena estensione delle dita. La macchina libera l’equilibrio così puoi concentrarti sul polpaccio. Abbassa lentamente: è la discesa a costruire il polpaccio."),
+    "half_kneeling_hip_flexor_rock" to ex("Rock dell’anca in mezza posizione genuflessa", "Dalla mezza posizione genuflessa torna in piedi all’indietro e rientra. È una forma dinamica dello stiramento del flessore dell’anca in cui il corpo resta in movimento e quindi non tira soltanto. Il ginocchio posteriore resta a terra, quello davanti si estende."),
+    "half_moon_pose" to ex("Posizione della mezza luna", "In piedi su una gamba alza l’altra orizzontale, appoggia la mano dello stesso lato a terra e porta l’altro braccio in alto. L’equilibrio è impegnativo e senza supporti è troppo per molti. Lo sguardo resta su un punto fisso: è quello il trucco."),
+    "handstand_push_ups" to ex("Push-up in handstand", "Mettiti in handstand e scendi dall’alto fino a portare le spalle all’altezza del petto. È di gran lunga la variante di push-up più impegnativa: tutto il peso sta su mani e spalle e la corsa è doppia. Le orecchie restano lontane dalle braccia, il peso sta sui palmi."),
+    "hang_power_clean" to ex("Hang power clean", "Dalla posizione appesa porta il bilanciere in rack con un solo strappo. Diversamente dal clean classico il carico non parte da terra: il core deve generare l’accelerazione da solo perché non c’è un contatto col pavimento da cui spingere. È questo che la rende difficile."),
+    "hanging_knee_raise" to ex("Alzate ginocchio appesi", "Appeso alla sbarra porta le ginocchia al petto senza slanciarti. Allena gli addominali in una condizione che hai tutto il giorno: il corpo è appeso e deve reggersi da solo. Non tirarti al petto con le braccia, così scarichi subito gli addominali."),
+    "hanging_pike" to ex("Pike appeso", "Dalla posizione appesa porta lentamente le gambe tese fino ai fianchi. La schiena lavora isometricamente e gli addominali dinamicamente: è uno dei passaggi più difficili della ginnastica. Abbassa lentamente e non portare i fianchi oltre la sbarra."),
+    "happy_baby_pose" to ex("Posizione del bambino felice", "Supino afferra i piedi con le mani e tira le ginocchia verso il fianco e il pavimento. Allunga tutta la catena posteriore e l’anca e, dato che ti tieni da solo con le mani, lo stiramento è passivo ed efficace. La zona lombare resta a terra."),
+    "head_to_knee_pose" to ex("Piegamento testa al ginocchio", "Seduto con una gamba tesa, piega il busto lentamente in avanti fino alla gamba. La schiena resta lunga: è proprio questo che distingue lo stiramento dalla piega curva. Lavora con una pressione leggera sulla gamba, non con la forza."),
+    "heel_elevated_squat" to ex("Squat con talloni rialzati", "Talloni su un rialzo e scendi in profondità. L’elevazione sugli avampiedi aumenta lo stiramento di polpacci e piede posteriore senza sovraccaricare la zona lombare: è la via standard per approfondire lo squat quando la schiena bassa non regge più il contatto col pavimento."),
+    "knee_push_ups" to ex("Push-up da ginocchio", "Prone con le gambe sollevate all’altezza dei fianchi e spingi da lì. Molto più leggero del push-up sui piedi e quindi la variante naturale per iniziare. Il corpo resta in linea retta dai fianchi alla testa."),
+    "knee_to_chest_stretch" to ex("Stiramento gamba al petto", "Disteso porta un piede verso il busto e tienilo con entrambe le mani. Allunga insieme la zona lombare e i glutei. L’altra gamba resta a terra o tesa, a seconda che tu voglia lo stiramento sulla schiena o sull’anca."),
+    "knee_tuck_ball" to ex("Knee tuck su palla", "Supino con i piedi sulla palla porta l’anca al petto finché la zona lombare stacca da terra. La palla rotola sotto i piedi e rende l’equilibrio parte dell’esercizio. Lo stiramento lombare è reale finché l’anca resta davvero in alto."),
+    "kneeling_hip_flexor_stretch" to ex("Stiramento flessore dell’anca in ginocchio", "Dalla posizione in ginocchio spingi i fianchi in avanti mentre il ginocchio posteriore resta a terra. Lo stiramento è sul flessore dell’anca e sul retus femoris. Contrai i glutei per renderlo più forte: è l’aggiunta che quasi tutti tralasciano e poi si chiedono perché non tira."),
+    "kneeling_wrist_stretch" to ex("Stiramento polso in ginocchio", "Dalla posizione in ginocchio appoggia le mani a terra con le dita in avanti e sposta lentamente il peso in avanti. È uno degli stessi che allunga direttamente polso ed estensori dell’avambraccio, e quasi mai fatto durante il lavoro d’ufficio. Non ruotare le mani verso i piedi."),
+    "l_sit" to ex("L sit", "Seduti sulle mani tieni le gambe tese parallele al pavimento. È uno degli esercizi isometrici di forza per core e flessori delle spalle. Se le gambe cedono, più facile tenerle piegate: anche così si allena lo stesso muscolo."),
+    "landmine_press" to ex("Landmine press", "Il bilanciere lesionato è ancorato al muro con l’estremità libera a terra: spingi il peso in avanti col solo avambraccio fino all’altezza della spalla. L’angolo fa sì che il movimento non sia del tutto verticale: così lavora di più la spalla e meno il capo lungo del tricipite."),
+    "leg_curl_ball" to ex("Leg curl con palla", "Disteso appoggia i piedi sulla palla e fletti le gambe così che la palla scivoli sotto i piedi verso i glutei. La palla toglie ai piedi il controllo e il polpaccio deve governare il rientro da solo. Non sollevare il bacino, scaricherebbe la zona lombare."),
+    "leg_extension" to ex("Leg extension", "Seduto estendi il ginocchio contro il peso e abbassa lentamente. Il quadricipite lavora isometricamente contro la macchina e in allungamento, ed entrambe le cose contano. Spingi con il rotolo del piede invece che con le dita: risparmia il menisco con carichi lenti."),
+    "legs_up_the_wall_pose" to ex("Parete con le gambe", "Supino con il sedere al muro e le gambe in verticale appoggiate al muro. È uno dei migliori esercizi per gambe stanche e flessore dell’anca accorciato. Dieci-venti minuti bastano, di più serve a poco. La schiena resta a terra."),
+    "lizard_stretch" to ex("Lizard stretch", "Dalla posizione a quattro zampe porta un piede in avanti tra le braccia e abbassa l’anca. È l’apertura più profonda del flessore dell’anca che si può fare con il proprio peso. Le mani restano a terra e le spalle non crollano in avanti: lì lo stiramento sparisce subito."),
+    "locust_pose" to ex("Posizione del locusta", "Prone solleva braccia e gambe e appoggia i palmi accanto alle orecchie. Lo sguardo resta a terra e il collo lungo: è la differenza rispetto al superman. L’anca resta a terra, altrimenti alleni i glutei invece della schiena."),
+    "low_lunge" to ex("Affondo basso", "Passo lungo in avanti con il ginocchio posteriore che scende verso il pavimento. Allena flessore dell’anca e glutei in una posizione che nella vita di tutti giorni non si ha mai. Spingi il bacino in avanti prima di scendere col ginocchio: è la differenza tra uno stiramento e un affondo."),
+    "low_lunge_to_half_split" to ex("Affondo basso a mezzo spacco", "Dall’affondo basso spingi lentamente i fianchi indietro finché il tallone posteriore si alza e la gamba davanti resta tesa. Una combinazione fluida di stiramento di fianco e coscia, molto più efficace di una posizione statica."),
+    "lunge" to ex("Affondo", "Un passo in avanti con il ginocchio posteriore verso il pavimento. Allena gambe, anca e equilibrio insieme ed è l’esercizio monopodalico più naturale della vita di tutti giorni. Il tallone davanti resta a terra, altrimenti il carico si sposta sulla gamba davanti e il femorale posteriore non lavora."),
+    "lying_leg_curl" to ex("Leg curl supino", "Disteso alla leg curl e fletti le due gambe insieme. Rispetto alla versione seduta l’anca è in estensione e il femorale posteriore in allungamento: lo stiramento è più efficace ma anche il carico maggiore. Non arrotolare il bacino."),
+    "lying_tricep_extension" to ex("Estensione tricipiti supino", "Lavora disteso con le braccia tese sopra la testa. La posizione supina toglie al movimento il peso del braccio, così è più leggera della versione in piedi e adatta a chi inizia. Gomiti stretti, non divaricare."),
+    "lying_triceps_extension_ez_bar" to ex("Estensione tricipiti supino con EZ bar", "Disteso porta l’EZ bar sopra la testa con due mani e stendi i gomiti. La posizione supina toglie il peso del braccio e rende l’esercizio più sicuro; la barra curva tiene le mani unite e scarica anche i polsi."),
+    "machine_hip_abduction" to ex("Hip abduction in macchina", "Seduto divarica le gambe contro la resistenza. La macchina toglie la componente di equilibrio, così il movimento resta pulito anche per chi inizia. Non alzare troppo il carico: oltre un certo punto non lavora più il gluteo ma solo il flessore dell’anca."),
+    "machine_preacher_curl" to ex("Preacher curl in macchina", "Gli upper arm appoggiano sulla macchina e si muovono solo gli avambracci. Con l’upper arm appoggiato il bicipite non può dondolare e deve produrre da solo tutta l’estensione. La macchina elimina anche equilibrio e stabilità della spalla, ed è per questo un ottimo ingresso."),
+    "seated_cable_row" to ex("Row seduto al cavo", "Sieduti al cavo, piedi nelle apposite cuffie e tira verso il busto. Con il supporto dietro lo schienale resta libero, quindi puoi sederti più orizzontale che al panchetto e tenere meglio la schiena in posizione. Non tirare al collo."),
+    "seated_calf_raise" to ex("Calf raise seduto", "Seduto sulla macchina spingi la pedana in avanti con la punta dei piedi. Il carico è più leggero del calf raise in piedi ma in compenso alleni il polpaccio senza stress di equilibrio: ideale a fine sessione gambe, quando stare in piedi chiede troppo."),
+    "seated_dumbbell_curl" to ex("Curl seduto con bilanciere", "Seduto tira le bilanciere su con i gomiti aderenti al corpo. Da seduti la schiena non può aiutarsi inclinandosi in avanti, quindi il bicipite è decisamente più impegnato che in piedi. Tieni i gomiti davanti al bacino, non appoggiati sulla coscia."),
+    "seated_dumbbell_lateral_raise" to ex("Alzate laterale seduto con bilanciere", "Seduto porta le bilanciere di lato all’altezza delle spalle con i gomiti leggermente piegati. Il leggero angolo al gomito toglie alla spalla il lavoro di stabilizzazione e lo passa al deltoide. Non caricare troppo: oltre un certo punto subentra la schiena e si allena il posto sbagliato."),
+    "seated_dumbbell_shoulder_press" to ex("Press seduto con bilanciere", "Seduto spingi le bilanciere da altezza spalle sopra la testa con la schiena appoggiata. Lo schienale assorbe parte del peso e la spalla deve stabilizzare meno. Costole verso il basso, non spingere in lordosi."),
+    "seated_dumbbell_tricep_extension" to ex("Estensione tricipiti seduto con bilanciere", "Seduto porta la bilanciere dietro la testa e stendi. Il braccio piegato crea allungamento dove quello teso non ne ha, e in questo esercizio l’estensione al gomito è solo una piccola parte della corsa. Non appoggiare il gomito sulla coscia, altrimenti lo stiramento cala."),
+    "seated_forward_fold" to ex("Piegamento avanti seduto", "Seduto sul panchetto con le gambe tese piegati lentamente in avanti fino allo sterno sulle cosce. È una delle varianti più sicure perché non devi alzarti per uscirne. Schiena lunga, non tirare con le mani."),
+    "seated_leg_curl" to ex("Leg curl seduto", "Seduto fletti le gambe contro il peso. Il leg curl classico per il femorale e, per passaggio, anche per i polpacci. Abbassa il peso lentamente: si torna più in fretta dal punto peggiore del movimento e si perde lo stimolo in allungamento."),
+    "seated_smith_machine_shoulder_press" to ex("Press seduto alla Smith", "Siediti sul panchetto e spingi la barra guidata sopra la testa. La barra guida la corsa e toglie la componente di equilibrio: così puoi spingere molto più pesante che con bilanciere libere e imparare il lavoro della spalla in isolamento."),
+    "seated_spinal_twist" to ex("Rotazione seduta della colonna", "Siediti eretto, una mano sul ginocchio opposto e ruota dolcemente tenendo fermo il bacino. Respira dentro la rotazione e scioglila lentamente senza strappi. È uno dei pochi esercizi che puoi fare in ufficio ogni tanto."),
+    "seated_straddle_stretch" to ex("Straddle seduto", "Seduto divarica le gambe e piegati lentamente in avanti. Allunga la parte interna delle cosce senza dover salire su una panchetto o una cassa. Schiena lunga, l’anca spinge in avanti invece di chiudersi."),
+    "shoulder_press_smith_machine" to ex("Press spalle alla Smith", "Spingi la barra guidata da altezza spalle sopra la testa. Senza la componente di equilibrio puoi lavorare molto più pesante che con bilanciere libere e, dato che la barra traccia la strada, anche il movimento sembra più pulito. Il rovescio è lo stesso: gli stabilizzatori lavorano meno."),
+    "side_lunge" to ex("Affondo laterale", "Step di lato e piega il ginocchio mentre l’altra gamba resta tesa. Allena la parte interna della gamba che si muove e l’anca in una posizione che con gli affondi frontali non si raggiunge. Non puntare il piede della gamba tesa."),
+    "side_lying_hip_abduction" to ex("Abduzione dell’anca in decubito laterale", "Sdraiati su un fianco, solleva la gamba alta da terra e abbassa lentamente. I glutei lavorano isometricamente mentre il corpo resta fermo, così l’esercizio funziona anche senza peso. Non alzare troppo, altrimenti il bacino ruota all’indietro."),
+    "side_lying_hip_abduction_hold" to ex("Abduzione dell’anca laterale in tenuta", "Tieni la gamba alta in aria senza scendere. La differenza rispetto alla versione normale è il tempo: in contrazione mantenuta alleni il muscolo che il movimento veloce raggiunge a malapena. Il bacino resta impilato, altrimenti stai sollevando l’anca."),
+    "side_lying_hip_adduction" to ex("Adduzione dell’anca in decubito laterale", "Sdraiati su un fianco e solleva la gamba inferiore davanti all’altra. Allena il gracile semitendinoso e la parte interna del femore, esattamente la zona che cede per prima in chi corre e rema. Piano: il movimento è piccolo ma il muscolo è ribelle."),
+    "side_lying_hip_adduction_hold" to ex("Adduzione dell’anca laterale in tenuta", "Tieni la gamba inferiore in alto senza scendere. La contrazione mantenuta è il vero stimolo: il muscolo regge molto più a lungo una posizione statica di quanto regga un movimento veloce. Bacino fermo, ginocchio teso."),
+    "side_lying_lateral_raise" to ex("Alzate laterale in decubito laterale", "Sdraiato su un fianco solleva la gamba alta con una bilanciere. La posizione laterale toglie all’anca tutta la componente di equilibrio, così lo stimolo arriva quasi solo al deltoide. Tieni il carico volutamente leggero."),
+    "side_plank_leg_lift_hold" to ex("Side plank con sollevamento gamba in tenuta", "In appoggio laterale sul braccio solleva e tieni la gamba alta. Combina la tenuta isometriche del core con l’estensore dell’anca: è ben più duro di un side plank normale. L’anca resta in alto, altrimenti alleni solo la stabilizzazione."),
+    "side_plank_with_leg_lift" to ex("Side plank con sollevamento gamba", "In appoggio laterale solleva e abbassa la gamba alta tenendo l’anca in alto. L’estensore dell’anca lavora contro la gravità mentre il core tiene l’anca sospesa: è questa combinazione a fare lo stimolo. Non far cedere l’anca, altrimenti diventa un contatto col pavimento."),
+    "toes_to_bar" to ex("Toes to bar", "Appeso alla sbarra porta i piedi fino alla barra con le gambe tese. È uno degli esercizi per il core più duri in assoluto: la corsa è breve e la contrazione enorme. Non slanciarti con le gambe, perdi così tutta l’estensione. Alzare le ginocchia è permesso."),
+    "treadmill_running" to ex("Corsa sul tappeto", "Corsa vera sul tappeto. Diversamente dalla camminata in salita qui l’impatto è reale e per questo ad alta velocità il tappeto colpisce duro le articolazioni. Correre a passo lento è il recupero migliore dopo un allenamento con i pesi."),
+    "tree_pose" to ex("Posizione dell’albero", "In piedi su una gamba appoggiate il piede sulla parte interna dell’altra sopra o sotto il ginocchio, mani in preghiera. Allena equilibrio e concentrazione, non forza. Lo sguardo su un punto fisso rende l’esercizio più facile, non più difficile."),
+    "triangle_pose" to ex("Posizione del triangolo", "Posizione larga, ruota i piedi in orizzontale, piega il ginocchio inferiore e porta la mano a terra o su un blocco, con l’altro braccio verticale in alto. Allunga tutto il lato del corpo, dal polpaccio al fianco. Non devi arrivare per forza al pavimento: un blocco o la tua stessa mano bastano."),
+    "trx_face_pull" to ex("TRX face pull", "Al TRX tira il cavo verso il viso con i manici alti sopra la testa. Questo esercizio va in ogni programma per le spalle perché allena il deltoide posteriore e la cuffia dei rotatori, che vengono caricati in ogni spinta e sollevamento. Le mani devono arrivare sopra l’altezza delle spalle, altrimenti è solo un row."),
+    "trx_hamstring_curl" to ex("TRX hamstring curl", "Disteso nell’appoggio TRX, piedi nelle apposite cuffie e fletti le gambe. La gravità rende l’esercizio più leggero di quanto sembri perché il corpo porta meno peso proprio. Non veloce: il polpaccio deve poter controllare il ritorno."),
+    "trx_lunge" to ex("TRX affondo", "Nell’appoggio TRX scendi all’indietro in affondo e risali. Le mani dicono quanto puoi scendere, il che rende il movimento molto più sicuro per chi inizia rispetto a un affondo libero. Schiena dritta, cuffie corte."),
+    "trx_pistol_squat" to ex("TRX pistol squat", "Nell’appoggio TRX scendi in squat su una gamba sola. Il TRX toglie una parte dell’equilibrio senza far perdere la richiesta di postura: è quindi un buon passaggio verso la versione libera. Tieni deliberatamente ferma la gamba libera."),
+    "trx_plank" to ex("TRX plank", "Piedi nelle cuffie TRX, mani a terra e corpo in linea retta. Le cuffie fissano la parte bassa del corpo così puoi concentrarti interamente sul core. Non lasciar cedere l’anca: le TRX non devono scaricare per te."),
+    "trx_row" to ex("TRX row", "Nell’appoggio TRX inclina indietro e tira le mani al petto. Con i piedi fissati il peso del corpo pende dalle braccia, ed è per questo che il TRX row è un buon esercizio per chi inizia. Cuffie corte, movimento controllato."),
+    "trx_side_plank" to ex("TRX side plank", "In appoggio laterale sul TRX, piedi nelle cuffie, corpo in linea retta. Le cuffie rendono la posizione più facile di un side plank libero perché le gambe non devono bilanciarsi da sole. Anca alta, corpo dritto."),
+    "trx_squat" to ex("TRX squat", "Nell’appoggio TRX scendi nello squat all’indietro. Le mani determinano la profondità, così nessuno può scendere troppo - pratico per avvicinarsi alla tecnica. La schiena resta lunga e il TRX è davvero teso."),
+    "trx_triceps_extension" to ex("TRX estensione tricipiti", "Nell’appoggio TRX con l’upper arm piegato stendi l’avambraccio verso il soffitto. È l’angolo al gomito a creare l’allungamento: un’estensione nell’articolazione della spalla allena invece solo il deltoide. Tieni l’angolo del gomito costante."),
+    "trx_y_fly" to ex("TRX Y-Fly", "Nell’appoggio TRX apri le braccia in diagonale verso l’alto formando una Y. Allena il trapezio inferiore e la spalla posteriore, che sono poco caricati in ogni press. La corsa è breve ma il muscolo è esattamente quello che quasi tutti hanno poco."),
+    "turkish_get_ups_kettlebell" to ex("Turkish get-up con kettlebell", "Alzati da supino tenendo il kettlebell in una mano sopra la testa e riabbassalo in controllo senza cambiare mano. È uno degli esercizi più duri con kettlebell libero: richiede alzarsi, tenere e posare senza guardare il carico. Solo con poco peso e con la tecnica giusta."),
+    "upright_row_smith_machine" to ex("Upright row alla Smith", "Tira la barra guidata al petto e poi alzala lateralmente fino all’altezza delle spalle. Senza la componente di equilibrio puoi aumentare il carico che di solito limita le spalle. Il passaggio dal tirare al sollevare è la parte che allena il deltoide."),
+    "upward_facing_dog" to ex("Cane rivolto verso l’alto", "Dall’appoggio sugli avambracci stendi le braccia e inarca il corpo in una V aperta. La muscolatura della schiena lavora isometricamente e la colonna si allunga nella dorsale. Lascia le gambe a terra e non sollevarle: altrimenti è un black."),
+    "v_bar_lat_pulldown" to ex("Lat pulldown con maniglia a V", "Tira con la maniglia a V, mani vicine e busto eretto. La V permette una contrazione della schiena più forte perché gli avambracci non devono divaricare e il movimento resta più dritto. Non tirare con le braccia."),
+    "v_bar_tricep_pushdown" to ex("Pushdown tricipiti con maniglia a V", "Al cavo spingi verso il basso con la maniglia a V. La forma curva tiene le mani unite e toglie una parte dello stimolo agli avambracci: così il carico è più sul tricipite e meno sul brachioradiale. Gomiti fissi al corpo."),
+    "v_sit" to ex("V sit", "Seduti a terra solleva le gambe e avvicinale al busto con le ginocchia tese il più possibile. Se lo stiramento delle gambe è troppo, le ginocchia restano piegate: anche così si allenano gli stessi muscoli. Tieni la schiena eretta, non curva."),
+    "v_ups" to ex("V up", "Disteso solleva gambe e busto insieme fino a farli toccare. Allena tutta la muscolatura addominale e il flessore dell’anca in un movimento difficile all’inizio: la schiena vuole arrotolarsi e gli addominali devono impedirlo. Inizia con le gambe piegate."),
+    "walking" to ex("Camminata", "Camminata normale con busto eretto e passo elastico. Dopo un allenamento con i pesi è il recupero migliore perché le pulsazioni restano basse e il movimento tiene comunque attivo il circolo. Non camminare a gambe unite: il controbilanciamento bacino-spalle è parte della cosa."),
+    "walking_lunge" to ex("Affondo camminato", "Camminando, scendi in affondo e risali nel passo successivo. Il fatto di camminare rende l’equilibrio meno critico che nell’affondo fermo: è la variante migliore per chi trova troppo instabile quella da fermo."),
+    "wall_push_ups" to ex("Push-up al muro", "Con le mani al muro all’altezza del petto tieni il corpo dritto ed esegui i push-up. È la variante di push-up più leggera che esista e l’ingresso per chi a terra non regge ancora il peso sulle mani. Le mani non sopra l’altezza delle spalle."),
+    "wall_sit" to ex("Wall sit", "Schiena al muro, ginocchia a 90 gradi, abbassa il bacino fino all’altezza delle ginocchia e mantieni. È uno degli esercizi isometrici per le gambe più efficaci ed è lo standard nella riabilitazione dello squat. A seconda della lunghezza delle gambe il bacino scende più o meno in basso: entrambe le cose vanno bene."),
+    "wall_squat_ball" to ex("Wall squat con palla", "Schiena al muro con la palla intrappolata tra schiena e muro, poi scendi nello squat. La palla rende visibile come cambia la schiena durante le ripetizioni: la zona piatta che si forma in alto è esattamente il punto in cui il movimento fallisce."),
+    "warrior_i" to ex("Guerriero I", "Dall’affondo porta le braccia sopra la testa, gamba posteriore tesa e fianchi spinti in avanti. Allunga il flessore dell’anca e rafforza le gambe in una posizione stabile. Il punto è l’anca: se resta bassa diventa un affondo alto e basta."),
+    "warrior_ii" to ex("Guerriero II", "Posizione larga, piede posteriore leggermente ruotato, braccia in orizzontale in entrambe le direzioni, sguardo oltre il braccio anteriore. Allena la resistenza in una posizione mantenuta e allunga cosce e petto. Il ginocchio davanti resta sopra la caviglia."),
+    "warrior_iii" to ex("Guerriero III", "Dalla posizione in piedi con le mani a terra spingi il bacino indietro finché le gambe sono tese e il busto orizzontale. Equilibrio e catena posteriore insieme e, dovendo le mani toccare il pavimento, la posizione è limitata. Piedi paralleli, non sulle dita."),
+    "weighted_dips" to ex("Dips con sovraccarico", "In appoggio porta le gambe in avanti e scendi fino a braccia parallele al pavimento. Con il sovraccarico è uno degli esercizi più duri per petto e tricipiti: con troppo peso subentrano le spalle, ed è l’errore da non fare."),
+    "weighted_pull_up" to ex("Pull-up con sovraccarico", "Appeso alla sbarra con il sovraccarico tira fino a portare il mento sopra la barra. È la variante di pull-up più pesante per chi ha pieno controllo del pull-up normale. Prima padroneggia tutta la corsa a zero sovraccarico: altrimenti ci si arriva con un peso solo per una forma sbagliata."),
+    "weighted_wall_crunch" to ex("Crunch al muro con sovraccarico", "Supino al muro, bilanciere sopra la testa, e rolls il busto verso il pavimento. La bilanciere allunga la leva e rende il movimento molto più pesante di un crunch normale. La schiena resta al muro: appena si stacca lavora il flessore dell’anca e non gli addominali."),
+    "wide_grip_bench_press" to ex("Panca con presa molto larga", "Impugna il bilanciere molto larga e spingi. La presa larga toglie il tricipite dal movimento e sposta lo stimolo sul petto, ma anche sul deltoide anteriore: per questo qui il carico dovrebbe essere più basso che con la presa normale."),
+    "wide_grip_pull_ups" to ex("Pull-up con presa molto larga", "Tira alla sbarra con le mani molto larghe. La presa larga accorcia la corsa e limita il lavoro del dorso alla parte alta rendendolo più isolato. Chi vuole sentire il dorso basso ha bisogno della presa stretta o inversa."),
+    "wide_grip_push_ups" to ex("Push-up con presa molto larga", "Appoggia le mani molto larghe e spingi. Il muscolo del petto ha più corsa e il tricipite meno: l’esercizio è la controprova del push-up normale. Non allargare tanto da far prendere il movimento alla spalla."),
+    "wide_grip_seated_cable_row" to ex("Row seduto al cavo con presa molto larga", "Tira verso il busto con le mani molto distanti. La presa larga obbliga la schiena a stringere le scapole perché la direzione del tiro largo non permette altro: è uno dei migliori esercizi per il trapezio medio."),
+    "wide_legged_forward_fold" to ex("Piegamento avanti gambe larghe", "Piegati in avanti con i piedi molto distanti e le mani a terra. Allunga insieme la catena posteriore e la parte interna delle cosce. Le ginocchia possono restare leggermente piegate: su ginocchia tese lo stiramento è più forte ma anche il carico sul menisco."),
+    "wide_stance_leg_press" to ex("Leg press a gambe larghe", "Appoggia i piedi molto larghi sulla pedana e spingi. La posizione larga lavora di più su glutei e adduttori e permette di scendere più in basso con meno carico sulle ginocchia. Ginocchia verso la punta dei piedi, non verso l’interno."),
+    "wrist_roller" to ex("Wrist roller", "Ruota con entrambe le mani un bastoncino con i pesi. È una delle prese più pure che esistano: allena esattamente la forza che fa la differenza nel sollevamento, nella presa e in ogni movimento con i pesi. Ruota lentamente: rotolare veloce è un esercizio per il polso, non di presa."),
+    "zottman_curl" to ex("Zottman curl", "Il curl con entrambe le mani verso il basso. Con la pronazione il brachiale lavora più che nel curl normale, in compenso il movimento è insolito e difficile da percepire per molti. Inizia con un carico leggero e impara piano cosa fa il polso."),
+    "machine_seated_crunch" to ex("Crunch seduto in macchina", "Appoggiati al cuscino e fletti il busto all’indietro contro la resistenza. La macchina toglie agli addominali il peso proprio, così puoi lavorare più in basso e più a lungo che nel crunch a terra. Non tirare il collo."),
+    "machine_shoulder_press" to ex("Press spalle in macchina", "Seduti o in piedi spingi le maniglie da altezza spalle sopra la testa. La macchina elimina equilibrio e stabilità della spalla, quindi il carico sale e il deltoide lavora di più. Non spingere con lo slancio: la macchina non lo perdona."),
+    "machine_triceps_extension" to ex("Estensione tricipiti in macchina", "Impugna i manici o la maniglia con due mani e stendi gli avambracci verso il cuscino. Il cuscino traccia il movimento e costringe il gomito a restare fermo: è proprio questo che rende utile l’esercizio. Non allontanare gli upper arm dal corpo."),
+    "medicine_ball_slam" to ex("Medicine ball slam", "Solleva la palla sopra la testa e picchiala a terra davanti a te con tutta la forza. Allena la forza esplosiva della schiena e tutta la catena posteriore perché la schiena deve frenare la discesa. Per raccoglierla non usare la schiena: corri verso la palla con le gambe."),
+    "mountain_pose" to ex("Posizione della montagna", "Seduto incrocia le gambe e appoggia le mani sulle ginocchia. Calma il respiro e mette in colonna: una pausa per la zona lombare. Nello yoga è il contrario del sedere curvo, in ufficio è un esercizio di respirazione."),
+    "muscle_snatch" to ex("Muscle snatch", "Da ginocchio alzati rapidamente e spingi le bilanciere sopra la testa. Spesso scambiato per un salto: è un movimento esplosivo d’anca che ti mette in piedi. Non scendere di nuovo in ginocchio: ci perderesti tutto l’effetto."),
+    "muscle_ups" to ex("Muscle up", "Dalla posizione appesa fai un’oscillazione del petto e intanto spingi sopra la barra. Il passaggio dal tirare allo spingere è tutto lo stimolo e tutta la difficoltà: chi non lo fa pulito si limita a dondolare e non sale."),
+    "neck_side_stretch" to ex("Stiramento laterale del collo", "Inclina la testa dolcemente di lato, la mano opposta appoggiata leggera sulla guida soltanto. Non spingere con la mano: il collo arriva allo stiramento da solo quando smetti di aiutare. Il pomoide resta libero, non alzare la spalla."),
+    "negative_pull_ups" to ex("Negative pull-up", "Dalla posizione appesa porta lentamente il mento sopra la barra e poi scendi in controllo. È la discesa la fase realmente allenata: quasi tutti allenano solo la salita e perdono proprio la parte difficile. Non mollarti."),
+    "neutral_grip_pull_ups" to ex("Pull-up con presa neutra", "Tira con i palmi uno verso l’altro. La presa neutra scarica polsi e bicipite e sposta di più sul dorso, ma è spesso un gradino più leggera della presa normale. È la variante migliore per chi ha problemi ai polsi."),
+    "offset_reverse_lunge_and_press_kettlebell" to ex("Affondo inverso con spostamento laterale e press (kettlebell)", "Con il kettlebell su una spalla scendi in affondo all’indietro e da lì spingilo sopra la testa. Il carico diagonale e l’affondo insieme rendono l’esercizio impegnativo per equilibrio e core. Non inclinare i fianchi per compensare."),
+    "one_arm_dumbbell_push_press" to ex("Push press a un braccio con bilanciere", "Con una bilanciere dalla posizione ai fianchi spingi sopra la testa con un unico strappo. A un braccio la schiena deve compensare la torsione che un singolo braccio genera e le gambe guidano l’accelerazione. La variante è nettamente più pesante di quella a due braccia."),
+    "one_arm_dumbbell_swing" to ex("Row a un braccio con bilanciere", "Fai pendolare una bilanciere lungo il corpo e manda i fianchi in avanti. La presa a una mano lo rende più impegnativo del row a due braccia perché la schiena deve compensare la rotazione. Mandare i fianchi, non dondolare con il braccio."),
+    "one_arm_kettlebell_bicep_curl" to ex("Curl bicipiti a un braccio con kettlebell", "Porta il kettlebell con una mano fino alla spalla. Il manico tondo sta più in basso nella mano di quello di una bilanciere, quindi l’avambraccio si stira meno e il movimento è un po’ più corto. Non aiutarti con l’altra mano."),
+    "one_arm_kettlebell_bottoms_up_press" to ex("Bottoms-up press a un braccio con kettlebell", "Appoggia il kettlebell su un estremo a terra e spingi l’altro sopra la testa fino a portare la sfera in alto. Il carico sbilanciato davanti al corpo rende l’esercizio tra i migliori di equilibrio e forza per la spalla. Piano e con un peso molto leggero."),
+    "one_arm_kettlebell_floor_glute_bridge_press" to ex("Bridge del gluteo da terra con press (kettlebell)", "Supino a terra spingi l’anca fino all’estensione e da lì porta il kettlebell sopra la testa con un unico strappo. Glutei e spalle in un movimento: il core deve passare dall’uno all’altro senza perdere l’anca."),
+    "one_arm_kettlebell_floor_press" to ex("Chest press da terra a un braccio con kettlebell", "Disteso spingi un kettlebell da terra sopra la testa con un unico strappo. Il pavimento assorbe parte dell’avvio e il kettlebell lascia pochissimo margine: il movimento diventa esplosivo invece che controllato. Inizia con poco peso."),
+    "one_arm_kettlebell_front_squat" to ex("Front squat a un braccio con kettlebell", "Tieni il kettlebell davanti alla spalla e scendi nello squat. A un braccio il corpo tende a inclinarsi dal lato opposto e la schiena deve attivamente contrastare: è proprio questa compensazione a rendere utile l’esercizio. Non uscire con il busto."),
+    "one_arm_kettlebell_push_press" to ex("Push press a un braccio con kettlebell", "Dai fianchi porta il kettlebell sopra la testa con un unico strappo. La presa a una mano rende l’esercizio più pesante della versione a due braccia perché equilibrio e rotazione devono andare d’accordo. Non aiutare la sfera in posizione rack con le dita."),
+    "one_arm_kettlebell_row" to ex("Row a un braccio con kettlebell", "Tira con un kettlebell tenendo i gomiti al corpo. La sfera dà alla presa più stabilità di una bilanciere piatta e rende un po’ più fattibile la presa a una mano. L’altra mano si appoggia sulla coscia, altrimenti la schiena non regge più."),
+    "one_arm_kettlebell_shoulder_press" to ex("Press spalle a un braccio con kettlebell", "Tieni il kettlebell alla spalla e spingilo sopra la testa. Il manico tondo è più gentile con la spalla di una bilanciere dritta perché la mano non deve fare angolo: per questo spesso è la variante più tollerata da chi ha problemi di spalla."),
+    "one_arm_kettlebell_swing" to ex("Swing a un braccio con kettlebell", "Fai pendolare un kettlebell lungo il corpo e manda i fianchi in avanti. Con una sola mano la schiena deve compensare attivamente la rotazione, il che rende la spinta d’anca più pulita che nello swing a due braccia. Mandare i fianchi: le braccia seguono solo la traiettoria."),
+    "one_arm_kettlebell_tricep_kickback" to ex("Kickback tricipiti a un braccio con kettlebell", "Upper arm al corpo, tieni il kettlebell dietro di te e stendi l’avambraccio in alto. La forma sferica è instabile in estensione, quindi questo esercizio non va all’inizio. Impara prima la corsa con una bilanciere leggera."),
+    "one_arm_landmine_press" to ex("Landmine press a un braccio", "Spingi con una mano sul bilanciere lesionato fino all’altezza della spalla. A un braccio l’esercizio è più difficile che a due perché la schiena deve compensare la rotazione. L’estremità guidata aiuta moltissimo: senza la barra sarebbe solo una press a un braccio."),
+    "one_arm_lat_pulldown" to ex("Lat pulldown a un braccio", "Tira con una mano sulla maniglia e lascia intatta l’altra. La schiena deve compensare la rotazione e lavora più che nel tiraggio a due braccia. Il lato non usato diventa il confronto: è quello il vero valore dell’esercizio."),
+    "reverse_grip_bent_over_row_smith_machine" to ex("Row a presa inversa in avanti (Smith)", "Inclinati in avanti sulla barra della Smith con presa prona. La barra fissa toglie la componente di equilibrio che nella versione libera è la principale fonte di errore: per questo è la variante sicura della presa inversa."),
+    "reverse_grip_lat_pulldown" to ex("Lat pulldown con presa inversa", "Tira verso lo sterno con i palmi verso l’alto. La presa inversa toglie al dorso parte della leva e sposta lo stimolo sul trapezio medio e sul deltoide posteriore. Non tirare con le braccia."),
+    "reverse_grip_row_ez_bar" to ex("Row a presa inversa con EZ bar", "Tira con l’EZ bar tenendo i palmi verso il pavimento. La barra curva è insolita con le mani rivolte in basso ma il manico corto dà più forza. È una variante per chi trova troppo leggero il row normale."),
+    "reverse_lunge" to ex("Affondo inverso", "Scendi in affondo con la schiena verso il muro. Molto impegnativo per l’equilibrio perché la superficie d’appoggio sta dietro i piedi e non puoi recuperarti da solo. La schiena è la prima cosa che cede: lavora sempre vicino a una sbarra o davanti a un muro."),
+    "reverse_lunge_smith_machine" to ex("Affondo inverso alla Smith", "Scendi in affondo con la schiena verso l’apparecchio. La barra fissa rende inutile l’equilibrio altrimenti instabile, quindi è la variante sicura per chi inizia. Non spingere il ginocchio della gamba davanti oltre la punta dei piedi."),
+    "reverse_nordic_curl" to ex("Nordic curl inverso", "In ginocchio attacca i piedi a un peso leggero, lascia scendere lentamente i fianchi in avanti e fletti le ginocchia. Il core deve frenare mentre le gambe si estendono: è l’inverso del nordic curl normale e altrettanto impegnativo."),
+    "reverse_plank" to ex("Plank inverso", "Appoggio sugli avambracci con i piedi su una superficie rialzata, così il corpo scende dai piedi alla testa. Molto più duro del plank normale perché la spalla regge la maggior parte del peso. Non lasciar cedere l’anca."),
+    "reverse_plank_dips" to ex("Dips dal plank inverso", "Dal plank inverso porta le gambe oltre la testa e scendi. L’ordine è inverso rispetto al dip normale, prima indietro e poi in avanti, ed è proprio quello il difficile. Per chi padroneggia i dip normali e vuole di più."),
+    "reverse_tabletop_hip_pulses" to ex("Hip pulse inverso tabletop", "In posizione tabletop porta il ginocchio verso il soffitto e riabbassa senza ruotare l’anca. L’anca non deve girare: lo stimolo sta proprio nel tenerla ferma mentre lavora la gamba."),
+    "reverse_tabletop_hold" to ex("Tabletop inverso in tenuta", "In posizione tabletop porta entrambe le ginocchia verso il soffitto e tieni. La schiena si incurva da sola perché il bacino è sopra le ginocchia e il corpo si comprime. Lo stiramento è reale e si sente nella zona lombare."),
+    "reverse_wrist_curl_dumbbell" to ex("Curl polso inverso con bilanciere", "Palmi verso il basso e porta la bilanciere alla spalla. Inverso al curl polso normale, questa variante allena i flessori della mano e allunga l’avambraccio. Non caricare troppo: i polsi sono molto più sensibili qui."),
+    "reverse_wrist_curl_kettlebell" to ex("Curl polso inverso con kettlebell", "Impugna il kettlebell col palmo verso il basso e portalo alla spalla. Il manico del kettlebell è più spesso di quello di una bilanciere e sta più in basso nella mano, quindi la mano flette meno. Per mani piccole è spesso la variante più comoda."),
+    "revolved_chair_pose" to ex("Posizione della sedia ruotata", "Seduto appoggia le mani a terra accanto ai fianchi, incrocia i piedi e ruota il busto in diagonale. Ruota tutta la colonna e non solo la dorsale. Uscire dalla rotazione con le mani appoggiate è la parte più difficile."),
+    "revolved_crescent_lunge" to ex("Affondo crescente ruotato", "Dall’affondo appoggia le mani a terra accanto al piede davanti e ruota il busto verso il lato opposto. Molto più impegnativo del semplice affondo a mezzaluna perché arrivano insieme equilibrio e rotazione."),
+    "ring_dead_hang" to ex("Dead hang agli anelli", "Appeso agli anelli con braccia e gambe tese, perfettamente fermo. Allena presa e stabilità della spalla più che la forza del trazionare. Non chiudere le mani solo con le dita ma appoggia gli avambracci: altrimenti cedi sulle dita."),
+    "ring_dips" to ex("Dips agli anelli", "In appoggio agli anelli porta le gambe in avanti e scendi. Gli anelli permettono un’instabilità che il dip normale non ha: la schiena deve compensare di più e il muscolo del petto deve stabilizzare di più."),
+    "ring_face_pull" to ex("Face pull agli anelli", "Agli anelli tira il cavo verso il viso con presa inversa. Va in ogni programma per le spalle perché deltoide posteriore e cuffia dei rotatori vengono caricati a ogni press. Le mani devono arrivare sopra l’altezza delle spalle, altrimenti è solo un remo."),
+    "ring_muscle_up" to ex("Muscle-up agli anelli", "Dalla posizione appesa spingi sopra gli anelli fino all’appoggio. È la variante più dura del muscle up. Gli anelli cedono un pochino e aiutano inaspettatamente: molti non ci arrivano sulla barra ma sugli anelli sì."),
+    "ring_push_up" to ex("Push-up agli anelli", "Dall’appoggio agli anelli fai i push-up. Gli anelli assorbono parte del peso perché cedono leggermente: così puoi scendere più in basso e allungare di più il petto senza che sia il polso a portare il carico."),
+    "ring_row" to ex("Row agli anelli", "Dall’appoggio tira il cavo verso il busto. Gli anelli permettono di spostare il corpo in avanti durante il tiro, cosa impossibile sulla barra: il movimento è più arrotondato e la schiena lavora in una zona diversa."),
+    "rings_inverted_row" to ex("Inverted row agli anelli", "Aggancia il cavo basso, mettiti sotto i piedi e lasciati cadere nella posizione a braccia tese. Gli anelli cedono abbastanza da potersi lasciare cadere in sicurezza: è l’ingresso più sicuro agli esercizi inversi agli anelli."),
+    "romanian_deadlift" to ex("Stacco rumeno", "Con ginocchia leggermente piegati spingi i fianchi indietro, il bilanciere scivola lungo le cosce e la schiena resta lunga. La differenza rispetto allo stacco classico è il ginocchio: sempre piegato, così la catena posteriore lavora più a lungo e le gambe subiscono meno."),
+    "romanian_deadlift_smith_machine" to ex("Stacco rumeno alla Smith", "Barra guidata sulle spalle, con i ginocchia piegati spingi i fianchi indietro. Senza la componente di equilibrio puoi aumentare il carico, cosa che toglie alla versione libera il vantaggio in questa posizione. Schiena lunga, il bilanciere resta addosso al corpo."),
+    "rope_climb" to ex("Corde", "Sali sulla corda, afferra con le mani e blocca con i piedi. Allena presa, forza delle braccia e controllo del core in una combinazione che nessuna macchina offre. Non tirarti su con le braccia ma costruisci con mani e piedi: i muscoli lavorano allora nel modo giusto."),
+    "rowing_machine" to ex("Vogtometro", "Sul rowing spingi con le gambe e poi scivoli indietro nel recupero. L’ordine è tutta la differenza rispetto al remo: prima spingi, poi torni, e non accelerare mai il ritorno con le gambe. Schiena lunga nella posizione di partenza, senza dondolare."),
+    "running" to ex("Corsa", "Corsa normale. L’intensità più alta raggiungibile col solo peso corporeo e insieme quella meno allenata. Parti piano, il cuore impiega qualche minuto a stabilizzarsi: chi corre subito al massimo nei primi chilometri lavora solo in anaerobico."),
+    "russian_twist" to ex("Rotazione russa", "Seduto con il busto leggermente indietro ruota le mani davanti al corpo da un lato all’altro. Lo stimolo è nel cambio rapido di direzione. Una bilanciere o un disco rende la rotazione più controllabile che a vuoto: è il motivo per cui con un peso è più sicuro."),
+    "scapular_pull_ups" to ex("Pull-up con scapole", "Appeso alla sbarra stringi le scapole e rilascia, i gomiti restano piegati. Il busto non si muove. Allena le scapole e quindi tutto ciò che porta forza nel tiraggio: per chi perde il controllo del core nel pull-up normale."),
+    "scissor_kicks" to ex("Sbattere a forbice", "Disteso muovi alternativamente le gambe tese in avanti e indietro in aria. Gli addominali devono tenere fermo il bacino mentre le gambe si muovono: è quello il stimolo, non la gamba. Lavora con un respiro calmo."),
+    "seated_barbell_overhead_press" to ex("Press seduto in alto con bilanciere", "Seduto sul panchetto spingi il bilanciere sopra la testa con la schiena appoggiata. Lo schienale assorbe parte del peso e rende l’esercizio possibile anche a chi carica di più. Non alzarti in piedi: è proprio lo scarico sulla schiena il vantaggio del seduto."),
 )

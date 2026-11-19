@@ -19,11 +19,8 @@ import re
 import sys
 
 ROOT = pathlib.Path(__file__).resolve().parents[2]
-ENTRY = re.compile(
-    r'"([a-z0-9_]+)"\s+to\s+ex\(\s*\n\s*"([^"]*)",\s*\n\s*"((?:[^"\\]|\\.)*)"\s*\n\s*\)',
-    re.M,
-)
-POOL = re.compile(r'"([A-Z][^"]*)"')
+# Entries are written on one line: "slug" to ex("Name", "Description")
+ENTRY = re.compile(r'"([a-z0-9_]+)"\s+to\s+ex\(\s*"([^"]*)",\s*"((?:[^"\\]|\\.)*)"\s*\)')
 
 TABLES = {
     "de": ROOT / "composeApp/src/main/java/com/grafizum/repio/data/ExerciseTextDe.kt",

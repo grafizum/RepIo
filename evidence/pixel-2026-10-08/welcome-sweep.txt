@@ -1,0 +1,43 @@
+# welcome sweep on 39211JEHN10619 — filters — 2026-10-08 20:01
+== filters (equipment / goal / duration / intensity)
+--- filters-start
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core  ·  Schwachstellen
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine  ·  Ganzkörper
+
+>>> tap filter 'Muskelaufbau (Hypertrophie)'
+--- filter-Muskelaufbau-Hypertrophie-
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine  ·  Ganzkörper
+        Am besten für: Fortgeschrittene  ·  Beintage: 3
+        Geräte
+        Heimausrüstung
+        Stuhl
+        Bank
+        Reckstange
+        Barren
+        Ringe
+        Wand
+        Treppe
+        Gewichtsranzen
+        Handtuch
+        Bänder
+        Gym-Ausrüstung
+        Kurzhanteln
+        Kniebeuge-Ablage
+        Langhantel
+        Kettlebell
+        Kabel
+        Maschinen
+        Was ist dein primäres Trainingsziel?
+        Muskelaufbau (Hypertrophie)
+        Trainingsziel

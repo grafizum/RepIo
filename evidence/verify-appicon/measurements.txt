@@ -1,0 +1,21 @@
+APP INFO ICON — before/after the application-icon change
+device: R3CT30TW4GZ (S22+), package com.grafizum.repio.debug, system in DARK appearance
+
+The App info page draws ApplicationInfo.loadIcon -> <application android:icon>, resolved
+with the SYSTEM configuration (so a night-qualified name picks its dark twin).
+Icon box measured at x60-200, y250-500 of both 1080x2340 screencaps.
+
+BEFORE (android:icon=@mipmap/ic_launcher_orange):
+  warm/orange pixels (r>170, 60<g<150, b<110): 439   bbox x91..127 y337..349
+  dominant colours: #010101 86.1%  #1A1A1D 4.9%  #1A1A1D  (dark plate)
+AFTER (android:icon=@mipmap/ic_launcher_beige_light):
+  warm/orange pixels: 0
+  dominant colours: #010101 86.1%  #E4E4E4 4.8%  #E3E3E3  (light plate)
+  artwork accent sampled: #6F5234   (the asset's own accent is #815A34)
+
+asset cross-check:
+  drawable-xxxhdpi/ic_launcher_fg_beige_light.png accent #815A34, sha1 bb870c8b11
+  drawable-xxxhdpi/ic_launcher_fg_orange.png      accent #BE5100, sha1 6ad777e425
+  mipmap-anydpi-v26/ic_launcher_beige_light.xml -> background @color/icon_bg_white (#FFFFFF)
+  mipmap-night-anydpi-v26/ic_launcher_beige_light.xml: does not exist (nothing to override)
+  aapt2 dump badging: application-icon-<120..65535> = res/mipmap-anydpi-v26/ic_launcher_beige_light.xml

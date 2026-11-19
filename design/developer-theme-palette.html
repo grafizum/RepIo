@@ -1,0 +1,105 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>DEVELOPER theme — palette revision 2026-10-10</title>
+<style>
+  :root{
+    --bg:#131313;        /* canvas        (was #0A0A0A) */
+    --surface:#1B1B1B;   /* card          (was #111111) */
+    --variant:#252525;   /* nested block  (was #181818) */
+    --container:#343434; /* tinted block  (was #2E2E2E) */
+    --outline:#4A4A4A;   /* rim           (was #3F3F3F) */
+    --gold:#D6B266;      /* accent        (was #C3A366) */
+    --text:#EDEBE8;
+    --muted:#A0A0A0;
+    --onGold:#1C1810;
+  }
+  *{box-sizing:border-box}
+  body{margin:0;background:var(--bg);color:var(--text);
+       font:15px/1.5 "Manrope",system-ui,-apple-system,sans-serif;padding:28px}
+  h1{font-size:20px;font-weight:700;margin:0 0 4px}
+  h2{font-size:13px;font-weight:700;letter-spacing:.12em;text-transform:uppercase;
+     color:var(--gold);margin:34px 0 12px}
+  .sub{color:var(--muted);font-size:13px;margin:0 0 8px}
+  .wrap{max-width:760px;margin:0 auto}
+  .card{background:var(--surface);border:1px solid var(--outline);
+        border-radius:18px;padding:18px;margin-bottom:14px}
+  .nested{background:var(--variant);border-radius:12px;padding:14px;margin-top:12px}
+  .tinted{background:var(--container);border-radius:12px;padding:14px;margin-top:12px;
+          color:#E9D9B8}
+  .row{display:flex;gap:14px;flex-wrap:wrap}
+  .sw{flex:1 1 150px;border-radius:14px;overflow:hidden;border:1px solid var(--outline)}
+  .sw .chip{height:74px}
+  .sw .meta{padding:10px 12px;background:var(--surface);font-size:12px;color:var(--muted)}
+  .sw .meta b{display:block;color:var(--text);font-size:13px;margin-bottom:2px}
+  .sw .meta s{color:var(--muted);opacity:.85}
+  table{width:100%;border-collapse:collapse;font-size:13px;margin-top:6px}
+  th,td{text-align:left;padding:8px 10px;border-bottom:1px solid var(--outline)}
+  th{color:var(--muted);font-weight:600;font-size:11px;letter-spacing:.08em;text-transform:uppercase}
+  .pill{display:inline-block;background:var(--gold);color:var(--onGold);font-weight:700;
+        border-radius:999px;padding:7px 16px}
+  .ghost{display:inline-block;border:1px solid var(--outline);color:var(--text);
+         border-radius:999px;padding:7px 16px;margin-left:10px}
+  .lvl{display:inline-block;border:1px solid rgba(214,178,102,.45);color:var(--text);
+       border-radius:12px;padding:6px 12px;font-weight:700}
+  .lvl.on{background:rgba(214,178,102,.14);border-color:var(--gold);color:var(--gold)}
+  .legend{font-size:12px;color:var(--muted);margin-top:8px}
+  code{background:var(--variant);border-radius:6px;padding:1px 6px;font-size:12px}
+</style>
+</head>
+<body>
+<div class="wrap">
+  <h1>DEVELOPER theme — palette revision</h1>
+  <p class="sub">2026-10-10 · greys lifted off pure black, gold strengthened. Same hue family, same one-accent rule.</p>
+
+  <h2>The palette</h2>
+  <div class="row">
+    <div class="sw"><div class="chip" style="background:#131313"></div>
+      <div class="meta"><b>background</b>#131313<br><s>was #0A0A0A</s></div></div>
+    <div class="sw"><div class="chip" style="background:#1B1B1B"></div>
+      <div class="meta"><b>surface</b>#1B1B1B<br><s>was #111111</s></div></div>
+    <div class="sw"><div class="chip" style="background:#252525"></div>
+      <div class="meta"><b>surfaceVariant</b>#252525<br><s>was #181818</s></div></div>
+    <div class="sw"><div class="chip" style="background:#4A4A4A"></div>
+      <div class="meta"><b>outline</b>#4A4A4A<br><s>was #3F3F3F</s></div></div>
+    <div class="sw"><div class="chip" style="background:#D6B266"></div>
+      <div class="meta"><b>primary (gold)</b>#D6B266<br><s>was #C3A366</s></div></div>
+    <div class="sw"><div class="chip" style="background:#EDEBE8"></div>
+      <div class="meta"><b>onBackground</b>#EDEBE8<br><s>unchanged</s></div></div>
+  </div>
+
+  <h2>How it reads</h2>
+  <div class="card">
+    <div style="display:flex;align-items:center;justify-content:space-between">
+      <div style="font-size:17px;font-weight:700">Dumbbell Bench Press</div>
+      <div class="lvl on">Level 4</div>
+    </div>
+    <div style="color:var(--muted);font-size:13px;margin-top:6px">Chest · 4 sets x 8-12 reps</div>
+    <div class="nested">
+      <div style="font-size:12px;letter-spacing:.1em;color:var(--gold);font-weight:700">SET 1 OF 4</div>
+      <div style="margin-top:6px">8 / 8 / 8 / 8 reps</div>
+      <div style="margin-top:10px">
+        <span class="pill">SAVE SET 1 &amp; NEXT</span>
+        <span class="ghost">Restart</span>
+      </div>
+    </div>
+    <div class="tinted">Accent container text — #E9D9B8 on #343434 (8.95:1)</div>
+  </div>
+
+  <h2>Contrast, checked</h2>
+  <table>
+    <tr><th>Pair</th><th>Ratio</th><th>Floor</th></tr>
+    <tr><td>gold on canvas</td><td>10.00:1</td><td>3.0</td></tr>
+    <tr><td>gold on card</td><td>9.28:1</td><td>3.0</td></tr>
+    <tr><td>label on gold fill</td><td>9.50:1</td><td>4.5</td></tr>
+    <tr><td>body on canvas</td><td>15.62:1</td><td>4.5</td></tr>
+    <tr><td>muted on nested block</td><td>5.86:1</td><td>4.5</td></tr>
+    <tr><td>rim on card</td><td>1.94:1</td><td>1.5</td></tr>
+    <tr><td>rim on nested block</td><td>1.73:1</td><td>1.5</td></tr>
+  </table>
+  <p class="legend">Measured from the real resolved scheme by <code>DarkThemeContrastTest</code> (7 cases, all green).</p>
+</div>
+</body>
+</html>

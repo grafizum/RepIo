@@ -41,6 +41,19 @@ interface WorkoutDao {
     @Query("UPDATE routine_exercises SET videoUrl = :videoUrl WHERE name = :name")
     suspend fun updateVideoUrlForExercise(name: String, videoUrl: String)
 
+    /**
+     * Locks/unlocks an exercise for level progression, by NAME: every row of
+     * the same exercise (across days) flips together, because the progression
+     * state itself is keyed by name. `WHERE name = :name` mirrors
+     * [updateVideoUrlForExercise].
+     */
+    @Query("UPDATE routine_exercises SET locked = :locked WHERE name = :name")
+    suspend fun setExerciseLockedByName(name: String, locked: Boolean)
+
+    /** The lock flag of an exercise (any of its rows), or null when absent. */
+    @Query("SELECT locked FROM routine_exercises WHERE name = :name LIMIT 1")
+    suspend fun isExerciseLockedByName(name: String): Boolean?
+
     @Query("SELECT videoUrl FROM routine_exercises WHERE name = :name AND videoUrl != '' LIMIT 1")
     suspend fun getVideoUrlForExercise(name: String): String?
 
@@ -77,4 +90,11 @@ interface WorkoutDao {
 
     @Query("DELETE FROM logged_sets")
     suspend fun clearAllLoggedSets()
+
+    /** The single overall-level row, or null before the first computation. */
+    @Query("SELECT * FROM user_stats WHERE id = ${UserStatsEntity.SINGLETON_ID}")
+    fun getUserStats(): Flow<UserStatsEntity?>
+
+    @Insert(onConflict = OnConflictStrategy.REPLACE)
+    suspend fun upsertUserStats(stats: UserStatsEntity)
 }

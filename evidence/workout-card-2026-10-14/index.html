@@ -1,0 +1,65 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<title>My Workout tab — card fill, 2026-10-14</title>
+<style>
+  :root { color-scheme: dark; }
+  body { margin: 0; padding: 28px; background: #0e0e0e; color: #edebe8;
+         font: 15px/1.5 -apple-system, "Segoe UI", Roboto, sans-serif; }
+  h1 { font-size: 21px; margin: 0 0 4px; }
+  h2 { font-size: 15px; margin: 0 0 10px; color: #e2b75a; letter-spacing: .08em; text-transform: uppercase; }
+  p  { margin: 0 0 22px; color: #b8b4ad; max-width: 78ch; }
+  .row { display: flex; gap: 26px; flex-wrap: wrap; align-items: flex-start; }
+  figure { margin: 0; }
+  img { width: 300px; border: 1px solid #3d3d3d; border-radius: 16px; display: block; }
+  figcaption { margin-top: 10px; font-size: 13px; color: #b8b4ad; max-width: 300px; }
+  code { background: #252525; padding: 1px 5px; border-radius: 5px; color: #edebe8; }
+  .swatch { display: inline-block; width: 13px; height: 13px; border-radius: 3px;
+            vertical-align: -2px; margin-right: 5px; border: 1px solid #00000055; }
+  .tag { display: inline-block; font-size: 12px; padding: 2px 8px; border-radius: 999px;
+         border: 1px solid #e2b75a; color: #e2b75a; margin-left: 8px; vertical-align: 2px; }
+</style>
+</head>
+<body>
+  <h1>My Workout tab — what the accent is allowed to fill</h1>
+  <p style="border-left:2px solid #e2b75a;padding-left:14px"><b>SUPERSEDED the same day</b> — the
+     <code>#252525</code> this page calls "the change" was still too light, and it left the bottom
+     bar and the general cards three times lighter again. What actually ships is
+     <code>#191919</code> for the general cards and <code>#1E1E1E</code> for the hero cards and the
+     bar; see <a href="../dark-cards-2026-10-14/index.html">the later, measured page</a>. The frames
+     below are kept as the record of that intermediate step.</p>
+  <p>Same tab, same theme, same build path. Left: the two hero cards painted with an 8% primary tint
+     (<span class="swatch" style="background:#1f1b14"></span><code>#1F1B14</code>, 25.6% of the frame).
+     Middle: the change — the cards take the scheme's own grey
+     (<span class="swatch" style="background:#252525"></span><code>#252525</code>), which is what every other
+     card in the app already wears on a dark theme, and the accent keeps the rims, the writing, the level
+     pill and the buttons. Right: the light scheme, untouched, still the beige card he asked to keep
+     (<span class="swatch" style="background:#f4f0eb"></span><code>#F4F0EB</code>).</p>
+
+  <div class="row">
+    <figure>
+      <h2>Before — Developer (dark)</h2>
+      <img src="02_my_workout.png" alt="My Workout tab before: both hero cards in a gold-tinted dark fill">
+      <figcaption>Both hero cards <code>#1F1B14</code>: 8% of gold over the near-black canvas. Also the
+        per-set banner <code>#362E1D</code> inside the lower card.</figcaption>
+    </figure>
+    <figure>
+      <h2>After — Developer (dark)<span class="tag">changed</span></h2>
+      <img src="03_dev_after.png" alt="My Workout tab after: both hero cards in neutral grey">
+      <figcaption>Both cards <code>#252525</code> — <code>#1F1B14</code> is gone from the frame entirely.
+        Banner <code>#3C372C</code>, action button and all writing still gold.</figcaption>
+    </figure>
+    <figure>
+      <h2>After — Beige (light)</h2>
+      <img src="04_beige_after.png" alt="My Workout tab in the light beige theme, unchanged">
+      <figcaption>Unchanged by design: the cards still carry the 8% tint, and the colour shares match the
+        pre-change capture exactly (25.6% cards, 6.2% banner, 7.6% accent).</figcaption>
+    </figure>
+  </div>
+
+  <p style="margin-top:26px">Captured with <code>adb exec-out screencap</code> on emulator-5554 (1080×2400),
+     colour shares sampled from the PNGs rather than eyeballed. Full reasoning and the test that pins it are
+     in <code>workoutCardFill</code> and <code>DarkThemeContrastTest</code>.</p>
+</body>
+</html>

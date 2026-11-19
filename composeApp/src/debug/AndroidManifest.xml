@@ -1,0 +1,23 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!--
+  DEBUG SOURCE SET ONLY.
+
+  The evolution-tree preview harness. Not present in any release build, and
+  exported so `adb shell am start` can drive it - there is no other way to see
+  the popup on a device, since it only fires when a workout completes with a
+  mastered exercise.
+
+  The theme is Theme.App.PostSplash.Beige, not Theme.App.Starting: the starting
+  theme is a Theme.SplashScreen, and an AppCompatActivity cannot set Compose
+  content under it. The real MainActivity gets away with it because
+  installSplashScreen() swaps to a PostSplash theme before onCreate finishes;
+  this harness has no splash, so it declares the theme directly.
+-->
+<manifest xmlns:android="http://schemas.android.com/apk/res/android">
+    <application>
+        <activity
+            android:name="com.grafizum.repio.DebugEvolutionPreviewActivity"
+            android:exported="true"
+            android:theme="@style/Theme.App.PostSplash.Beige" />
+    </application>
+</manifest>

@@ -8,10 +8,10 @@ import org.junit.Test
 
 /**
  * Guards the exercise → primary-muscle data behind the "trained muscles" label
- * and the Analytics muscle focus. The pool lists every muscle an exercise works
- * (rows sit under Lats, Upper Back and the deltoids), so classification must not
- * depend on the order those lists are scanned — Dumbbell Rows being shown as a
- * shoulder exercise is the regression this file exists to prevent.
+ * and the Analytics muscle focus. Since the v5 rebuild the classification comes
+ * from the generated catalog (one precise muscle per exercise); these tests
+ * pin the load-bearing classifications the UI relies on and the table
+ * invariants around them.
  */
 class ExercisePrimaryMuscleTest {
 
@@ -49,58 +49,22 @@ class ExercisePrimaryMuscleTest {
         }
     }
 
-    @Test
-    fun primaryMuscleIsAlwaysOneOfTheGroupsThePoolListsTheExerciseUnder() {
-        val groups = WorkoutTemplates.getAllMuscleGroups()
-        val poolByGroup = groups.associateWith { g ->
-            WorkoutTemplates.getExercisesForEquipment(WorkoutTemplates.EQUIPMENT_ALL, g)
-                .map { it.lowercase() }
-                .toSet()
-        }
-        WorkoutTemplates.getAllExerciseNames().forEach { name ->
-            val primary = WorkoutTemplates.getMuscleGroupForExercise(name)
-            val containing = groups.filter { primary in (poolByGroup[it] ?: emptySet()) || it == primary }
-            assertTrue(
-                "'$name' is classified as '$primary', which the pool never lists it under",
-                containing.isNotEmpty()
-            )
-        }
-    }
-
-    // --- The specific misclassifications this change fixes -------------------
+    // --- The specific classifications the UI depends on -----------------------
 
     @Test
-    fun rowsArePullMusclesNotShoulders() {
-        // The reported bug: Dumbbell Rows showed as a shoulder (Lateral Delts).
-        listOf("Dumbbell Rows", "Barbell Rows", "Hammer Strength Rows", "Seated Rows").forEach { name ->
-            assertEquals(name, "Lats", WorkoutTemplates.getMuscleGroupForExercise(name))
+    fun rowsResolveToBackMuscles() {
+        listOf("Bent-Over Barbell Row", "Seated Cable Row", "Lat Pulldown").forEach { name ->
             assertEquals(name, "Back", WorkoutTemplates.getTopicForMuscle(WorkoutTemplates.getMuscleGroupForExercise(name)))
         }
-        assertEquals("Upper Back", WorkoutTemplates.getMuscleGroupForExercise("T-Bar Rows"))
-        assertEquals("Upper Back", WorkoutTemplates.getMuscleGroupForExercise("Inverted Rows"))
-        assertEquals("Lats", WorkoutTemplates.getMuscleGroupForExercise("Dumbbell Pullovers"))
+        assertEquals("Lats", WorkoutTemplates.getMuscleGroupForExercise("Bent-Over Barbell Row"))
     }
 
     @Test
-    fun shrugsAreTrapsNotAGenericUpperBack() {
-        listOf("Barbell Shrugs", "Dumbbell Shrugs", "Cable Shrugs", "Machine Shrugs").forEach { name ->
-            assertEquals(name, "Upper Traps", WorkoutTemplates.getMuscleGroupForExercise(name))
-        }
-    }
-
-    @Test
-    fun facePullsStayOnTheRearDelts() {
-        listOf("Cable Face Pulls", "Dumbbell Face Pulls", "Barbell Face Pulls").forEach { name ->
-            assertEquals(name, "Rear Deltoids", WorkoutTemplates.getMuscleGroupForExercise(name))
-        }
-    }
-
-    @Test
-    fun pressingAndPushingExercisesAreChestNotShouldersOrTriceps() {
+    fun pressingAndPushingExercisesAreChest() {
         listOf(
-            "Push-ups", "Dumbbell Floor Presses", "Barbell Floor Presses",
-            "Barbell Bench Presses", "Incline Dumbbell Presses", "Cable Flyes",
-            "Pec Decks", "Chest Press Machines"
+            "Push-Up", "Barbell Bench Press", "Machine Chest Press",
+            "Incline Dumbbell Press", "Dumbbell Fly", "Cable Fly",
+            "Machine Chest Fly", "Dumbbell Pullover"
         ).forEach { name ->
             assertEquals(name, "Pectorals", WorkoutTemplates.getMuscleGroupForExercise(name))
             assertEquals(
@@ -112,62 +76,53 @@ class ExercisePrimaryMuscleTest {
     }
 
     @Test
-    fun planksAreCoreNotSpinalErectors() {
-        assertEquals("Abs", WorkoutTemplates.getMuscleGroupForExercise("Planks"))
-        assertEquals("Abs", WorkoutTemplates.getMuscleGroupForExercise("Mountain Climbers"))
-        assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Supermans"))
-        assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Barbell Deadlifts"))
+    fun planksAndCrunchesAreCore() {
+        listOf("Plank", "Crunches").forEach { name ->
+            assertEquals(name, "Abs", WorkoutTemplates.getMuscleGroupForExercise(name))
+        }
+        assertEquals("Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise("Back Extension"))
     }
 
     @Test
-    fun hipExercisesGoToTheRightHipGroup() {
-        // Side-lying work abducts the hip; it used to fall through to Hip Adductors.
-        listOf(
-            "Side Lying Leg Raises", "Side Plank Leg Raises", "Clamshells",
-            "Abductor Machines", "Dumbbell Side Lunges", "Side Steps"
-        ).forEach { name ->
-            assertEquals(name, "Hip Abductors", WorkoutTemplates.getMuscleGroupForExercise(name))
-        }
-        listOf("Adductor Machines", "Sumo Squats", "Copenhagen Planks", "Cossack Squats").forEach { name ->
-            assertEquals(name, "Hip Adductors", WorkoutTemplates.getMuscleGroupForExercise(name))
-        }
-    }
-
-    @Test
-    fun hingesAndBridgesGoToHamstringsGlutesAndErectors() {
-        listOf("Barbell Romanian Deadlifts", "Dumbbell Romanian Deadlifts", "Stiff Leg Barbell Deadlifts")
+    fun hingesGoToHamstringsAndGlutes() {
+        listOf("Romanian Deadlift", "Kettlebell Swing")
             .forEach { assertEquals(it, "Hamstrings", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Glute Bridges", "Barbell Glute Bridges", "Dumbbell Hip Thrusts", "Fire Hydrants")
+        listOf("Barbell Glute Bridge", "Barbell Hip Thrust")
             .forEach { assertEquals(it, "Glutes", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Barbell Deadlifts", "Barbell Rack Pulls", "Back Extensions")
-            .forEach { assertEquals(it, "Spinal Erectors", WorkoutTemplates.getMuscleGroupForExercise(it)) }
     }
 
     @Test
-    fun rotationAndSideBendWorkIsObliques() {
-        listOf("Russian Twists", "Dumbbell Side Bends", "Side Planks", "Cable Woodchoppers", "Landmine Twists")
-            .forEach { assertEquals(it, "Obliques", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Crunches", "Hanging Leg Raises", "Ab Wheels", "V-Ups")
-            .forEach { assertEquals(it, "Abs", WorkoutTemplates.getMuscleGroupForExercise(it)) }
+    fun squatsAndLungesAreQuadriceps() {
+        listOf("Barbell Back Squat", "Dumbbell Lunge", "Bulgarian Split Squat")
+            .forEach { assertEquals(it, "Quadriceps", WorkoutTemplates.getMuscleGroupForExercise(it)) }
+        // The v5 CSV names glutes as the leg press's primary mover.
+        assertEquals("Glutes", WorkoutTemplates.getMuscleGroupForExercise("Leg Press"))
     }
 
     @Test
     fun armsKeepTheirOwnGroups() {
-        listOf("Dumbbell Curls", "Barbell Curls", "Preacher Curls", "Dumbbell Hammer Curls")
+        listOf("Dumbbell Bicep Curl", "Barbell Curl", "Dumbbell Hammer Curl", "Preacher Curl")
             .forEach { assertEquals(it, "Biceps", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Tricep Pushdowns", "Barbell Skullcrushers", "Dips", "Overhead Cable Extensions")
+        listOf("Dumbbell Skull Crusher", "Dumbbell Tricep Extension", "Bench Dips", "Cable Tricep Pushdown")
             .forEach { assertEquals(it, "Triceps", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Barbell Wrist Curls", "Farmer's Walks", "Barbell Reverse Curls")
-            .forEach { assertEquals(it, "Forearms", WorkoutTemplates.getMuscleGroupForExercise(it)) }
         // A chin-up is a pull first; the biceps are a secondary mover.
-        assertEquals("Lats", WorkoutTemplates.getMuscleGroupForExercise("Chin-ups"))
+        assertEquals("Lats", WorkoutTemplates.getMuscleGroupForExercise("Chin-Ups"))
     }
 
     @Test
-    fun pressingMovementsAllResolveSomewhereAndAreNotGenericShoulders() {
-        listOf("Military Presses", "Dumbbell Shoulder Presses", "Arnold Presses", "Landmine Presses")
+    fun pressingMovementsResolveToDeltoids() {
+        listOf("Dumbbell Shoulder Press", "Arnold Press")
             .forEach { assertEquals(it, "Front Deltoids", WorkoutTemplates.getMuscleGroupForExercise(it)) }
-        listOf("Dumbbell Lateral Raises", "Machine Lateral Raises", "Upright Barbell Rows")
+        listOf("Dumbbell Lateral Raise")
             .forEach { assertEquals(it, "Lateral Deltoids", WorkoutTemplates.getMuscleGroupForExercise(it)) }
+        listOf("Dumbbell Reverse Fly", "Cable Face Pull")
+            .forEach { assertEquals(it, "Rear Deltoids", WorkoutTemplates.getMuscleGroupForExercise(it)) }
+    }
+
+    @Test
+    fun shrugsAreTraps() {
+        listOf("Barbell Shrug", "Dumbbell Shrug").forEach { name ->
+            assertEquals(name, "Upper Traps", WorkoutTemplates.getMuscleGroupForExercise(name))
+        }
     }
 }

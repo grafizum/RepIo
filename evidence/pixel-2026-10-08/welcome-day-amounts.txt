@@ -1,0 +1,233 @@
+# welcome sweep on 39211JEHN10619 — days — 2026-10-08 19:56
+== day amounts (welcome screen, guided build)
+  probe Mo: ON
+  probe Di: ON
+  probe Mi: ON
+  probe Do: off
+  probe Fr: ON
+  probe Sa: off
+  probe So: off
+  selected days = ['Di', 'Fr', 'Mi', 'Mo'] (cards plan 4)
+  day Do -> on (cards now plan 5 days)
+  !! model says 4 days, cards say 5
+  day Di -> off (cards now plan 4 days)
+  !! model says 5 days, cards say 4
+  day Mi -> off (cards now plan 3 days)
+  !! model says 4 days, cards say 3
+  day Fr -> off (cards now plan 2 days)
+  !! model says 3 days, cards say 2
+--- days2a | chips=Mo+Do
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Ganzkörper  ·  Ganzkörper
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Oben  ·  Unten
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Ganzkörper
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Fr -> on (cards now plan 3 days)
+  !! model says 2 days, cards say 3
+  day Do -> off (cards now plan 2 days)
+  !! model says 3 days, cards say 2
+--- days2b | chips=Mo+Fr
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Ganzkörper  ·  Ganzkörper
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Oben  ·  Unten
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Ganzkörper
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Mi -> on (cards now plan 3 days)
+  !! model says 2 days, cards say 3
+--- days3a | chips=Mo+Mi+Fr
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Ganzkörper  ·  Ganzkörper  ·  Ganzkörper
+        Am besten für: Einsteiger  ·  Beintage: 3
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Oben  ·  Unten  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Oben  ·  Unten
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Di -> on (cards now plan 4 days)
+  !! model says 3 days, cards say 4
+  day Do -> on (cards now plan 5 days)
+  !! model says 4 days, cards say 5
+  day Mi -> off (cards now plan 4 days)
+  !! model says 5 days, cards say 4
+  day Fr -> off (cards now plan 3 days)
+  !! model says 4 days, cards say 3
+--- days3b | chips=Mo+Di+Do
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Ganzkörper  ·  Ganzkörper  ·  Ganzkörper
+        Am besten für: Einsteiger  ·  Beintage: 3
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Oben  ·  Unten  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Oben  ·  Unten
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Fr -> on (cards now plan 4 days)
+  !! model says 3 days, cards say 4
+--- days4a | chips=Mo+Di+Do+Fr
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Oben  ·  Unten  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day So -> on (cards now plan 5 days)
+  !! model says 4 days, cards say 5
+  day Do -> off (cards now plan 4 days)
+  !! model says 5 days, cards say 4
+--- days4b | chips=Mo+Di+Fr+So
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Oben  ·  Unten  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Mi -> on (cards now plan 5 days)
+  !! model says 4 days, cards say 5
+  day Do -> on (cards now plan 6 days)
+  !! model says 5 days, cards say 6
+  day So -> off (cards now plan 5 days)
+  !! model says 6 days, cards say 5
+--- days5a | chips=Mo+Di+Mi+Do+Fr
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day So -> on (cards now plan 6 days)
+  !! model says 5 days, cards say 6
+  day Di -> off (cards now plan 5 days)
+  !! model says 6 days, cards say 5
+--- days5b | chips=Mo+Mi+Do+Fr+So
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Di -> on (cards now plan 6 days)
+  !! model says 5 days, cards say 6
+  day Sa -> on (cards now plan 7 days)
+  !! model says 6 days, cards say 7
+  day So -> off (cards now plan 6 days)
+  !! model says 7 days, cards say 6
+--- days6a | chips=Mo+Di+Mi+Do+Fr+Sa
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core  ·  Schwachstellen
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine  ·  Ganzkörper
+  day Do -> off (cards now plan 5 days)
+  !! model says 6 days, cards say 5
+  day Fr -> off (cards now plan 4 days)
+  !! model says 5 days, cards say 4
+  day Sa -> off (cards now plan 3 days)
+  !! model says 4 days, cards say 3
+--- days3-prefix | chips=Mo+Di+Mi
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Ganzkörper  ·  Ganzkörper  ·  Ganzkörper
+        Am besten für: Einsteiger  ·  Beintage: 3
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Oben  ·  Unten  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Oben  ·  Unten
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Do -> on (cards now plan 4 days)
+  !! model says 3 days, cards say 4
+--- days4-prefix | chips=Mo+Di+Mi+Do
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Oben  ·  Unten  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Ganzkörper  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Fr -> on (cards now plan 5 days)
+  !! model says 4 days, cards say 5
+--- days5-prefix | chips=Mo+Di+Mi+Do+Fr
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Unten
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Fortgeschrittene  ·  Beintage: 2
+  day Sa -> on (cards now plan 6 days)
+  !! model says 5 days, cards say 6
+--- days6-prefix | chips=Mo+Di+Mi+Do+Fr+Sa
+    Option A — Ausgewogene Frequenz
+        Trainiert jede große Muskelgruppe gleich oft pro Woche. Empfohlen.
+        Drücken  ·  Ziehen  ·  Beine  ·  Drücken  ·  Ziehen  ·  Beine
+        Am besten für: Einsteiger  ·  Beintage: 2
+    Option B — Oberkörper im Fokus
+        Setzt auf Volumen und Isolation für den Oberkörper. Einmal pro Woche ein eigener Beintag, unabhängig von der Trainingstageanzahl.
+        Drücken  ·  Ziehen  ·  Beine  ·  Oben  ·  Arme & Core  ·  Schwachstellen
+        Am besten für: Oberkörper-Hypertrophie  ·  Beintage: 1
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine  ·  Ganzkörper

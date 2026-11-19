@@ -45,10 +45,18 @@ class RestTimerReceiver : BroadcastReceiver() {
             return
         }
 
+        // Read BEFORE the end time is cleared: it is what separates a timed
+        // exercise's "time is up" from a rest's "your pause is over", and
+        // this row's flag is the only record of which one just happened.
+        val wasExerciseTimer = prefs.getBoolean("is_exercise_timer", false)
+
         prefs.edit { putLong("timer_end_time_millis", 0L) }
 
         // Show notification and play sound
-        NotificationHelper.showRestTimerEndedNotification(context)
+        NotificationHelper.showRestTimerEndedNotification(
+            context,
+            wasExerciseTimer = wasExerciseTimer
+        )
     }
 
     companion object {

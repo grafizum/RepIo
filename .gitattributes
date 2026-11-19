@@ -1,0 +1,21 @@
+# Normalize every text file to LF in the repository AND in the working tree.
+#
+# The project was developed on Windows and the checkout arrived here with CRLF
+# line endings, which made git report 114 files as modified when not one byte of
+# content had changed. `text=auto` lets git detect binary files and leave them
+# alone; `eol=lf` pins the working-tree side so the same thing cannot happen
+# again after the next clone on any platform.
+* text=auto eol=lf
+
+# cmd.exe does not parse LF-only scripts, so the Windows launchers keep CRLF.
+*.bat text eol=crlf
+gradlew.bat text eol=crlf
+
+# Images, archives, keystores and certificates are binary and must never be
+# touched by the text conversion above.
+*.png  binary
+*.jks  binary
+*.aab  binary
+*.apk  binary
+*.der  binary
+*.pem  binary

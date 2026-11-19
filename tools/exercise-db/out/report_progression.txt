@@ -1,0 +1,42 @@
+PROGRESSION DATABASE BUILD (v5)
+v5 rows                     : 601
+catalog entries             : 601
+descriptions merged (old)   : 210
+descriptions hand-written   : 391
+rows with branches          : 338
+rows with ceiling           : 478
+  by match tier             : alias=33, hand=391, normalized=4, override=89, slug=84
+entries without description : 0
+display names generalized   : 220
+beginner_build_eligible     : 370
+app-ready (valid + simple)  : 386
+
+level-system gap (CSV rows left at manual_review):
+  backfilled with a ladder : 109
+  snapped to the shared duration ladder : 137
+  still without a ladder   : 0
+
+per equipment category (must mirror the app's 8 chips):
+                          Bodyweight 106  Barbell 89  Dumbbell 79  Kettlebell 60  Cable 27  Machine 58  Bands 28  Other 154
+
+per precise muscle:
+  Abs                54
+  Biceps             33
+  Calves             20
+  Forearms           16
+  Front Deltoids     51
+  Glutes             55
+  Hamstrings         42
+  Hip Abductors      1
+  Hip Adductors      15
+  Lateral Deltoids   15
+  Lats               63
+  Obliques           12
+  Pectorals          60
+  Quadriceps         79
+  Rear Deltoids      14
+  Spinal Erectors    30
+  Triceps            30
+  Upper Traps        11
+
+VALIDATION: all rows passed (JSON parses, stage/rep pairs agree, flags coherent)

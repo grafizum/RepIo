@@ -9,9 +9,9 @@ import org.junit.Test
 
 /**
  * Replacing an exercise must hand the incoming one the defaults the generator
- * would have given it — goal owns reps and rest, difficulty owns sets and the
- * effort label — not the old row's sets/reps/rest, which made "Squats → Planks"
- * keep 8–12 reps and a barbell rest timer.
+ * would have given it — goal owns reps and rest, set count is the universal
+ * Guided-mode constant (3) — not the old row's sets/reps/rest, which made
+ * "Squats → Planks" keep 8–12 reps and a barbell rest timer.
  */
 class ParameterizeReplacementTest {
 
@@ -44,16 +44,23 @@ class ParameterizeReplacementTest {
     @Test
     fun `time-based replacement does not keep the old rep scheme`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps", reps = "1–5", rest = 240),
+            original = row("Barbell Back Squat", "Quadriceps", reps = "1–5", rest = 240),
             newName = "Planks",
             newMuscleGroup = "Abs",
             workoutGoal = "goal_strength",
             intensity = "Hard"
         )
         // Planks are time-based: reps must become a seconds value, not "1–5",
-        // and rest comes from the *goal* (bodybuilding = 90s), not the old barbell row.
+        // and rest comes from the *goal*'s own table, not the old barbell row.
+        //
+        // 120 rather than 90 since the 2026-11-10 rebuild of that table: a plank
+        // is not a heavy compound, so a strength plan rests it like an accessory,
+        // and the literature puts even single-joint work at 2 min (3-5 min for
+        // the multi-joint lifts). The point of this case is that the OLD row's 240
+        // is not carried over; the exact number is the goal's business.
         assertTrue(replacement.targetReps.contains("sec"))
-        assertEquals(90, replacement.restSeconds)
+        assertEquals(120, replacement.restSeconds)
+        assertNotEquals(240, replacement.restSeconds)
         assertEquals(0L, replacement.id)
         assertEquals("Planks", replacement.name)
         assertEquals("Abs", replacement.muscleGroup)
@@ -63,7 +70,7 @@ class ParameterizeReplacementTest {
     fun `goal owns reps and rest for the new exercise`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
             original = row("Crunches", "Abs", sets = 2, reps = "15–20", rest = 45),
-            newName = "Barbell Squats",
+            newName = "Barbell Back Squat",
             newMuscleGroup = "Quadriceps",
             workoutGoal = "goal_strength",
             intensity = "Medium"
@@ -75,36 +82,26 @@ class ParameterizeReplacementTest {
     }
 
     @Test
-    fun `difficulty owns sets`() {
-        val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Crunches", "Abs", sets = 2),
-            newName = "Barbell Curls",
-            newMuscleGroup = "Biceps",
-            workoutGoal = "goal_bodybuilding",
-            intensity = "Hard"
-        )
-        assertEquals(5, replacement.targetSets)
-    }
-
-    @Test
-    fun `sets allocation overrides still apply`() {
-        val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Crunches", "Abs", sets = 2),
-            newName = "Barbell Curls",
-            newMuscleGroup = "Biceps",
-            workoutGoal = "goal_bodybuilding",
-            intensity = "Easy", // would be 3 sets
-            minSets = 4,
-            maxSets = 4
-        )
-        assertEquals(4, replacement.targetSets)
+    fun `sets are the universal Guided-mode constant`() {
+        // 3 sets everywhere: regardless of goal, difficulty label, or what the
+        // replaced row used to carry.
+        listOf("Easy", "Medium", "Hard").forEach { intensity ->
+            val replacement = WorkoutTemplates.parameterizeReplacement(
+                original = row("Crunches", "Abs", sets = 2),
+                newName = "Barbell Curls",
+                newMuscleGroup = "Biceps",
+                workoutGoal = "goal_bodybuilding",
+                intensity = intensity
+            )
+            assertEquals("intensity $intensity must keep the universal set count", 3, replacement.targetSets)
+        }
     }
 
     @Test
     fun `weight and tempo reset with the swap`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps", weight = 80.0, tempo = "explosive"),
-            newName = "Dumbbell Curls",
+            original = row("Barbell Back Squat", "Quadriceps", weight = 80.0, tempo = "explosive"),
+            newName = "Dumbbell Bicep Curl",
             newMuscleGroup = "Biceps",
             workoutGoal = "goal_bodybuilding",
             intensity = "Medium"
@@ -116,8 +113,8 @@ class ParameterizeReplacementTest {
     @Test
     fun `slot, day and order are kept`() {
         val replacement = WorkoutTemplates.parameterizeReplacement(
-            original = row("Barbell Squats", "Quadriceps"),
-            newName = "Dumbbell Curls",
+            original = row("Barbell Back Squat", "Quadriceps"),
+            newName = "Dumbbell Bicep Curl",
             newMuscleGroup = "Biceps",
             workoutGoal = "goal_bodybuilding",
             intensity = "Medium"

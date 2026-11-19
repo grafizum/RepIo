@@ -1,7 +1,7 @@
 <?xml version="1.0" encoding="UTF-8"?>
 <lint>
     <!-- The Flame (dark) theme intentionally ships the same launcher artwork as the Orange
-         theme for now. Real bitmaps must stay in all density folders because minSdk is 23
+         theme for now. Real bitmaps must stay in all density folders because minSdk is 24
          (adaptive icons only exist on API 26+). When the Flame artwork is redesigned,
          remove this suppression. -->
     <issue id="IconDuplicates" severity="ignore" />

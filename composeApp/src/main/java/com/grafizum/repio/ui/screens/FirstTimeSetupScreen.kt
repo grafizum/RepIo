@@ -27,6 +27,10 @@ import androidx.compose.foundation.text.KeyboardOptions
 import androidx.compose.material.icons.Icons
 import androidx.compose.material.icons.automirrored.filled.ArrowBack
 import androidx.compose.material.icons.filled.*
+import com.grafizum.repio.ui.components.EquipmentIconImage
+import com.grafizum.repio.ui.components.exerciseSetsSummaryLabel
+import com.grafizum.repio.ui.components.equipmentTagIcon
+import com.grafizum.repio.ui.components.equipmentTagShortLabelKey
 import androidx.compose.material3.*
 import androidx.compose.animation.*
 import androidx.compose.animation.core.*
@@ -50,22 +54,36 @@ import androidx.compose.ui.text.style.TextOverflow
 import androidx.compose.ui.unit.dp
 import androidx.compose.ui.unit.sp
 import com.grafizum.repio.data.DefaultData
+import com.grafizum.repio.data.ExerciseEquipmentTags
 import com.grafizum.repio.data.ExerciseLocalization
+import com.grafizum.repio.data.ProgressionEngine
 import com.grafizum.repio.data.RoutineDayEntity
 import com.grafizum.repio.data.RoutineExerciseEntity
 import com.grafizum.repio.data.WorkoutTemplate
 import com.grafizum.repio.data.WorkoutTemplates
 import com.grafizum.repio.ui.components.LocalWindowSize
+import com.grafizum.repio.ui.components.LocalWeightUnit
+import com.grafizum.repio.ui.components.loadInputToKg
 import com.grafizum.repio.ui.components.MissingBodyPartsWarningCard
 import com.grafizum.repio.ui.components.MuscleGroupBadge
 import com.grafizum.repio.ui.components.ReplaceExerciseDialog
 import com.grafizum.repio.ui.components.RepsTimeToggle
+import com.grafizum.repio.ui.components.EditorLevelData
+import com.grafizum.repio.ui.components.LevelPickerCard
+import com.grafizum.repio.ui.components.levelEditorControls
+import com.grafizum.repio.ui.components.SplitStyleSelector
 import com.grafizum.repio.ui.components.RepsRangeField
 import com.grafizum.repio.ui.components.CompactNumericField
 import com.grafizum.repio.ui.components.SearchableExerciseField
 import com.grafizum.repio.ui.components.ThemedToast
+import com.grafizum.repio.ui.components.AppDialog
 import com.grafizum.repio.ui.components.getExerciseDetails
-import com.grafizum.repio.ui.components.getMissingMuscleGroups
+import com.grafizum.repio.ui.components.balanceGroupsForParts
+import com.grafizum.repio.ui.components.weeklyBalanceIssues
+import com.grafizum.repio.ui.components.loadFieldLabel
+import com.grafizum.repio.ui.components.loadFieldPlaceholder
+import com.grafizum.repio.ui.components.loadFieldSuffix
+import com.grafizum.repio.ui.components.loadFieldValueText
 import com.grafizum.repio.ui.components.translateExerciseName
 import com.grafizum.repio.ui.components.translateMuscleGroup
 import com.grafizum.repio.ui.viewmodel.WorkoutViewModel
@@ -182,16 +200,40 @@ fun FirstTimeSetupScreen(
         "Abs", "Obliques",
         "Quadriceps", "Hamstrings", "Glutes", "Calves", "Hip Adductors", "Hip Abductors"
     ) }
-    val assistedSelectedDays = remember { mutableStateListOf("MONDAY", "WEDNESDAY", "FRIDAY") }
+    // The default week is the premade 3-day pattern, so the screen starts on the same
+    // answer the premade menu would produce (MON/WED/FRI) instead of a hand-typed list
+    // that could drift away from it.
+    val assistedSelectedDays = remember {
+        mutableStateListOf<String>().also { it.addAll(WorkoutTemplates.premadeWeekFor(3)) }
+    }
+    // Whether the user is picking the days themselves. OFF is the premade week for the
+    // chosen frequency (the recommended rest distribution); ON hands the day chips to the
+    // user, which is what makes 1 and 7 days honest choices rather than refused ones.
+    var assistedSpecificDays by remember { mutableStateOf(false) }
+    // What each of those days IS. Separate from how many there are: a 5-day
+    // week can be an upper/lower alternation or a push/pull/legs cycle, and the
+    // day picker alone never said which one you were getting.
+    var assistedSplitStyle by remember { mutableStateOf(WorkoutTemplates.SplitStyle.DEFAULT) }
     var assistedIntensity by remember { mutableStateOf("Medium") }
-    var assistedMinSets by remember { mutableIntStateOf(0) }
-    var assistedMaxSets by remember { mutableIntStateOf(0) }
+    var assistedDuration by remember { mutableStateOf(WorkoutTemplates.DURATION_STANDARD) }
     val assistedIncludedExercises = remember { mutableStateListOf<String>() }
     val assistedExcludedExercises = remember { mutableStateListOf<String>() }
     var preferencesExpanded by remember { mutableStateOf(false) }
 
-    // Equipment types the build may use (empty = all)
-    var buildEquipment by remember { mutableStateOf(listOf<String>()) }
+    // Equipment types the build may use (empty = all).
+    //
+    // SEEDED FROM THE SAVED KIT. This started empty, so every time the user
+    // reopened the build screen it showed a blank equipment picker and Save
+    // wrote that blank back over `setup_equipment` — the user's kit was
+    // invisible and one routine rebuild could wipe it. An empty list is still
+    // a meaningful value ("no restriction"), so it is only used when nothing
+    // has ever been saved.
+    var buildEquipment by remember {
+        mutableStateOf(viewModel.savedEquipmentSelection().ifEmpty { listOf<String>() })
+    }
+    // What the picker showed on open. Save compares against this so an
+    // UNTOUCHED picker cannot overwrite the stored selection with a blank.
+    val buildEquipmentOnOpen = remember { buildEquipment }
 
     val allAvailableExercises by viewModel.allAvailableExercises.collectAsState()
 
@@ -218,11 +260,12 @@ fun FirstTimeSetupScreen(
         )
     }
 
-    val customExercises = remember {
-        mutableStateListOf<RoutineExerciseEntity>().apply {
-            addAll(DefaultData.routineExercises)
-        }
-    }
+    // EMPTY, not prefilled. The custom builder used to open with [DefaultData.routineExercises]
+    // already spread across the days, so a user who wanted their own week first had to delete
+    // someone else's. The days still open with their default workout/rest split — only the
+    // exercises are gone; the + on each day is how they come back. A blank week is not an
+    // unbalanced one, so [weeklyBalanceIssues] issues no verdict on it.
+    val customExercises = remember { mutableStateListOf<RoutineExerciseEntity>() }
     
     val customSelectedExercises = remember { mutableStateListOf<RoutineExerciseEntity>() }
     var isCustomSelectionMode by remember { mutableStateOf(false) }
@@ -238,6 +281,10 @@ fun FirstTimeSetupScreen(
     var copyTargetDay by remember { mutableStateOf("TUESDAY") }
     var copyReplaceExercises by remember { mutableStateOf(true) }
     val themeOption by viewModel.themeOption.collectAsState()
+    // Whether a NEW exercise is picked graphically (level system on) or typed into the
+    // classic field (custom mode). Read here, not inside the dialog: the dialog holds
+    // no view model, and this is the same flag the settings switch drives.
+    val levelSystemEnabled by viewModel.levelSystemEnabled.collectAsState()
 
     // Both the Save button and the final confirmation dialog go through here, so the
     // generated build and the manual one can't drift apart.
@@ -245,45 +292,90 @@ fun FirstTimeSetupScreen(
     //   1 = custom: save the day-by-day routine built by hand.
     fun saveSelectedBuild() {
         viewModel.setWorkoutGoal(selectedWorkoutGoal)
+        // Never write a selection the user did not make. The equipment picker
+        // is seeded from storage now, so an UNCHANGED picker means "keep what I
+        // have" — passing it through anyway is what used to silently blank the
+        // kit on a routine rebuild.
+        val equipmentToSave =
+            if (buildEquipment == buildEquipmentOnOpen) viewModel.savedEquipmentSelection()
+            else buildEquipment
         if (selectedTab == 1) {
+            // The hand-built routine is gated by the SAME kit the assisted tab
+            // uses, and the selection is persisted with it. Saving a custom
+            // build without `equipment` was the last remaining way the week
+            // ignored the tiles: the prefill carries barbell staples, they were
+            // written through unfiltered, AND `setup_equipment` was overwritten
+            // with "" - so every later consumer (goal-change regeneration,
+            // template application, the pickers) read "no restriction" for the
+            // rest of the install.
             viewModel.completeFirstTimeSetup(
                 days = customDays.toList(),
                 exercises = customExercises.toList(),
-                setupType = "CUSTOM"
+                setupType = "CUSTOM",
+                bodyParts = assistedBodyParts.toList(),
+                selectedDays = assistedSelectedDays.toList(),
+                intensity = assistedIntensity,
+                equipment = equipmentToSave,
+                workoutDuration = assistedDuration
             )
             return
         }
-        val program = WorkoutTemplates.generateAssistedProgram(
+        val program = WorkoutTemplates.generateEngineProgram(
             bodyParts = assistedBodyParts.toList(),
             selectedDays = assistedSelectedDays.toList(),
             intensity = assistedIntensity,
             workoutGoal = selectedWorkoutGoal,
             includedExercises = assistedIncludedExercises.toList(),
             excludedExercises = assistedExcludedExercises.toList(),
-            minSets = assistedMinSets,
-            maxSets = assistedMaxSets,
-            equipment = buildEquipment
+            equipment = equipmentToSave,
+            duration = assistedDuration,
+            splitStyle = assistedSplitStyle
         )
         viewModel.completeFirstTimeSetup(
             days = program.days,
             exercises = program.exercises,
-            setupType = "ASSISTED",
+            setupType = "ASSISTED", 
             bodyParts = assistedBodyParts.toList(),
             selectedDays = assistedSelectedDays.toList(),
             intensity = assistedIntensity,
-            minSets = assistedMinSets,
-            maxSets = assistedMaxSets,
-            equipment = buildEquipment
+            equipment = equipmentToSave,
+            workoutDuration = assistedDuration,
+            splitStyle = assistedSplitStyle.id
         )
     }
 
+    // The level ladder opened FROM the add dialog. Held at screen scope so the
+    // dialog stays open behind it: a level chosen here lands, and the user lands
+    // back on the half-filled form rather than losing it.
+    var ladderExercise by remember { mutableStateOf<String?>(null) }
+
     // Add / Edit custom exercise dialog
     if (showAddCustomExerciseDialog || editingExercise != null) {
+        // The kit this dialog filters by: the builder's live selection, else the kit the welcome
+        // screen saved. This dialog used to pass the builder's selection alone, so on a build
+        // whose equipment step had not been touched yet it opened on every category - i.e. on
+        // equipment the user had already said they do not own.
+        val pickerEquipment = equipmentFilterBlockSelection(buildEquipment, viewModel)
         AddExerciseDialog(
             allAvailableExercises = allAvailableExercises,
             exercise = editingExercise,
             initialDay = selectedDayInCustom,
             themeKey = themeOption,
+            userEquipmentCategories = EquipmentFilterBlockCategories(pickerEquipment),
+            userGrantedTags = equipmentFilterBlockGrantedTags(pickerEquipment),
+            // The level facts are resolved by NAME inside the dialog, so this editor
+            // draws the same rungs for the same exercise as the routine editor.
+            levelDataFor = { levelName, pageStart -> editorLevelData(viewModel, levelName, pageStart) },
+            onLevelChange = { levelName, level ->
+                viewModel.setExerciseLevelFromEditor(levelName, level)
+            },
+            onStageChange = { levelName, level, stage ->
+                viewModel.setExerciseStateFromEditor(levelName, level, stage)
+            },
+            onOpenLevelLadder = { name -> ladderExercise = name },
+            // The picker replaces the typed field for a NEW exercise while the level
+            // system is on (owner, 2026-10-11); an edit keeps the classic field.
+            levelSystemOn = levelSystemEnabled,
             onDismiss = { 
                 showAddCustomExerciseDialog = false
                 editingExercise = null
@@ -319,6 +411,16 @@ fun FirstTimeSetupScreen(
                 editingExercise = null
             }
         )
+        // The ladder stacked over the add dialog, so "See every level" reaches any
+        // rung the fifteen-row page cannot.
+        ladderExercise?.let { name ->
+            LevelDetailsDialog(
+                viewModel = viewModel,
+                exerciseName = name,
+                fromEditorEditPass = true,
+                onDismiss = { ladderExercise = null }
+            )
+        }
     }
 
     Surface(
@@ -346,7 +448,7 @@ fun FirstTimeSetupScreen(
                     Icon(
                         imageVector = Icons.AutoMirrored.Filled.ArrowBack,
                         contentDescription = getString("action_back"),
-                        tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary
+                        tint = MaterialTheme.colorScheme.primary
                     )
                 }
             } else {
@@ -388,15 +490,14 @@ fun FirstTimeSetupScreen(
                             Column(horizontalAlignment = Alignment.CenterHorizontally) {
                                 Surface(
                                     shape = CircleShape,
-                                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                                    color = MaterialTheme.colorScheme.primary,
                                     modifier = Modifier.size(48.dp),
-                                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
-                                ) {
+                                    border = null) {
                                     Box(contentAlignment = Alignment.Center) {
                                         Icon(
                                             imageVector = Icons.Default.FitnessCenter,
                                             contentDescription = null,
-                                            tint = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary,
+                                            tint = MaterialTheme.colorScheme.onPrimary,
                                             modifier = Modifier.size(28.dp)
                                         )
                                     }
@@ -436,7 +537,7 @@ fun FirstTimeSetupScreen(
                     // across, and the thumb slides between them.
                     Surface(
                         color = MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.5f),
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(18.dp),
+                        shape = RoundedCornerShape(18.dp),
                         border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.3f)),
                         modifier = Modifier.fillMaxWidth().padding(vertical = 8.dp)
                     ) {
@@ -484,13 +585,12 @@ fun FirstTimeSetupScreen(
                                     .graphicsLayer {
                                         translationX = with(density) { indicatorPosition.toPx() }
                                     },
-                                color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
+                                color = MaterialTheme.colorScheme.primary,
                                 // Radius = track radius (18dp) minus the thumbInset, so the two
                                 // curves stay concentric and the thumb never pokes past the track.
-                                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(15.dp),
-                                shadowElevation = if (isDeveloper) 0.dp else 2.dp,
-                                border = if (isDeveloper) BorderStroke(2.dp, Color.Black) else null
-                            ) {}
+                                shape = RoundedCornerShape(15.dp),
+                                shadowElevation = 2.dp,
+                                border = null) {}
 
                             Row(
                                 modifier = Modifier
@@ -594,21 +694,151 @@ fun FirstTimeSetupScreen(
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                         OnboardingStepHeader(stepNumber = null, title = getString("choose_days"))
                                         Card(
-                                            shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(20.dp),
+                                            shape = RoundedCornerShape(20.dp),
                                             colors = CardDefaults.cardColors(containerColor = MaterialTheme.colorScheme.surfaceVariant),
-                                            border = if (isDeveloper) BorderStroke(1.dp, Color.White) else null,
+                                            border = null,
                                             modifier = Modifier.fillMaxWidth()
                                         ) {
                                             Column(modifier = Modifier.padding(12.dp)) {
-                                                DaySelectionRow(
-                                                    selectedDays = assistedSelectedDays,
-                                                    onDayToggle = { day ->
-                                                        if (assistedSelectedDays.contains(day)) {
-                                                            // Always keep at least one training day.
-                                                            if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
-                                                        } else assistedSelectedDays.add(day)
+                                                // 1a. HOW MANY DAYS — the menu the owner asked
+                                                // for (2026-10-08). 1..7 so the two flagged
+                                                // frequencies stay reachable; the label under
+                                                // the row is what marks them as not recommended.
+                                                DaysPerWeekMenu(
+                                                    daysPerWeek = assistedSelectedDays.size,
+                                                    onSelect = { count ->
+                                                        assistedSelectedDays.clear()
+                                                        assistedSelectedDays.addAll(
+                                                            WorkoutTemplates.premadeWeekFor(count)
+                                                        )
                                                     }
                                                 )
+                                                Spacer(modifier = Modifier.height(10.dp))
+                                                // 1b. WHICH DAYS — the week the count produces,
+                                                // drawn as a strip so the pauses between
+                                                // training days are visible at a glance.
+                                                WeekStrip(selectedDays = assistedSelectedDays)
+                                                // The weekday chips are NOT on screen by
+                                                // default (owner, 2026-10-09: show the days
+                                                // of the week "only if the user distinctively
+                                                // opens it"). The specific-days switch below
+                                                // is that deliberate opening; until then the
+                                                // strip above carries the same information
+                                                // without a grid of taps.
+                                                if (assistedSpecificDays) {
+                                                    Spacer(modifier = Modifier.height(12.dp))
+                                                    DaySelectionRow(
+                                                        selectedDays = assistedSelectedDays,
+                                                        onDayToggle = { day ->
+                                                            if (assistedSelectedDays.contains(day)) {
+                                                                // Always keep at least one training day.
+                                                                if (assistedSelectedDays.size > 1) assistedSelectedDays.remove(day)
+                                                            } else assistedSelectedDays.add(day)
+                                                        }
+                                                    )
+                                                }
+                                                // The owner wanted the "not recommended"
+                                                // marker "under or over the days of the week".
+                                                // It sits directly under the chips, where the
+                                                // count it refers to is visible.
+                                                if (WorkoutTemplates.isNotRecommendedFrequency(assistedSelectedDays.size)) {
+                                                    Text(
+                                                        text = getString("days_not_recommended"),
+                                                        style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
+                                                        color = MaterialTheme.colorScheme.error,
+                                                        modifier = Modifier
+                                                            .padding(top = 6.dp)
+                                                            .semantics { testTag = "days_not_recommended" }
+                                                    )
+                                                }
+                                                Row(
+                                                    verticalAlignment = Alignment.CenterVertically,
+                                                    horizontalArrangement = Arrangement.SpaceBetween,
+                                                    modifier = Modifier
+                                                        .fillMaxWidth()
+                                                        .padding(top = 10.dp)
+                                                ) {
+                                                    Column(modifier = Modifier.weight(1f)) {
+                                                        Text(
+                                                            text = getString("choose_specific_days"),
+                                                            style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.SemiBold),
+                                                            color = MaterialTheme.colorScheme.onSurface
+                                                        )
+                                                        // The hint names the state it applies to. It used to
+                                                        // read "Off: the recommended week" in BOTH states, so
+                                                        // the moment the user switched the specific days on,
+                                                        // the line under the switch described the state they
+                                                        // had just left - and "off" was simply untrue.
+                                                        Text(
+                                                            text = getString(
+                                                                if (assistedSpecificDays) "premade_week_hint_on"
+                                                                else "premade_week_hint"
+                                                            ),
+                                                            style = MaterialTheme.typography.bodySmall,
+                                                            color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                        )
+                                                    }
+                                                    Spacer(modifier = Modifier.width(8.dp))
+                                                    Switch(
+                                                        checked = assistedSpecificDays,
+                                                        onCheckedChange = { on ->
+                                                            assistedSpecificDays = on
+                                                            // Turning the switch OFF means
+                                                            // "give me the recommended week
+                                                            // for my frequency" — not "keep
+                                                            // the days I picked by hand".
+                                                            if (!on) {
+                                                                val count = assistedSelectedDays.size.coerceIn(1, 7)
+                                                                assistedSelectedDays.clear()
+                                                                assistedSelectedDays.addAll(WorkoutTemplates.premadeWeekFor(count))
+                                                            }
+                                                        },
+                                                        modifier = Modifier.semantics { testTag = "specific_days_switch" }
+                                                    )
+                                                }
+                                                // 1x/week and 7x/week carry research-backed
+                                                // warnings; the choice itself stays available.
+                                                val warningKey = WorkoutTemplates.frequencyWarningKey(assistedSelectedDays.size)
+                                                if (warningKey.isNotBlank()) {
+                                                    Text(
+                                                        text = getString(warningKey),
+                                                        style = MaterialTheme.typography.labelSmall,
+                                        color = MaterialTheme.colorScheme.error,
+                                        modifier = Modifier.padding(top = 8.dp)
+                                                    )
+                                                }
+                                                // 1b. WHAT EACH DAY IS - the other half of the
+                                                // week. Sits right under the day picker
+                                                // because it only makes sense against the
+                                                // day count just chosen, and each option
+                                                // spells out the run of days it produces so
+                                                // the week can be counted against the days
+                                                // picked above it.
+                                                HorizontalDivider(
+                                                    modifier = Modifier.padding(
+                                                        vertical = window.sectionSpacing
+                                                    ),
+                                                    color = MaterialTheme.colorScheme.outlineVariant
+                                                )
+                                                // The title needs room to breathe before the
+                                                // first card: it is a label for the block
+                                                // below, not a caption on the divider.
+                                                Column(
+                                                    verticalArrangement = Arrangement.spacedBy(
+                                                        window.sectionSpacing / 2
+                                                    )
+                                                ) {
+                                                    Text(
+                                                        text = getString("split_style_title"),
+                                                        style = MaterialTheme.typography.labelLarge,
+                                                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                                                    )
+                                                    SplitStyleSelector(
+                                                        selected = assistedSplitStyle,
+                                                        daysPerWeek = assistedSelectedDays.size,
+                                                        onSelect = { assistedSplitStyle = it }
+                                                    )
+                                                }
                                             }
                                         }
                                     }
@@ -622,13 +852,27 @@ fun FirstTimeSetupScreen(
                                         )
                                     }
 
-                                    // 3. WHAT TO TRAIN
+                                    // 3. WHAT TO TRAIN — the goal, not body parts.
+                                    // Muscle-group picking moved under Advanced: the
+                                    // generator distributes muscle groups itself from
+                                    // the evidence-based split templates; beginners
+                                    // picking muscles produces lopsided programs.
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_body_parts"))
-                                        BodyPartsSelectionBlock(assistedBodyParts)
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_workout_goal"))
+                                        WorkoutGoalBlock(
+                                            selectedGoal = selectedWorkoutGoal,
+                                            onGoalChange = { selectedWorkoutGoal = it },
+                                            isDeveloper = isDeveloper
+                                        )
                                     }
 
-                                    // 4. HOW HARD — sets the target RPE
+                                    // 4. HOW LONG — sets the per-session exercise budget
+                                    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+                                        OnboardingStepHeader(stepNumber = null, title = getString("choose_duration"))
+                                        DurationSelectionBlock(assistedDuration) { assistedDuration = it }
+                                    }
+
+                                    // 5. HOW HARD — sets the target RPE
                                     Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
                                         OnboardingStepHeader(stepNumber = null, title = getString("choose_intensity"))
                                         IntensitySelectionBlock(assistedIntensity) { assistedIntensity = it }
@@ -645,17 +889,9 @@ fun FirstTimeSetupScreen(
                                         )
                                         AnimatedVisibility(visible = preferencesExpanded) {
                                             Column(modifier = Modifier.padding(top = 8.dp), verticalArrangement = Arrangement.spacedBy(16.dp)) {
-                                                SetsAllocationBlock(
-                                                    minSets = assistedMinSets,
-                                                    maxSets = assistedMaxSets,
-                                                    onMinChange = { assistedMinSets = it },
-                                                    onMaxChange = { assistedMaxSets = it }
-                                                )
-                                                WorkoutGoalBlock(
-                                                    selectedGoal = selectedWorkoutGoal,
-                                                    onGoalChange = { selectedWorkoutGoal = it },
-                                                    isDeveloper = isDeveloper
-                                                )
+                                                // The spec removes muscle-group picking from the
+                                                // default flow; power users keep it here.
+                                                BodyPartsSelectionBlock(assistedBodyParts)
                                                 PreferenceSection(getString("include_exercises"), allAvailableExercises, assistedIncludedExercises, MaterialTheme.colorScheme.primaryContainer)
                                                 PreferenceSection(getString("exclude_exercises"), allAvailableExercises, assistedExcludedExercises, MaterialTheme.colorScheme.errorContainer)
                                             }
@@ -664,29 +900,34 @@ fun FirstTimeSetupScreen(
 
                                     // Warn about anything the chosen parts + equipment could not
                                     // actually cover, using the same build that will be saved.
-                                    val buildMissing = getMissingMuscleGroups(
-                                        WorkoutTemplates.generateAssistedProgram(
+                                    // The balance card judges the week against healthy
+                                    // weekly ranges, scoped to the advanced tab's part
+                                    // selection — which DEFAULTS to every part, so an
+                                    // untouched selection checks every group.
+                                    val buildIssues = weeklyBalanceIssues(
+                                        WorkoutTemplates.generateEngineProgram(
                                             bodyParts = assistedBodyParts.toList(),
                                             selectedDays = assistedSelectedDays.toList(),
                                             intensity = assistedIntensity,
                                             workoutGoal = selectedWorkoutGoal,
                                             includedExercises = assistedIncludedExercises.toList(),
                                             excludedExercises = assistedExcludedExercises.toList(),
-                                            minSets = assistedMinSets,
-                                            maxSets = assistedMaxSets,
-                                            equipment = buildEquipment
-                                        ).exercises
+                                            equipment = buildEquipment,
+                                            duration = assistedDuration,
+                                            splitStyle = assistedSplitStyle
+                                        ).exercises,
+                                        balanceGroupsForParts(assistedBodyParts)
                                     )
 
                                     AnimatedContent(
-                                        targetState = buildMissing,
+                                        targetState = buildIssues,
                                         transitionSpec = {
                                             (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
                                                 .togetherWith(fadeOut(animationSpec = tween(200)))
                                         },
                                         label = "BuildWarning"
-                                    ) { missing ->
-                                        MissingBodyPartsWarningCard(missingParts = missing)
+                                    ) { issues ->
+                                        MissingBodyPartsWarningCard(issues = issues)
                                     }
                                 }
                                 else -> {
@@ -831,20 +1072,33 @@ fun FirstTimeSetupScreen(
                                                                 maxLines = 2,
                                                                 overflow = TextOverflow.Ellipsis
                                                             )
+                                                            // Every gap here separates two pieces of text, so it
+                                                            // comes from the window and not from a fixed dp - see
+                                                            // [WindowSize.inlineGap]. The intensity used to be
+                                                            // prefixed with a leading space instead of a gap, which
+                                                            // is nothing at all once the font has grown.
                                                             Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(top = 2.dp)) {
                                                                 MuscleGroupBadge(muscleGroup = exercise.muscleGroup, exerciseName = exercise.name)
-                                                                Spacer(modifier = Modifier.width(8.dp))
+                                                                Spacer(modifier = Modifier.width(window.inlineGap))
                                                                 Text(
-                                                                    text = if (exercise.targetReps.contains("sec")) getQuantityString("sets_x_time_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps)
-                                                                    else getQuantityString("sets_x_reps_pl", exercise.targetSets, exercise.targetSets, exercise.targetReps),
+                                                                    // The exercise's own unit, not its stored row's
+                                                                    // wording - see [exerciseSetsSummaryLabel]. Jumping
+                                                                    // Jacks' "8–12" row is a 90-second exercise.
+                                                                    text = exerciseSetsSummaryLabel(
+                                                                        exerciseName = exercise.name,
+                                                                        targetSets = exercise.targetSets,
+                                                                        storedTarget = exercise.targetReps,
+                                                                    ),
                                                                     style = MaterialTheme.typography.labelSmall,
                                                                     color = MaterialTheme.colorScheme.onSurfaceVariant
                                                                 )
                                                                 if (exercise.targetIntensity.isNotBlank()) {
-                                                                    val rpeExpl = com.grafizum.repio.ui.components.getRpeRirExplanation(exercise.targetIntensity)
-                                                                    val displayIntensity = if (rpeExpl.isNotBlank()) "${exercise.targetIntensity} ($rpeExpl)" else exercise.targetIntensity
+                                                                    // The one label the routine card also prints, so the setup
+                                                                    // preview and the card cannot describe one value two ways.
+                                                                    val displayIntensity = com.grafizum.repio.ui.components.displayIntensityLabel(exercise.targetIntensity)
+                                                                    Spacer(modifier = Modifier.width(window.inlineGap))
                                                                     Text(
-                                                                        text = " • $displayIntensity",
+                                                                        text = "• $displayIntensity",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         maxLines = 1,
@@ -852,8 +1106,9 @@ fun FirstTimeSetupScreen(
                                                                     )
                                                                 }
                                                                 if (exercise.tempo.isNotBlank()) {
+                                                                    Spacer(modifier = Modifier.width(window.inlineGap))
                                                                     Text(
-                                                                        text = " • ${com.grafizum.repio.ui.components.getTempoLabel(exercise.tempo)}",
+                                                                        text = "• ${com.grafizum.repio.ui.components.getTempoLabel(exercise.tempo)}",
                                                                         style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold),
                                                                         color = MaterialTheme.colorScheme.primary,
                                                                         modifier = Modifier.weight(1f, fill = false),
@@ -876,14 +1131,17 @@ fun FirstTimeSetupScreen(
                                         }
 
                                         AnimatedContent(
-                                            targetState = getMissingMuscleGroups(customExercises.toList()),
+                                            targetState = weeklyBalanceIssues(
+                                                customExercises.toList(),
+                                                balanceGroupsForParts(assistedBodyParts)
+                                            ),
                                             transitionSpec = {
                                                 (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.95f, animationSpec = tween(500, delayMillis = 100)))
                                                     .togetherWith(fadeOut(animationSpec = tween(200)))
                                             },
                                             label = "CustomWarning"
                                         ) { missing ->
-                                            MissingBodyPartsWarningCard(missingParts = missing)
+                                            MissingBodyPartsWarningCard(issues = missing)
                                         }
                                     }
                                 }
@@ -933,11 +1191,19 @@ fun FirstTimeSetupScreen(
 
     // DIALOGS
     if (showFinalSaveConfirmation) {
-        SaveConfirmationDialog(onDismiss = { showFinalSaveConfirmation = false }, onConfirm = {
-            saveSelectedBuild()
-            onComplete()
-            showFinalSaveConfirmation = false
-        })
+        // True only when the user came here to replace a plan they already had.
+        // On the very first launch there is no level system to lose, so the
+        // warning stays out of that confirmation entirely.
+        val replacingExistingPlan by viewModel.isManualReentry.collectAsState()
+        SaveConfirmationDialog(
+            levelResetWarning = replacingExistingPlan,
+            onDismiss = { showFinalSaveConfirmation = false },
+            onConfirm = {
+                saveSelectedBuild()
+                onComplete()
+                showFinalSaveConfirmation = false
+            }
+        )
     }
 
     if (showDeleteMultipleConfirmationCustom) {
@@ -1159,8 +1425,21 @@ fun FirstTimeSetupScreen(
         val anchorIndex = remember(exercise) {
             customExercises.indexOfFirst { it.name == exercise.name && it.dayOfWeek == exercise.dayOfWeek }.coerceAtLeast(0)
         }
+        // Same rule as the add dialog above, and it is deliberately ONE rule: the two dialogs
+        // drifted apart once already, and the chips and the gate must describe the same kit.
+        //
+        // The old version fell back on the DERIVED categories, which is a different question:
+        // a full-gym selection reduces to an EMPTY category list (`coarseCategoriesFor` reads
+        // "every category" as no preference), so "nothing derived" was mistaken for "nothing
+        // chosen" and the saved kit narrowed the chips while the gate stayed wide open.
+        val pickerEquipment = equipmentFilterBlockSelection(buildEquipment, viewModel)
         ReplaceExerciseDialog(
             exercise = exercise,
+            // In the builder the chips read the selection the user is still
+            // editing; before they touch equipment they read the saved build's
+            // kit, so a no-barbell builder never sees barbell swaps.
+            userEquipmentCategories = EquipmentFilterBlockCategories(pickerEquipment),
+            userGrantedTags = equipmentFilterBlockGrantedTags(pickerEquipment),
             onDismiss = { replacingExercise = null },
             onReplace = { name, muscleGroup ->
                 // Drop the original and put the pick in its slot, keeping any demo
@@ -1181,8 +1460,6 @@ fun FirstTimeSetupScreen(
                         newMuscleGroup = muscleGroup,
                         workoutGoal = selectedWorkoutGoal,
                         intensity = assistedIntensity.ifBlank { "Medium" },
-                        minSets = assistedMinSets,
-                        maxSets = assistedMaxSets,
                         videoUrl = knownUrl
                     )
                 )
@@ -1199,6 +1476,17 @@ fun FirstTimeSetupScreen(
  * times and the set counts. Kept out of the main flow but still selectable —
  * without it every routine would silently be built as bodybuilding.
  */
+/** The display label for one of the five canonical goal keys. */
+@Composable
+private fun goalLabelFor(goalKey: String): String = when (goalKey) {
+    "goal_bodybuilding" -> getString("goal_bodybuilding")
+    "goal_strength" -> getString("goal_strength")
+    "goal_calisthenics" -> getString("goal_calisthenics")
+    "goal_endurance" -> getString("goal_endurance")
+    "goal_general" -> getString("goal_general")
+    else -> ""
+}
+
 @OptIn(ExperimentalMaterial3Api::class)
 @Composable
 private fun WorkoutGoalBlock(
@@ -1207,22 +1495,9 @@ private fun WorkoutGoalBlock(
     isDeveloper: Boolean
 ) {
     var expanded by remember { mutableStateOf(false) }
-    val goalKeys = listOf(
-        "goal_bodybuilding", "goal_strength", "goal_calisthenics",
-        "goal_functional", "goal_olympic", "goal_powerbuilding",
-        "goal_crossfit", "goal_athletic"
-    )
-    val selectedGoalLabel = when (selectedGoal) {
-        "goal_bodybuilding" -> getString("goal_bodybuilding")
-        "goal_strength" -> getString("goal_strength")
-        "goal_calisthenics" -> getString("goal_calisthenics")
-        "goal_functional" -> getString("goal_functional")
-        "goal_olympic" -> getString("goal_olympic")
-        "goal_powerbuilding" -> getString("goal_powerbuilding")
-        "goal_crossfit" -> getString("goal_crossfit")
-        "goal_athletic" -> getString("goal_athletic")
-        else -> ""
-    }
+    // The five canonical goals; legacy keys display under their canonical label.
+    val goalKeys = WorkoutTemplates.allWorkoutGoals
+    val selectedGoalLabel = goalLabelFor(WorkoutTemplates.canonicalGoal(selectedGoal))
 
     Column(verticalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
         ExposedDropdownMenuBox(
@@ -1235,16 +1510,23 @@ private fun WorkoutGoalBlock(
                 onValueChange = {},
                 readOnly = true,
                 label = { Text(getString("workout_goal")) },
+                // The goal labels now carry the technical term in parentheses
+                // ("Muscle Building (Hypertrophy)"), which does not fit one line
+                // of a phone's width. An OutlinedTextField is single-line by
+                // default and silently clips, so the chosen goal would read
+                // "Muscle Building (Hypertr…". Two lines is enough for the
+                // longest label at bodyMedium and still leaves the label
+                // ("Workout Goal") and the trailing chevron their room.
+                maxLines = 2,
                 trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expanded) },
                 colors = ExposedDropdownMenuDefaults.outlinedTextFieldColors(
-                    focusedBorderColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary,
-                    unfocusedBorderColor = if (isDeveloper) Color.Black.copy(alpha = 0.5f) else MaterialTheme.colorScheme.outline
-                ),
+                    focusedBorderColor = MaterialTheme.colorScheme.primary,
+                    unfocusedBorderColor = MaterialTheme.colorScheme.outline),
                 modifier = Modifier
                     .menuAnchor(MenuAnchorType.PrimaryNotEditable)
                     .fillMaxWidth(),
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                textStyle = MaterialTheme.typography.bodyMedium.copy(color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onSurface)
+                shape = RoundedCornerShape(12.dp),
+                textStyle = MaterialTheme.typography.bodyMedium.copy(color = MaterialTheme.colorScheme.onSurface)
             )
 
             ExposedDropdownMenu(
@@ -1252,17 +1534,7 @@ private fun WorkoutGoalBlock(
                 onDismissRequest = { expanded = false }
             ) {
                 goalKeys.forEach { goalKey ->
-                    val label = when (goalKey) {
-                        "goal_bodybuilding" -> getString("goal_bodybuilding")
-                        "goal_strength" -> getString("goal_strength")
-                        "goal_calisthenics" -> getString("goal_calisthenics")
-                        "goal_functional" -> getString("goal_functional")
-                        "goal_olympic" -> getString("goal_olympic")
-                        "goal_powerbuilding" -> getString("goal_powerbuilding")
-                        "goal_crossfit" -> getString("goal_crossfit")
-                        "goal_athletic" -> getString("goal_athletic")
-                        else -> ""
-                    }
+                    val label = goalLabelFor(goalKey)
                     DropdownMenuItem(
                         text = { Text(label, style = MaterialTheme.typography.bodyMedium) },
                         onClick = {
@@ -1275,11 +1547,12 @@ private fun WorkoutGoalBlock(
             }
         }
 
-        val impact = when (selectedGoal) {
-            "goal_strength", "goal_olympic" -> getString("goal_strength_desc")
-            "goal_bodybuilding", "goal_powerbuilding" -> getString("goal_bodybuilding_desc")
-            "goal_calisthenics", "goal_crossfit" -> getString("goal_calisthenics_desc")
-            "goal_functional", "goal_athletic" -> getString("goal_functional_desc")
+        val impact = when (WorkoutTemplates.canonicalGoal(selectedGoal)) {
+            "goal_strength" -> getString("goal_strength_desc")
+            "goal_bodybuilding" -> getString("goal_bodybuilding_desc")
+            "goal_calisthenics" -> getString("goal_calisthenics_desc")
+            "goal_endurance" -> getString("goal_endurance_desc")
+            "goal_general" -> getString("goal_general_desc")
             else -> ""
         }
         if (impact.isNotBlank()) {
@@ -1292,87 +1565,233 @@ private fun WorkoutGoalBlock(
     }
 }
 
+/**
+ * The persisted build selection reduced to coarse categories ("Barbell",
+ * "Dumbbell", …) — empty when it means "every category". The replace dialog
+ * uses it to start its chips on the kit the builder is configured for.
+ */
+fun EquipmentFilterBlockCategories(selectedEquipment: List<String>): List<String> =
+    ExerciseEquipmentTags.coarseCategoriesFor(selectedEquipment)
+
+/**
+ * The equipment a picker opened inside the builder filters by.
+ *
+ * The builder's own selection while it has one, otherwise the kit the welcome screen SAVED.
+ * The decision itself is [WorkoutTemplates.pickerEquipmentSelection], so both dialogs on this
+ * screen - and the routine editor and Workout Now, which pass the saved kit directly - answer
+ * "which kit?" the same way. Read off the RAW stored lists, never a derived one: the coarse
+ * category list is EMPTY both for "the user chose nothing" and for "the user chose everything".
+ */
+@Composable
+private fun equipmentFilterBlockSelection(
+    buildEquipment: List<String>,
+    viewModel: com.grafizum.repio.ui.viewmodel.WorkoutViewModel
+): List<String> = WorkoutTemplates.pickerEquipmentSelection(
+    builderSelection = buildEquipment,
+    savedSelection = viewModel.savedEquipmentSelection()
+)
+
+/**
+ * That selection as the pickers' equipment gate.
+ *
+ * The builder owns the fine tags, so this is a direct expansion — no coarse
+ * round trip, which would drop the chair/bench/bar grants the coarse chip
+ * vocabulary cannot express. Null = nothing was ever chosen, which the gate reads
+ * as unrestricted; an empty set is the strict bodyweight preset and stays distinct.
+ */
+private fun equipmentFilterBlockGrantedTags(selectedEquipment: List<String>): Set<String>? =
+    selectedEquipment.takeIf { it.isNotEmpty() }
+        ?.let { ExerciseEquipmentTags.allowedTagsFor(it) }
+
 @OptIn(ExperimentalLayoutApi::class)
 @Composable
 private fun EquipmentFilterBlock(
     selectedEquipment: List<String>,
     onEquipmentChange: (List<String>) -> Unit
 ) {
-    val equipmentOptions = listOf(
-        WorkoutTemplates.EQUIPMENT_BODYWEIGHT to getString("bodyweight_label"),
-        WorkoutTemplates.EQUIPMENT_DUMBBELL to getString("equipment_dumbbell"),
-        WorkoutTemplates.EQUIPMENT_BARBELL to getString("equipment_barbell"),
-        WorkoutTemplates.EQUIPMENT_GYM to getString("equipment_gym")
-    )
-
-    // "All" is not a fifth equipment type — see WorkoutTemplates.toggleEquipmentSelection.
-    val optionKeys = equipmentOptions.map { it.first }
-    fun toggle(key: String) {
-        onEquipmentChange(WorkoutTemplates.toggleEquipmentSelection(selectedEquipment, key, optionKeys))
+    // State model: [presetId, fineTag, fineTag, …]. The first element is one
+    // of the ExerciseEquipmentTags presets (or PRESET_CUSTOM); everything
+    // after it are fine-grained tags. Legacy persisted values ("Dumbbell",
+    // "Bands", …) render through allowedTagsFor and normalize on first edit.
+    val activePreset = selectedEquipment.firstOrNull {
+        ExerciseEquipmentTags.isPreset(it) && it != ExerciseEquipmentTags.PRESET_CUSTOM
+    }
+    // The stored vocabulary is FINER than the tile grid: eight selectorized
+    // stations sit behind the single "Machines" tile. They must NOT be folded
+    // away (the stations gate different exercises from MACHINE_OTHER), but
+    // they must not survive a tap either - see [ExerciseEquipmentTags.tagsCoveredByTile].
+    val customTags: Set<String> = if (activePreset != null) {
+        selectedEquipment.drop(1).filter { it in ExerciseEquipmentTags.ALL_TAGS }.toSet()
+    } else {
+        ExerciseEquipmentTags.allowedTagsFor(selectedEquipment)
+    }
+    // Checking a box while a preset is active carries the preset's tags into
+    // Custom; unchecking everything in Custom honestly means "no equipment".
+    fun toggleTag(tag: String) {
+        val base = (if (activePreset != null) ExerciseEquipmentTags.presetTags(activePreset) else customTags)
+            .toMutableSet()
+        // Unticking a tile removes everything it stands for, not just the tile's
+        // own tag: the eight stations have no tile of their own, so "remove the
+        // tag the user can see" is the only way a machine the user no longer
+        // owns ever leaves the kit. This is what stopped the owner removing the
+        // machines he had never meant to grant.
+        if (tag in base) {
+            // Unticking removes the WHOLE family, not just the tile's own tag:
+            // the eight stations have no tile of their own, so "remove the tag
+            // the user can see" is the only way a machine the user no longer
+            // owns ever leaves the kit. This is what stopped the owner removing
+            // machines he had never meant to grant in the first place.
+            base.removeAll(ExerciseEquipmentTags.tagsCoveredByTile(tag))
+        } else {
+            // Ticking ADDS what the tile stands for. Every tile now stands for its
+            // own kit and nothing beside it - a rack no longer drags the barbell
+            // tile along, which is the owner's ruling that the two are separate
+            // switches - while still going through tagsGrantedByTicking rather than
+            // the family, so ticking "Machines" cannot grant a leg press the user
+            // never ticked.
+            base.addAll(ExerciseEquipmentTags.tagsGrantedByTicking(tag))
+        }
+        val ordered = base.sortedBy { ExerciseEquipmentTags.ALL_TAGS.indexOf(it) }
+        onEquipmentChange(listOf(ExerciseEquipmentTags.PRESET_CUSTOM) + ordered)
     }
 
-    // The section title comes from the caller's OnboardingStepHeader.
-    // "All" leads the list big and full-width on TOP (it is the default state
-    // and the anchor of the choice); "Cable & Machine" sits like a normal
-    // half-width chip in the last row. Values stay tied to their labels: All
-    // toggles EQUIPMENT_ALL (empty selection), each chip its own category.
+    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
+        // ---- Fine equipment as an ICON TILE GRID, not a checkbox list ----
+        // The old sixteen rows of sentences forced reading before acting; the
+        // grid turns the same data into a wall of equipment the user glances
+        // at. The icon carries the shape, the short label only disambiguates.
+        // A preset's tags show pre-checked (state, not just the chip), so the
+        // grid doubles as the visual summary of what the preset grants.
+        val presetGranted: Set<String> =
+            if (activePreset != null) ExerciseEquipmentTags.presetTags(activePreset)
+            else customTags
+
+        EquipmentTileSection(
+            title = getString("home_equipment_section"),
+            tags = ExerciseEquipmentTags.HOME_EQUIPMENT_TAGS,
+            isChecked = { tag -> presetGranted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tag) } },
+            onToggle = { tag -> toggleTag(tag) }
+        )
+
+        EquipmentTileSection(
+            title = getString("gym_equipment_section"),
+            tags = ExerciseEquipmentTags.GYM_EQUIPMENT_TAGS,
+            isChecked = { tag -> presetGranted.any { it in ExerciseEquipmentTags.tagsCoveredByTile(tag) } },
+            onToggle = { tag -> toggleTag(tag) }
+        )
+
+        // ---- THE MACHINES GROUP ----
+        // Owner, 2026-10-16: *"per-machine ticks under the Machine group, cables folded in"*.
+        //
+        // Nine machines, nine ticks. The single "Gym machines (press, leg press, pulldown…)" tile
+        // above is gone, so "do you have this?" is asked about the machine the user actually has -
+        // and the cable stack, which IS a machine, is asked here rather than in a second group of
+        // its own beside this one.
+        //
+        // A tick is EXACTLY its own tag, unlike every tile above it: those are families (tick
+        // "Machines" used to grant all nine, untick removed all nine), which is how one control
+        // came to mean "I have every machine" or "I have none". Here a tick grants that machine
+        // and an untick takes that machine, leaving the rest of the kit alone.
+        EquipmentTileSection(
+            title = getString("equipment_tag_machines"),
+            tags = ExerciseEquipmentTags.MACHINE_EQUIPMENT_TAGS,
+            isChecked = { tag -> tag in presetGranted },
+            onToggle = { tag ->
+                onEquipmentChange(ExerciseEquipmentTags.applyMachineTick(selectedEquipment, tag))
+            }
+        )
+    }
+}
+
+/**
+ * One labelled section of the icon-tile grid: a small section header and the
+ * tiles flowing beneath it.
+ */
+@OptIn(ExperimentalLayoutApi::class)
+@Composable
+private fun EquipmentTileSection(
+    title: String,
+    tags: List<String>,
+    isChecked: (String) -> Boolean,
+    onToggle: (String) -> Unit
+) {
     Column(verticalArrangement = Arrangement.spacedBy(8.dp)) {
-        EquipmentChip(
-            label = getString("equipment_all"),
-            selected = selectedEquipment.isEmpty(),
+        Text(
+            text = title,
+            style = MaterialTheme.typography.labelMedium,
+            color = MaterialTheme.colorScheme.primary
+        )
+        FlowRow(
+            horizontalArrangement = Arrangement.spacedBy(8.dp),
+            verticalArrangement = Arrangement.spacedBy(8.dp),
             modifier = Modifier.fillMaxWidth()
-        ) { toggle(WorkoutTemplates.EQUIPMENT_ALL) }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            EquipmentChip(
-                label = equipmentOptions[0].second,
-                selected = selectedEquipment.contains(equipmentOptions[0].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[0].first) }
-            EquipmentChip(
-                label = equipmentOptions[1].second,
-                selected = selectedEquipment.contains(equipmentOptions[1].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[1].first) }
-        }
-        Row(horizontalArrangement = Arrangement.spacedBy(8.dp), modifier = Modifier.fillMaxWidth()) {
-            EquipmentChip(
-                label = equipmentOptions[2].second,
-                selected = selectedEquipment.contains(equipmentOptions[2].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[2].first) }
-            EquipmentChip(
-                label = equipmentOptions[3].second,
-                selected = selectedEquipment.contains(equipmentOptions[3].first),
-                modifier = Modifier.weight(1f)
-            ) { toggle(equipmentOptions[3].first) }
+        ) {
+            tags.forEach { tag ->
+                EquipmentIconTile(
+                    tag = tag,
+                    checked = isChecked(tag),
+                    onToggle = { onToggle(tag) }
+                )
+            }
         }
     }
 }
 
-/** One equipment chip, stretched to its grid cell so the rows line up symmetrically. */
+/**
+ * One equipment tile of the grid: the tag's icon over its short label, the
+ * whole tile the tap target. Selected tiles fill with the primary tint and
+ * carry a primary rim — state reads from across the room, no checkbox needed.
+ * A tile is at least 96dp wide so the grid lands at three tiles per row on a
+ * 360dp phone and widens naturally on tablets (weight-like fill via weight on
+ * the parent is not available in a FlowRow, so the min-width does the work).
+ */
 @Composable
-private fun EquipmentChip(
-    label: String,
-    selected: Boolean,
-    modifier: Modifier = Modifier,
-    onClick: () -> Unit
+private fun EquipmentIconTile(
+    tag: String,
+    checked: Boolean,
+    onToggle: () -> Unit
 ) {
-    FilterChip(
-        selected = selected,
-        onClick = onClick,
-        label = {
-            Text(
-                text = label,
-                style = MaterialTheme.typography.labelSmall,
-                textAlign = TextAlign.Center,
-                maxLines = 1,
-                overflow = TextOverflow.Ellipsis,
-                modifier = Modifier.fillMaxWidth()
-            )
+    val isDeveloper = LocalDeveloperSkin.current
+    Surface(
+        onClick = onToggle,
+        shape = RoundedCornerShape(14.dp),
+        color = when {
+            checked -> MaterialTheme.colorScheme.primary.copy(alpha = 0.16f)
+            else -> MaterialTheme.colorScheme.surfaceContainerLow
         },
-        shape = RoundedCornerShape(10.dp),
-        modifier = modifier
-    )
+        border = BorderStroke(
+                     1.dp,
+                     if (checked) MaterialTheme.colorScheme.primary
+                     else MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
+                 ),
+        modifier = Modifier.widthIn(min = 96.dp)
+    ) {
+        Column(
+            horizontalAlignment = Alignment.CenterHorizontally,
+            verticalArrangement = Arrangement.spacedBy(4.dp),
+            modifier = Modifier.padding(horizontal = 10.dp, vertical = 10.dp)
+        ) {
+            EquipmentIconImage(
+                icon = equipmentTagIcon(tag),
+                contentDescription = null,
+                tint = when {
+                    checked -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                modifier = Modifier.size(24.dp)
+            )
+            Text(
+                text = getString(equipmentTagShortLabelKey(tag)),
+                style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.SemiBold),
+                color = when {
+                    checked -> MaterialTheme.colorScheme.primary
+                    else -> MaterialTheme.colorScheme.onSurfaceVariant
+                },
+                maxLines = 1,
+                overflow = TextOverflow.Ellipsis
+            )
+        }
+    }
 }
 
 @OptIn(ExperimentalLayoutApi::class)
@@ -1400,7 +1819,7 @@ private fun PreferenceSection(
             }
             Button(
                 onClick = { if (input.isNotBlank()) { list.add(input.trim()); input = "" } },
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                shape = RoundedCornerShape(10.dp),
                 modifier = Modifier.height(48.dp)
             ) { Text(getString("add_pref"), style = MaterialTheme.typography.labelSmall) }
         }
@@ -1408,8 +1827,8 @@ private fun PreferenceSection(
             list.forEach { ex ->
                 Surface(
                     color = containerColor,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                    shape = RoundedCornerShape(8.dp),
+                    border = null,
                     modifier = Modifier.clickable { list.remove(ex) }
                 ) {
                     Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp)) {
@@ -1440,13 +1859,6 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
         getString("abs") to listOf("Abs", "Obliques")
     )
 
-    val balancedPreset = listOf(
-        "Chest", "Lats", "Upper Back", 
-        "Quadriceps", "Hamstrings", "Glutes", "Calves",
-        "Front Deltoids", "Lateral Deltoids",
-        "Biceps", "Triceps", "Abs"
-    )
-
     Card(
         shape = RoundedCornerShape(20.dp),
         colors = CardDefaults.cardColors(
@@ -1467,32 +1879,9 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                     text = getString("select_body_parts_desc"),
                     style = MaterialTheme.typography.labelSmall,
                     color = MaterialTheme.colorScheme.onSurfaceVariant,
-                    // The preset button on the right keeps its intrinsic size; a long
-                    // translated description wraps inside the leftover width instead.
-                    modifier = Modifier.weight(1f, fill = false),
                     maxLines = 3,
                     overflow = TextOverflow.Ellipsis
                 )
-                
-                Surface(
-                    onClick = {
-                        selected.clear()
-                        selected.addAll(balancedPreset)
-                    },
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(8.dp),
-                    color = MaterialTheme.colorScheme.primaryContainer,
-                    contentColor = MaterialTheme.colorScheme.onPrimaryContainer,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null
-                ) {
-                    Row(
-                        modifier = Modifier.padding(horizontal = 8.dp, vertical = 4.dp),
-                        verticalAlignment = Alignment.CenterVertically
-                    ) {
-                        Icon(Icons.Default.AutoFixHigh, null, modifier = Modifier.size(14.dp))
-                        Spacer(modifier = Modifier.width(4.dp))
-                        Text(getString("balanced_preset"), style = MaterialTheme.typography.labelSmall.copy(fontWeight = FontWeight.Bold))
-                    }
-                }
             }
 
             // Category Buttons in 2 rows
@@ -1527,11 +1916,11 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                 }
                             }
                         },
-                        shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
+                        shape = RoundedCornerShape(12.dp),
                         color = backgroundColor,
                         contentColor = contentColor,
-                        border = if (isDeveloper && expanded) BorderStroke(2.dp, Color.Black)
-                                 else if (!expanded) BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant) 
+                        border = if (isDeveloper && expanded) BorderStroke(2.dp, MaterialTheme.colorScheme.outline)
+                                 else if (!expanded) BorderStroke(1.dp, MaterialTheme.colorScheme.outlineVariant) 
                                  else null,
                         modifier = Modifier
                             .weight(1f)
@@ -1601,12 +1990,12 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
                                         else selected.add(part) 
                                     },
                                     label = { Text(translateMuscleGroup(part), style = MaterialTheme.typography.labelSmall.copy(fontSize = 11.sp)) },
-                                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp),
+                                    shape = RoundedCornerShape(10.dp),
                                     colors = FilterChipDefaults.filterChipColors(
-                                        selectedContainerColor = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                                        selectedLabelColor = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                                        selectedContainerColor = MaterialTheme.colorScheme.primary,
+                                        selectedLabelColor = MaterialTheme.colorScheme.onPrimary
                                     ),
-                                    border = if (isDeveloper && isSel) FilterChipDefaults.filterChipBorder(enabled = true, selected = true, selectedBorderColor = Color.Black, selectedBorderWidth = 2.dp) else FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel)
+                                    border = if (isDeveloper && isSel) FilterChipDefaults.filterChipBorder(enabled = true, selected = true, selectedBorderColor = MaterialTheme.colorScheme.surface, selectedBorderWidth = 2.dp) else FilterChipDefaults.filterChipBorder(enabled = true, selected = isSel)
                                 )
                             }
                         }
@@ -1616,6 +2005,18 @@ private fun BodyPartsSelectionBlock(selected: MutableList<String>) {
         }
     }
 }
+
+/**
+ * The setup stores the picker's own strings as its keys ("setup_intensity"), so
+ * the bridge to the engine's enum lives next to its two callers rather than
+ * being repeated inline.
+ */
+private fun difficultyOf(intensity: String): com.grafizum.repio.data.ProgressionEngine.Difficulty =
+    when (intensity) {
+        "Easy" -> com.grafizum.repio.data.ProgressionEngine.Difficulty.EASY
+        "Hard" -> com.grafizum.repio.data.ProgressionEngine.Difficulty.HARD
+        else -> com.grafizum.repio.data.ProgressionEngine.Difficulty.MEDIUM
+    }
 
 @Composable
 private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit) {
@@ -1631,9 +2032,9 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
             modifier = Modifier
                 .fillMaxWidth()
                 .height(52.dp)
-                .clip(if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .clip(RoundedCornerShape(10.dp))
                 .background(MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f))
-                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(10.dp))
+                .border(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.2f), RoundedCornerShape(10.dp))
                 .padding(4.dp)
                 .pointerInput(selected) {
                     var totalDrag = 0f
@@ -1672,9 +2073,8 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                         translationX = with(density) { indicatorPosition.toPx() }
                     },
                 color = MaterialTheme.colorScheme.primary,
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(7.dp),
-                shadowElevation = if (isDeveloper) 0.dp else 1.dp
-            ) {}
+                shape = RoundedCornerShape(7.dp),
+                shadowElevation = 1.dp) {}
 
             Row(
                 modifier = Modifier.fillMaxSize(),
@@ -1709,8 +2109,13 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                                 ),
                                 color = contentColor
                             )
+                            // What this choice actually sets: the rung each
+                            // exercise starts on, not an RPE target.
                             Text(
-                                text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(level)),
+                                text = getString(
+                                    "intensity_level_value",
+                                    com.grafizum.repio.data.ProgressionEngine.typicalStartingLevel(difficultyOf(level))
+                                ),
                                 style = MaterialTheme.typography.labelSmall.copy(fontSize = 8.sp),
                                 color = contentColor.copy(alpha = 0.85f)
                             )
@@ -1757,7 +2162,10 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
                     Spacer(modifier = Modifier.width(12.dp))
                     Column {
                         Text(
-                            text = getString("intensity_rpe_value", WorkoutTemplates.getRpeForIntensity(selected)),
+                            text = getString(
+                                "intensity_level_value",
+                                com.grafizum.repio.data.ProgressionEngine.typicalStartingLevel(difficultyOf(selected))
+                            ),
                             style = MaterialTheme.typography.labelMedium.copy(fontWeight = FontWeight.Bold),
                             color = MaterialTheme.colorScheme.primary
                         )
@@ -1773,8 +2181,127 @@ private fun IntensitySelectionBlock(selected: String, onSelect: (String) -> Unit
     }
 }
 
+/**
+ * The session length a build is budgeted for. The choice is the per-day
+ * exercise window the generator trims/pads into: Quick = 6-8 (compound
+ * focus), Standard = 8-10 (balanced), Full = 10-12 (full volume). Mirrors
+ * the intensity block's segmented picker.
+ */
 @Composable
-private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit) {
+private fun DurationSelectionBlock(selected: String, onSelect: (String) -> Unit) {
+    val options = WorkoutTemplates.DURATION_OPTIONS
+    val selectedIndex = options.indexOf(selected).coerceAtLeast(0)
+    val isDeveloper = LocalDeveloperSkin.current
+
+    Column(verticalArrangement = Arrangement.spacedBy(16.dp)) {
+        Row(
+            modifier = Modifier.fillMaxWidth(),
+            horizontalArrangement = Arrangement.spacedBy(8.dp)
+        ) {
+            options.forEach { option ->
+                val isSelected = selected == option
+                // The chip answers the block's own header ("Sitzungslänge"), so it shows
+                // MINUTES - the exercise window next to it is what the description below
+                // is written in and what the generator enforces. Printing the exercise
+                // count with the minute unit made every option claim to be shorter than
+                // its own warm-up (measured on device 2026-10-08).
+                val minutes = WorkoutTemplates.durationMinutesFor(option)
+                val contentColor by animateColorAsState(
+                    targetValue = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                  else MaterialTheme.colorScheme.onSurfaceVariant,
+                    label = "durationContentColor"
+                )
+
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .clip(RoundedCornerShape(10.dp))
+                        .background(
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.surfaceVariant.copy(alpha = 0.3f)
+                        )
+                        .border(
+                            1.dp,
+                            if (isSelected) MaterialTheme.colorScheme.primary
+                            else MaterialTheme.colorScheme.primary.copy(alpha = 0.2f),
+                            RoundedCornerShape(10.dp)
+                        )
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(option) }
+                        .padding(vertical = 12.dp, horizontal = 4.dp),
+                    contentAlignment = Alignment.Center
+                ) {
+                    Column(horizontalAlignment = Alignment.CenterHorizontally) {
+                        Text(
+                            text = getString("duration_${option.substringAfter("_")}_label"),
+                            style = MaterialTheme.typography.labelMedium.copy(
+                                fontWeight = FontWeight.Bold
+                            ),
+                            color = contentColor
+                        )
+                        Text(
+                            text = getString("duration_minutes", minutes.first, minutes.last),
+                            style = MaterialTheme.typography.labelSmall.copy(fontSize = 10.sp),
+                            color = contentColor.copy(alpha = 0.85f)
+                        )
+                    }
+                }
+            }
+        }
+
+        // What this choice actually sets: the per-session exercise budget.
+        val description = when(selected) {
+            WorkoutTemplates.DURATION_QUICK -> getString("duration_quick_desc")
+            WorkoutTemplates.DURATION_FULL -> getString("duration_full_desc")
+            else -> getString("duration_standard_desc")
+        }
+
+        AnimatedContent(
+            targetState = description,
+            transitionSpec = {
+                (fadeIn(animationSpec = tween(500, delayMillis = 100)) + scaleIn(initialScale = 0.92f, animationSpec = tween(500, delayMillis = 100)))
+                    .togetherWith(fadeOut(animationSpec = tween(200)))
+            },
+            label = "durationDesc"
+        ) { desc ->
+            Card(
+                shape = RoundedCornerShape(16.dp),
+                colors = CardDefaults.cardColors(
+                    containerColor = MaterialTheme.colorScheme.primary.copy(alpha = 0.05f)
+                ),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f)),
+                modifier = Modifier.fillMaxWidth()
+            ) {
+                Row(
+                    modifier = Modifier.padding(16.dp),
+                    verticalAlignment = Alignment.CenterVertically
+                ) {
+                    Icon(
+                        imageVector = Icons.Default.Timer,
+                        contentDescription = null,
+                        tint = MaterialTheme.colorScheme.primary,
+                        modifier = Modifier.size(20.dp)
+                    )
+                    Spacer(modifier = Modifier.width(12.dp))
+                    Text(
+                        text = desc,
+                        style = MaterialTheme.typography.bodySmall,
+                        color = MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+@Composable
+private fun SaveConfirmationDialog(
+    onDismiss: () -> Unit,
+    onConfirm: () -> Unit,
+    levelResetWarning: Boolean = false
+) {
     val focusManager = LocalFocusManager.current
     AlertDialog(
         onDismissRequest = onDismiss,
@@ -1791,15 +2318,50 @@ private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit)
             }
         },
         text = {
-            Box(
+            Column(
                 modifier = Modifier
                     .fillMaxWidth()
                     .clickable(
                         indication = null,
                         interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
+                    ) { focusManager.clearFocus() },
+                verticalArrangement = Arrangement.spacedBy(12.dp)
             ) {
                 Text(getString("confirm_new_program_message"))
+                if (levelResetWarning) {
+                    // Saving replaces the routine, and replacing the routine
+                    // clears every exercise's stored level and stage (see
+                    // WorkoutViewModel.clearExerciseMemories). The logged sets
+                    // survive, so the user only has to be told the levels restart.
+                    Surface(
+                        color = MaterialTheme.colorScheme.errorContainer,
+                        contentColor = MaterialTheme.colorScheme.onErrorContainer,
+                        shape = RoundedCornerShape(12.dp),
+                        modifier = Modifier.fillMaxWidth()
+                    ) {
+                        Row(
+                            modifier = Modifier.padding(12.dp),
+                            verticalAlignment = Alignment.Top
+                        ) {
+                            Icon(
+                                imageVector = Icons.Default.Info,
+                                contentDescription = null,
+                                modifier = Modifier.size(18.dp)
+                            )
+                            Spacer(modifier = Modifier.width(10.dp))
+                            Column(verticalArrangement = Arrangement.spacedBy(2.dp)) {
+                                Text(
+                                    text = getString("level_reset_warning_title"),
+                                    style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold)
+                                )
+                                Text(
+                                    text = getString("level_reset_warning_body"),
+                                    style = MaterialTheme.typography.bodySmall
+                                )
+                            }
+                        }
+                    }
+                }
             }
         },
         confirmButton = {
@@ -1817,10 +2379,131 @@ private fun SaveConfirmationDialog(onDismiss: () -> Unit, onConfirm: () -> Unit)
     )
 }
 
+/**
+ * "How many days a week" as a menu of the frequencies the app supports.
+ *
+ * Owner prompt 2026-10-08: *"i want to add a simple menu having the user select between 2 to
+ * 6 days a week for a workout"* plus *"if the user chooses 1 or 7 days it will show a small
+ * label ... saying (not recommended)"*. Both of those frequencies therefore stay SELECTABLE -
+ * a menu that refuses them would leave a user who trains every day with no way to say so, and
+ * the honest answer is to mark the choice rather than hide it.
+ *
+ * Selecting a count writes [WorkoutTemplates.premadeWeekFor] straight into the week, so the
+ * user sees the actual shape the number produces (which days train, and where the pauses
+ * fall) instead of a bare number.
+ *
+ * REDESIGNED, owner prompt 2026-10-09: *"seeing the days of week like that with the numbers on
+ * top just looks very cheap and basic i want a different design"*. The seven separate numbered
+ * tiles are gone. The frequencies now live in ONE segmented track that uses the same sliding
+ * thumb as the build-mode switch at the top of this screen, so this control reads as part of
+ * the app instead of as a row of boxes; the number is a label on the selected segment rather
+ * than a tile of its own. The week the numbers produce is drawn UNDER the track as seven silent
+ * blocks (see [WeekStrip]), and the weekday chips themselves stay off the screen until the user
+ * opens the specific-days switch - the owner's *"show the days of the week ... only if the user
+ * distinctively opens it"*.
+ */
+@Composable
+private fun DaysPerWeekMenu(
+    daysPerWeek: Int,
+    onSelect: (Int) -> Unit
+) {
+    val segmentCount = 7
+    BoxWithConstraints(
+        modifier = Modifier
+            .fillMaxWidth()
+            .height(42.dp)
+            .clip(RoundedCornerShape(16.dp))
+            .background(MaterialTheme.colorScheme.surface)
+            .border(1.dp, MaterialTheme.colorScheme.outlineVariant, RoundedCornerShape(16.dp))
+    ) {
+        val segmentWidth = maxWidth / segmentCount
+        val inset = 3.dp
+        // The thumb is the chosen frequency. It rides the same spring the build-mode switch
+        // uses, because the two controls sit on one screen and should move alike.
+        val thumbOffset by animateDpAsState(
+            targetValue = segmentWidth * (daysPerWeek - 1) + inset,
+            animationSpec = spring(
+                dampingRatio = Spring.DampingRatioNoBouncy,
+                stiffness = Spring.StiffnessMediumLow
+            ),
+            label = "daysPerWeekThumb"
+        )
+        Box(
+            modifier = Modifier
+                .offset(x = thumbOffset, y = inset)
+                .width(segmentWidth - inset * 2)
+                .height(42.dp - inset * 2)
+                .background(MaterialTheme.colorScheme.primary, RoundedCornerShape(13.dp))
+        )
+        Row(modifier = Modifier.fillMaxSize()) {
+            (1..segmentCount).forEach { count ->
+                val isSelected = count == daysPerWeek
+                Box(
+                    modifier = Modifier
+                        .weight(1f)
+                        .fillMaxHeight()
+                        .clickable(
+                            interactionSource = remember { MutableInteractionSource() },
+                            indication = null
+                        ) { onSelect(count) }
+                        .semantics { testTag = "days_per_week_$count" },
+                    contentAlignment = Alignment.Center
+                ) {
+                    Text(
+                        text = "$count",
+                        style = MaterialTheme.typography.labelLarge.copy(fontWeight = FontWeight.Bold),
+                        color = if (isSelected) MaterialTheme.colorScheme.onPrimary
+                                else MaterialTheme.colorScheme.onSurfaceVariant
+                    )
+                }
+            }
+        }
+    }
+}
+
+/**
+ * The week as a picture: one block per weekday, filled where the week trains.
+ *
+ * It keeps the half of the old numbered menu that was worth having - WHICH days train and
+ * where the pauses fall - without printing the weekday names, which the owner asked to keep
+ * off the screen until the specific-days switch is opened.
+ */
+@Composable
+private fun WeekStrip(selectedDays: List<String>) {
+    val week = listOf(
+        "MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY"
+    )
+    Row(
+        modifier = Modifier.fillMaxWidth(),
+        horizontalArrangement = Arrangement.spacedBy(6.dp)
+    ) {
+        week.forEach { day ->
+            val trains = selectedDays.contains(day)
+            Box(
+                modifier = Modifier
+                    .weight(1f)
+                    .height(8.dp)
+                    .clip(RoundedCornerShape(4.dp))
+                    .background(
+                        if (trains) MaterialTheme.colorScheme.primary
+                        else MaterialTheme.colorScheme.outlineVariant.copy(alpha = 0.45f)
+                    )
+            )
+        }
+    }
+}
+
 @Composable
 fun DaySelectionRow(
     selectedDays: List<String>,
-    onDayToggle: (String) -> Unit
+    onDayToggle: (String) -> Unit,
+    /**
+     * False draws the row as the week the premade menu chose: still readable (the user must
+     * be able to see where the pauses fall) but not editable, because the switch beside it
+     * is what grants that. Defaults to true so the day pickers in the routine/editor screens
+     * keep their old behaviour unchanged.
+     */
+    enabled: Boolean = true
 ) {
     val allDays = listOf(
         "MONDAY" to getString("monday_shortest"),
@@ -1839,14 +2522,29 @@ fun DaySelectionRow(
     ) {
         allDays.forEach { (day, label) ->
             val isSelected = selectedDays.contains(day)
+            // Deliberately NOT `enabled = false` while the premade week is showing: Material's
+            // disabled surface dims the whole row (and the project has already paid twice for
+            // a control that "reads as disabled but is really just refused" - see
+            // levelPillBlockedReason). The row keeps its real colours and the caller decides
+            // what a tap means, which in the welcome screen is "open the specific-days
+            // switch", so the tap explains itself instead of doing nothing.
             Surface(
                 onClick = { onDayToggle(day) },
                 color = if (isSelected) MaterialTheme.colorScheme.primary else MaterialTheme.colorScheme.surface,
                 contentColor = if (isSelected) MaterialTheme.colorScheme.onPrimary else MaterialTheme.colorScheme.onSurface,
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
+                shape = CircleShape,
                 border = if (isSelected) {
-                             BorderStroke(2.dp, if (isDeveloper) Color.Black else MaterialTheme.colorScheme.primary)
-                         } else BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.outlineVariant),
+                             BorderStroke(2.dp, MaterialTheme.colorScheme.primary)
+                         } else BorderStroke(
+                             1.dp,
+                             MaterialTheme.colorScheme.outlineVariant.copy(
+                                 // The premade week is an ANSWER ("this is your week"), the
+                                 // editable row is a QUESTION. A fainter rim on the
+                                 // unchosen days says which one the user is looking at
+                                 // without dimming the week itself.
+                                 alpha = if (enabled) 1f else 0.6f
+                             )
+                         ),
                 modifier = Modifier.size(40.dp)
             ) {
                 Box(contentAlignment = Alignment.Center) {
@@ -1909,6 +2607,10 @@ fun getEnglishTitleFromKey(key: String): String {
     return when(key) {
         "pull_title" -> "Pull (Back & Biceps)"
         "push_title" -> "Push (Chest, Shoulders, Triceps)"
+        "chest_title" -> "Chest"
+        "back_title" -> "Back"
+        "shoulders_title" -> "Shoulders"
+        "arms_title" -> "Arms"
         "legs_core_title" -> "Legs & Core"
         "upper_power_title" -> "Upper Body Power"
         "lower_power_title" -> "Lower Body & Core"
@@ -1929,20 +2631,67 @@ fun AddExerciseDialog(
     initialDay: String = "MONDAY",
     themeKey: String,
     onDismiss: () -> Unit,
-    onConfirm: (RoutineExerciseEntity) -> Unit
+    onConfirm: (RoutineExerciseEntity) -> Unit,
+    /**
+     * The saved kit as coarse categories; the recommendation filters start on
+     * it so a no-barbell setup never sees barbell suggestions by default.
+     */
+    userEquipmentCategories: List<String> = emptyList(),
+    /**
+     * The user's granted FINE tags when the host has them. The coarse list above
+     * has no category for a chair, a bench or a pull-up bar, so re-expanding it
+     * would silently drop grants the user actually ticked.
+     */
+    userGrantedTags: Set<String>? = null,
+    /**
+     * Resolves the level facts for the exercise this form is about RIGHT NOW,
+     * keyed on its name.
+     *
+     * This is the same resolver contract the routine editor uses, and it is here
+     * for the same reason: the welcome screen's add dialog is a SECOND editor, and
+     * without it an exercise the user adds during setup still opened on the plain
+     * custom boxes while the level system ran underneath it. Keyed on the name
+     * because the name is typed inside the dialog - the host has no row to hand in.
+     */
+    levelDataFor: (@Composable (String, Int) -> EditorLevelData)? = null,
+    /** Called with the exercise's name and the ABSOLUTE level the user picked. */
+    onLevelChange: ((String, Int) -> Unit)? = null,
+    /** A Roman numeral was picked: (name, level, stage), applied as ONE write. */
+    onStageChange: ((String, Int, Int) -> Unit)? = null,
+    /** Opens the full level ladder for the named exercise. */
+    onOpenLevelLadder: ((String) -> Unit)? = null,
+    /**
+     * True when the level system is on app-wide — see [ExerciseEditDialog.levelSystemOn].
+     * A NEW exercise is then picked through the graphical picker rather than typed into
+     * the classic field; custom mode (and any edit) is untouched.
+     */
+    levelSystemOn: Boolean = false
 ) {
     var dayOfWeek by remember { mutableStateOf(exercise?.dayOfWeek ?: initialDay) }
     var name by remember { mutableStateOf(exercise?.name ?: "") }
     var muscleGroup by remember { mutableStateOf(exercise?.muscleGroup ?: "Chest") }
     var targetSets by remember { mutableStateOf(exercise?.targetSets?.toString() ?: "") }
-    var targetWeightValue by remember { mutableStateOf(if (exercise?.targetWeightKg == 0.0) "" else exercise?.targetWeightKg?.toString() ?: "") }
+    // Seeded through loadFieldValueText, not Double.toString(): a pin count is a
+    // count, so it must not open the sheet as "20.0" (see the function's note).
+    // Read outside the remember: `remember`'s lambda is not a composable scope,
+    // so the unit has to be resolved here and captured.
+    val weightUnit = LocalWeightUnit.current
+    var targetWeightValue by remember {
+        mutableStateOf(
+            exercise?.targetWeightKg?.let { loadFieldValueText(name, it, weightUnit) } ?: ""
+        )
+    }
     var targetIntensityStr by remember { mutableStateOf(exercise?.targetIntensity ?: "") }
     var restSecondsStr by remember { mutableStateOf(exercise?.restSeconds?.toString() ?: "60") }
-    var isTimeBased by remember { mutableStateOf(exercise?.targetReps?.contains("sec", ignoreCase = true) ?: false) }
+    // The time toggle opens in the unit the EXERCISE measures in, not in whatever
+    // its stored row says - see WorkoutTemplates.isExerciseTimeBased.
+    var isTimeBased by remember { mutableStateOf(WorkoutTemplates.isExerciseTimeBased(exercise?.name.orEmpty())) }
     
     var targetRepsValue by remember { mutableStateOf(if (!isTimeBased) exercise?.targetReps ?: "" else "8-12") }
     var repsManuallyEdited by remember { mutableStateOf(exercise != null) }
-    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) exercise?.targetReps?.replace(" sec", "") ?: "30" else "30") }
+    // See WorkoutTemplates.secondsInStoredTarget: a pre-level-system timed row
+    // stores a rep range, which must not become the seconds field's value.
+    var targetTimeValue by remember { mutableStateOf(if (isTimeBased) WorkoutTemplates.secondsInStoredTarget(exercise?.targetReps)?.toString() ?: "30" else "30") }
     var videoUrl by remember { mutableStateOf(exercise?.videoUrl ?: "") }
 
     val focusManager = LocalFocusManager.current
@@ -1982,34 +2731,117 @@ fun AddExerciseDialog(
     var expandedDay by remember { mutableStateOf(false) }
     val daysOptions = listOf("MONDAY", "TUESDAY", "WEDNESDAY", "THURSDAY", "FRIDAY", "SATURDAY", "SUNDAY")
 
-    // Same filters the replace dialog offers: a broad muscle group ("Legs" finds
-    // every leg exercise) plus equipment chips. They only narrow what the search
-    // field suggests; the stored muscle still comes from the exercise itself.
-    var filterMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
-    var filterEquipment by remember(exercise?.id) { mutableStateOf(emptyList<String>()) }
-    val filteredExercises = remember(allAvailableExercises, filterMuscleGroup, filterEquipment) {
+    // The muscle the NAME SUGGESTIONS are narrowed to, or null for every muscle.
+    //
+    // The suggestion filter popup was removed (dashboard task "The exercise
+    // suggestions tab is still broken. Remove it completely") and what it left
+    // behind was the one gate that is not a convenience: the user's own kit
+    // (matching ExerciseEditDialog), because suggestions must never offer bar-less
+    // moves to a dumbbells+chair setup.
+    //
+    // The muscle filter is back on the OWNER's instruction (2026-10-09: "allow the
+    // user to filter which muscle too for when replacing an exercise"), and it is
+    // deliberately the same compact row the replace dialog uses, so the two pickers
+    // filter on the same vocabulary with the same control. It starts on ANY rather
+    // than on the exercise's own muscle: this dialog is where a custom exercise is
+    // NAMED, and someone renaming "Superman" to a row or a squat would be fighting a
+    // filter they never asked for. The kit gate above stays ON either way.
+    var selectedMuscleGroup by remember(exercise?.id) { mutableStateOf<String?>(null) }
+
+    val filteredExercises = remember(
+        allAvailableExercises, userEquipmentCategories, userGrantedTags, selectedMuscleGroup
+    ) {
         com.grafizum.repio.ui.components.filteredExercisesForPickers(
-            allAvailableExercises, filterMuscleGroup, filterEquipment
+            allAvailableExercises, selectedMuscleGroup, userEquipmentCategories,
+            // Fine-tag gate matching ExerciseEditDialog: the coarse Bodyweight
+            // chip alone offered bar-less moves to a dumbbells+chair setup.
+            // Preferred over re-expanding the coarse list, which drops the
+            // furniture and bar grants the chip vocabulary cannot express.
+            WorkoutTemplates.pickerGrantedTags(userGrantedTags, userEquipmentCategories)
         )
     }
-    val filtersActive = filterMuscleGroup != null || filterEquipment.isNotEmpty()
-    var showRecommendFilters by remember { mutableStateOf(false) }
 
-    AlertDialog(
+    // WHICH EXERCISE THIS FORM IS ABOUT, and therefore whose levels it shows. An
+    // edit is about the row it was opened on; an add is about the name in the
+    // search field, which only this dialog can see. Both resolve through the same
+    // host resolver as the routine editor, so "add here" and "add in the workout"
+    // are one code path with one definition of the level facts.
+    val levelName = exercise?.name
+        ?: ExerciseLocalization.canonicalFor(name.trim())
+        ?: name.trim()
+    var levelPageStart by remember(levelName) { mutableStateOf(0) }
+    val levelData = levelDataFor?.invoke(levelName, levelPageStart) ?: EditorLevelData.NONE
+    val levelControls = levelEditorControls(
+        levelsManaged = levelData.levelsManaged,
+        currentLevel = levelData.level,
+        maxLevel = levelData.maxLevel,
+        canWriteLevel = onLevelChange != null
+    )
+    val levelMode = levelControls.showLevelRow &&
+        levelData.level != null &&
+        onLevelChange != null
+    // The rung and stage the list draws as chosen, seeded from the host and then
+    // owned locally: a tap has to move the highlight and open the row in the SAME
+    // frame. Keyed on the name so picking another exercise re-seeds instead of
+    // carrying the previous one's level.
+    var selectedLevel by remember(levelName) { mutableStateOf(levelData.level) }
+    var selectedStage by remember(levelName) { mutableStateOf(levelData.stage) }
+
+    AppDialog(
         onDismissRequest = onDismiss,
-        title = {
-            Box(
-                modifier = Modifier
-                    .fillMaxWidth()
-                    .clickable(
-                        indication = null,
-                        interactionSource = remember { MutableInteractionSource() }
-                    ) { focusManager.clearFocus() }
-            ) {
-                Text(getString(if (exercise == null) "add_custom_exercise" else "edit_exercise"))
+        title = getString(if (exercise == null) "add_custom_exercise" else "edit_exercise"),
+        onTitleTap = { focusManager.clearFocus() },
+        confirmLabel = getString(if (exercise == null) "add" else "save"),
+        // In level mode the reps box is not on screen at all, so it cannot be the
+        // thing that gates Save - the level list is what the user chose from. The
+        // stored range is filled in on save from the exercise's recommendation
+        // instead (see `finalReps`), because a blank range would clamp the level's
+        // own prescription away at the next load.
+        confirmEnabled = name.isNotBlank() &&
+            (levelMode || (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()),
+        onConfirm = {
+            focusManager.clearFocus()
+            val finalReps = if (isTimeBased) {
+                val digits = targetTimeValue.filter { it.isDigit() }
+                if (digits.isNotBlank()) "$digits sec" else "30 sec"
+            } else {
+                val typed = WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
+                when {
+                    typed.isNotBlank() -> typed
+                    // Level mode: an empty box means "the level owns this", not
+                    // "the user cleared it". Store the range the exercise
+                    // recommends so the level's prescription is not clamped away.
+                    levelMode -> exercise?.targetReps?.takeIf { it.isNotBlank() }
+                        ?: WorkoutTemplates.enforceRepRange(
+                            WorkoutTemplates.getRecommendedRepsForExercise(levelName)
+                        )
+                    else -> ""
+                }
             }
+            onConfirm(RoutineExerciseEntity(
+                id = exercise?.id ?: 0, 
+                dayOfWeek = dayOfWeek, 
+                // Stored canonically when the name is a pool exercise, so equipment and
+                // muscle lookups keep working whatever language it was typed in.
+                name = ExerciseLocalization.canonicalFor(name) ?: name.trim(), 
+                muscleGroup = muscleGroup, 
+                targetSets = targetSets.toIntOrNull() ?: 3, 
+                targetReps = finalReps, 
+                targetIntensity = targetIntensityStr, 
+                targetWeightKg = loadInputToKg(name, targetWeightValue, weightUnit) ?: 0.0,
+                restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
+                videoUrl = videoUrl, 
+                orderIndex = exercise?.orderIndex ?: 99,
+                // Kept from the generated build; tempo is not typed in by hand.
+                tempo = exercise?.tempo ?: ""
+            ))
         },
-        text = {
+        dismissLabel = getString("cancel"),
+        onDismiss = {
+            focusManager.clearFocus()
+            onDismiss()
+        }
+    ) {
             Column(
                 verticalArrangement = Arrangement.spacedBy(16.dp),
                 modifier = Modifier
@@ -2019,12 +2851,12 @@ fun AddExerciseDialog(
                         interactionSource = remember { MutableInteractionSource() }
                     ) { focusManager.clearFocus() }
             ) {
-                RepsTimeToggle(
-                    isTimeBased = isTimeBased,
-                    onToggle = { newValue ->
-                        isTimeBased = newValue
-                    },
-                    modifier = Modifier.fillMaxWidth()
+                // The same compact muscle filter as the replace dialog: one line, with the
+                // body parts and the precise muscles one tap away. See
+                // [com.grafizum.repio.ui.components.MuscleGroupFilterCollapsible].
+                com.grafizum.repio.ui.components.MuscleGroupFilterCollapsible(
+                    selectedMuscleGroup = selectedMuscleGroup,
+                    onSelect = { selectedMuscleGroup = it }
                 )
 
                 ExposedDropdownMenuBox(
@@ -2058,23 +2890,36 @@ fun AddExerciseDialog(
                     }
                 }
 
-                // RECOMMENDATION FILTERS — optional popup, add mode only. A user
-                // typing an exercise manually never sees filters; the popup only
-                // narrows what the name field suggests.
-                if (exercise == null) {
-                    OutlinedButton(
-                        onClick = { showRecommendFilters = true },
-                        modifier = Modifier.fillMaxWidth()
-                    ) {
-                        Icon(Icons.Default.Tune, contentDescription = null, modifier = Modifier.size(18.dp))
-                        Spacer(modifier = Modifier.width(8.dp))
-                        Text(
-                            if (filtersActive) getString("recommend_filters_active", filteredExercises.size)
-                            else getString("recommend_filters_open")
-                        )
+                // The picker, for a NEW exercise while the level system is on: search +
+                // filters + graphical rows, no sets/reps/weight boxes and no method
+                // paragraph. Custom mode keeps the classic field below, untouched.
+                val pickerMode = exercise == null && levelSystemOn
+                val adoptExercise: (String, String?) -> Unit = { selectedName, preciseMuscle ->
+                    focusManager.clearFocus()
+                    name = selectedName
+                    if (!preciseMuscle.isNullOrBlank()) muscleGroup = preciseMuscle
+                    isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
+                    if (name != selectedName) videoUrl = ""
+                    if (targetSets.isBlank()) targetSets = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
+                    if (isTimeBased) {
+                        if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
+                    } else {
+                        if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
+                            targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
+                            repsManuallyEdited = false
+                        }
                     }
                 }
 
+                if (pickerMode) {
+                    com.grafizum.repio.ui.components.ExercisePickerBody(
+                        equipmentCategories = userEquipmentCategories,
+                        grantedTags = userGrantedTags,
+                        allAvailableExercises = allAvailableExercises,
+                        selectedName = name.takeIf { it.isNotBlank() },
+                        onPick = { pick -> adoptExercise(pick.name, pick.muscleGroup) }
+                    )
+                } else {
                 SearchableExerciseField(
                     allExercises = filteredExercises,
                     value = name,
@@ -2087,25 +2932,13 @@ fun AddExerciseDialog(
                         )
                         if (detected != "Other") muscleGroup = detected
                     },
-                    onItemSelected = { selectedName ->
-                        focusManager.clearFocus()
-                        isTimeBased = WorkoutTemplates.isExerciseTimeBased(selectedName)
-                        if (name != selectedName) videoUrl = ""
-                        if (targetSets.isBlank()) targetSets = WorkoutTemplates.getRecommendedSetsForExercise(selectedName).toString()
-                        if (isTimeBased) {
-                            if (targetTimeValue.isBlank()) targetTimeValue = WorkoutTemplates.getRecommendedRepsForExercise(selectedName).replace(" sec", "")
-                        } else {
-                            if (targetRepsValue.isBlank() || targetRepsValue == "8-12") {
-                                targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(WorkoutTemplates.getRecommendedRepsForExercise(selectedName), targetIntensityStr)
-                                repsManuallyEdited = false
-                            }
-                        }
-                    },
+                    onItemSelected = { selectedName -> adoptExercise(selectedName, null) },
                     label = getString("exercise_name"),
                     placeholder = getString("exercise_name_placeholder")
                 )
+                }
 
-                if (name.isNotBlank()) {
+                if (name.isNotBlank() && !pickerMode) {
                     Row(verticalAlignment = Alignment.CenterVertically) {
                         Text(getString("trained_muscles") + ":", style = MaterialTheme.typography.labelMedium, color = MaterialTheme.colorScheme.onSurfaceVariant)
                         MuscleGroupBadge(muscleGroup = muscleGroup)
@@ -2126,143 +2959,208 @@ fun AddExerciseDialog(
                     }
                 }
 
-                // Soft guidance only — see ExerciseEditDialog. Nothing rep-related
-                // blocks saving; a min>max range just gets a field-level hint.
-                val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
-                val outsideRecommended = remember(targetRepsValue, name) {
-                    name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
-                        WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
-                }
-
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {
-                    CompactNumericField(
-                        value = targetSets,
-                        onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
-                        label = getString("sets"),
-                        modifier = Modifier.weight(1f).fillMaxHeight()
-                    )
-
-                    if (isTimeBased) {
-                        var expandedTime by remember { mutableStateOf(false) }
-                        ExposedDropdownMenuBox(
-                            expanded = expandedTime,
-                            onExpandedChange = { expandedTime = !expandedTime },
-                            modifier = Modifier.weight(1f).fillMaxHeight()
-                        ) {
-                            val digits = targetTimeValue.filter { it.isDigit() }
-                            val interactionSource = remember { MutableInteractionSource() }
-                            BasicTextField(
-                                value = if (digits.isNotBlank()) "${digits}s" else "30s",
-                                onValueChange = {},
-                                readOnly = true,
-                                modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
-                                interactionSource = interactionSource,
-                                enabled = true,
-                                singleLine = true,
-                                textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
-                                decorationBox = { innerTextField ->
-                                    OutlinedTextFieldDefaults.DecorationBox(
-                                        value = if (digits.isNotBlank()) "${digits}s" else "30s",
-                                        innerTextField = innerTextField,
-                                        enabled = true,
-                                        singleLine = true,
-                                        visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
-                                        interactionSource = interactionSource,
-                                        isError = false,
-                                        label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
-                                        trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
-                                        contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
-                                        container = {
-                                            OutlinedTextFieldDefaults.Container(
-                                                enabled = true,
-                                                isError = false,
-                                                interactionSource = interactionSource,
-                                                colors = OutlinedTextFieldDefaults.colors(
-                                                    unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
-                                                ),
-                                                shape = RoundedCornerShape(12.dp),
-                                                focusedBorderThickness = 2.dp,
-                                                unfocusedBorderThickness = 1.dp
-                                            )
-                                        }
-                                    )
-                                }
-                            )
-                            ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
-                                listOf("30", "45", "60", "90", "120").forEach { t ->
-                                    DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
-                                }
-                            }
+                // THE LEVEL LIST, in level mode. It stands where the locked sets /
+                // reps / weight boxes used to, exactly as in the routine editor -
+                // otherwise an exercise added during setup shows the custom input
+                // boxes while the level system runs underneath it (owner, 2026-10-09).
+                // A KNOWN LEVEL IS NOT A QUESTION (owner, 2026-10-31): an exercise the user has
+                // already trained is added at its stored level, and the caption above says which
+                // one. See the same gate in [ExerciseEditDialog].
+                if (levelMode && !(pickerMode && levelData.levelKnown)) {
+                    LevelPickerCard(
+                        options = levelData.options,
+                        repUnitKey = ProgressionEngine.repUnitKeyFor(name),
+                        pageRange = levelData.pageRange,
+                        totalLevels = levelData.maxLevel,
+                        onPreviousPage = levelData.previousPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        onNextPage = levelData.nextPageStart
+                            ?.let { start -> { levelPageStart = start } },
+                        selectedLevel = selectedLevel,
+                        onSelect = { level ->
+                            selectedLevel = level
+                            selectedStage = 1
+                            onLevelChange?.invoke(levelName, level)
+                        },
+                        onOpenLadder = { onOpenLevelLadder?.invoke(levelName) },
+                        selectedStage = selectedStage,
+                        onSelectStage = { level, stage ->
+                            selectedLevel = level
+                            selectedStage = stage
+                            onStageChange?.invoke(levelName, level, stage)
                         }
-                    } else {
-                        RepsRangeField(
-                            value = targetRepsValue,
-                            onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
-                            label = getString("reps"),
-                            isError = repsError,
-                            modifier = Modifier.weight(1f).fillMaxHeight(),
-                            supportingText = if (repsHasRangeError) {
-                                {
-                                    Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
-                                }
-                            } else null
+                    )
+                    if (levelData.caption != null) {
+                        Text(
+                            text = levelData.caption,
+                            style = MaterialTheme.typography.bodySmall,
+                            color = MaterialTheme.colorScheme.onSurfaceVariant,
+                            maxLines = 2,
+                            overflow = TextOverflow.Ellipsis
                         )
                     }
                 }
 
-                if (outsideRecommended) {
-                    Surface(
-                        color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
-                        shape = RoundedCornerShape(12.dp),
+                // THE LEVEL-OWNED VALUES, IN CUSTOM MODE ONLY. When the level
+                // system prescribes the exercise these fields are not shown at
+                // all - the level list above IS their editor, and two editors for
+                // one prescription is the duplication this change removes.
+                //
+                // AND THE PICKER HOLDS THEM BACK UNTIL SOMETHING IS PICKED - see the same gate in
+                // [ExerciseEditDialog]: with no exercise chosen these boxes can only be empty, and
+                // empty boxes under the exercises read as a second way to name the movement.
+                if (!levelMode && (!pickerMode || name.isNotBlank())) {
+                    RepsTimeToggle(
+                        isTimeBased = isTimeBased,
+                        onToggle = { newValue ->
+                            isTimeBased = newValue
+                        },
+                        unitKey = ProgressionEngine.repUnitKeyFor(name),
                         modifier = Modifier.fillMaxWidth()
+                    )
+
+                    // Soft guidance only — see ExerciseEditDialog. Nothing rep-related
+                    // blocks saving; a min>max range just gets a field-level hint.
+                    val repsError = targetRepsValue.isNotEmpty() && !isRepsValid
+                    val outsideRecommended = remember(targetRepsValue, name) {
+                        name.isNotBlank() && targetRepsValue.isNotBlank() && !isTimeBased &&
+                            WorkoutTemplates.isOutsideRecommendedRepRange(name, targetRepsValue)
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
                     ) {
-                        Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
-                            Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
-                            Spacer(modifier = Modifier.width(8.dp))
-                            Text(
-                                text = getString("reps_outside_recommended"),
-                                style = MaterialTheme.typography.bodySmall,
-                                color = MaterialTheme.colorScheme.onTertiaryContainer
+                        CompactNumericField(
+                            value = targetSets,
+                            onValueChange = { if (it.all { char -> char.isDigit() }) targetSets = it },
+                            label = getString("sets"),
+                            modifier = Modifier.weight(1f).fillMaxHeight()
+                        )
+
+                        if (isTimeBased) {
+                            var expandedTime by remember { mutableStateOf(false) }
+                            ExposedDropdownMenuBox(
+                                expanded = expandedTime,
+                                onExpandedChange = { expandedTime = !expandedTime },
+                                modifier = Modifier.weight(1f).fillMaxHeight()
+                            ) {
+                                val digits = targetTimeValue.filter { it.isDigit() }
+                                val interactionSource = remember { MutableInteractionSource() }
+                                BasicTextField(
+                                    value = if (digits.isNotBlank()) "${digits}s" else "30s",
+                                    onValueChange = {},
+                                    readOnly = true,
+                                    modifier = Modifier.menuAnchor(MenuAnchorType.PrimaryNotEditable).fillMaxWidth().defaultMinSize(minHeight = 56.dp).fillMaxHeight(),
+                                    interactionSource = interactionSource,
+                                    enabled = true,
+                                    singleLine = true,
+                                    textStyle = LocalTextStyle.current.copy(textAlign = TextAlign.Start, fontSize = 16.sp),
+                                    decorationBox = { innerTextField ->
+                                        OutlinedTextFieldDefaults.DecorationBox(
+                                            value = if (digits.isNotBlank()) "${digits}s" else "30s",
+                                            innerTextField = innerTextField,
+                                            enabled = true,
+                                            singleLine = true,
+                                            visualTransformation = androidx.compose.ui.text.input.VisualTransformation.None,
+                                            interactionSource = interactionSource,
+                                            isError = false,
+                                            label = { Text(getString("time_label"), maxLines = 1, overflow = TextOverflow.Ellipsis, fontSize = 12.sp) },
+                                            trailingIcon = { ExposedDropdownMenuDefaults.TrailingIcon(expanded = expandedTime) },
+                                            contentPadding = OutlinedTextFieldDefaults.contentPadding(start = 16.dp, end = 12.dp),
+                                            container = {
+                                                OutlinedTextFieldDefaults.Container(
+                                                    enabled = true,
+                                                    isError = false,
+                                                    interactionSource = interactionSource,
+                                                    colors = OutlinedTextFieldDefaults.colors(
+                                                        unfocusedBorderColor = MaterialTheme.colorScheme.onSurfaceVariant.copy(alpha = 0.38f)
+                                                    ),
+                                                    shape = RoundedCornerShape(12.dp),
+                                                    focusedBorderThickness = 2.dp,
+                                                    unfocusedBorderThickness = 1.dp
+                                                )
+                                            }
+                                        )
+                                    }
+                                )
+                                ExposedDropdownMenu(expanded = expandedTime, onDismissRequest = { expandedTime = false }) {
+                                    listOf("30", "45", "60", "90", "120").forEach { t ->
+                                        DropdownMenuItem(text = { Text("${t}s") }, onClick = { targetTimeValue = t; expandedTime = false })
+                                    }
+                                }
+                            }
+                        } else {
+                            RepsRangeField(
+                                value = targetRepsValue,
+                                onValueChange = { targetRepsValue = it; repsManuallyEdited = true },
+                                label = getString(ProgressionEngine.repUnitKeyFor(name)),
+                                isError = repsError,
+                                modifier = Modifier.weight(1f).fillMaxHeight(),
+                                supportingText = if (repsHasRangeError) {
+                                    {
+                                        Text(getString("min_greater_than_max"), color = MaterialTheme.colorScheme.error, maxLines = 1)
+                                    }
+                                } else null
                             )
                         }
                     }
-                }
 
-                Row(
-                    horizontalArrangement = Arrangement.spacedBy(16.dp),
-                    verticalAlignment = Alignment.CenterVertically,
-                    modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
-                ) {
-                    CompactNumericField(
-                        value = targetWeightValue,
-                        onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
-                        label = getString("target_weight"),
-                        placeholder = "20.0",
-                        suffix = { Text("kg", fontSize = 12.sp) },
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
-                    )
-                    CompactNumericField(
-                        value = targetIntensityStr,
-                        onValueChange = {
-                            targetIntensityStr = it
-                            // Re-adapt the auto-selected reps while the user hasn't typed their own
-                            if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
-                                val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
-                                if (recommended.isNotBlank()) {
-                                    targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
-                                }
+                    if (outsideRecommended) {
+                        Surface(
+                            color = MaterialTheme.colorScheme.tertiaryContainer.copy(alpha = 0.6f),
+                            shape = RoundedCornerShape(12.dp),
+                            modifier = Modifier.fillMaxWidth()
+                        ) {
+                            Row(modifier = Modifier.padding(horizontal = 12.dp, vertical = 10.dp), verticalAlignment = Alignment.CenterVertically) {
+                                Icon(Icons.Default.Info, null, modifier = Modifier.size(16.dp), tint = MaterialTheme.colorScheme.onTertiaryContainer)
+                                Spacer(modifier = Modifier.width(8.dp))
+                                Text(
+                                    text = getString("reps_outside_recommended"),
+                                    style = MaterialTheme.typography.bodySmall,
+                                    color = MaterialTheme.colorScheme.onTertiaryContainer
+                                )
                             }
-                        },
-                        label = getString("intensity_label"),
-                        placeholder = "RPE 8",
-                        modifier = Modifier.weight(1f).fillMaxHeight(),
-                        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
-                    )
+                        }
+                    }
+
+                    Row(
+                        horizontalArrangement = Arrangement.spacedBy(16.dp),
+                        verticalAlignment = Alignment.CenterVertically,
+                        modifier = Modifier.fillMaxWidth().height(IntrinsicSize.Min)
+                    ) {
+                        CompactNumericField(
+                            value = targetWeightValue,
+                            onValueChange = { if (it.all { char -> char.isDigit() || char == '.' }) targetWeightValue = it },
+                            // The same three answers the routine editor gives, and
+                            // for the same reason: a selectorized stack counts pins
+                            // and a band counts tension, so "kg" here would ask the
+                            // user for a number that does not exist on their machine.
+                            label = loadFieldLabel(name),
+                            placeholder = loadFieldPlaceholder(name),
+                            suffix = { Text(loadFieldSuffix(name), fontSize = 12.sp) },
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Decimal)
+                        )
+                        CompactNumericField(
+                            value = targetIntensityStr,
+                            onValueChange = {
+                                targetIntensityStr = it
+                                // Re-adapt the auto-selected reps while the user hasn't typed their own
+                                if (!repsManuallyEdited && !isTimeBased && name.isNotBlank()) {
+                                    val recommended = WorkoutTemplates.getRecommendedRepsForExercise(name)
+                                    if (recommended.isNotBlank()) {
+                                        targetRepsValue = WorkoutTemplates.adaptRepsToIntensity(recommended, it)
+                                    }
+                                }
+                            },
+                            label = getString("intensity_label"),
+                            placeholder = "RPE 8",
+                            modifier = Modifier.weight(1f).fillMaxHeight(),
+                            keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Text)
+                        )
+                    }
                 }
 
 
@@ -2278,134 +3176,9 @@ fun AddExerciseDialog(
 
                 ThemedToast(message = getString("invalid_char_error"), themeKey = themeKey, visible = showInvalidCharToast, onDismiss = { showInvalidCharToast = false })
             }
-        },
-        confirmButton = {
-            Button(
-                onClick = {
-                    focusManager.clearFocus()
-                    val finalReps = if (isTimeBased) {
-                        val digits = targetTimeValue.filter { it.isDigit() }
-                        if (digits.isNotBlank()) "$digits sec" else "30 sec"
-                    } else WorkoutTemplates.enforceRepRange(targetRepsValue.trim())
-                    onConfirm(RoutineExerciseEntity(
-                        id = exercise?.id ?: 0, 
-                        dayOfWeek = dayOfWeek, 
-                        // Stored canonically when the name is a pool exercise, so equipment and
-                        // muscle lookups keep working whatever language it was typed in.
-                        name = ExerciseLocalization.canonicalFor(name) ?: name.trim(), 
-                        muscleGroup = muscleGroup, 
-                        targetSets = targetSets.toIntOrNull() ?: 3, 
-                        targetReps = finalReps, 
-                        targetIntensity = targetIntensityStr, 
-                        targetWeightKg = targetWeightValue.toDoubleOrNull() ?: 0.0,
-                        restSeconds = restSecondsStr.toIntOrNull() ?: 60, 
-                        videoUrl = videoUrl, 
-                        orderIndex = exercise?.orderIndex ?: 99,
-                        // Kept from the generated build; tempo is not typed in by hand.
-                        tempo = exercise?.tempo ?: ""
-                    ))
-                },
-                enabled = name.isNotBlank() && (if (isTimeBased) targetTimeValue else targetRepsValue).isNotBlank()
-            ) { Text(getString(if (exercise == null) "add" else "save")) }
-        },
-        dismissButton = {
-            TextButton(onClick = {
-                focusManager.clearFocus()
-                onDismiss()
-            }) { Text(getString("cancel")) }
-        }
-    )
-
-    // Optional recommendation popup (add mode only), stacked above the dialog.
-    if (showRecommendFilters && exercise == null) {
-        com.grafizum.repio.ui.components.ExerciseRecommendationFilterDialog(
-            filterMuscleGroup = filterMuscleGroup,
-            filterEquipment = filterEquipment,
-            filteredCount = filteredExercises.size,
-            onMuscleGroupChange = { filterMuscleGroup = it },
-            onEquipmentToggle = { key ->
-                filterEquipment = if (filterEquipment.contains(key)) filterEquipment - key
-                                  else filterEquipment + key
-            },
-            onReset = {
-                filterMuscleGroup = null
-                filterEquipment = emptyList()
-            },
-            onDismiss = { showRecommendFilters = false }
-        )
     }
-}
 
-                @Composable
-private fun SetsAllocationBlock(
-    minSets: Int,
-    maxSets: Int,
-    onMinChange: (Int) -> Unit,
-    onMaxChange: (Int) -> Unit
-) {
-    Column(verticalArrangement = Arrangement.spacedBy(10.dp)) {
-        Text(
-            text = getString("sets_allocation"),
-            style = MaterialTheme.typography.labelMedium,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
-        
-        Row(horizontalArrangement = Arrangement.spacedBy(12.dp)) {
-            SetsInput(
-                label = getString("min_sets"),
-                value = minSets,
-                onValueChange = onMinChange,
-                modifier = Modifier.weight(1f)
-            )
-            SetsInput(
-                label = getString("max_sets"),
-                value = maxSets,
-                onValueChange = onMaxChange,
-                modifier = Modifier.weight(1f)
-            )
-        }
-        // Leave them blank (or wrong) with confidence: the build can be tuned
-        // again afterwards, nothing here is final.
-        Text(
-            text = getString("sets_changeable_later"),
-            style = MaterialTheme.typography.labelSmall,
-            color = MaterialTheme.colorScheme.onSurfaceVariant
-        )
     }
-}
-
-@Composable
-private fun SetsInput(
-    label: String,
-    value: Int,
-    onValueChange: (Int) -> Unit,
-    modifier: Modifier = Modifier
-) {
-    var textValue by remember(value) { mutableStateOf(if (value == 0) "" else value.toString()) }
-
-    OutlinedTextField(
-        value = textValue,
-        onValueChange = { newValue ->
-            if (newValue.isEmpty()) {
-                textValue = ""
-                onValueChange(0)
-            } else if (newValue.all { it.isDigit() }) {
-                textValue = newValue
-                newValue.toIntOrNull()?.let { onValueChange(it) }
-            }
-        },
-        label = { Text(label, style = MaterialTheme.typography.labelSmall) },
-        placeholder = { Text(getString("no_limit"), style = MaterialTheme.typography.labelSmall) },
-        singleLine = true,
-        keyboardOptions = KeyboardOptions(keyboardType = KeyboardType.Number),
-        shape = RoundedCornerShape(12.dp),
-        colors = OutlinedTextFieldDefaults.colors(
-            focusedBorderColor = MaterialTheme.colorScheme.primary,
-            unfocusedBorderColor = MaterialTheme.colorScheme.outline.copy(alpha = 0.5f)
-        ),
-        modifier = modifier
-    )
-}
 
 @Composable
 fun OnboardingStepHeader(
@@ -2428,36 +3201,36 @@ fun OnboardingStepHeader(
         Row(verticalAlignment = Alignment.CenterVertically, modifier = Modifier.weight(1f)) {
             if (stepNumber != null) {
                 Surface(
-                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
-                    shape = if (isDeveloper) RoundedCornerShape(0.dp) else CircleShape,
-                    border = if (isDeveloper) BorderStroke(1.dp, Color.Black) else null,
+                    color = MaterialTheme.colorScheme.primary,
+                    shape = CircleShape,
+                    border = null,
                     modifier = Modifier.size(28.dp)
                 ) {
                     Box(contentAlignment = Alignment.Center) {
                         Text(
                             text = stepNumber.toString(),
                             style = MaterialTheme.typography.bodyMedium.copy(fontWeight = FontWeight.Bold),
-                            color = if (isDeveloper) Color.Black else MaterialTheme.colorScheme.onPrimary
+                            color = MaterialTheme.colorScheme.onPrimary
                         )
                     }
                 }
                 Spacer(modifier = Modifier.width(12.dp))
             }
             Surface(
-                color = if (isDeveloper) Color.White.copy(alpha = 0.1f) else MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
-                shape = if (isDeveloper) RoundedCornerShape(0.dp) else RoundedCornerShape(12.dp),
-                border = BorderStroke(1.dp, if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
+                color = MaterialTheme.colorScheme.primary.copy(alpha = 0.04f),
+                shape = RoundedCornerShape(12.dp),
+                border = BorderStroke(1.dp, MaterialTheme.colorScheme.primary.copy(alpha = 0.1f))
             ) {
                 Text(
                     text = title,
                     style = MaterialTheme.typography.titleMedium.copy(fontWeight = FontWeight.Bold),
-                    color = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary,
+                    color = MaterialTheme.colorScheme.primary,
                     modifier = Modifier.padding(horizontal = 12.dp, vertical = 6.dp)
                 )
             }
         }
         if (isCollapsible) {
-            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = if (isDeveloper) Color.White else MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
+            Icon(imageVector = if (isExpanded) Icons.Default.KeyboardArrowUp else Icons.Default.KeyboardArrowDown, contentDescription = null, tint = MaterialTheme.colorScheme.primary, modifier = Modifier.padding(start = 8.dp))
         }
     }
 }

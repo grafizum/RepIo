@@ -1,0 +1,277 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="utf-8">
+<meta name="viewport" content="width=device-width, initial-scale=1">
+<title>RepIo — post-workout evolution tree</title>
+<style>
+/* Real Beige palette, straight out of Theme.kt's BeigeColorScheme. */
+:root{
+  --primary:#8C6239; --onPrimary:#fff;
+  --primaryContainer:#F0EAE2; --onPrimaryContainer:#5D4037;
+  --secondary:#795548;
+  --background:#FDFCFB; --onBackground:#2C2520;
+  --surface:#F9F7F4; --onSurface:#2C2520;
+  --surfaceVariant:#F4F1ED; --onSurfaceVariant:#4E443F;
+  --outline:#D7CCC8;
+  --shadow:rgba(44,37,32,.10);
+  --radius:18px;
+}
+*{box-sizing:border-box}
+body{
+  margin:0; background:var(--background); color:var(--onSurface);
+  font-family:ui-sans-serif,system-ui,-apple-system,"Segoe UI",Roboto,sans-serif;
+  -webkit-font-smoothing:antialiased;
+}
+header{padding:28px 20px 8px; max-width:1180px; margin:0 auto}
+h1{font-size:20px; margin:0 0 6px; letter-spacing:-.01em}
+header p{margin:0; color:var(--onSurfaceVariant); font-size:14px; line-height:1.5}
+.controls{max-width:1180px; margin:0 auto; padding:14px 20px; display:flex; gap:10px; flex-wrap:wrap; align-items:center}
+select,button{
+  font:inherit; font-size:14px; padding:9px 13px; border-radius:11px;
+  border:1px solid var(--outline); background:var(--surface); color:var(--onSurface);
+}
+button{cursor:pointer}
+button:hover{background:var(--surfaceVariant)}
+button.primary{background:var(--primary); color:var(--onPrimary); border-color:transparent}
+.queue{font-size:13px; color:var(--onSurfaceVariant); margin-left:auto}
+
+/* ---- the popup: a phone-sized card, the way the app will draw it ---- */
+.stage{max-width:1180px; margin:0 auto; padding:10px 20px 60px; display:flex; gap:26px; flex-wrap:wrap}
+.phone{
+  width:392px; flex:0 0 auto; background:var(--surface);
+  border:1px solid var(--outline); border-radius:34px; padding:12px;
+  box-shadow:0 20px 50px var(--shadow);
+}
+.screen{background:var(--background); border-radius:24px; padding:18px 16px 20px; overflow:hidden}
+.pop-head{display:flex; align-items:flex-start; gap:10px; margin-bottom:4px}
+.eyebrow{font-size:11px; letter-spacing:.10em; text-transform:uppercase; color:var(--primary); font-weight:700}
+.pop-title{font-size:19px; font-weight:650; margin:2px 0 0; letter-spacing:-.01em}
+.pop-sub{font-size:13px; color:var(--onSurfaceVariant); margin:6px 0 0; line-height:1.45}
+
+/* ---- THE TREE ----
+   The trunk is vertical. Each option is a branch that leaves the trunk to the
+   right, so the shape reads as a growing thing rather than a list. The nodes
+   after the chosen one trail off as smaller buds, which is what makes it an
+   "evolution" and not a menu. */
+.tree{position:relative; margin:20px 0 6px; padding-left:64px}
+.tree::before{ /* the trunk the branches leave from */
+  content:""; position:absolute; left:26px; top:8px; bottom:26px; width:3px;
+  background:linear-gradient(180deg,var(--primary),color-mix(in srgb,var(--primary) 35%,transparent));
+  border-radius:2px;
+}
+.trunk-node{
+  position:absolute; left:12px; top:2px; width:31px; height:31px; border-radius:50%;
+  background:var(--primary); color:var(--onPrimary);
+  display:flex; align-items:center; justify-content:center;
+  font-size:12px; font-weight:700; border:3px solid var(--background);
+}
+.leg{position:relative; margin-bottom:11px}
+.leg::before{ /* the connector from trunk to this leg */
+  content:""; position:absolute; left:-38px; top:21px; width:38px; height:3px;
+  background:var(--primary); opacity:.55; border-radius:2px;
+}
+.leg::after{ /* the elbow that rounds it into the node */
+  content:""; position:absolute; left:-24px; top:4px; width:22px; height:20px;
+  border-left:3px solid var(--primary); border-top:3px solid var(--primary);
+  border-top-left-radius:16px; opacity:.55;
+}
+.card{
+  position:relative; background:var(--surface); border:1.5px solid var(--outline);
+  border-radius:var(--radius); padding:12px 13px; cursor:pointer;
+  transition:border-color .16s, background .16s, transform .16s;
+}
+.card:hover{border-color:var(--primary); transform:translateX(2px)}
+.card.on{border-color:var(--primary); background:var(--primaryContainer); box-shadow:0 6px 18px var(--shadow)}
+.card-top{display:flex; align-items:center; gap:8px; flex-wrap:wrap}
+.card-name{font-size:15.5px; font-weight:640; letter-spacing:-.01em}
+.tag{
+  font-size:10px; font-weight:700; letter-spacing:.06em; text-transform:uppercase;
+  padding:3px 7px; border-radius:999px; background:var(--secondary); color:#fff;
+}
+.tag.new{background:#6B7F5E}
+.radio{
+  margin-left:auto; width:19px; height:19px; border-radius:50%;
+  border:2px solid var(--outline); flex:0 0 auto; position:relative;
+}
+.card.on .radio{border-color:var(--primary); background:var(--primary)}
+.card.on .radio::after{
+  content:""; position:absolute; inset:3.5px; border-radius:50%; background:var(--onPrimary);
+}
+.note{font-size:12.5px; color:var(--onSurfaceVariant); line-height:1.45; margin-top:5px}
+
+/* the future path — smaller buds trailing off the chosen branch */
+.buds{display:flex; align-items:center; gap:6px; flex-wrap:wrap; margin-top:9px; padding-top:9px; border-top:1px dashed var(--outline)}
+.bud{
+  font-size:12px; padding:4px 9px; border-radius:999px;
+  background:var(--surfaceVariant); color:var(--onSurfaceVariant); border:1px solid var(--outline);
+}
+.bud-lead{font-size:11px; color:var(--onSurfaceVariant); letter-spacing:.04em; text-transform:uppercase; font-weight:700}
+.arrow{color:var(--primary); font-weight:700}
+
+.actions{display:flex; gap:9px; margin-top:18px}
+.actions button{flex:1; padding:13px; font-weight:620; border-radius:13px}
+.done{opacity:.5; cursor:default}
+.future{
+  margin-top:14px; padding:11px 12px; border-radius:13px;
+  background:var(--surfaceVariant); font-size:12.5px; color:var(--onSurfaceVariant); line-height:1.5;
+}
+.future b{color:var(--onSurface)}
+
+/* ---- side panel: the same tree at full width, plus the data note ---- */
+.panel{flex:1 1 520px; min-width:0}
+.panel h2{font-size:15px; margin:0 0 4px}
+.panel .lede{font-size:13.5px; color:var(--onSurfaceVariant); line-height:1.55; margin:0 0 16px}
+.wide{background:var(--surface); border:1px solid var(--outline); border-radius:22px; padding:22px}
+.wide-tree{padding-left:78px; margin-top:0}
+.wide-tree::before{left:32px}
+.wide-tree .trunk-node{left:18px; width:29px; height:29px}
+.wide .leg::before{left:-46px; width:46px}
+.wide .leg::after{left:-30px}
+.legend{display:flex; gap:16px; flex-wrap:wrap; margin-top:16px; font-size:12.5px; color:var(--onSurfaceVariant)}
+.legend span{display:flex; align-items:center; gap:6px}
+.dot{width:11px; height:11px; border-radius:50%; background:var(--primary)}
+.buddot{width:11px; height:11px; border-radius:50%; background:var(--outline); border:1.5px solid var(--onSurfaceVariant)}
+.meter{height:6px; border-radius:3px; background:var(--surfaceVariant); overflow:hidden; margin-top:9px}
+.meter i{display:block; height:100%; background:var(--primary)}
+</style>
+</head>
+<body>
+<header>
+  <h1>Post-workout progression — evolution tree</h1>
+  <p>Replaces the flat list. The exercise you just finished is the trunk; every
+     established next step is a branch off it, and the chosen one trails on into
+     its own buds. Real branch data from <code>progression_v5.json</code>.</p>
+</header>
+
+<div class="controls">
+  <label>Just trained
+    <select id="pick"></select>
+  </label>
+  <button id="prev">‹ Prev</button>
+  <button id="next">Next ›</button>
+  <button id="auto">Queue demo</button>
+  <span class="queue" id="qinfo"></span>
+</div>
+
+<div class="stage">
+  <div class="phone"><div class="screen" id="popup"></div></div>
+
+  <div class="panel">
+    <div class="wide">
+      <h2 id="wideTitle"></h2>
+      <p class="lede" id="wideLede"></p>
+      <div id="wideTree"></div>
+    </div>
+    <div class="legend">
+      <span><i class="dot"></i> trunk — what you just mastered</span>
+      <span><i class="buddot"></i> buds — what that becomes after it</span>
+    </div>
+  </div>
+</div>
+
+<!-- The data has to exist BEFORE the script below runs: this file draws the real
+     branches out of progression_v5.json, not a hand-written sample. -->
+<script src="_branches.js"></script>
+<script>
+const DATA = window.__BRANCHES__;
+let queue = [], idx = -1, chosen = {}, confirmed = false;
+
+const el = id => document.getElementById(id);
+const esc = s => String(s).replace(/[&<>]/g, c => ({'&':'&amp;','<':'&lt;','>':'&gt;'}[c]));
+
+/* A short form of the name for the trunk badge: first word + first letter. */
+function badge(name){
+  const w = name.replace(/[()]/g,'').split(/[\s-]+/).filter(Boolean);
+  return w.length > 1 ? (w[0][0] + w[1][0]).toUpperCase() : name.slice(0,2).toUpperCase();
+}
+
+function legHTML(b, on, scale){
+  const buds = (b.nodes||[]).map(n=>`<span class="bud">${esc(n)}</span>`).join('<span class="arrow">›</span>');
+  return `<div class="leg">
+    <div class="card ${on?'on':''}" data-entry="${esc(b.entry)}">
+      <div class="card-top">
+        <span class="card-name">${esc(b.entry)}</span>
+        ${b.tag?`<span class="tag ${b.tag==='new'?'new':''}">${b.tag==='new'?'new lever':'advanced'}</span>`:''}
+        <span class="radio"></span>
+      </div>
+      <div class="note">${esc(b.note)}</div>
+      ${(on&&buds)?`<div class="buds"><span class="bud-lead">then</span>${buds}</div>`:''}
+    </div>
+  </div>`;
+}
+
+function treeHTML(ex, on, trunkLabel){
+  const legs = ex.branches.map(b=>legHTML(b, b.entry===on, null)).join('');
+  return `<div class="tree"><div class="trunk-node">${esc(badge(ex.name))}</div>${legs}</div>`;
+}
+
+function render(){
+  const name = queue[idx];
+  const ex = DATA[name];
+  if(!ex){ el('popup').innerHTML = '<p class="pop-sub">Nothing queued.</p>'; return; }
+
+  const opts = ex.branches;
+  /* The engine's preferredBranch(): an "advanced" option first, and never one
+     whose ladder is shorter than the source's. Mocked simply as advanced-first. */
+  const pref = (opts.find(b=>b.tag==='advanced') || opts[0]).entry;
+  const sel = confirmed ? chosen[name] : pref;
+
+  el('popup').innerHTML = `
+    <div class="pop-head">
+      <div>
+        <div class="eyebrow">Workout complete</div>
+        <h3 class="pop-title">${esc(ex.name)} — mastered</h3>
+      </div>
+    </div>
+    <p class="pop-sub">${opts.length>1
+      ? `You have <b>${opts.length}</b> established ways to progress it. Pick one to carry forward.`
+      : `There is one established next step for it.`}</p>
+    ${treeHTML(ex, sel)}
+    <div class="actions">
+      <button class="${confirmed?'done':''}" id="confirm">${confirmed?'Added':'Add this branch'}</button>
+      <button id="skip">Skip</button>
+    </div>
+    <div class="future">
+      <b>Why a tree and not a list:</b> the branch is a fork in a path, and the
+      buds show the path continues. Every option here is a published ordering —
+      body weight to loaded, or a harder sibling of the same movement — not a
+      suggestion invented by the app.
+    </div>`;
+
+  el('popup').querySelectorAll('.card').forEach(c=>{
+    c.onclick = ()=>{ chosen[name]=c.dataset.entry; confirmed=false; render(); };
+  });
+  el('popup').querySelector('#confirm').onclick = ()=>{ confirmed=true; render(); };
+  el('popup').querySelector('#skip').onclick = ()=>go(1);
+
+  /* wide twin */
+  el('wideTitle').textContent = ex.name;
+  el('wideLede').innerHTML = `${opts.length} branch${opts.length>1?'es':''} · trunk <b>${esc(ex.name)}</b> · ${ex.maxLevel} levels on its own ladder`;
+  el('wideTree').innerHTML = treeHTML(ex, sel);
+  el('wideTree').querySelectorAll('.card').forEach(c=>{
+    c.onclick = ()=>{ chosen[name]=c.dataset.entry; confirmed=false; render(); };
+  });
+  el('qinfo').textContent = `${idx+1} / ${queue.length}${confirmed?'  ·  added':''}`;
+}
+
+function go(d){ confirmed=false; idx=(idx+d+queue.length)%queue.length; render(); }
+el('prev').onclick = ()=>go(-1);
+el('next').onclick = ()=>go(1);
+el('auto').onclick = ()=>{
+  queue = ['Push-Up','Glute Bridge','Pull-Up','Barbell Back Squat','Dumbbell Bicep Curl','Incline Push-Up','Barbell Bench Press']
+    .filter(n=>DATA[n]);
+  idx=-1; go(1);
+};
+el('pick').onchange = e=>{ queue=[e.target.value]; idx=0; confirmed=false; render(); };
+
+/* picker */
+Object.keys(DATA).sort().forEach(n=>{
+  const o=document.createElement('option'); o.value=n; o.textContent=n; el('pick').appendChild(o);
+});
+queue=['Push-Up','Glute Bridge','Pull-Up','Barbell Back Squat','Dumbbell Bicep Curl','Incline Push-Up','Barbell Bench Press'].filter(n=>DATA[n]);
+el('pick').value=queue[0];
+idx=0; render();
+</script>
+</body>
+</html>

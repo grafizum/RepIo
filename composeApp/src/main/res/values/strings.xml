@@ -1,7 +1,7 @@
 <resources xmlns:tools="http://schemas.android.com/tools">
     <string name="app_name">RepIo</string>
     <string name="smart_workout_assistant">Home</string>
-    <string name="settings">Settings</string>
+<string name="settings">Settings</string>
     <string name="todays_workout">TODAY\'S WORKOUT</string>
     <string name="workout_routine">Workout Routine</string>
     <string name="rest_day_active">Rest day active. Active recovery &amp; mobility.</string>
@@ -12,6 +12,87 @@
     <string name="workout_now">WORKOUT NOW</string>
     <string name="consecutive_days_title">Consecutive Days</string>
     <string name="skipped_days_format">Workout days skipped: %1$d</string>
+
+    <!-- Overall Level: the recency-weighted average of the user's strength-exercise
+         levels (see OverallLevelCalculator). Shown on Home in place of the streak. -->
+    <string name="overall_level_label">Overall Level</string>
+    <string name="overall_level_format">L.%1$.1f</string>
+    <string name="overall_level_none">—</string>
+    <string name="overall_level_not_ready">Train 5+ exercises to unlock</string>
+    <string name="overall_level_help">Your rank comes from how far through each of your own exercises you have got, compared against that exercise\'s full range. The typical exercise decides it, and recent training counts for more than old training. Train at least 5 different exercises to unlock it.</string>
+    <!-- The one-line version, used by the rank tooltip and the first-run walkthrough. -->
+    <string name="overall_level_short">This is your rank across all the strength exercises you train, measured by how far through each one you have got. Higher means you are training at harder levels.</string>
+    <!-- The long version shown in Settings ▸ Instructions ▸ Overall Level. -->
+    <string name="overall_level_gpa_lead">Your rank works out like a GPA for strength training. It is worked out by:</string>
+    <string name="overall_level_gpa_step_1">Looking at every strength exercise you have trained.</string>
+    <string name="overall_level_gpa_step_2">Measuring how far through its own range each one is — exercises have very different lengths, so this compares progress, not raw levels.</string>
+    <string name="overall_level_gpa_step_3">Taking the middle exercise, with the ones you trained most recently counting for more.</string>
+    <string name="overall_level_gpa_example">The middle of the five examples below sits at %1$d%% of its own ladder, which puts you at Rank %2$s.</string>
+    <string name="overall_level_gpa_outro">This is your overall progress at a glance. As you move your exercises further up their own ranges, it rises.</string>
+    <string name="level_system_off_title">Turn off the level system?</string>
+    <string name="level_system_off_msg">All level prescriptions will be hidden and sets, reps and weights become fully manual. Your current levels are kept and will be waiting if you turn the system back on.</string>
+    <string name="level_system_off_confirm">Turn Off</string>
+    <string name="level_system_on_title">Turn the level system back on?</string>
+    <string name="level_system_on_msg">Every exercise\'s level will be re-set to match the weight you last actually used for it, so the prescriptions pick up where your training left off.</string>
+    <string name="level_system_on_confirm">Turn On &amp; Sync Levels</string>
+
+    <!-- Rank tiers (E → SS+). The letter itself is never translated, so it lives in
+         OverallLevelRank rather than here; these are its labels and descriptions. -->
+    <string name="rank_system_guide_title">Ranks (E → SS+)</string>
+    <string name="rank_system_guide_desc">Every rank in one picture</string>
+    <string name="rank_label_format">Rank %1$s</string>
+    <!-- The Overall Level card prints the LEVEL, with the rank letter as a badge beside it -->
+    <string name="overall_level_value_format">Lvl. %1$d</string>
+    <string name="rank_badge_content_desc">Overall rank %1$s</string>
+    <string name="rank_range">%1$s – %2$s</string>
+    <string name="rank_range_open">%1$s+</string>
+    <string name="rank_tooltip_level">Overall Level: Rank %1$s</string>
+    <string name="rank_tooltip_progress">%1$d%% to Rank %2$s</string>
+    <string name="rank_tooltip_top">Top rank reached</string>
+    <plurals name="overall_level_exercises_pl" tools:ignore="UnusedResources">
+        <item quantity="one">Based on %1$d strength exercise</item>
+        <item quantity="other">Based on %1$d strength exercises</item>
+    </plurals>
+    <!-- One line per tier, resolved dynamically from Letter.descriptionKey — keep the
+         keys in step with OverallLevelRank or the rank table shows a raw key. -->
+    <string name="rank_e_desc">Getting started — every rep from here counts.</string>
+    <string name="rank_d_desc">Foundations are forming. Consistency is starting to show.</string>
+    <string name="rank_c_desc">Solid and steady — you are past the beginner curve.</string>
+    <string name="rank_b_desc">Noticeably strong — past the gym average.</string>
+    <string name="rank_a_desc">Advanced territory. This took months of showing up.</string>
+    <string name="rank_s_desc">Elite — stronger than most people you train next to.</string>
+    <string name="rank_ss_desc">Exceptional. Very few lifters get here.</string>
+    <string name="rank_ss_plus_desc">The top tier — sustained strength across your whole program.</string>
+
+    <!-- Graphical explainer for the Overall Level (three steps). Shown in the Levels
+         popup and as a card on the live workout tab. -->
+    <string name="overall_level_how_title">How your Overall Level works</string>
+    <string name="overall_level_guide_desc">The Overall Level in one picture</string>
+    <string name="instructions_title">Instructions</string>
+    <string name="guide_onboarding_intro">Two short pictures: how levels and stages move you up, and how your Overall Level adds them all together.</string>
+    <string name="overall_level_see_how">How it works</string>
+    <string name="overall_level_progress_format">%1$d of %2$d strength exercises</string>
+    <string name="overall_level_step_measure_title">It is your average level</string>
+    <string name="overall_level_step_measure_caption">Every strength exercise you train has its own level. Your Overall Level is where you sit on average across them.</string>
+    <string name="overall_level_step_recency_title">Recent sessions count more</string>
+    <string name="overall_level_step_recency_caption">An exercise trained today counts fully. One from 30 days ago counts half.</string>
+    <string name="overall_level_step_where_title">It appears on Home</string>
+    <string name="overall_level_step_where_caption">Once you have trained 5 different strength exercises, your Overall Level shows up on the Home screen.</string>
+    <string name="overall_level_recency_today">Today</string>
+    <string name="overall_level_recency_month">30 days ago</string>
+    <string name="overall_level_recency_two_months">60 days ago</string>
+    <string name="overall_level_weight_multiplier">%1$s&#215;</string>
+
+    <!-- Live workout card -->
+    <string name="this_set_label">THIS SET</string>
+    <string name="stage_progress_format">Stage %1$s of %2$s</string>
+    <string name="tap_to_see_every_level">Tap to see every level</string>
+    <string name="level_prescription_label">THIS LEVEL</string>
+    <string name="edit_routine">Edit exercise</string>
+    <plurals name="sets_planned_pl">
+        <item quantity="one">%1$d set</item>
+        <item quantity="other">%1$d sets</item>
+    </plurals>
     <string name="total_sets_short">SETS</string>
     <string name="sets_logged">Sets Saved</string>
     <string name="completed_sets">Completed sets</string>
@@ -36,6 +117,18 @@
         <item quantity="one">%1$d set × %2$s</item>
         <item quantity="other">%1$d sets × %2$s</item>
     </plurals>
+    <!-- The routine row's planned exercise: the SETS still lead, and what follows is the LEVEL
+         instead of the reps range. Owner, 2026-10-16: "In the exervises edit tab i want to see
+         levels of the exercise instead of the reps range". A level the user has not chosen yet is
+         not a number - see [level_new] - so the two cannot be confused. -->
+    <plurals name="sets_x_level_pl" tools:ignore="UnusedResources">
+        <item quantity="one">%1$d set × %2$s</item>
+        <item quantity="other">%1$d sets × %2$s</item>
+    </plurals>
+    <!-- No level selected yet for this exercise. The row says this instead of printing the level
+         the setup difficulty WOULD start it at, which the owner read as "it shows the setup
+         default, not mine" (2026-10-16). -->
+    <string name="level_new">New</string>
     <string name="target_time">Target Time</string>
 
     <string name="app_settings">App Settings</string>
@@ -58,9 +151,9 @@
     <string name="recreate_workout">Recreate workout</string>
     <string name="recreate_workout_desc">Re-open the setup screen to choose a new routine or build a custom split.</string>
     <string name="recreate">Recreate</string>
-    <string name="support_requests">Support Requests</string>
     <string name="submit_feedback">Submit feedback or report issues</string>
-    <string name="open_support">Open Support</string>
+    <string name="privacy_policy_title">Privacy policy</string>
+    <string name="privacy_policy_desc">How RepIo handles your data</string>
     <string name="open">Open</string>
     <string name="done">Done</string>
     <string name="confirm_timer_change_title">Confirm Timer Change</string>
@@ -68,20 +161,11 @@
     <string name="timer_override_warning">Warning: This will also override the timers for all exercises in your currently created workout!</string>
 
     <string name="support">Support</string>
+    <string name="support_email_subject">RepIo support (v%1$s)</string>
     <string name="today">Today</string>
     <string name="skip">Skip</string>
     <string name="skip_timer">Skip Timer</string>
-    <string name="contact_us">Contact Us</string>
     <string name="send_feedback">Send us your questions or feedback</string>
-    <string name="subject">Subject</string>
-    <string name="message">Message</string>
-    <string name="send_ticket">Send Ticket</string>
-    <string name="ticket_sent_success">Ticket sent successfully!</string>
-    <string name="please_fill_fields">Please fill in both fields</string>
-    <string name="daily_limit_reached">Daily limit reached. Please try again tomorrow.</string>
-    <string name="please_wait_cooldown">Please wait %1$d min before sending another ticket.</string>
-    <string name="internet_unavailable">Internet unavailable or Server unreachable. Please check your connection.</string>
-    <string name="server_unreachable">Server unreachable. Please try again later.</string>
     <string name="quick_faq">Quick FAQ</string>
 
     <string name="analytics_reports">Analytics</string>
@@ -120,6 +204,10 @@
     <string name="balanced_workout_routine">Balanced Workout Routine</string>
     <string name="balanced_workout_desc">All major muscle groups (Chest, Back, Legs, Shoulders, Arms, Core) are covered!</string>
     <string name="missing_body_parts_warning">Missing Body Parts Warning</string>
+    <string name="incomplete_workout_routine">Unbalanced Workout Routine</string>
+    <string name="incomplete_workout_desc">Some muscle groups sit outside their healthy weekly range. Each line names the group, its exercises this week, the days it trains on, and the healthy range.</string>
+    <string name="balance_issue_line">%1$s: %2$d exercises per week (%3$s) — healthy range %4$d–%5$d</string>
+    <string name="balance_issue_line_no_days">%1$s: %2$d exercises per week — healthy range %3$d–%4$d</string>
     <string name="tip">Tip</string>
     <string name="missing_parts_desc">Your custom workout has no exercises for: %1$s. Adding exercises for these muscle groups will ensure balanced strength development.</string>
     <string name="notification_channel_name">Rest Timer Notifications</string>
@@ -130,23 +218,26 @@
     <string name="notification_countdown_text">Resting between sets…</string>
     <string name="notification_title">Rest Pause Ended! 💪</string>
     <string name="notification_text">Time to smash your next set!</string>
+    <!-- A TIMED EXERCISE is not a rest. Ending one used to fire "Rest Pause
+         Ended! Time to smash your next set!", which tells the user the pause
+         is over when what actually happened is that their hold/plank interval
+         ran out. Separate strings, not a reused rest message. -->
+    <string name="notification_exercise_title">Time\'s Up! ⏱️</string>
+    <string name="notification_exercise_text">Great work, keep that form.</string>
     <string name="in_app_rest_ended_message">Rest time has ended. Continue the next workout!</string>
     <string name="replace">Replace</string>
     <string name="alternative_exercises">Alternative Exercises</string>
     <string name="select_alternative_desc">Choose a different exercise for %1$s:</string>
     <string name="replace_exercise">Replace Exercise</string>
+    <string name="replace_search_hint">Search exercises…</string>
     <string name="replace_exercise_desc">Replacing %1$s — tap an alternative to swap it in. Filters start on its equipment and muscle group.</string>
     <string name="x_selected">%1$d selected</string>
     <string name="equipment">Equipment</string>
     <string name="equipment_filter_hint">Select the equipment your build may use — leave empty to keep every type.</string>
     <string name="equipment_all">All</string>
-    <string name="recommend_filters_open">Get exercise suggestions…</string>
-    <string name="recommend_filters_active">Suggestions filtered · %1$d matches</string>
-    <string name="recommend_filters_title">Exercise suggestions</string>
-    <string name="recommend_filters_desc">Optional: narrow which exercises are suggested below. You can always type any exercise manually.</string>
-    <string name="recommend_apply">Done</string>
-    <string name="sets_changeable_later">You can change these later in My Workout.</string>
     <string name="any_muscle_group">Any</string>
+    <string name="muscle_filter_precise">Precise muscles</string>
+    <string name="muscle_filter_precise_group">Precise muscles — %1$s</string>
     <string name="copy_day_title">Copy %1$s</string>
     <string name="copy_day_desc">Copy all exercises from %1$s to another day:</string>
     <string name="copy_day_replace">Replace</string>
@@ -155,6 +246,11 @@
     <string name="equipment_dumbbell">Dumbbells</string>
     <string name="equipment_barbell">Barbells</string>
     <string name="equipment_gym">Cable &amp; Machine</string>
+    <string name="equipment_kettlebell">Kettlebells</string>
+    <string name="equipment_cable">Cables</string>
+    <string name="equipment_machine">Machines</string>
+    <string name="equipment_bands">Bands</string>
+    <string name="equipment_other">Other</string>
     <string name="no_exercises_for_filters">No exercises match these filters.</string>
     <string name="clear_history_title">Clear All History?</string>
     <string name="clear_history_text">This will permanently remove all your saved workout sets.</string>
@@ -174,6 +270,9 @@
     <string name="language">Language</string>
     <string name="change_app_language">Change the app language</string>
     <string name="system_default">System Default</string>
+    <!-- Short tag for the language button, which is too small for a full label.
+         Codes like EN/DE/IT are not translated; only "follow the device" needs a word. -->
+    <string name="language_auto_short">AUTO</string>
     <string name="english">English</string>
     <string name="german">German</string>
     <string name="italian">Italian</string>
@@ -197,6 +296,17 @@
     <string name="rest_recovery_day">Rest &amp; Recovery Day</string>
     <string name="rest_recovery_recommendation">No scheduled lifting for %1$s. Active walking or light mobility recommended!</string>
     <string name="workout_completed_title">Workout Completed! 🎉</string>
+    <!-- The session recap under the completed-workout title. -->
+    <string name="recap_title">Session recap</string>
+    <string name="recap_exercises">Exercises</string>
+    <string name="recap_sets">Sets</string>
+    <string name="recap_volume">Volume</string>
+    <string name="recap_duration">Duration</string>
+    <string name="recap_volume_kg">%1$s kg</string>
+    <string name="recap_volume_lb">%1$s lb</string>
+    <string name="recap_duration_format">%1$d min</string>
+    <string name="recap_split_title">Where the work went</string>
+    <string name="home_exercises_finished">Finished for today</string>
     <plurals name="workout_completed_text" tools:ignore="UnusedResources">
         <item quantity="one">You saved %1$d total set for %2$s!</item>
         <item quantity="other">You saved %1$d total sets for %2$s!</item>
@@ -204,16 +314,31 @@
     <string name="start_workout_again">START WORKOUT AGAIN</string>
     <string name="exercise_x_of_y">Exercise %1$d of %2$d • Set %3$d/%4$d</string>
     <string name="rest_timer">SET REST</string>
-    <string name="intensity_label">RPE Intensity</string>
+    <string name="intensity_label">Difficulty</string>
     <string name="rest_timer_label">Rest Time</string>
+    <string name="exercise_timer_label">TIMED SET</string>
+    <string name="pause_timer">Pause</string>
+    <string name="resume_timer">Resume</string>
     <string name="exercise_transition_label">NEXT EXERCISE IN</string>
     <string name="seconds_remaining">%1$ds remaining</string>
-    <string name="set_x_of_y">SET %1$d / %2$d</string>
     <string name="next_up">NEXT UP</string>
     <string name="next_up_none">None (Done 🎉)</string>
     <string name="next_up_exercise" tools:ignore="PluralsCandidate">%1$s (%2$d sets)</string>
     <string name="log_current_set_parameters">Save Current Set Parameters</string>
+    <string name="guided_sets_prefix">3 sets ·</string>
     <string name="weight">Weight</string>
+    <!-- Load unit labels: not every exercise is loaded with weight. A selectorized
+         stack is counted in pins and a band in tension, and neither converts to kg. -->
+    <string name="load_unit_pin">Pin</string>
+    <string name="load_unit_band">Band</string>
+    <string name="band_tension_very_light">Very light</string>
+    <string name="band_tension_light">Light</string>
+    <string name="band_tension_medium">Medium</string>
+    <string name="band_tension_heavy">Heavy</string>
+    <string name="band_tension_very_heavy">Very heavy</string>
+    <string name="progression_load_pin">Pin %1$s</string>
+    <string name="progression_load_seconds">%1$s s</string>
+    <string name="progression_load_band">%1$s band</string>
     <string name="reps_completed">Reps Completed</string>
     <plurals name="reps_count" tools:ignore="UnusedResources">
         <item quantity="one">%1$d rep</item>
@@ -303,6 +428,12 @@
     <string name="muscle_group">Muscle Group</string>
     <string name="sets">Sets</string>
     <string name="reps">Reps</string>
+    <!-- The counter for exercises whose work IS a count of steps (Heel-to-Toe Walk, Bear Crawl).
+         See ProgressionEngine.countsInSteps and the STEP_LADDERS table. -->
+    <string name="steps">Steps</string>
+    <string name="per_side_arm">each arm</string>
+    <string name="per_side_leg">each leg</string>
+    <string name="per_side_side">each side</string>
     <string name="demo_link_optional">Demo Link (Optional)</string>
     <string name="reset_program_title">Reset Program to Default?</string>
     <string name="reset_program_text">This will restore the original workout program.</string>
@@ -432,6 +563,7 @@
     <string name="ex_chin_up">Chin-ups</string>
     <string name="ex_bench_press">Bench Presses</string>
     <string name="ex_military_press">Military Presses</string>
+    <string name="ex_shoulder_press">Shoulder Presses</string>
     <string name="ex_lat_pulldown">Lat Pulldowns</string>
     <string name="ex_seated_row">Seated Rows</string>
     <string name="ex_leg_press">Leg Presses</string>
@@ -443,12 +575,22 @@
     <string name="ex_tricep_pushdown">Tricep Pushdowns</string>
     <string name="ex_face_pull">Face Pulls</string>
     <string name="ex_side_raise">Side Raises</string>
+    <string name="ex_lateral_raise">Lateral Raises</string>
+    <string name="ex_shrugs">Shrugs</string>
     <string name="ex_dips">Dips</string>
     <string name="ex_back_extension">Back Extensions</string>
 
     <string name="day_title_format">%1$s — %2$s</string>
     <string name="push_title">Push (Chest, Shoulders, Triceps)</string>
     <string name="pull_title">Pull (Back &amp; Biceps)</string>
+    <string name="chest_title">Chest</string>
+    <string name="chest_desc">Heavy presses, incline work, and flyes with triceps assistance</string>
+    <string name="back_title">Back</string>
+    <string name="back_desc">Heavy rows, pulldowns, and bicep flexion work</string>
+    <string name="shoulders_title">Shoulders</string>
+    <string name="shoulders_desc">Overhead pressing plus side and rear delt isolation</string>
+    <string name="arms_title">Arms</string>
+    <string name="arms_desc">Curls and extensions paired to hit both sides of the arm</string>
     <string name="legs_core_title">Legs &amp; Core</string>
     <string name="upper_power_title">Upper Body Power</string>
     <string name="lower_power_title">Lower Body &amp; Core</string>
@@ -477,7 +619,7 @@
     <string name="flame_orange">Flame Orange</string>
     <string name="ocean_teal">Ocean Teal</string>
     <string name="rose_pink">Rose Pink</string>
-    <string name="azure_sky">Azure Sky</string>
+    <string name="royal_blue">Royal Blue</string>
 
     <string name="monday">Monday</string>
     <string name="tuesday">Tuesday</string>
@@ -502,27 +644,111 @@
     <string name="saturday_short">Sat</string>
     <string name="sunday_short">Sun</string>
     <string name="action_back">Back</string>
-    <string name="restart_required_title">Restart Required</string>
-    <string name="restart_required_message">To apply the new theme and splash screen fully, the app needs to restart.</string>
     <string name="ok">OK</string>
     <string name="confirm">Confirm</string>
     <string name="confirm_action_question">Applying these changes will modify your current workout configuration.</string>
     <string name="max_characters_reached">Maximum characters reached (20)</string>
     <string name="confirm_new_program_title">Confirm new workout?</string>
     <string name="confirm_new_program_message">This will replace your current plan. Do you want to continue?</string>
+    <string name="level_reset_warning_title">This also resets the level system</string>
+    <string name="level_reset_warning_body">Your logged sets are kept, but replacing your workout clears the levels and stages you have built up: every exercise restarts from its starting level.</string>
     <string name="exit_app_title">Exit App?</string>
     <string name="exit_app_message">Are you sure you want to exit?</string>
     <string name="exit">Exit</string>
     <string name="stay">Stay</string>
 
+    <string name="home_equipment_section">Home equipment</string>
+    <string name="gym_equipment_section">Gym equipment</string>
+    <string name="equipment_tag_chair">Chair</string>
+    <string name="equipment_tag_db_bench">Dumbbells + bench</string>
+    <string name="equipment_tag_rack">Squat rack</string>
+    <string name="equipment_tag_pullup">Pull-up bar</string>
+    <string name="equipment_tag_dips">Dip bars</string>
+    <string name="equipment_tag_rings">Rings</string>
+    <string name="equipment_tag_wall">Wall</string>
+    <string name="equipment_tag_stairs">Stairs</string>
+    <string name="equipment_tag_bag">Weighted bag</string>
+    <string name="equipment_tag_towel">Towel</string>
+    <string name="equipment_tag_bands">Bands</string>
+    <string name="equipment_tag_dumbbells">Dumbbells</string>
+    <string name="equipment_tag_bench">Bench</string>
+    <string name="equipment_tag_barbell">Barbell</string>
+    <string name="equipment_tag_rack_floor">Rack / floor</string>
+    <string name="equipment_tag_kettlebell">Kettlebell</string>
+    <string name="equipment_tag_cable">Cables</string>
+    <string name="equipment_tag_machines">Machines</string>
+    <!-- The MACHINE group's own "a machine the list does not name" tile. It cannot keep reading
+         "Machines": the group it now sits in is already titled that, so the caption named the
+         section it is inside instead of the kit it stands for. -->
+    <string name="equipment_tag_other_machine">Other machine</string>
+    <!-- Selectorized stations. They are not selectable tiles (only "Machines"
+         is), but a full-gym kit stores every one of them, so they each need a
+         readable label wherever a stored tag is shown back to the user. -->
+    <string name="equipment_tag_leg_press">Leg press machine</string>
+    <string name="equipment_tag_lat_pulldown">Lat pulldown machine</string>
+    <string name="equipment_tag_smith">Smith machine</string>
+    <string name="equipment_tag_leg_extension">Leg extension machine</string>
+    <string name="equipment_tag_leg_curl">Leg curl machine</string>
+    <string name="equipment_tag_chest_press_machine">Chest press machine</string>
+    <string name="equipment_tag_seated_row">Seated row machine</string>
+    <string name="equipment_tag_none_required">No equipment needed</string>
+    <string name="home_equipment_chair">I have a sturdy chair</string>
+    <string name="home_equipment_bench">I have a weight bench</string>
+    <string name="home_equipment_pullup_bar">I have a pull-up bar (doorway or wall-mounted)</string>
+    <string name="home_equipment_dip_bars">I have dip bars or parallel bars</string>
+    <string name="home_equipment_rings">I have gymnastic rings or suspension trainer</string>
+    <string name="home_equipment_wall">I have a clear wall space</string>
+    <string name="home_equipment_stairs">I have stairs or a sturdy step</string>
+    <string name="home_equipment_backpack">I have a backpack or weighted bag</string>
+    <string name="home_equipment_towel">I have a towel (for sliding moves)</string>
+    <string name="home_equipment_bands">I have resistance bands</string>
+    <string name="gym_equipment_dumbbells">Dumbbells</string>
+    <string name="gym_equipment_db_bench">Dumbbells + a bench to lie on</string>
+    <string name="gym_equipment_barbell">Barbell</string>
+    <string name="gym_equipment_rack">Squat rack / barbell floor work</string>
+    <string name="gym_equipment_kettlebell">Kettlebell</string>
+    <string name="gym_equipment_cable">Cable machine</string>
+    <string name="gym_equipment_machines">Gym machines (press, leg press, pulldown…)</string>
+
+    <string name="choose_duration">Session Length</string>
+    <string name="duration_quick_label">Quick</string>
+    <string name="duration_standard_label">Standard</string>
+    <string name="duration_full_label">Full Session</string>
+    <string name="duration_minutes">%1$d–%2$d min</string>
+    <string name="duration_quick_desc">Compact sessions of 6–8 exercises: compound movements first, minimal isolation. Every muscle still gets covered, just leaner.</string>
+    <string name="duration_standard_desc">Balanced sessions of 8–10 exercises: compound lifts plus the accessories that round out each muscle group.</string>
+    <string name="duration_full_desc">Full sessions of 10–12 exercises: maximum volume with compounds and isolation work for every muscle.</string>
     <string name="choose_intensity">Choose Difficulty</string>
     <string name="choose_body_parts">Target Body Parts</string>
     <string name="choose_days">Training Days Per Week</string>
+    <string name="frequency_warning_1_day">1 day/week gives minimal benefits — 2–3 days is the recommended minimum.</string>
+    <string name="days_not_recommended">(not recommended)</string>
+    <string name="choose_specific_days">Choose specific days</string>
+    <string name="premade_week_hint">Off: the recommended week — training days with rest days between them.</string>
+    <string name="premade_week_hint_on">On: your own days — tap a day to add or remove it.</string>
+    <string name="frequency_warning_7_day">7 days/week carries a high overtraining risk — 5–6 days is the recommended maximum.</string>
+    <string name="mastery_ceiling_default">Realistic human ceiling reached.</string>
+    <string name="mastery_human_limit">Human Limit Reached</string>
+    <string name="mastery_focus_on">Focus on:</string>
+    <string name="mastery_acknowledge">Understood – Keep This Exercise at Cap</string>
 
-    <string name="min_sets">Min Sets Per Exercise</string>
-    <string name="max_sets">Max Sets Per Exercise</string>
-    <string name="sets_allocation">Sets Allocation</string>
-    <string name="no_limit">No Limit</string>
+    <!-- The evolution offer: "what it was" and "what it can become", both
+         drawn from the ladder the engine actually prescribes from. -->
+    <string name="evolution_title">New exercise progression!</string>
+    <string name="evolution_subtitle">An exercise can be progressed once you reach its top level — pick what it can become next.</string>
+    <string name="evolution_heading_before">You are here</string>
+    <string name="evolution_heading_after">It becomes</string>
+    <string name="evolution_level_of_max">Level %1$d of %2$d</string>
+    <string name="evolution_path_ahead">Path ahead:</string>
+    <string name="evolution_trunk_mastered">Finished — top level reached</string>
+    <string name="evolution_new_branch">New</string>
+    <string name="evolution_accept">Evolve</string>
+    <string name="evolution_not_now">Not now</string>
+    <string name="evolution_decline">Keep this exercise, lock it here</string>
+    <string name="evolution_decline_warns">Locking keeps this exercise at your top level. You can still upgrade it later from this exercise in the editor.</string>
+    <string name="evolution_locked_badge">Locked at max – Upgrade</string>
+        <string name="evolution_locked_upgrade">Upgrade</string>
+
     <string name="additional_preferences">Additional Preferences</string>
     <string name="include_exercises">Include specific exercises</string>
     <string name="exclude_exercises">Exclude specific exercises</string>
@@ -530,10 +756,10 @@
     <string name="intensity_easy">Easy</string>
     <string name="intensity_medium">Medium</string>
     <string name="intensity_hard">Hard</string>
-    <string name="intensity_easy_desc">Maintenance volume (6–10 sets/week). Lower neurological demand, focus on technique and consistency.</string>
-    <string name="intensity_medium_desc">Optimal Growth volume (10–15 sets/week). Balanced intensity for muscle hypertrophy (MEV/MAV).</string>
-    <string name="intensity_hard_desc">Max Recoverable Volume (15–20+ sets/week). High intensity pushing your recovery capacity (MRV).</string>
-    <string name="intensity_rpe_value">RPE %1$d</string>
+    <string name="intensity_easy_desc">Starts every exercise at the bottom of its own level ladder (level 1 for most). Lightest loads, with room to add weight every session.</string>
+    <string name="intensity_medium_desc">The balanced start: most exercises begin at level 4 of their ladder, with room to move up or down.</string>
+    <string name="intensity_hard_desc">An advanced start: most exercises begin around level 7 of their ladder, so the very first session is already a real test.</string>
+    <string name="intensity_level_value">Level %1$d</string>
 
     <string name="tempo_label">Tempo</string>
     <string name="tempo_none">No tempo</string>
@@ -576,10 +802,11 @@
     <string name="workout_goal">Workout Goal</string>
     <string name="choose_workout_goal">What is your primary training goal?</string>
     <string name="workout_goal_desc">Sets the rep range, the rest between sets, and which exercises get picked. Difficulty stays in charge of how many sets you do.</string>
-    <string name="goal_bodybuilding">Bodybuilding / Hypertrophy</string>
-    <string name="goal_strength">Strength Training / Powerlifting</string>
-    <string name="goal_calisthenics">Calisthenics</string>
-    <string name="goal_functional">Functional Training</string>
+    <string name="goal_bodybuilding">Muscle Building (Hypertrophy)</string>
+    <string name="goal_strength">Strength Training (Max Strength)</string>
+    <string name="goal_calisthenics">Calisthenics (Bodyweight Training)</string>
+    <string name="goal_endurance">Endurance (Cardio &amp; Conditioning)</string>
+    <string name="goal_general">General Fitness (Overall Health)</string>
     <string name="goal_olympic">Olympic Weightlifting</string>
     <string name="goal_powerbuilding">Powerbuilding</string>
     <string name="goal_crossfit">CrossFit / Hybrid</string>
@@ -596,6 +823,9 @@
     <string name="rpe_explanation_rir_0">Absolute failure</string>
     <string name="rpe_explanation_rir_range" tools:ignore="PluralsCandidate">%1$d–%2$d reps in the tank</string>
     <string name="rpe_long_description">Intensity: %1$s. Use a weight where you would still have %2$s at the end of your set.</string>
+    <!-- The exercise row's one intensity label: the word the row carries, then its figure. -->
+    <string name="rpe_rir_label">%1$s (RPE %2$d · %3$d RIR)</string>
+    <string name="rpe_rir_label_range">%1$s (RPE %2$d–%3$d · %4$d–%5$d RIR)</string>
 
     <!-- FAQ RPE & RIR -->
     <string name="rpe_rir_faq">RPE &amp; RIR Guide</string>
@@ -613,24 +843,22 @@
     <string name="exercise_x_of_y_simple">Exercise %1$d of %2$d</string>
     <string name="bodyweight_label">Bodyweight</string>
     <string name="no_weight_needed">No weight needed</string>
-    <string name="balanced_preset">Balanced Preset</string>
-    <string name="select_body_parts_desc">Select all to train or use preset:</string>
+    <string name="select_body_parts_desc">Select all to train:</string>
     <string name="goal_strength_desc">Focus: High intensity, low reps (1–5) for maximum neurological adaptation and strength.</string>
     <string name="goal_bodybuilding_desc">Focus: Moderate reps (8–12) for metabolic stress and maximum hypertrophy.</string>
     <string name="goal_calisthenics_desc">Focus: Higher reps (12–20) to build muscular endurance and body mastery.</string>
-    <string name="goal_functional_desc">Focus: Dynamic movements with 10–15 reps to improve athletic longevity and core strength.</string>
+    <string name="goal_endurance_desc">Focus: Higher reps (15–20) and short rests to build stamina and work capacity.</string>
+    <string name="goal_general_desc">Focus: Balanced 10–15 rep work across all movement patterns for overall health.</string>
     <string name="insight_volume_title">Training Volume</string>
-    <string name="insight_volume_hard_desc">High volume pushing your recovery limits. Ideal for maximizing hypertrophy if recovery is managed well.</string>
-    <string name="insight_volume_medium_desc">Optimal volume for consistent muscle growth and sustainable progress.</string>
-    <string name="insight_volume_easy_desc">Lower volume focused on technique maintenance and active recovery.</string>
+    <string name="insight_volume_desc">Every exercise uses 3 working sets — enough volume to drive progress while staying easy to recover from.</string>
     <string name="insight_frequency_title">Training Frequency</string>
     <string name="insight_frequency_desc">Distributing muscle groups twice a week often yields superior results compared to once-a-week splits.</string>
     <string name="insight_fullbody_title">Full-Body Frequency</string>
     <string name="insight_fullbody_desc">With only a few training days, every workout covers your main muscles — training each twice a week beats hitting it once, even with the same total volume.</string>
     <string name="insight_upperlower_title">Upper / Lower Split</string>
     <string name="insight_upperlower_desc">Your upper and lower body alternate in focused sessions, so every muscle is trained about twice a week while each workout stays fresh and recoverable.</string>
-    <string name="insight_ppl_title">Push / Pull / Legs Cycle</string>
-    <string name="insight_ppl_desc">Your high training frequency is organized into push, pull and legs sessions — spreading the weekly volume without dropping any muscle below twice a week.</string>
+    <string name="insight_ppl_title">Body-Part Split</string>
+    <string name="insight_ppl_desc">Each muscle gets its own concentrated session — chest, back, a dedicated leg day midweek, shoulders and arms — so weekly volume lands fresh and every muscle still trains about twice a week.</string>
     <string name="insight_goal_title">Goal Alignment</string>
     <string name="insight_rest_title">Rest Intervals</string>
     <string name="insight_goal_bodybuilding_desc">Hypertrophy-focused training using moderate rep ranges to maximize metabolic stress.</string>
@@ -671,4 +899,117 @@
     <string name="notification_update_channel_name">App updates</string>
     <string name="notification_update_channel_desc">Notifies when a new version of RepIo is available</string>
 
+    <!-- Level system (v5 progression) — My Workout tab -->
+    <string name="progression_level_stage">Level %1$d — Stage %2$s</string>
+    <string name="progression_stage_target">Target: %1$s</string>
+    <string name="progression_load_each">%1$s kg each</string>
+    <string name="progression_load_kg">%1$s kg</string>
+    <string name="progression_load_lb">%1$s lb</string>
+    <string name="progression_load_lb_each">%1$s lb each</string>
+    <string name="weight_unit">Weight unit</string>
+    <string name="change_weight_unit">How weights are shown and typed</string>
+    <string name="weight_unit_kg">Kilograms (kg)</string>
+    <string name="weight_unit_lbs">Pounds (lb)</string>
+    <string name="progression_duration_value">%1$s s</string>
+
+    <!-- Level system guide — Settings -->
+    <string name="level_system_guide_title">How levels &amp; stages work</string>
+    <string name="level_system_guide_desc">The level system in one picture</string>
+    <string name="level_system_guide_intro">Every exercise climbs its own ladder of levels. You train 3 working sets — the reps show how close you are to the next level.</string>
+    <string name="level_example_title">What is a level?</string>
+    <string name="level_example_caption">Each exercise has its own levels. Higher levels mean more resistance or a harder variation.</string>
+    <string name="stage_example_title">What is a stage?</string>
+    <string name="stage_example_caption">Within a level, you progress through stages by adding reps \u2014 one rep on every set at once, so 8 / 8 / 8 becomes 9 / 9 / 9.</string>
+    <string name="level_up_example_title">Level-up and rep reset</string>
+    <!-- The arrow on a Roman stage row that opens the steps the rounding hid between it and the next row. -->
+    <string name="level_stage_dropdown">Show the steps between</string>
+    <string name="level_up_example_arrow">load up</string>
+    <string name="level_up_example_caption">When you finish the last stage, you move up a level and start again at lower reps with more load.</string>
+    <string name="large_jump_example_title">Big jumps, smaller reps</string>
+    <string name="large_jump_example_arrow">big jump</string>
+    <string name="large_jump_example_caption">If the next load is a big jump, the app resets your reps to make it manageable.</string>
+    <string name="level_max">max</string>
+    <string name="level_max_example_title">The max level</string>
+    <string name="level_max_example_arrow">keep going anyway</string>
+    <string name="level_max_example_caption">Each exercise has an evidence-backed max, marked &quot;max&quot;. It is a marker, not an end: levels above it keep adding load at the same pace.</string>
+    <string name="lock_example_title">Locking an exercise</string>
+    <string name="lock_example_caption">Tap the lock on the level card to hold THIS exercise on its current level \u2014 it stays where it is even after a finished workout, and the level box stops offering a change. Tap it again to unlock.</string>
+    <string name="difficulty_change_example_title">Changing your starting difficulty</string>
+    <string name="difficulty_change_example_caption">You can change your starting difficulty for each exercise before your first set. A harder difficulty starts you further up the ladder - the level it opens on is written on each option.</string>
+
+    <!-- Level system — live card and level details -->
+    <string name="levels_menu_title">Levels</string>
+    <string name="level_word_n">Level %1$d</string>
+    <string name="adjust_levels_n">Level %1$d</string>
+    <string name="level_details_title">Levels — %1$s</string>
+    <string name="level_details_intro">Tap a level to switch to it. Each row shows the load or variation and the reps of its first stage.</string>
+    <string name="level_details_intro_info">Every level of this exercise\'s own program — what each rung trains at, and the reps it starts with. This sheet is for reading.</string>
+    <string name="level_details_hint_info">To change the level, open the exercise editor with the pencil on the card.</string>
+    <string name="level_details_current">current</string>
+    <string name="level_details_auto_title">Levels go up on their own</string>
+    <string name="level_details_auto_arrow">level up</string>
+    <string name="level_details_auto_caption">Finish this exercise\'s sets at their targets and it moves up by itself \u2014 nothing to tap. The level lock holds it where it is.</string>
+    <string name="level_details_auto_top_caption">This exercise is at the top of its ladder \u2014 finishing it keeps it here.</string>
+    <string name="level_lock_short">Level lock</string>
+    <string name="level_locked_short">Locked</string>
+    <string name="exercise_edit_desc">Edit this exercise level</string>
+    <string name="exercise_commit_desc">Save and lock in this level</string>
+    <string name="exercise_lock_desc">Lock this exercise at its current level and stage</string>
+    <string name="exercise_unlock_desc">Unlock this exercise to move it again</string>
+    <string name="level_details_locked_hint">This exercise is locked — unlock it on the card to jump levels.</string>
+    <string name="stage_current_format">Stage %1$s</string>
+    <string name="stage_down_desc">Previous Roman stage</string>
+    <string name="stage_up_desc">Next Roman stage</string>
+    <string name="set_progress_format">Set %1$d of %2$d</string>
+    <string name="level_details_tap_hint">Tap to switch</string>
+    <string name="level_details_extend">Show %1$d more levels</string>
+    <string name="loading">Loading…</string>
+    <string name="level_details_beyond_plan">beyond plan</string>
+    <string name="level_details_beyond_plan_desc">Not part of this exercise\'s program</string>
+    <string name="level_details_beyond_plan_note">This exercise\'s program ends at level %1$d. The levels below are listed for reference only and cannot be selected.</string>
+
+    <!-- Level system master switch (Settings) -->
+    <string name="level_system_toggle_title">Level system</string>
+    <string name="level_system_toggle_desc_on">Exercises follow their levels: reps and weight are prescribed for you.</string>
+    <string name="level_system_toggle_desc_off">Custom mode: you choose sets, reps and weight yourself.</string>
+    <string name="custom_mode_title">Switch to Custom?</string>
+    <string name="custom_mode_body">Sets, reps, weight and intensity come from the level system. Switching to Custom turns it off for EVERY exercise, not only this one — from then on you set those values yourself. Are you sure?</string>
+    <string name="custom_mode_confirm">Switch to Custom</string>
+    <string name="level_fields_locked_hint">Managed by the level system. Switch to custom to make changes here.</string>
+    <string name="level_fields_locked_toast">Switch to custom to change this.</string>
+    <string name="level_pencil_hint">Tap the pencil to open this exercise and change its level.</string>
+    <string name="level_editor_title">Level</string>
+    <string name="level_editor_open_ladder">See every level</string>
+    <!-- Which fifteen rungs of the ladder the editor's level list is showing. -->
+    <string name="levels_page_range">Levels %1$d–%2$d of %3$d</string>
+    <string name="level_switch_to_custom_edit">Switch to Custom for the full exercise edit</string>
+    <string name="level_step_down_desc">Previous level</string>
+    <string name="level_step_up_desc">Next level</string>
+    <string name="progression_available">Progression available</string>
+
+    <!-- Level guide onboarding -->
+    <string name="level_guide_onboarding_title">New! Level System</string>
+    <string name="level_guide_cta_got_it">Got it</string>
+    <string name="level_guide_reassurance">Your first levels come from the Easy / Medium / Hard choice in the next step, and can feel a little off — adjust them once you are training. After that, every completed exercise moves you up automatically.</string>
+
+    <string name="split_style_title">How to organise your week</string>
+    <string name="split_style_a_title">Option A — Balanced frequency</string>
+    <string name="split_style_a_desc">Trains every major muscle the same number of times a week. Recommended.</string>
+    <string name="split_style_a_best_for">Best for: beginners</string>
+    <string name="split_style_b_title">Option B — Upper-body focus</string>
+    <string name="split_style_b_desc">Prioritises upper-body volume and isolation work. One dedicated leg day a week, whatever the day count.</string>
+    <string name="split_style_b_best_for">Best for: upper-body hypertrophy</string>
+    <string name="split_style_c_title">Option C — Hybrid</string>
+    <string name="split_style_c_desc">Full-body days mixed into a specialised week, for a different balance again.</string>
+    <string name="split_style_c_best_for">Best for: experienced lifters</string>
+    <string name="split_style_leg_days">Leg days: %1$d</string>
+    <string name="split_style_week_of">%1$d days a week: %2$s</string>
+    <string name="session_full_body">Full body</string>
+    <string name="session_upper">Upper</string>
+    <string name="session_push">Push</string>
+    <string name="session_pull">Pull</string>
+    <string name="session_lower">Lower</string>
+    <string name="session_arms_core">Arms &amp; core</string>
+    <string name="session_weak_point">Weak points</string>
+    <string name="form_demo_description">Movement demo</string>
 </resources>

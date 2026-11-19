@@ -10,6 +10,9 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     val allRoutineExercises: Flow<List<RoutineExerciseEntity>> = dao.getAllRoutineExercises()
     val allLoggedSets: Flow<List<LoggedSetEntity>> = dao.getAllLoggedSets()
 
+    /** The cached overall-level row (see [OverallLevelCalculator]), null before the first computation. */
+    val userStats: Flow<UserStatsEntity?> = dao.getUserStats()
+
     fun getExercisesForDay(dayOfWeek: String): Flow<List<RoutineExerciseEntity>> {
         return dao.getExercisesForDay(dayOfWeek)
     }
@@ -88,6 +91,32 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.deleteLoggedSet(id)
     }
 
+    /**
+     * Removes the sets logged TODAY for [exerciseName] and answers how many went.
+     *
+     * A SWAP MEANS A DIFFERENT EXERCISE. Owner, 2026-11-03: *"When swapping
+     * exercises position last second while still being on that exercise, then
+     * reset the exercise no matter how many sets were made (since the new
+     * exercise is a different one when swapping)."* The log is keyed by exercise
+     * NAME, so the movement that was swapped away kept its sets: put it back and
+     * it returned already finished, which is the state the owner was looking at.
+     *
+     * Only the current day is touched. Yesterday's work is history and stays; the
+     * reset is about the session in hand, not about forgetting training.
+     */
+    suspend fun clearTodaysLoggedSets(exerciseName: String): Int {
+        val startedToday = startOfTodayMillis()
+        val todays = dao.getLoggedSetsForExercise(exerciseName).first()
+            .filter { it.timestamp >= startedToday }
+        todays.forEach { dao.deleteLoggedSet(it.id) }
+        return todays.size
+    }
+
+    /** Persists the computed overall level; there is only ever one row. */
+    suspend fun saveUserStats(stats: UserStatsEntity) {
+        dao.upsertUserStats(stats)
+    }
+
     suspend fun saveExercise(exercise: RoutineExerciseEntity) {
         // Ensure day exists in routine_days to satisfy foreign key constraint
         val days = dao.getAllRoutineDays().first()
@@ -123,6 +152,15 @@ class WorkoutRepository(private val dao: WorkoutDao) {
     suspend fun reorderExercises(exercises: List<RoutineExerciseEntity>) {
         dao.updateExercises(exercises)
     }
+
+    /** Locks/unlocks an exercise for level progression, across all of its rows. */
+    suspend fun setExerciseLocked(name: String, locked: Boolean) {
+        dao.setExerciseLockedByName(name, locked)
+    }
+
+    /** The exercise's lock flag, or null when the exercise is not in the routine. */
+    suspend fun isExerciseLocked(name: String): Boolean? =
+        dao.isExerciseLockedByName(name)
 
     suspend fun markDayAsWorkoutDay(dayOfWeek: String) {
         val days = dao.getAllRoutineDays().first()
@@ -199,17 +237,31 @@ class WorkoutRepository(private val dao: WorkoutDao) {
         dao.insertRoutineExercises(syncedExercises)
     }
 
-    suspend fun resetRoutineToDefault() {
+    /**
+     * Restores the built-in default routine. [equipment] (empty = no
+     * restriction) gates the prefill — the default program assumes a full
+     * gym, so a user whose saved kit has no barbell gets its barbell rows
+     * substituted to the nearest available link instead of rows they cannot
+     * perform. Their demo links follow the new movement names.
+     */
+    suspend fun resetRoutineToDefault(equipment: List<String> = emptyList()) {
         val existingUrls = dao.getAllRoutineExercises().first()
             .filter { it.videoUrl.isNotBlank() }
             .associate { it.name to it.videoUrl }
+
+        val exercises = if (equipment.isEmpty()) DefaultData.routineExercises
+        else DefaultData.routineExercises.mapNotNull { ex ->
+            WorkoutTemplates.substituteExercise(ex.name, equipment)?.let { sub ->
+                if (sub.equals(ex.name, ignoreCase = true)) ex else ex.copy(name = sub)
+            }
+        }
 
         dao.clearAllRoutineExercises()
         dao.clearAllRoutineDays()
         val localizedDays = localizeDayTemplates(DefaultData.dayTemplates)
         dao.insertRoutineDays(localizedDays)
 
-        val syncedExercises = DefaultData.routineExercises.map { ex ->
+        val syncedExercises = exercises.map { ex ->
             if (ex.videoUrl.isBlank()) {
                 existingUrls[ex.name]?.let { url -> ex.copy(videoUrl = url) } ?: ex
             } else ex

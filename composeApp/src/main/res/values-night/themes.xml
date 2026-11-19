@@ -1,5 +1,13 @@
 <?xml version="1.0" encoding="utf-8"?>
 <resources>
-    <!-- No system overrides: Splash Screen is controlled manually via App Theme selection -->
-    <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar" />
+    <!--
+        No system overrides: the Splash Screen is controlled manually via the App Theme
+        selection - so this is the SAME beige window background as in `values/`, not a
+        night variant. The item has to be REPEATED here rather than inherited: this file
+        REDEFINES the style, and a redefinition drops the other resource's items, which
+        is how a dark system kept falling back to AppCompat's grey window.
+    -->
+    <style name="Theme.MyApplication" parent="Theme.AppCompat.DayNight.NoActionBar">
+        <item name="android:windowBackground">@color/bg_beige</item>
+    </style>
 </resources>

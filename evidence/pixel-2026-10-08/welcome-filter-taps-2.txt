@@ -1,0 +1,42 @@
+# welcome sweep on 39211JEHN10619 — tap — 2026-10-08 20:03
+
+>>> tap 'Muskelaufbau (Hypertrophie)'
+--- tap-Muskelaufbau-Hypertrophie
+
+>>> tap 'Krafttraining (Maximalkraft)'
+  !! never found 'Krafttraining (Maximalkraft)'
+
+>>> tap 'Kurz'
+--- tap-Kurz
+    Option C — Hybrid
+        Ganzkörpertage in eine spezialisierte Woche gemischt, für eine andere Balance.
+        Oben  ·  Unten  ·  Drücken  ·  Ziehen  ·  Beine  ·  Ganzkörper
+        Am besten für: Fortgeschrittene  ·  Beintage: 3
+        Geräte
+        Heimausrüstung
+        Stuhl
+        Bank
+        Reckstange
+        Barren
+        Ringe
+        Wand
+        Treppe
+        Gewichtsranzen
+        Handtuch
+        Bänder
+        Gym-Ausrüstung
+        Kurzhanteln
+        Kniebeuge-Ablage
+        Langhantel
+        Kettlebell
+        Kabel
+        Maschinen
+        Was ist dein primäres Trainingsziel?
+        Muskelaufbau (Hypertrophie)
+        Trainingsziel
+
+>>> tap 'Komplett'
+--- tap-Komplett
+
+>>> tap 'Standard'
+--- tap-Standard

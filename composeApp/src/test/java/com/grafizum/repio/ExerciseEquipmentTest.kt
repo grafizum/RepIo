@@ -7,14 +7,12 @@ import org.junit.Assert.assertTrue
 import org.junit.Test
 
 /**
- * Guards the authoritative equipment table behind the equipment filter.
- *
- * The filter used to be guessed from the exercise name and from whichever muscle
- * lists mentioned the exercise, so an exercise could appear under two categories
- * at once (and the same movement could be listed twice under different names —
- * "Hammer Curls" *and* "Dumbbell Hammer Curls"). This file pins down that every
- * pool exercise is assigned exactly one real category and that the duplicate
- * aliases stay out of the pool.
+ * Guards the rebuilt exercise pool's equipment classification. The pool is
+ * generated (ExerciseCatalog, from the v5 progression database), so the exact
+ * entries are data-driven; what this file pins down is the *invariants*: every
+ * pool exercise resolves to exactly one real category, the categories stay
+ * disjoint, and the catalog data behind a handful of load-bearing movements is
+ * what the pipeline decided.
  */
 class ExerciseEquipmentTest {
 
@@ -22,10 +20,14 @@ class ExerciseEquipmentTest {
     private val bodyweight = WorkoutTemplates.EQUIPMENT_BODYWEIGHT
     private val dumbbell = WorkoutTemplates.EQUIPMENT_DUMBBELL
     private val barbell = WorkoutTemplates.EQUIPMENT_BARBELL
-    private val gym = WorkoutTemplates.EQUIPMENT_GYM
+    private val cable = WorkoutTemplates.EQUIPMENT_CABLE
+    private val machine = WorkoutTemplates.EQUIPMENT_MACHINE
+    private val kettlebell = WorkoutTemplates.EQUIPMENT_KETTLEBELL
+    private val bands = WorkoutTemplates.EQUIPMENT_BANDS
+    private val other = WorkoutTemplates.EQUIPMENT_OTHER
 
     @Test
-    fun everyPoolExerciseHasExactlyOneEquipmentCategory() {
+    fun everyPoolExerciseHasExactlyOneEquipmentEntry() {
         val table = WorkoutTemplates.getEquipmentTableNames()
         val missing = pool - table.toSet()
         assertTrue("Pool exercises with no equipment entry: $missing", missing.isEmpty())
@@ -61,62 +63,52 @@ class ExerciseEquipmentTest {
     }
 
     @Test
-    fun equipmentIsReadFromTheMovementNotFromTheNameOrTheMuscleList() {
-        // Hammer curls are dumbbells, not the bodyweight/gym entries they used to be
-        // filed under, and barbell movements stay barbell even though the gym lists
-        // mention them for those muscles.
-        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Dumbbell Hammer Curls"))
-        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Farmer's Walks"))
-        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Goblet Squats"))
-        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Barbell Deadlifts"))
-        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Military Presses"))
-        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Landmine Presses"))
-        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Pull-ups"))
-        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Push-ups"))
-        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Glute Bridges"))
-        assertEquals(gym, WorkoutTemplates.getEquipmentForExercise("Lat Pulldowns"))
-        assertEquals(gym, WorkoutTemplates.getEquipmentForExercise("Pec Decks"))
-        assertEquals(gym, WorkoutTemplates.getEquipmentForExercise("Cable Face Pulls"))
+    fun everyCategoryIsPopulated() {
+        // A category the pipeline produced but that filters zero exercises is a
+        // mapping bug waiting to be discovered in the UI.
+        WorkoutTemplates.allEquipmentCategories.forEach { category ->
+            assertTrue(
+                "'$category' has no exercises in the rebuilt pool",
+                WorkoutTemplates.getAllExercisesForEquipment(category).isNotEmpty()
+            )
+        }
+    }
+
+    @Test
+    fun equipmentMatchesTheMovementInTheName() {
+        // The equipment column comes from the v5 CSV through the pipeline's
+        // taxonomy mapping; these are the movements whose category the app
+        // actually relies on (starting weights, filters).
+        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Barbell Deadlift"))
+        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Barbell Back Squat"))
+        assertEquals(barbell, WorkoutTemplates.getEquipmentForExercise("Romanian Deadlift"))
+        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Dumbbell Hammer Curl"))
+        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Dumbbell Bicep Curl"))
+        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Dumbbell Fly"))
+        // The CSV files the goblet squat as a kettlebell move, but the app gates
+        // it on dumbbells_only (a dumbbell held at the chest) and filed it under
+        // Kettlebell a dumbbells-only kit was never offered it.
+        assertEquals(dumbbell, WorkoutTemplates.getEquipmentForExercise("Goblet Squat"))
+        assertEquals(kettlebell, WorkoutTemplates.getEquipmentForExercise("Kettlebell Swing"))
+        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Pull-Up"))
+        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Push-Up"))
+        assertEquals(bodyweight, WorkoutTemplates.getEquipmentForExercise("Bench Dips"))
+        assertEquals(cable, WorkoutTemplates.getEquipmentForExercise("Lat Pulldown"))
+        assertEquals(cable, WorkoutTemplates.getEquipmentForExercise("Cable Fly"))
+        assertEquals(machine, WorkoutTemplates.getEquipmentForExercise("Machine Chest Press"))
+        assertEquals(machine, WorkoutTemplates.getEquipmentForExercise("Machine Assisted Dips"))
     }
 
     @Test
     fun aCategoryOnlyContainsItsOwnMovements() {
         val dumb = WorkoutTemplates.getAllExercisesForEquipment(dumbbell)
-        assertTrue(dumb.contains("Dumbbell Hammer Curls"))
-        assertFalse(dumb.contains("Barbell Squats"))
-        assertFalse(dumb.contains("Lat Pulldowns"))
+        assertTrue(dumb.contains("Dumbbell Hammer Curl"))
+        assertFalse(dumb.contains("Barbell Back Squat"))
+        assertFalse(dumb.contains("Lat Pulldown"))
 
         val free = WorkoutTemplates.getAllExercisesForEquipment(bodyweight)
-        assertTrue(free.contains("Pull-ups"))
-        assertFalse(free.contains("Dumbbell Rows"))
-        assertFalse(free.contains("Leg Presses"))
-    }
-
-    @Test
-    fun duplicateAliasesHaveBeenMergedAway() {
-        // Each of these was a second name for an exercise that is already in the
-        // pool under its canonical name, so the picker showed the same movement twice.
-        listOf(
-            "hammer curls", "deadlifts", "romanian deadlifts", "bridges", "skullcrushers",
-            "face pulls", "rope face pulls", "side raises", "dips (bars)", "chest dips (bars)",
-            "good mornings", "inverted curls (bodyweight)", "reverse hypers (glute focus)",
-            "reverse curls", "hip thrusts", "pullovers", "presses", "australian pull-ups (lats)",
-            "lying leg curls", "calf press on leg press"
-        ).forEach { alias ->
-            assertFalse("'$alias' is a duplicate alias that must not be in the pool", alias in pool)
-        }
-    }
-
-    @Test
-    fun theCanonicalSurvivorsAreStillThere() {
-        listOf(
-            "Dumbbell Hammer Curls", "Barbell Deadlifts", "Barbell Romanian Deadlifts",
-            "Glute Bridges", "Barbell Skullcrushers", "Cable Face Pulls",
-            "Dumbbell Lateral Raises", "Dips", "Barbell Good Mornings", "Inverted Curls",
-            "Reverse Hypers", "Barbell Reverse Curls", "Barbell Hip Thrusts", "Inverted Rows"
-        ).forEach { canonical ->
-            assertTrue("'$canonical' must stay in the pool", canonical.lowercase() in pool)
-        }
+        assertTrue(free.contains("Pull-Up"))
+        assertFalse(free.contains("Dumbbell Bicep Curl"))
     }
 
     @Test

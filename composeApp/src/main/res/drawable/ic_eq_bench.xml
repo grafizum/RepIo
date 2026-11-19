@@ -1,0 +1,24 @@
+<?xml version="1.0" encoding="utf-8"?>
+<!-- Flat weight bench, side view: pad pill on two legs. Replaces the sofa icon. -->
+<vector xmlns:android="http://schemas.android.com/apk/res/android"
+    android:width="24dp"
+    android:height="24dp"
+    android:viewportWidth="24"
+    android:viewportHeight="24">
+    <!-- padded bench top -->
+    <path
+        android:fillColor="#FF000000"
+        android:pathData="M5.4,11.2 H18.6 A1.5,1.5 0 0 1 18.6,14.2 H5.4 A1.5,1.5 0 0 1 5.4,11.2 Z" />
+    <!-- legs -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.8"
+        android:strokeLineCap="round"
+        android:pathData="M7,14.2 V19 M17,14.2 V19" />
+    <!-- feet -->
+    <path
+        android:strokeColor="#FF000000"
+        android:strokeWidth="1.6"
+        android:strokeLineCap="round"
+        android:pathData="M5.4,19 H8.6 M15.4,19 H18.6" />
+</vector>

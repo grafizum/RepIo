@@ -1,0 +1,50 @@
+# The week the Pixel generated: 4 days (Mo+Mi+Do+Fr), default kit, Muskelaufbau, Standard, Mittel
+# read from the device database: adb exec-out run-as com.grafizum.repio.debug cat databases/workout_tracker_db
+
+== MONDAY: 9 exercises
+     Barbell Bench Press              Chest                4 x 8–12
+     Barbell Overhead Press           Front Deltoids       3 x 8–12
+     Dumbbell Lateral Raise           Lateral Deltoids     3 x 10–15
+     Close-Grip Bench Press           Triceps              3 x 12–15
+     Bent-Over Barbell Row            Lats                 2 x 12–15
+     Barbell Shrug                    Upper Traps          2 x 12–15
+     Rear Delt Row (Barbell)          Rear Deltoids        2 x 12–15
+     Dumbbell Bicep Curl              Biceps               2 x 12–15
+     Dumbbell Fly                     Chest                2 x 12–15
+== TUESDAY: 0 exercises
+== WEDNESDAY: 9 exercises
+     Barbell Deadlift                 Hamstrings           4 x 8–12
+     Leg Press                        Glutes               3 x 8–12
+     Back Extension                   Spinal Erectors      3 x 10–15
+     Crunches                         Abs                  3 x 12–15
+     Barbell Back Squat               Quadriceps           2 x 12–15
+     Barbell Calf Raise               Calves               2 x 12–15
+     Romanian Deadlift                Hamstrings           2 x 12–15
+     Glute Bridge                     Glutes               2 x 12–15
+     Machine Back Extension           Spinal Erectors      2 x 12–15
+== THURSDAY: 9 exercises
+     Push-Up                          Chest                4 x 8–12
+     Dumbbell Shoulder Press          Front Deltoids       3 x 8–12
+     Barbell Upright Row              Lateral Deltoids     3 x 10–15
+     Dumbbell Tricep Extension        Triceps              3 x 12–15
+     Pull-Up                          Lats                 2 x 12–15
+     Dumbbell Shrug                   Upper Traps          2 x 12–15
+     Dumbbell Face Pull               Rear Deltoids        2 x 12–15
+     Barbell Curl                     Biceps               2 x 12–15
+     Incline Dumbbell Fly             Chest                2 x 12–15
+== FRIDAY: 9 exercises
+     Good Morning                     Hamstrings           4 x 8–12
+     Barbell Hip Thrust               Glutes               3 x 8–12
+     Back Lever                       Spinal Erectors      3 x 10–15
+     Plank                            Abs                  3 x 12–15
+     Barbell Lunge                    Quadriceps           2 x 12–15
+     Dumbbell Calf Raise              Calves               2 x 12–15
+     Nordic Hamstring Curl            Hamstrings           2 x 12–15
+     Machine Hip Abduction            Glutes               2 x 12–15
+     Sphinx Pose                      Spinal Erectors      2 x 12–15
+== SATURDAY: 0 exercises
+== SUNDAY: 0 exercises
+
+WEEKLY SETS PER MUSCLE: {'Chest': 12, 'Hamstrings': 12, 'Glutes': 10, 'Spinal Erectors': 10, 'Front Deltoids': 6, 'Lateral Deltoids': 6, 'Triceps': 6, 'Abs': 6, 'Lats': 4, 'Upper Traps': 4, 'Rear Deltoids': 4, 'Biceps': 4, 'Quadriceps': 4, 'Calves': 4}
+SESSIONS PER MUSCLE: {'Abs': 2, 'Biceps': 2, 'Calves': 2, 'Chest': 2, 'Front Deltoids': 2, 'Glutes': 2, 'Hamstrings': 2, 'Lateral Deltoids': 2, 'Lats': 2, 'Quadriceps': 2, 'Rear Deltoids': 2, 'Spinal Erectors': 2, 'Triceps': 2, 'Upper Traps': 2}
+total exercises: 36
